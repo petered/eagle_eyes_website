@@ -1,6 +1,6 @@
 ---
-layout: redirected
+layout: redirect
 sitemap: false
-permalink: /from_app
+permalink: /from_app/
 redirect_to:  /
 ---
