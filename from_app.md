@@ -15,10 +15,11 @@ permalink: /from_app/
     <div class="spacer_cell"></div>
     <div class="demo_cell">
         <div class="caption">
-            <b> Image-warping on live video </b>
-            This is a screen recording from the EagleEyes app while flying the drone.   In this demo, EagleEyes uses pixel-warping to enhance a hard-to-see person.
+            <b> App Intro </b>
+            In this live demo, we show how the Eagle Eyes App can be used to locate a person, save the location and images, and send a message with the coordinates of the detection.
         </div>
          <iframe src="https://drive.google.com/file/d/1a1RESg2Fp1_N822ChuDDpE1nlNLAgMXA/preview" width="100%" style="aspect-ratio:1.78" allow="autoplay"></iframe>
         <br/>
     </div>
+    <div class="spacer_cell"></div>
 </div>
