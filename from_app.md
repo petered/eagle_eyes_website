@@ -18,7 +18,7 @@ permalink: /from_app/
             <b> App Intro </b>
             In this live demo, we show how the Eagle Eyes App can be used to locate a person, save the location and images, and send a message with the coordinates of the detection.
         </div>
-         <iframe src="https://drive.google.com/file/d/1a1RESg2Fp1_N822ChuDDpE1nlNLAgMXA/preview" width="100%" style="aspect-ratio:1.78" allow="autoplay"></iframe>
+         <div style="width:100%;height:0px;position:relative;padding-bottom:56.250%;"><iframe src="https://streamable.com/e/iyja1h" frameborder="0" width="100%" height="100%" allowfullscreen style="width:100%;height:100%;position:absolute;left:0px;top:0px;overflow:hidden;"></iframe></div>
         <br/>
     </div>
     <div class="spacer_cell"></div>
