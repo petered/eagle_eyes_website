@@ -2,7 +2,7 @@
 layout: post
 title: "Comparing computer vision tools for Search and Rescue"
 image: "/images/blog/drones-in-them-hills.jpg"
-date:   2023-03-14 16:09:00 -0800
+date:   2023-03-15 16:46:00 -0800
 author: Peter O'Connor
 permalink: /blog/comparison
 categories: jekyll update
