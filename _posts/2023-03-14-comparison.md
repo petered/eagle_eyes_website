@@ -125,7 +125,7 @@ best in dry environments on cold, cloudy days, when there is little temperature 
 and the body heat of a person stands out clearly.  It can be nearly useless in hot, sunny environments, where 
 the temperature variation between hot rocks and cool shadows can easily drown out the heat signature of a person.
 
-Unmanned Systems Research's (the creators of Loc8) have also released the Radiometric Data Toolset (RDT) , 
+Unmanned Systems Research (the creators of Loc8) have also released the Radiometric Data Toolset (RDT) , 
 a separate tool for detecting people (and in general, small warm objects), in thermal imagery, by looking for small 
 patches of heat.  It scans through thermal images collected from DJI M300 or M30T drones.
 
