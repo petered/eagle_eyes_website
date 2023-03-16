@@ -8,11 +8,12 @@ permalink: /blog/comparison
 categories: jekyll update
 ---
 
-As the daylight starts to fade, two hikers huddle under a tree somewhere in Beus Canyon, Utah.
-For hours, they have been searching for a way out of the canyon.  They are cold, they are lost, and 
+As the daylight starts to fade, two women huddle under a tree somewhere in Beus Canyon, Utah.
+What started as a simple day hike has turned into a desperate situation.  For hours, these hikers have been searching 
+for a way out of the canyon.  They are cold, they are lost, and 
 the sun is setting fast.  Suddenly, the familiar buzz of a drone appears overhead.  The sound, normally an 
 irritating reminder of the gradual encroachment of technology into nature, now comes as a welcome relief. 
-After hours stuck in the steep, snowy cliffs, Weber County Search and Rescue has come to bring these hikers home.
+After hours stuck in the steep, snowy cliffs, Weber County Search and Rescue has come to bring these hikers to safety.
 
 [Stories like this](https://www.fox13now.com/news/local-news/stranded-hikers-spotted-by-drone-rescued-by-sar-volunteers-and-helicopter){:target="_blank"}
 are becoming increasingly common as more Search and Rescue (SAR) teams use drones to locate missing persons, scan terrain
@@ -65,22 +66,22 @@ Let's introduce the contenders.
 |-----------------------------------------------------------------------------|-------------|
 | <img src="/images/blog/loc8logo.png" alt="Loc8" width="100"/>               | **<a href="https://www.usri.ca/" target="_blank">Loc8</a>** is a software tool that scans through drone images for small objects of particular colours.  It is probably the most widely used computer vision tool by SAR teams today. |
 | <img src="/images/blog/searchlightlogo.png" alt="SearchLight" width="100"/> | **<a href="https://www.sartechnology.ca/sartechnology/searchlight/Searchlight.html" target="_blank">SearchLight</a>** is an online tool to which you can submit images for scanning.  It uses an object-detection model that looks for people, crashed aircraft, vehicles, etc. in images. |
-| <img src="/images/blog/saruavlogo.png" alt="SARUAV" width="100"/>           | **<a href="https://www.saruav.pl/" target="_blank">SARUAV</a>** is a startup that emerged from a 7 year industry-university co-op in Poland.  The tool has been used by a few SAR teams in Poland and Germany, and may be behind the <a href="https://www.mdpi.com/2072-4292/13/23/4903" target="_blank">first successful rescue</a> of a person using a computer vision system it uses a deep "object-detection" based approach similar to Searchlight. |
+| <img src="/images/blog/saruavlogo.png" alt="SARUAV" width="100"/>           | **<a href="https://www.saruav.pl/" target="_blank">SARUAV</a>** is a startup that emerged from a 7 year industry-university co-op in Poland.  The tool has been used by a few SAR teams in Poland and Germany, and may be behind the <a href="https://www.mdpi.com/2072-4292/13/23/4903" target="_blank">first successful rescue</a> of a person using a computer vision system.  It uses a deep "object-detection" based approach similar to Searchlight. |
 | <img src="/images/blog/eaglelogo.png" alt="EagleEyes" width="100"/>         | **<a href="https://www.eagleeyessearch.com/" target="_blank">Eagle Eyes</a>** is a new tool on the market.  It finds small "unusual" objects in both live streaming video from the drone, and recordings after the fact, using colour and motion.  It consists of _Eagle Eyes Pilot_ - a drone-piloting app with live detection, and _Eagle Eyes Scan_ - a tool for detection on video/images. |
 
 
 ## The Basics
 
 
-| Feature                     | Loc8                               | SearchLight                                | SARUAV                | EagleEyes                 |
-|-----------------------------|------------------------------------|--------------------------------------------|-----------------------|---------------------------|
-| Input format                | Images                             | Images                                     | Nadir Images          | Images/Videos             |
-| Live detection while flying | ❌                                  | ❌                                          | ❌                     | ✅                         |
-| Thermal                     | ✅ (with RDT kit)                   | ❌                                          | ❌                    | ⏳                         |
-| Works offline (no internet) | ✅                                  | ❌                                          | ✅                     | ✅                         |
-| Platform                    | Windows                            | Web Browser                                | Windows               | Windows/Mac/Android       |
-| Approach                    | Color-Filter                       | Deep-person-detection                      | Deep-person-detection | Color/Motion-Anomaly      |
-| Cost (USD/year)             | $699 / $1199 <br/>(Non-profit / profit) | $588 / $1140 <br/> (Visual/Visual+Thermal) | (Unknown-contact them) | Free during alpha-testing |
+| Feature                     | Loc8                               | SearchLight                               | SARUAV                  | EagleEyes                 |
+|-----------------------------|------------------------------------|-------------------------------------------|-------------------------|---------------------------|
+| Input format                | Images                             | Images                                    | Nadir Images            | Images/Videos             |
+| Live detection while flying | ❌                                  | ❌                                         | ❌                       | ✅                         |
+| Thermal                     | ✅ (with RDT kit)                   | ❌                                         | ❌                       | ⏳                         |
+| Works offline (no internet) | ✅                                  | ❌                                         | ✅                       | ✅                         |
+| Platform                    | Windows                            | Web Browser                               | Windows                 | Windows/Mac/Android       |
+| Approach                    | Color-Filter                       | Deep-person-detection                     | Deep-person-detection   | Color/Motion-Anomaly      |
+| Cost (USD/year)             | $699 / $1199 <br/>(Visual/Visual+Thermal) | $588 / $1140 <br/>(Non-profit / profit) | (Unknown: contact them) | Free during alpha-testing |
 
 
 
@@ -94,13 +95,13 @@ Images usually have higher resolution, meaning it's possible to see smaller or m
 Moreover, the standard 30 frames per second of video is often more than necessary to capture what needs
 to be seen - good coverage of each point on the terrain from a few different viewpoints.
 
-However there are a few advantages to video.  For one - motion can be a powerful cue the subject is conscious and 
+However there are a few advantages to video.  For one - motion can be a powerful cue when the subject is conscious and 
 able to move.  They may be walking or waving in response to the sound of the drone.  This is especially important
 when the colours that the person is wearing are similar to the colours of the surrounding terrain. 
 
 A second advantage of video comes when flying over forest or dense foliage.  In these cases, you often 
 get only very brief glimpses of things under the tree canopy.  With video, you are much more likely to capture 
-these fleeting glimpses than with a series of images. 
+these fleeting glimpses than with a series of images spaced several seconds apart.
 
 
 
@@ -114,6 +115,8 @@ boxes around any objects deemed sufficiently "unusual" by the computer vision sy
   <img src="/images/blog/eagle-eyes-pilot-screenshot.jpg" alt="Eagle Eyes Pilot" width="60%">
   <br/>
   The Eagle Eyes Pilot app shows a detection box over the live video feed.
+    <br/>
+  Here, the app detects a test dummy based on the red snowpants.
 </p>
 
 
@@ -121,12 +124,12 @@ boxes around any objects deemed sufficiently "unusual" by the computer vision sy
 ## Thermal
 
 Thermal imagery can be a powerful tool for SAR, but its usefulness greatly depends on environment.  It performs
-best in dry environments on cold, cloudy days, when there is little temperature variation in the environment, 
+best on cold, cloudy days, when there is little temperature variation in the environment, 
 and the body heat of a person stands out clearly.  It can be nearly useless in hot, sunny environments, where 
 the temperature variation between hot rocks and cool shadows can easily drown out the heat signature of a person.
 
 Unmanned Systems Research (the creators of Loc8) have also released the Radiometric Data Toolset (RDT) , 
-a separate tool for detecting people (and in general, small warm objects), in thermal imagery, by looking for small 
+a separate tool for detecting people (and in general, warm objects), in thermal imagery, by looking for small 
 patches of heat.  It scans through thermal images collected from DJI M300 or M30T drones.
 
 Eagle Eyes allows the user to view thermal imagery both live via the piloting app, and after the fact in the
@@ -135,15 +138,15 @@ a suspected detection in one modality against the other.  At time of writing, Ea
 automatic detection from thermal imagery, but it is in the pipeline. 
 
 
-| Loc8 (RDT Kit)                                                            | Eagle Eyes                                                                                                                              |
-|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| <img src="/images/blog/usr-rdt-screenshot.png" alt="Loc8" width="500px"/> | <img src="/images/blog/eagle-eyes-pilot-thermal.png" alt="Eagle Eyes Pilot" width="500px"/>                                             |
-| A screenshot from Loc8's Radiometric Data Toolset                         | Eagle Eyes Pilot showing displays thermal imagery from a DJI ME2 Thermal Drone.  <br/>The heat-blob near the edge of the forest is a person. |
+| Loc8 (RDT Kit)                                                                                    | Eagle Eyes                                                                                                                              |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| <img src="/images/blog/usr-rdt-screenshot.png" alt="Loc8" width="500px"/>                         | <img src="/images/blog/eagle-eyes-pilot-thermal.png" alt="Eagle Eyes Pilot" width="500px"/>                                             |
+| A screenshot from Loc8's Radiometric Data Toolset, showing the detection of a hand-warmer packet. | Eagle Eyes Pilot showing displays thermal imagery from a DJI ME2 Thermal Drone.  The heat-blob near the edge of the forest is a person. |
 
 
 ## Platform
 
-_Searchlight_ is a web-based tool, and can be used on any platform with a modern web browser, but requires an internet connection.  
+_Searchlight_ is a web-based tool, and can be used on any platform with a web browser, but requires an internet connection.  
 _Loc8_ and _SARUAV_ are Windows-only tools.  
 _Eagle Eyes Scan_, the tool from Eagle Eyes for scanning through recorded images and video, 
 is available for MacOS and Windows.  
@@ -187,8 +190,8 @@ around the world.
 
 
 **Searchlight** uses a deep-learning based approach.  The model has been trained on images 
-of downed aircraft, hikers, etc.  You are able to chose what type of object you are looking, or search 
-by colour-palette, and you can define a "confidence threshhold".  The tool uses a web-based interface, 
+of downed aircraft, hikers, etc.  You are able to chose what type of object you are looking for, or search 
+by colour-palette, and you can define a "confidence threshold".  The tool uses a web-based interface, 
 where you can submit a folder of images for processing.  This, as mentioned before, has the disadvantage 
 that you need an internet connection to use it.  
 
@@ -218,7 +221,7 @@ launched to fly a path of the search area, take a series of images, then run the
 **Comments**: The provided video appears to demonstrate the software being used in the field by a real SAR team.
 And based on [this paper](https://www.mdpi.com/2072-4292/13/23/4903#B21-remotesensing-13-04903){:target="_blank"}
 it appears that the software has directly contributed to the rescue of a person.  However, there are few demos available
-online, and it is very hard to judge based on the limited evidence whether SARUAV is a complete, deployable tool.
+online, and it is hard to judge based on the limited evidence whether SARUAV is a complete, deployable tool.
 
 
 
@@ -249,8 +252,8 @@ The tools obviously have their various advantages and drawbacks, but at the same
 performing a similar task - finding people in the wilderness - and they should be comparable in principle.
 
 In the world of computer vision - you compare things by having a standard dataset, defining a scoring function, 
-and then comparing the scores of different models on that dataset.  Setting this up is a non-trivial task, with 
-a lot of gotchas, and may well be the subject of a future blog post.
+and then comparing the scores of different models on that dataset.  Setting up a proper benchmark for comparison 
+is a non-trivial task, with a lot of gotchas, and may well be the subject of a future blog post.
 
 <!--
 In the meantime, here are some things that we would have to consider even if we did have a dataset 
@@ -274,18 +277,18 @@ and a formal way to compare models:
 ## Conclusions
 
 
-Loc8 is an impressive and fairly mature tool with a record of use in the field.  On the downside, it may require extensive 
+**Loc8** is an impressive and fairly mature tool with a record of use in the field.  It can require extensive 
 tuning to work well in a given environment, but can provide impressive results when the filters are tuned appropriately.
 
-Searchlight and SARUAV both may have use, but really need more compelling demos to show their value.
+**Searchlight** and **SARUAV** both may have use, but really need more compelling demos to show their value.
 
-Eagle Eyes is the only tool that works live, while flying the drone, and may or may not be an improvement over Loc8
+**Eagle Eyes** is the only tool that works live, while flying the drone, and may or may not be an improvement over Loc8
 when scanning recorded images and video.  While it has fewer customization options than Loc8, it appears 
 to be significantly easier to use for scanning video.
 
-Currently, there is no way to do an apples-to-apples comparison between these models.  
-For now, you will have to try these different tools for yourself to see what suits you best.  Fortunately, for Eagle 
-Eyes - you can try it for free if you sign up as an alpha-tester.  [Click here]("https://forms.gle/C6zmhQBYRPzKUJ6G7") 
+Currently, since there is no way to do an apples-to-apples comparison between these models, you will have to try these 
+different tools for yourself to see what suits you best.  Fortunately, for **Eagle 
+Eyes** - you can try it for free if you sign up as an alpha-tester.  [Click here]("https://forms.gle/C6zmhQBYRPzKUJ6G7") 
 to request a free trial of the Eagle Eyes software.  
 
 
