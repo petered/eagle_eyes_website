@@ -8,8 +8,8 @@ permalink: /blog/comparison
 categories: jekyll update
 ---
 
-As the daylight starts to fade, two women huddle under a tree somewhere in Beus Canyon, Utah.
-What started as a simple day hike has turned into a desperate situation.  For hours, these hikers have been searching 
+As the daylight starts to fade, two hikers huddle under a tree somewhere in Beus Canyon, Utah.
+What started as a simple day hike has turned into a desperate situation.  For hours, these two have been searching 
 for a way out of the canyon.  They are cold, they are lost, and 
 the sun is setting fast.  Suddenly, the familiar buzz of a drone appears overhead.  The sound, normally an 
 irritating reminder of the gradual encroachment of technology into nature, now comes as a welcome relief. 
