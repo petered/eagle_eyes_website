@@ -288,7 +288,7 @@ to be significantly easier to use for scanning video.
 
 Currently, since there is no way to do an apples-to-apples comparison between these models, you will have to try these 
 different tools for yourself to see what suits you best.  Fortunately, for **Eagle 
-Eyes** - you can try it for free if you sign up as an alpha-tester.  [Click here]("https://forms.gle/C6zmhQBYRPzKUJ6G7") 
+Eyes** - you can try it for free if you sign up as an alpha-tester.  [Click here](https://forms.gle/C6zmhQBYRPzKUJ6G7) 
 to request a free trial of the Eagle Eyes software.  
 
 
