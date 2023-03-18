@@ -298,5 +298,3 @@ to request a free trial of the Eagle Eyes software.
 In case you did not find the person in that picture at the top of this article - no problem, Eagle Eyes has your back:
 
 <img src="/images/demos/image_1_boxed.jpg" alt="Missing Person" width="100%"/>
-
-
