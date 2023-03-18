@@ -8,12 +8,12 @@ permalink: /blog/comparison
 categories: jekyll update
 ---
 
-As the daylight starts to fade, two hikers huddle under a tree somewhere in Beus Canyon, Utah.
+As the daylight starts to fade, two hikers huddle under a tree somewhere in the wilderness of Beus Canyon, Utah.
 What started as a simple day hike has turned into a desperate situation.  For hours, these two have been searching 
-for a way out of the canyon.  They are cold, they are lost, and 
-the sun is setting fast.  Suddenly, the familiar buzz of a drone appears overhead.  The sound, normally an 
+for a way out.  They are cold, they are lost, and 
+the sun is setting fast.  Suddenly, the familiar buzz of a drone appears overhead.  That sound, normally an 
 irritating reminder of the gradual encroachment of technology into nature, now comes as a welcome relief. 
-After hours stuck in the steep, snowy cliffs, Weber County Search and Rescue has come to bring these hikers to safety.
+After hours stuck in the steep, snowy cliffs, Weber County Search and Rescue has come to bring these hikers home.
 
 [Stories like this](https://www.fox13now.com/news/local-news/stranded-hikers-spotted-by-drone-rescued-by-sar-volunteers-and-helicopter){:target="_blank"}
 are becoming increasingly common as more Search and Rescue (SAR) teams use drones to locate missing persons, scan terrain
@@ -73,21 +73,21 @@ Let's introduce the contenders.
 ## The Basics
 
 
-| Feature                     | Loc8                               | SearchLight                               | SARUAV                  | EagleEyes                 |
-|-----------------------------|------------------------------------|-------------------------------------------|-------------------------|---------------------------|
-| Input format                | Images                             | Images                                    | Nadir Images            | Images/Videos             |
-| Live detection while flying | ❌                                  | ❌                                         | ❌                       | ✅                         |
-| Thermal                     | ✅ (with RDT kit)                   | ❌                                         | ❌                       | ⏳                         |
-| Works offline (no internet) | ✅                                  | ❌                                         | ✅                       | ✅                         |
-| Platform                    | Windows                            | Web Browser                               | Windows                 | Windows/Mac/Android       |
-| Approach                    | Color-Filter                       | Deep-person-detection                     | Deep-person-detection   | Color/Motion-Anomaly      |
-| Cost (USD/year)             | $699 / $1199 <br/>(Visual/Visual+Thermal) | $588 / $1140 <br/>(Non-profit / profit) | (Unknown: contact them) | Free during alpha-testing |
+| Feature                         | Loc8                                      | SearchLight                               | SARUAV                  | EagleEyes                 |
+|---------------------------------|-------------------------------------------|-------------------------------------------|-------------------------|---------------------------|
+| **Input format**                | Images                                    | Images                                    | Nadir Images            | Images/Videos             |
+| **Live detection while flying** | ❌                                         | ❌                                         | ❌                       | ✅                         |
+| **Thermal**                     | ✅ (with RDT kit)                          | ❌                                         | ❌                       | ⏳                         |
+| **Works offline**               | ✅                                         | ❌                                         | ✅                       | ✅                         |
+| **Platform**                    | Windows                                   | Web Browser                               | Windows                 | Windows/Mac/Android       |
+| **Approach**                    | Colour-Filter                             | Deep-person-detection                     | Deep-person-detection   | Colour/Motion-Anomaly     |
+| **Cost (USD/year)**             | $699 / $1199 <br/>(Visual/Visual+Thermal) | $588 / $1140 <br/>(Non-profit / profit) | (Unknown: contact them) | Free during alpha-testing |
 
 
 
 ## Input format 
 
-All of these tools take as input a set of images or as input.  SARUAV specifies that these images should 
+All of these tools can take set of images as input.  SARUAV specifies that these images should 
 be in the "Nadir" view - (ie looking down).  Eagle Eyes also accepts videos.  
 
 For Search and Rescue purposes, a collection of overlapping images is often better than videos. 
@@ -206,12 +206,12 @@ the tool from being used in the field.  Second, the need to upload images presen
 often are required to keep images private - as they are often property of the local police force and may be evidence 
 in an investigation.  Third is the lack of compelling demos.  The images shown in the demos and website 
 are high-res images of objects that would be easily found by eye anyway - it is not clear how the tool performs in 
-the more realistic scenarios where the object is just a small colour blob in a large image.
+the more realistic scenarios where the object is just a small blob of pixels in a large image.
 
 
 ### SARUAV
 
-This short demo of the SAR-UAV system.  It shows a mock SAR operation being done by team in Poland.  The drone is first
+This demo video shows the SAR-UAV system.  It shows a mock SAR operation, where the drone is first
 launched to fly a path of the search area, take a series of images, then run them through the detection system.
 
 <p align="center">
@@ -219,7 +219,7 @@ launched to fly a path of the search area, take a series of images, then run the
 </p>
 
 **Comments**: The provided video appears to demonstrate the software being used in the field by a real SAR team.
-And based on [this paper](https://www.mdpi.com/2072-4292/13/23/4903#B21-remotesensing-13-04903){:target="_blank"}
+Based on [this paper](https://www.mdpi.com/2072-4292/13/23/4903#B21-remotesensing-13-04903){:target="_blank"}
 it appears that the software has directly contributed to the rescue of a person.  However, there are few demos available
 online, and it is hard to judge based on the limited evidence whether SARUAV is a complete, deployable tool.
 
@@ -228,9 +228,10 @@ online, and it is hard to judge based on the limited evidence whether SARUAV is 
 ### EagleEyes
 
 Eagle Eyes scans a video-stream for colour-anomalies and isolated moving objects.  The app comes in two forms.
-_Eagle Eyes Pilot_ Is an android app for piloting the drone, showing detection on the live video stream, and
-_Eagle Eyes Scan_, which runs the detection algorithm offline on recorded video.  The algorithm is more of a
-"black box" than Loc8, presenting the user with just a single threshold to tune.  It presents the user with a
+_Eagle Eyes Pilot_ is an Android app for piloting the drone, showing detection on the live video stream, and
+_Eagle Eyes Scan_ is a Windows/MacOS desktop app which runs the detection algorithm offline on recorded video. 
+The algorithm is more of a "black box" than Loc8, presenting the user with just a single threshold to tune.  It looks 
+for colour-and-motion anomalies - things that just "don't fit in" to the scene. Eagle Eyes presents the user with a
 ranked list of detections, linked to the GPS coordinates of the drone at the time of detection.
 
 <p align="center">
@@ -238,7 +239,7 @@ ranked list of detections, linked to the GPS coordinates of the drone at the tim
 </p>
 
 **Comments**: The demos make it clear that Eagle Eyes definitely finds things that would be difficult to find by eye.
-The tools appears to be easier to get started with than Loc8, but is less customizable, which may matter in situations where
+The tool appears to be easier to get started with than Loc8, but is less customizable, which may matter in situations where
 you have a specific idea of what you are looking for.  Some demos show that the system also produces false-positives,
 which the operator needs to dismiss manually.
 
