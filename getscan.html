@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Prompt</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+<h1>Enter the password to access Eagle Eyes Scan</h1>
+<form onsubmit="decryptAndRedirect(event)">
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
+    <button type="submit">Submit</button>
+</form>
+
+<script>
+    // Replace this with your encrypted URL
+    const encryptedUrl = 'U2FsdGVkX1+xAaoVwv92jBS3fQkWDQByWPofuXax1MZAnv5AjdhUuMCvZM53/ISNZr4adZ1N3diYqkOqW0kYOTnPNyRm5zIO312Q1pPiMTB6//bFMYMJ9+8ur56rmHOckdWB7ZO5zZVJUS7jmpjKhQ==';
+
+    function decryptAndRedirect(event) {
+        event.preventDefault();
+        const password = document.getElementById('password').value;
+
+        try {
+            const decryptedUrl = CryptoJS.AES.decrypt(encryptedUrl, password).toString(CryptoJS.enc.Utf8);
+
+            // Check if the decrypted string is a valid URL
+            if (isValidUrl(decryptedUrl)) {
+                window.location.href = decryptedUrl;
+            } else {
+                alert('Incorrect password, please try again.');
+            }
+        } catch (error) {
+            alert('An error occurred. Please try again.');
+        }
+    }
+
+    function isValidUrl(url) {
+        try {
+            new URL(url);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+</script>
+</body>
+</html>
+
+
+
+
+</body>
+
