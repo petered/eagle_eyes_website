@@ -1,0 +1,967 @@
+---
+layout: ee_page_layout
+title: Eagle Eyes - Licensing Plans
+permalink: /get_licensed/
+---
+
+<head>
+
+    <title>Eagle Eyes - Get a License token</title>
+
+    To run Eagle Eyes Scan - you need to enter a license-token into the app.
+    You can enter it by pressing the "🔑" button. The license token is a
+    unique code that lets you use the app on a specific machine for a specific
+    amount of time.
+    <br />
+    <br />
+    You can get a license token by purchasing a license, then requesting a token
+    from that license. You can do that all from this webpage.
+
+
+    <!-- Include Firebase SDK -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+    <style>
+        .info-box {
+            background-color: #e0f7fa;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .error-box {
+            background-color: #ffcccb;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .expandable-menu {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .expandable-menu .menu-title {
+            cursor: pointer;
+            position: relative;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .expandable-menu .menu-title::before {
+            content: '▼';
+            /* dropdown arrow */
+            font-size: 12px;
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.3s ease;
+        }
+
+        .expandable-menu .menu-title.collapsed::before {
+            transform: translateY(-50%) rotate(-90deg);
+            /* arrow pointing right when collapsed */
+        }
+
+
+        button {
+            background-color: #4499cc;
+            /* Faded blue */
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .non_important_button {
+            background-color: #6c6c6c;
+        }
+
+        button:hover {
+            background-color: #3e8ebe;
+            /* Darker blue */
+        }
+
+        .menu-title {
+            display: flex;
+            /* Use flexbox for layout */
+            align-items: center;
+            /* Align items vertically */
+            justify-content: space-between;
+            /* Space between title and button */
+            cursor: pointer;
+            /* Optional: indicates the title is clickable */
+        }
+
+        .menu-title button {
+            cursor: pointer;
+            /* Indicates the button is clickable */
+            margin: 0;
+            /* Adjusts margin to better align with the text */
+            padding: 0 8px;
+            /* Adjust padding to your liking */
+            background: none;
+            /* Removes default background */
+            border: none;
+            /* Removes default border */
+            font-size: 1em;
+            /* Adjust the font size to match your title */
+        }
+
+
+        .menu-content {
+            display: none;
+            padding-top: 10px;
+            display: flex;
+            /* Enables flexbox */
+            align-items: stretch;
+            /* Stretch items to fill the container vertically */
+        }
+
+        .left-column {
+            flex-grow: 1;
+            /* Allows the column to take up the available space */
+            display: flex;
+            /* Enables flexbox for the column */
+            flex-direction: column;
+            /* Stack children vertically */
+            justify-content: space-around;
+            /* Distributes space around items */
+            margin-right: 10px;
+            /* Optional: Adds some space between the column and the button */
+        }
+
+        #copy-btn {
+            height: 100%;
+            /* Fill the full vertical space */
+            flex-grow: 0;
+            /* Do not allow the button to grow */
+            flex-shrink: 0;
+            /* Prevent the button from shrinking */
+            align-self: stretch;
+            /* Stretch the button to fill the container */
+        }
+    </style>
+
+    <script>
+        // Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
+            authDomain: "eagleeyessearch.firebaseapp.com",
+            projectId: "eagleeyessearch",
+            storageBucket: "eagleeyessearch.appspot.com",
+            messagingSenderId: "983592831720",
+            appId: "1:983592831720:web:57b3880d0185ea3110575d",
+            measurementId: "G-J057SPR81M"
+        };
+
+        var machineId = getMachineIdFromURL();
+
+        var user = null;
+
+        var globalData = null;
+
+        console.log("Machine ID: " + machineId);
+
+        thisURLwithJustMachineIDArg = window.location.origin + '/get_licensed/?machine_id=' + machineId;
+
+        // Wait for the HTML to load
+        document.addEventListener("DOMContentLoaded", function () {
+            // Display the machine ID in the HTML
+            document.getElementById('machine-id').textContent = machineId;
+        });
+
+        function getMachineIdFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('machine_id');
+        }
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        function signInWithGoogle() {
+            var provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('email');
+            firebase.auth().signInWithPopup(provider).then(function (result) {
+                user = result.user;
+                updateUserDisplay(user);
+                checkLicence(user); // Call checklicence after successful login
+            }).catch(function (error) {
+                console.error('Error during Google sign in: ', error);
+            });
+        }
+
+        // function signInWithEmailPassword() {
+        //     var email = document.getElementById('email').value;
+        //     var password = document.getElementById('password').value;
+
+        //     firebase.auth().signInWithEmailAndPassword(email, password)
+        //         .then((userCredential) => {
+        //             user = userCredential.user;
+        //             updateUserDisplay(user);
+        //             checkLicence(user); // Call checklicence after successful login
+        //         })
+        //         .catch((error) => {
+        //             console.error('Error during Email sign in: ', error);
+        //         });
+        // }
+
+        function signInWithEmailLink() {
+            var email = document.getElementById('email').value;
+            var baseURL = window.location.origin;
+            var actionCodeSettings = {
+                // Make sure this URL is the URL of the page where you will handle the sign-in link
+                // url: 'https://www.eagleeyessearch.com/get_licensed/?machine_id=LFXRYD6HOYA',
+                //url: 'http://localhost:4001/get_licensed/?machine_id=LFXRYD6HOYA',
+                url: `${baseURL}/get_licensed/?machine_id=${machineId}`,
+                handleCodeInApp: true
+            };
+
+            firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+                .then(() => {
+                    window.localStorage.setItem('emailForSignIn', email);
+
+                    // Now, replace sign-in-div with an info box telling the user to check their email
+                    var signInDiv = document.getElementById('sign-in-div');
+                    signInDiv.innerHTML = 'Sign-in link sent to ' + email +
+                        ".  Be sure to check your spam folder if you don't see it in your inbox." +
+                        "<br/><br/>You can now close this tab.";
+
+                    // And give it a light-blue background to draw attention
+                    signInDiv.classList.add('info-box');
+
+                    console.log('Sign-in email sent to ' + email);
+                    // alert('Sign-in email sent to ' + email + ".  Be sure to check your spam folder if you don't see it in your inbox.");
+                })
+                .catch((error) => {
+                    console.error('Error sending sign-in email: ', error);
+                });
+        }
+
+        // Call this function on the page where users are redirected after clicking the sign-in link
+        function completeSignInWithEmailLinkIfApplicable() {
+            if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+                // Get the email if it's saved in local storage
+                var email = window.localStorage.getItem('emailForSignIn');
+                if (!email) {
+                    // User opened the link on a different device. You will need to prompt them for their email
+                    email = window.prompt('Please provide your email for confirmation');
+                }
+
+                firebase.auth().signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        window.localStorage.removeItem('emailForSignIn'); // Clear the email from local storage
+
+                        // User is signed in
+                        var user = result.user;
+                        console.log('User signed in: ', user);
+                        updateUserDisplay(user);
+                        checkLicence(user); // Call checkLicence after successful login
+
+                        // Optional: Redirect to another page after successful sign in
+                    })
+                    .catch((error) => {
+                        console.error('Error during Email Link sign in: ', error);
+
+                        // Make the sign-in div an error class and display the error
+                        var signInDiv = document.getElementById('sign-in-div');
+                        signInDiv.innerHTML = 'Error during Email Link sign in.  Most likely, the link has been used already or is expired.  Please try again, and contact info@eagleeyessearch.com if you continue to have trouble.';
+                        signInDiv.classList.add('error-box');
+                        // And add a button to reload the page with just the machine_id (ie thisURLwithJustMachineIDArg)
+                        signInDiv.innerHTML += '<br/><button onclick="location.href = \'' + thisURLwithJustMachineIDArg + '\'">Reload</button>';
+
+                    });
+            }
+        }
+
+        // Make sure to call completeSignInWithEmailLink() on the page load of your /get_licensed/ URL
+        // window.onload = function () {
+        //     completeSignInWithEmailLinkIfApplicable();
+        // };
+
+
+        function updateUserDisplay(user) {
+
+            document.getElementById('user-info').innerHTML = 'Signed in as: ' + user.email + ' ( ' + user.displayName + ' )';
+            // Give it that nice blue background by turning it into a .info-box
+            document.getElementById('user-info').classList.add('info-box')
+                ;
+            document.getElementById('sign-in-div').style.display = 'none';
+            // document.getElementById('email-sign-in-form').style.display = 'none';
+            // Add a button to "change user" which just reloads this page from scratch - with the machine ID
+            document.getElementById('user-info').innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Change user</button>';
+        }
+
+        function reCheckLicence() {
+            // First, temporarily hide the licenses section
+            document.getElementById('licenses').hidden = true;
+            // Wait 1/4 second so the user sees the section disappear
+            setTimeout(function () {
+                // Then, re-check the licence
+                checkLicence(user);
+            }, 250);
+            // Then, re-check the licence
+            checkLicence(user);
+        }
+
+        function filterDataForTier(licenceAndTokenData, tier) {
+            // Filter the data to only include licenses and tokens for the specified tier
+
+            var filteredData = {};
+            filteredData.licenses_and_dispensed = {};
+            filteredData.tokens_and_codes = {};
+            for (var licenceId in licenceAndTokenData.licenses_and_dispensed) {
+                var licence = licenceAndTokenData.licenses_and_dispensed[licenceId].license;
+                if (licence.tier.toLowerCase() === tier.toLowerCase()) {
+                    filteredData.licenses_and_dispensed[licenceId] = licenceAndTokenData.licenses_and_dispensed[licenceId];
+                }
+            }
+            for (var tokenId in licenceAndTokenData.tokens_and_codes) {
+                var tokenAndCode = licenceAndTokenData.tokens_and_codes[tokenId];
+                if (tokenAndCode.token.tier.toLowerCase() === tier.toLowerCase()) {
+                    filteredData.tokens_and_codes[tokenId] = tokenAndCode;
+                }
+            }
+            return filteredData;
+        }
+
+        function copyTextToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function () {
+                console.log('Async: Copying to clipboard was successful!');
+            }, function (err) {
+                console.error('Async: Could not copy text: ', err);
+            });
+        }
+
+        function licenseTokenToString(token) {
+            return `Tier: ${token.tier}\nEmail: ${token.email}\nMachine ID: ${token.machine_id}\nExpiry: ${token.expiry_date}`;
+        }
+
+        // function sendTokenAndCodeToUserEmail(tokenAndCode) {
+        //     // Send the token and code to the user's email
+        //     // First, get the user's ID token
+
+        //     user.getIdToken().then(function (idToken) {
+        //         // Then, send a request to the cloud function to send the token and code to the user's email
+        //         var fetch_url = 'http://
+
+        function onNewKeyReceived(tokenAndCodeJSONString) {
+            // When a new key is received, re-check the licence
+            let tokenAndCode = JSON.parse(tokenAndCodeJSONString);
+            let code = tokenAndCode.code;
+            let token = tokenAndCode.token;
+
+            $('#key-view').css('display', 'block');
+            $('#license-info').val(licenseTokenToString(token));
+            $('#license-key').val(code);
+
+            // Copy the code to the clipboard
+            copyTextToClipboard(code);
+            $('#license-key-status').text("Key " + code.slice(0, 10) + '...' + " has been copied to the clipboard. You can now paste it into the Eagle Eyes app.").addClass('info-box');
+            // Copy button 
+            $('#license-key-copy-button').text('Copy Key Again');
+
+            console.log("Showed new key: ", code.slice(0, 10) + '...');
+
+            // alert('New key received.  Code ' + code.slice(0, 10) + '... has been copied to the clipboard.  You can now paste it into the Eagle Eyes app.');
+            // Scroll to the bottom of the page
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function getKeyForThisLicense(licenseID) {
+            // Get the key for this license
+            // First, get the user's ID token
+            // We're calling the "request_token_from_license" cloud function with args machine_id and license_id
+            console.log('Requesting key for license ID: ', licenseID);
+            // First - lets check if there is already a key for this license on this machine
+            console.log('Global data: ', globalData);
+            console.log('Tokens and codes: ', globalData.tokens_and_codes);
+            allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+            isThereAlreadyAKey = allLicenseIdsInTokens.includes(licenseID);
+
+            // If there is not a key, warn the user that they are about to request a key and this will decrement the number of available keys
+            if (!isThereAlreadyAKey) {
+                var confirmRequest = confirm("Are you sure you want to request a key for this license?  This will decrement the number of available keys for this license.");
+                if (!confirmRequest) {
+                    return;
+                }
+            }
+
+            user.getIdToken().then(function (idToken) {
+                // Then, send a request to the cloud function to get the key
+                var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/request_token_from_license?machine_id=' + machineId + '&license_id=' + licenseID;
+
+                console.log("Fetch URL: " + fetch_url);
+                $.ajax({
+                    url: fetch_url,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: onNewKeyReceived,
+                    error: function (error) {
+                        console.error('Error during license check: ', error);
+                    }
+                });
+            })
+        }
+
+
+        function checkLicence(user) {
+
+
+
+            user.getIdToken().then(function (idToken) {
+                //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
+                var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
+                console.log("Fetch URL: " + fetch_url);
+
+                $.ajax({
+                    url: fetch_url,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: onReceivingLicenseData,
+                    error: function (error) {
+                        console.error('Error during license check: ', error);
+                    }
+                });
+            });
+        }
+
+        function onReceivingLicenseData(data) {
+            /* Expected format of example data: 
+
+            {
+            "tokens_and_codes": {
+                "MJPQNXHFUOC6SWLN": {
+                "token": {
+                    "tier": "Basic",
+                    "expiry_timestamp": 1711929600.0,
+                    "email": "*",
+                    "machine_id": "*",
+                    "license_id": null,
+                    "license_name": "Universal Basic License",
+                    "key": null,
+                    "_version": 1
+                },
+                "code": "SZX7VSFWFPSBJXVAVY4SHHW3EAGSU6ZYWEYHMGNG3FVWKYJ3HG47344NOT3QDUAASOMLK7DDPIHK7TT5RCEIC4DH6GMHAZ6DYW3BKVMHRNMEJJMAMTHG7RDAXBUGMWXRA2W3NQEM2UB2XTSVWEKVEBKOIDQGDJGAPTJBMMJAGYW4HSPEY2PMYOSJWL3MQHRRFDCPMO2ZV6WWGK2KJFYRHRW6YFYA27YSV423QEUZONJPVJ2DW52L3ODIEV23ASQE47ANFJ5OAG5ERFFWW3NWWFHEE7QR3MNX7QIXVLZDGW3LIZ6Q655FDMZ5LEDKSFRDHO6JQBCJULTRWAZRQOIPYY35XFKU6IWX7FC3K4D4EWJRNDAMJJTMQARGQSXABSJMOT4IJBJQBVA2752VBVTRROANRF34XP2IMZD27TWYU5PSDPDRY2DLVVERCSVHQL5GSSRHV5ETTGTPQJT76KG73EHBSU7SV2KVQUBOFQBOWPP4SCH2J7I5FTYPCG4A"
+                }
+            },
+            "licenses_and_dispensed": {
+                "jkg8nI9Yw2y9K3f7": {
+                "license": {
+                    "tier": "SAR",
+                    "expiry_timestamp": 1711929600.0,
+                    "emails": [
+                    "peter.ed.oconnor@gmail.com"
+                    ],
+                    "domains": [],
+                    "license_name": "Peter's License",
+                    "n_tokens": 3,
+                    "key": null,
+                    "_version": 0
+                },
+                "n_tokens_dispensed": 0
+                }
+            }
+            }
+            */
+
+
+            console.log('Data: ', data);
+
+            // Un-hide the licenses section
+            document.getElementById('licenses').hidden = false;
+
+            data = JSON.parse(data);
+
+            globalData = data;  // Save the data for later use
+
+            console.log('Parsed: ', data);
+            // Just fill the sar-tier textareas with the sar-tier data
+            // Fill the basic-tier textareas with the basic-tier data
+            $('sar-tier.license-info').val('SAR tier info');
+            // Delete the whole user-info div 
+
+
+            // For each tier
+            for (let tier of ['basic', 'sar']) {
+                // <span class="{{ tier_name }}-tier license-count"></span>
+                // <select class="{{ tier_name }}-tier license-select"></select>
+                // <textarea class="{{ tier_name }}-tier license-info"></textarea>
+                // <span class="{{ tier_name }}-tier license-span"></span>
+                // <button class="{{ tier_name }}-tier license-buy">Buy</button>
+                // <button class="{{ tier_name }}-tier keys-request" title="Click to request a key">Get Key</button>
+                // <button class="{{ tier_name }}-tier keys-view" title="Click to view key">View Key</button>
+
+                // Get the subdictionary for this tier
+                var tierData = filterDataForTier(data, tier);
+                console.log('Tier data for ' + tier + ': ', tierData);
+
+                var licensesForTier = tierData.licenses_and_dispensed;
+                var tokensAndCodesForTier = tierData.tokens_and_codes;
+
+                console.log('Licenses for tier ' + tier + ': ', licensesForTier);
+                // var licencesForTier = data.licenses.filter(license => license.tier == tier);  // IS THIS WRONG?
+
+                nLicensesForThisTier = Object.keys(licensesForTier).length;
+                // console.log('Licence count element is '+$('.{{ tier }}-tier.license-count'))
+                console.log("Count box: ", $(tier + '-tier .license-count').select());
+                $("." + tier + '-tier.license-count').text(nLicensesForThisTier + ' license' + (nLicensesForThisTier === 1 ? '' : 's') + ' available');
+                console.log(nLicensesForThisTier + ' available for tier ' + tier);
+
+
+                var select = $("." + tier + '-tier.license-select');
+                select.empty();
+                console.log("Keys: ", Object.keys(licensesForTier));
+                Object.keys(licensesForTier).forEach(licenseId => {
+
+                    var license = licensesForTier[licenseId].license;
+                    // Get an expiry date-string from the expiry_timestamp (which is a float in s since epoch)
+                    var expiryDate = new Date(license.expiry_timestamp * 1000).toLocaleDateString();
+                    var option = $('<option></option>')
+                        .text("Name: " + license.license_name + ", Expiry: " + expiryDate + ", ID: " + licenseId + ", Email: " + license.email)
+                        .val(licenseId);  // Set the value attribute to licenseId
+                    select.append(option);
+                });
+                // Add a callback to the select element to fill in the license info textarea when a license is selected
+                function updateTextArea() {
+                    let selectedLicenseId = select.val();
+                    let selectedLicense = licensesForTier[selectedLicenseId].license;
+                    console.log('Selected license: ', selectedLicense);
+                    let n_tokens_dispensed = licensesForTier[selectedLicenseId].n_tokens_dispensed;
+                    let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
+                    let textarea = $("." + tier + '-tier.license-info');
+                    textarea.empty();
+                    expiryDate = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
+                    // Join emails and domains list, then join the two lists with a comma
+                    emailsAndDomains = selectedLicense.emails.concat(selectedLicense.domains).join(', ');
+                    textarea.val('Name: ' + selectedLicense.license_name + '\nEmails: ' + emailsAndDomains + '\nExpiry: ' + expiryDate + '\nKeys Remaining: ' + n_tokens_remaining + ' of ' + selectedLicense.n_tokens);
+                    console.log('Filled in the license info textarea');
+
+                    // Check for any tokens where license_id matches the selected license id
+                    let thisTokenAlreadyHasKey = Object.values(tokensAndCodesForTier).find(tokenAndCode => tokenAndCode.token.license_id == selectedLicenseId);
+                    console.log('Token with same ID: ', thisTokenAlreadyHasKey);
+
+                    var thisMachineText;
+
+                    let getKeyButton = $("." + tier + '-tier.keys-request');
+                    if (thisTokenAlreadyHasKey) {
+                        getKeyButton.text('Get Key');
+                        thisMachineText = 'Already available on this machine';
+                    } else {
+                        getKeyButton.text('Generate Key');
+                        thisMachineText = 'No key for this machine yet';
+                    }
+                    $("." + tier + '-tier.license-span').text(thisMachineText);
+                    $("." + tier + '-tier.keys-request').display = thisTokenAlreadyHasKey ? 'none' : 'block';
+                    $("." + tier + '-tier.keys-view').display = thisTokenAlreadyHasKey ? 'block' : 'none';
+
+
+                    // if (tokenWithSameId){
+                    //     // If a token with the same ID is found, fill in the license span with the token code
+                    //     $()
+                    //     var span = $("."+tier+'-tier.license-span');
+                    //     span.empty();
+                    //     span.text('Already available on this machien');
+                    // } else {
+                    //     // If no token with the same ID is found, empty the license span
+                    //     var span = $("."+tier+'-tier.license-span');
+                    //     span.empty();
+                    // }
+
+                }
+
+                select.change(updateTextArea);
+
+                // Call the change function to fill in the textarea for the first license
+
+
+
+                var textarea = $("." + tier + '-tier.license-info');
+                // Confirm that this textarea actually exists
+                // console.log('Textarea: ', textarea);
+                // textarea.empty();
+                // textarea.val('Tier: ' + tier + '\nEmail: ' + license.email + '\nExpiry: ' + license.expiry_date);
+                textarea.val('<No licenses>');
+
+                let getKeyButton = $("." + tier + '-tier.keys-request');
+                // Set the callback for this button to request a key from this license_id
+                getKeyButton.click(function () {
+                    getKeyForThisLicense(select.val());
+                });
+                if (nLicensesForThisTier > 0) {  // If there are licenses available
+                    updateTextArea();
+                    $("." + tier + '-tier.license-buy').text('Update').addClass('non_important_button');
+                    // // And make it non-important
+                    // $("." + tier + '-tier.license-buy').addClass('non_important_button');
+                    // getKeyButton.text('Request Key');
+                } else {
+                    // Turn the "buy" button into a "buy" button
+                    $("." + tier + '-tier.license-buy').text('Buy');
+                    // getKeyButton.text('Get Key');
+                    // Hide the get_key button
+                    getKeyButton.css('display', 'none');
+                }
+
+                window.scrollTo(0, document.body.scrollHeight);
+
+                // console.log('Filled in the license info textarea');
+
+                // console.log("Fill in the license span");
+
+                // var span = $('.{{ tier }}-tier.license-span');
+                // span.empty();
+
+
+
+
+            }
+
+
+
+            // // Empty the existing select elements
+            // $('#licenses-container').empty();
+            // $('#license-tokens-container').empty();
+
+            // // Create licenses select element and append options
+
+            // licensesSelect = $("#licenses-select");
+            // console.log('Licenses: ', data.licenses);
+
+            // // Add each license to the select element
+            // if (!data.licenses) {
+            //     console.error('data.licenses is null or undefined');
+            // } else {
+            //     Object.keys(data.licenses).forEach(function (licenseId) {
+            //         var license = data.licenses[licenseId];
+            //         console.log('License: ', license);
+            //         var option = $('<option></option>')
+            //             .text(`Tier: ${license.tier}, Email: ${license.email}, Expiry: ${license.expiry_date}, ID: ${licenseId}`)
+            //             .val(licenseId);  // Set the value attribute to licenseId
+            //         console.log('Option: ', option);
+            //         console.log("licensesSelect: ", licensesSelect);
+            //         console.log("Container: ", $('#licenses-container'));
+            //         licensesSelect.append(option);
+            //     });
+            //     //   $('#licenses-container').appeznd(licensesSelect);
+            //     var n_licenses = Object.keys(data.licenses).length;
+            //     $('#license .menu-title').text('Your Licenses (' + n_licenses + ' available)');
+
+            // }
+
+            // // Create license tokens select element and append options
+            // var licenseTokensSelect = $('#license-tokens-select');
+            // console.log('License tokens: ', data.license_tokens);
+            // if (!data.license_tokens) {
+            //     console.error('data.license_tokens is null or undefined');
+            // } else {
+            //     Object.keys(data.license_tokens).forEach(function (tokenId) {
+
+            //         var tokenAndCode = data.license_tokens[tokenId];
+            //         var token = data.license_tokens[tokenId].token;
+
+            //         console.log('Setting option value to ' + data.license_tokens[tokenId]);
+            //         console.log('And token: ', token)
+
+            //         tokenAndCodeSerialized = JSON.stringify(tokenAndCode);
+
+            //         var option = $('<option></option>')
+            //             .text(`Tier: ${token.tier}, Email: ${token.email}, Machine ID: ${token.machine_id}, Expiry: ${token.expiry_date}, Code: ${token.code}`)
+            //             .val(tokenAndCodeSerialized);  // Set the value attribute to tokenId
+
+            //         licenseTokensSelect.append(option);
+            //     });
+            // }
+            // var n_tokens = Object.keys(data.license_tokens).length;
+            // $('#tokens .menu-title').text('Your License Tokens (' + n_tokens + ' available)');
+
+            // if (n_tokens > 0) {
+            //     onSelectLicenceToken();
+            // }
+
+
+            // // Ok, now decide what divs are going to be open by default.
+            // isATokenAvailable = n_tokens > 0;
+            // toggleMenu('tokens', isATokenAvailable);
+            // isALicenseAvailableWithIdNotInTokens = n_licenses > 0 && !Object.keys(data.license_tokens).includes(licensesSelect.val());
+            // toggleMenu('license', isALicenseAvailableWithIdNotInTokens);
+            // isNothingAvailable = n_licenses === 0 && n_tokens === 0;
+            // toggleMenu('purchase', isNothingAvailable);
+
+            // // Scroll to the bottom!
+            // window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function onSelectLicenceToken() {
+            var licenseTokensSelect = document.getElementById('license-tokens-select');
+            console.log('Index: ', licenseTokensSelect.selectedIndex);
+            if (licenseTokensSelect.selectedIndex === -1) {
+                return;  // Means no token is selected
+            }
+            var selectedTokenAndCodeSerialized = licenseTokensSelect.options[licenseTokensSelect.selectedIndex].value;
+            var selectedTokenAndCode = JSON.parse(selectedTokenAndCodeSerialized); // Parse the JSON string back to an object
+
+            var selectedToken = selectedTokenAndCode.token;
+            // var selectedCode = selectedTokenAndCode.code;
+            console.log('Selected token and code: ', selectedTokenAndCode);
+            console.log('Selected token: ', selectedTokenAndCode.token);
+            console.log('Selected code: ', selectedTokenAndCode.code);
+
+            // var selectedToken = JSON.parse(selectedTokenAndCode.token); // Parse the JSON string back to an object
+
+            // var selectedToken = licenseTokensSelect.options[licenseTokensSelect.selectedIndex].value;
+            console.log('Selected token: ', selectedToken, "Fields: ", selectedToken.tier, selectedToken.email, selectedToken.machine_id, selectedToken.expiry_date, selectedToken.code);
+
+            // Now update the license token info textarea (newline separated)
+            var licenseTokenInfo = document.getElementById('license-token-info');
+            licenseTokenInfo.value = `Tier: ${selectedToken.tier}\nEmail: ${selectedToken.email}\nMachine ID: ${selectedToken.machine_id}\nExpiry: ${selectedToken.expiry_date}\nCode: ${selectedToken.code}`;
+
+            // Now update the license key textarea
+            var licenseKey = document.getElementById('license-key');
+            licenseKey.value = selectedTokenAndCode.code;
+
+        }
+
+        function copyLicenseKey() {
+            var licenseKey = document.getElementById("license-key");
+            licenseKey.select();
+            document.execCommand("copy");
+            var licenceCode = licenseKey.value;
+            // Notify user that key has been copied, and can be pasted into eagle-eyes app
+
+
+
+            // alert("License key has been copied to clipboard. You can now paste it into the Eagle Eyes app.");
+            // Add an info box to the bottom of the licenses div to notify the user that the key has been copied.  Include the key
+
+            // var infoBox = document.createElement('div');
+            // infoBox.classList.add('info-box');
+            // infoBox.textContent = "Token has been copied to clipboard. You can now paste it into the Eagle Eyes app (click '🔑' button in app).";
+            // document.getElementById('licenses').appendChild(infoBox);
+            // // Scroll down to bottom to make sure the user sees the info box
+            // window.scrollTo(0, document.body.scrollHeight);
+
+        }
+
+        function toggleMenu(expandableMenuDivId, makeVisible = null) {
+            // Use jQuery to select the menu and title elements within the specified div
+            var $menu = $('#' + expandableMenuDivId + ' .menu-content').first();
+            var $title = $('#' + expandableMenuDivId + ' .menu-title').first();
+
+            if (makeVisible === null) {
+                makeVisible = ($menu.css('display') === 'none' || $menu.css('display') === '')
+            }
+
+            // Toggle the display of the menu
+            if (makeVisible) {
+                $menu.css('display', 'block');
+                $title.removeClass('collapsed');
+            } else {
+                $menu.css('display', 'none');
+                $title.addClass('collapsed');
+            }
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize menus to be hidden
+            var menus = document.getElementsByClassName('menu-content');
+            for (var i = 0; i < menus.length; i++) {
+                menus[i].style.display = "none";
+            }
+            // onSelectLicenceToken();
+            completeSignInWithEmailLinkIfApplicable();
+
+            // For testing: 
+            // Show the licenses section
+            // console.log('Un-hiding the licenses section');
+            // document.getElementById('licenses').hidden = false;
+            // var test_data_obj = { "tokens_and_codes": { "MJPQNXHFUOC6SWLN": { "token": { "tier": "Basic", "expiry_timestamp": 1711929600.0, "email": "*", "machine_id": "*", "license_id": null, "license_name": "Universal Basic License", "key": null, "_version": 1 }, "code": "SZX7VSFWFPSBJXVAVY4SHHW3EAGSU6ZYWEYHMGNG3FVWKYJ3HG47344NOT3QDUAASOMLK7DDPIHK7TT5RCEIC4DH6GMHAZ6DYW3BKVMHRNMEJJMAMTHG7RDAXBUGMWXRA2W3NQEM2UB2XTSVWEKVEBKOIDQGDJGAPTJBMMJAGYW4HSPEY2PMYOSJWL3MQHRRFDCPMO2ZV6WWGK2KJFYRHRW6YFYA27YSV423QEUZONJPVJ2DW52L3ODIEV23ASQE47ANFJ5OAG5ERFFWW3NWWFHEE7QR3MNX7QIXVLZDGW3LIZ6Q655FDMZ5LEDKSFRDHO6JQBCJULTRWAZRQOIPYY35XFKU6IWX7FC3K4D4EWJRNDAMJJTMQARGQSXABSJMOT4IJBJQBVA2752VBVTRROANRF34XP2IMZD27TWYU5PSDPDRY2DLVVERCSVHQL5GSSRHV5ETTGTPQJT76KG73EHBSU7SV2KVQUBOFQBOWPP4SCH2J7I5FTYPCG4A" } }, "licenses_and_dispensed": { "jkg8nI9Yw2y9K3f7": { "license": { "tier": "SAR", "expiry_timestamp": 1711929600.0, "emails": ["peter.ed.oconnor@gmail.com"], "domains": [], "license_name": "Peter's License", "n_tokens": 3, "key": null, "_version": 0 }, "n_tokens_dispensed": 0 } } }
+            // var test_data_str = JSON.stringify(test_data_obj);
+            // console.log('Test data: ', test_data_str);
+            // onReceivingLicenseData(test_data_str)
+            return;
+        });
+
+
+    </script>
+</head>
+
+
+<body>
+
+
+    <h1>Eagle Eyes Login / Sign up</h1>
+
+    <!-- Show the machine ID -->
+    <p>Machine ID: <span id="machine-id"></span>
+
+        <button onclick="openMachineIdDialog()" , class="non_important_button">Change</button>
+
+        <dialog id="machine-id-dialog">
+            <h3>Enter Machine ID</h3>
+            <input type="text" id="new-machine-id" placeholder="Enter new Machine ID">
+            <button onclick="updateMachineId()"
+                style="display: inline-block; padding: 5px 10px; font-size: 12px;">Change</button>
+            <button onclick="closeMachineIdDialog()"
+                style="display: inline-block; padding: 5px 10px; font-size: 12px;">Cancel</button>
+        </dialog>
+
+        <script>
+            function openMachineIdDialog() {
+                var dialog = document.getElementById("machine-id-dialog");
+                dialog.showModal();
+            }
+
+            function closeMachineIdDialog() {
+                var dialog = document.getElementById("machine-id-dialog");
+                dialog.close();
+            }
+
+            function updateMachineId() {
+                // Get the new machine ID
+                var newMachineId = document.getElementById("new-machine-id").value;
+                // Update the displayed machine ID
+                document.getElementById("machine-id").textContent = newMachineId;
+                // Close the dialog
+                closeMachineIdDialog();
+                // Create a new URLSearchParams object from the current query string
+                var queryParams = new URLSearchParams(window.location.search);
+                // Set the new machine ID (this will replace it if it already exists, or add it if it doesn't)
+                queryParams.set('machine_id', newMachineId);
+                // Create the new URL
+                var newURL = window.location.origin + window.location.pathname + '?' + queryParams.toString();
+                // Redirect to the new URL
+                window.location.href = newURL;
+            }
+
+        </script>
+
+    <h2> Step 1: Sign in </h2>
+    <div id="sign-in-div">
+
+
+        <button id="google-sign-in-btn" onclick="signInWithGoogle()">Sign in with Google</button>
+        or
+
+        <div id="email-sign-in-form" style="display:none;">
+            <input type="email" id="email" placeholder="Email" style="display:none;">
+
+            <!-- Add a cancel button that just reloads this page from scratch -->
+            <button onclick="location.reload()" class="non_important_button">Cancel</button>
+
+            <button id="sendSignInLinkBtn">Send Sign in Link</button>
+        </div>
+        <button id="showEmailInputBtn">Sign In With Email</button>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                // Event listener for the button to show email input
+                document.getElementById('showEmailInputBtn').addEventListener('click', function () {
+                    // Show the email sign-in form
+                    document.getElementById('email-sign-in-form').style.display = 'block';
+                    // Hide the initial button
+                    this.style.display = 'none';
+                    // And the google-sign-in button
+                    document.getElementById('google-sign-in-btn').style.display = 'none';
+                    // Focus on the email input for user convenience
+                    document.getElementById('email').style.display = 'block'; // Make sure email input is visible
+                    document.getElementById('email').focus();
+                });
+
+                // Attach the signInWithEmailLink function to the Send SignIn Link button
+                document.getElementById('sendSignInLinkBtn').addEventListener('click', function () {
+                    signInWithEmailLink();
+                });
+            });
+
+        </script>
+
+
+    </div>
+    <!-- <button onclick="checkLicence()">Check again for available licenses and tokens</button> -->
+    <br />
+
+    <!-- {% assign tiers = "Basic, $50 one time; SAR, $50/month" | split: "; " %} -->
+
+
+    <!-- Just make tiers lower case: ('basic', 'sar')-no f-->
+
+    {% assign tiers = "basic, sar" | split: ", " %}
+
+    <p id="user-info"></p> <!-- User info will be displayed here -->
+
+    <section id="licenses" hidden>
+
+        <h2>Step 2: Get a License Key</h2>
+
+
+        <table border="1" style="width: 100%;">
+            <tr>
+                {% for tier in tiers %}
+
+                {% case tier %}
+                {% when 'basic' %}
+                {% assign tier_name = "Basic" %}
+                {% when 'sar' %}
+                {% assign tier_name = "SAR" %}
+                {% else %}
+                {% assign tier_name = tier %}
+                {% endcase %}
+                {% assign tier_details = tier | split: ", " %}
+                <th style="width: 50%;">{{ tier_name }}</th>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for tier in tiers %}
+                <!-- basic: "Basic", sar: "SAR" -->
+
+                <td style="width: 50%;">
+                    <span class="{{ tier }}-tier license-count"></span>
+                    <select class="{{ tier }}-tier license-select" style="width: 95%; box-sizing: border-box;"></select>
+                    <textarea class="{{ tier }}-tier license-info"
+                        style="width: 95%; height: 5em; white-space: nowrap; overflow-x: auto;"></textarea>
+                    <br />
+                    <span class="{{ tier }}-tier license-span"></span>
+                    <br />
+                    <button class="{{ tier }}-tier license-buy">Buy</button>
+                    <button class="{{ tier }}-tier keys-request" title="Click to get key">Get Key</button>
+                </td>
+                {% endfor %}
+            </tr>
+
+        </table>
+
+
+    </section>
+
+    <section id="key-view" hidden>
+
+        <h2>Step 3: View and Copy Key</h2>
+
+        <textarea id="license-info" style="width: 100%; height: 5em; white-space: nowrap; overflow-x: auto;"></textarea>
+        <textarea id="license-key" style="width: 100%; height: 5em;"></textarea>
+        <div id="license-key-status"></div>
+        <button id='license-key-copy-button' onclick="copyLicenseKey()">Copy Key</button>
+
+
+    </section>
+
+</body>
