@@ -170,9 +170,13 @@ permalink: /get_licensed/
             measurementId: "G-J057SPR81M"
         };
 
+        var useLocalFirebaseEmulator = false;  // When running local emulator with "firebase emulators:start", set this to "true
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        // var hostURL = 'https://us-central1-aaaaggfdsfdsdaa.cloudfunctions.net';
+
         var machineId = getMachineIdFromURL();
 
-        var user = null;
+        var globalUser = null;
 
         var globalData = null;
 
@@ -199,6 +203,7 @@ permalink: /get_licensed/
             provider.addScope('email');
             firebase.auth().signInWithPopup(provider).then(function (result) {
                 user = result.user;
+                globalUser = user;
                 updateUserDisplay(user);
                 checkLicence(user); // Call checklicence after successful login
             }).catch(function (error) {
@@ -269,6 +274,7 @@ permalink: /get_licensed/
 
                         // User is signed in
                         var user = result.user;
+                        globalUser = user;
                         console.log('User signed in: ', user);
                         updateUserDisplay(user);
                         checkLicence(user); // Call checkLicence after successful login
@@ -349,7 +355,8 @@ permalink: /get_licensed/
         }
 
         function licenseTokenToString(token) {
-            return `Tier: ${token.tier}\nEmail: ${token.email}\nMachine ID: ${token.machine_id}\nExpiry: ${token.expiry_date}`;
+            expiryDateStr = new Date(token.expiry_timestamp * 1000).toLocaleDateString();
+            return `Tier: ${token.tier}\nEmail: ${token.email}\nMachine ID: ${token.machine_id}\nExpiry: ${expiryDateStr}\nLicense ID: ${token.license_id}`;
         }
 
         // function sendTokenAndCodeToUserEmail(tokenAndCode) {
@@ -378,12 +385,15 @@ permalink: /get_licensed/
 
             console.log("Showed new key: ", code.slice(0, 10) + '...');
 
+            // now, you also need to re-check the licence - so that it confirms that the key has been used
+            reCheckLicence();
+
             // alert('New key received.  Code ' + code.slice(0, 10) + '... has been copied to the clipboard.  You can now paste it into the Eagle Eyes app.');
             // Scroll to the bottom of the page
             window.scrollTo(0, document.body.scrollHeight);
         }
 
-        function getKeyForThisLicense(licenseID) {
+        function getKeyForThisLicense(licenseID, user) {
             // Get the key for this license
             // First, get the user's ID token
             // We're calling the "request_token_from_license" cloud function with args machine_id and license_id
@@ -394,18 +404,27 @@ permalink: /get_licensed/
             allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
             isThereAlreadyAKey = allLicenseIdsInTokens.includes(licenseID);
 
+            n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
+
             // If there is not a key, warn the user that they are about to request a key and this will decrement the number of available keys
             if (!isThereAlreadyAKey) {
-                var confirmRequest = confirm("Are you sure you want to request a key for this license?  This will decrement the number of available keys for this license.");
+                var confirmRequest = confirm("Are you sure you want to request a key for this license?\n\nThis will use up 1 of the "+n_tokens_remaining+" remaining keys for this license, and cannot be reversed.\n\nProceed?");
                 if (!confirmRequest) {
                     return;
                 }
             }
 
-            user.getIdToken().then(function (idToken) {
-                // Then, send a request to the cloud function to get the key
-                var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/request_token_from_license?machine_id=' + machineId + '&license_id=' + licenseID;
+            if (user === null) {
+                user = globalUser;
+            }
 
+            user.getIdToken(true).then(function (idToken) {
+                // Then, send a request to the cloud function to get the key
+                // var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/request_token_from_license?machine_id=' + machineId + '&license_id=' + licenseID;
+                var fetch_url = hostURL+'/request_token_from_license?machine_id=' + machineId + '&license_id=' + licenseID;
+                // var fetch_url = hostURL+'/request_AAAAA?machine_id=' + machineId + '&license_id=' + licenseID;
+
+                console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
                 console.log("Fetch URL: " + fetch_url);
                 $.ajax({
                     url: fetch_url,
@@ -414,23 +433,45 @@ permalink: /get_licensed/
                         'Authorization': 'Bearer ' + idToken
                     },
                     success: onNewKeyReceived,
-                    error: function (error) {
-                        console.error('Error during license check: ', error);
-                    }
+                    error: requestErrorHandler,
                 });
             })
         }
 
+        function showError(message) {
+
+
+            // Show an error message to the user
+            var errorBox = document.createElement('div');
+            errorBox.classList.add('error-box');
+            // Width 80% of the screen
+            errorBox.style.width = '80%';
+            // Center horizontally
+            errorBox.style.margin = '0 auto';
+
+            errorBox.textContent = message;
+            // Append to end of 'end-of-page' div
+            document.getElementById('end-of-page').appendChild(errorBox);
+
+            // Show the "try again" button (try-again-button) (just make it not hidden)
+            $('#try-again-button').css('display', 'block');
+            
+            // Scroll to the bottom of the page
+            window.scrollTo(0, document.body.scrollHeight);
+        }
 
         function checkLicence(user) {
-
+            // If user is null, use globalUser
+            if (user === null) {
+                user = globalUser;
+            }
 
 
             user.getIdToken().then(function (idToken) {
                 //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
-                var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
-                console.log("Fetch URL: " + fetch_url);
-
+                var fetch_url = hostURL+'/check_available_licenses_and_tokens?machine_id=' + machineId;
+                // console.log("Fetch URL: " + fetch_url);
+                console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
                 $.ajax({
                     url: fetch_url,
                     method: 'GET',
@@ -438,12 +479,40 @@ permalink: /get_licensed/
                         'Authorization': 'Bearer ' + idToken
                     },
                     success: onReceivingLicenseData,
-                    error: function (error) {
-                        console.error('Error during license check: ', error);
-                    }
+                    error: requestErrorHandler
                 });
             });
         }
+
+        function requestErrorHandler(jqXHR, textStatus, errorThrown) {
+            // Handle different error scenarios
+            errorText = 'Error during license check: ';
+            if (textStatus === 'timeout') {
+                // showError('The request timed out.  You');
+                errorText += 'The request timed out.  You may have a slow internet connection.';
+            } else if (textStatus === 'error') {
+                // Server might be down or unreachable (e.g., network error)
+                if (!jqXHR.status) {
+                    // showError('Network error: The server might be down or unreachable - do you have an internet connection?');
+                    errorText += 'Network error: The server at '+hostURL+' might be down or unreachable.  '+jqXHR.statusText;
+                } else {
+                    // HTTP error response from the server, handle accordingly
+                    let status = jqXHR.status;
+                    let errorMessage = jqXHR.responseJSON?.error || jqXHR.statusText || "Unknown error";
+                    // showError(`Error ${status} during license check: ${errorMessage}`);
+                    errorText += `Error ${status} during license check: ${errorMessage}`;
+                }
+            } else {
+                // Handle other statuses as needed
+                // showError('Unexpected error:', textStatus);
+                errorText += 'Unexpected error: ' + textStatus;
+            }
+            errorText += "If you are connected to the internet, and the problem persists, please copy this error message and email us at info@eagleeyessearch.com.";
+            // It might be a good idea to show a user-friendly error message
+            // showError('An error occurred during the license check. Please try again later.');
+            showError(errorText);
+        }
+
 
         function onReceivingLicenseData(data) {
             /* Expected format of example data: 
@@ -537,7 +606,7 @@ permalink: /get_licensed/
                     // Get an expiry date-string from the expiry_timestamp (which is a float in s since epoch)
                     var expiryDate = new Date(license.expiry_timestamp * 1000).toLocaleDateString();
                     var option = $('<option></option>')
-                        .text("Name: " + license.license_name + ", Expiry: " + expiryDate + ", ID: " + licenseId + ", Email: " + license.email)
+                        .text("Name: " + license.license_name + ", Expiry: " + expiryDate + ", ID: " + licenseId)
                         .val(licenseId);  // Set the value attribute to licenseId
                     select.append(option);
                 });
@@ -553,7 +622,7 @@ permalink: /get_licensed/
                     expiryDate = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
                     // Join emails and domains list, then join the two lists with a comma
                     emailsAndDomains = selectedLicense.emails.concat(selectedLicense.domains).join(', ');
-                    textarea.val('Name: ' + selectedLicense.license_name + '\nEmails: ' + emailsAndDomains + '\nExpiry: ' + expiryDate + '\nKeys Remaining: ' + n_tokens_remaining + ' of ' + selectedLicense.n_tokens);
+                    textarea.val('Name: ' + selectedLicense.license_name + '\nEmails: ' + emailsAndDomains + '\nExpiry: ' + expiryDate + '\nKeys Remaining: ' + n_tokens_remaining + ' of ' + selectedLicense.n_tokens + '\nID: ' + selectedLicenseId);
                     console.log('Filled in the license info textarea');
 
                     // Check for any tokens where license_id matches the selected license id
@@ -565,7 +634,7 @@ permalink: /get_licensed/
                     let getKeyButton = $("." + tier + '-tier.keys-request');
                     if (thisTokenAlreadyHasKey) {
                         getKeyButton.text('Get Key');
-                        thisMachineText = 'Already available on this machine';
+                        thisMachineText = 'Key already assigned to this machine';
                     } else {
                         getKeyButton.text('Generate Key');
                         thisMachineText = 'No key for this machine yet';
@@ -605,7 +674,7 @@ permalink: /get_licensed/
                 let getKeyButton = $("." + tier + '-tier.keys-request');
                 // Set the callback for this button to request a key from this license_id
                 getKeyButton.click(function () {
-                    getKeyForThisLicense(select.val());
+                    getKeyForThisLicense(select.val(), globalUser);
                 });
                 if (nLicensesForThisTier > 0) {  // If there are licenses available
                     updateTextArea();
@@ -908,6 +977,9 @@ permalink: /get_licensed/
 
     <p id="user-info"></p> <!-- User info will be displayed here -->
 
+    <!-- Try again button... Hidden by default but becomes visible when check fails -->
+    <button onclick="reCheckLicence()" id="try-again-button" style="display: none;">Try again</button>
+
     <section id="licenses" hidden>
 
         <h2>Step 2: Get a License Key</h2>
@@ -936,8 +1008,7 @@ permalink: /get_licensed/
                 <td style="width: 50%;">
                     <span class="{{ tier }}-tier license-count"></span>
                     <select class="{{ tier }}-tier license-select" style="width: 95%; box-sizing: border-box;"></select>
-                    <textarea class="{{ tier }}-tier license-info"
-                        style="width: 95%; height: 5em; white-space: nowrap; overflow-x: auto;"></textarea>
+                    <textarea class="{{ tier }}-tier license-info" style="width: 95%; height: 6em; white-space: nowrap; overflow-x: auto; white-space: pre-wrap;" readonly></textarea>
                     <br />
                     <span class="{{ tier }}-tier license-span"></span>
                     <br />
@@ -955,13 +1026,19 @@ permalink: /get_licensed/
     <section id="key-view" hidden>
 
         <h2>Step 3: View and Copy Key</h2>
-
-        <textarea id="license-info" style="width: 100%; height: 5em; white-space: nowrap; overflow-x: auto;"></textarea>
-        <textarea id="license-key" style="width: 100%; height: 5em;"></textarea>
+        Info: <br />
+        <textarea id="license-info" style="width: 100%; height: 6em; white-space: nowrap; overflow-x: auto; white-space: pre-wrap;" readonly></textarea>
+        <br />
+        Key: <br />
+        <textarea id="license-key" style="width: 100%; height: 7em;" readonly></textarea>
         <div id="license-key-status"></div>
         <button id='license-key-copy-button' onclick="copyLicenseKey()">Copy Key</button>
 
 
     </section>
 
+    <div id="end-of-page"> </div>
+    <!-- Leave a little space on the bottom -->
+    <br />
+    <br />
 </body>
