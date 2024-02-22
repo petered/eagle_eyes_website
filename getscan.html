@@ -1,6 +1,9 @@
-<!DOCTYPE html>
+---
+layout: ee_page_layout
+title: Eagle Eyes - Licensing Plans
+permalink: /getscan/
+---
 
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,173 +11,187 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <!-- Import JQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
+    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
 </head>
+
 <body>
-<h1>Download Eagle Eyes Scan</h1>
+    <script>
 
-<script>
-    
-    var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
-    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        
-    function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-        console.log("Error: " + errorThrown);
-        console.log("Status: " + textStatus);
-        console.log("Response: " + jqXHR.responseText);
-    }
+        var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
 
-    function getDownloadLink(){
+        function requestErrorHandler(jqXHR, textStatus, errorThrown) {
+            console.log("Error: " + errorThrown);
+            console.log("Status: " + textStatus);
+            console.log("Response: " + jqXHR.responseText);
+        }
 
-        // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
-        filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
-        var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
+        function getDownloadLink() {
 
-        // Pack the form data into an object
-        var formData = {
-            name: document.getElementsByName('name')[0].value,
-            email: document.getElementsByName('email')[0].value,
-            team: document.getElementsByName('team')[0].value,
-            location: document.getElementsByName('location')[0].value,
-            reason: document.getElementsByName('reason')[0].value
-        };
+            // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
+            filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
+            var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
 
-        console.log("Checking URL: " + fetch_url);
-                console.log("Fetch URL: " + fetch_url);
-                $.ajax({
-                    url: fetch_url,
-                    data: JSON.stringify(formData),
-                    method: 'GET',
-                    headers: {
-                        // 'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function(data) {
-                        data = JSON.parse(data);
-                        console.log("Success: " + data);
-                        var downloadLink = data.url;
-                        console.log("Download link: " + downloadLink);
+            // Pack the form data into an object
+            var formData = {
+                name: document.getElementsByName('name')[0].value,
+                email: document.getElementsByName('email')[0].value,
+                team: document.getElementsByName('team')[0].value,
+                location: document.getElementsByName('location')[0].value,
+                reason: document.getElementsByName('reason')[0].value
+            };
 
-                        // Show user message with link and ask them if they want to download
-                        // If yes, then redirect to the link
-                        // If no, then do nothing
+            console.log("Checking URL: " + fetch_url);
+            console.log("Fetch URL: " + fetch_url);
+            $.ajax({
+                url: fetch_url,
+                data: JSON.stringify(formData),
+                method: 'GET',
+                headers: {
+                    // 'Authorization': 'Bearer ' + idToken
+                },
+                success: function (data) {
+                    data = JSON.parse(data);
+                    console.log("Success: " + data);
+                    var downloadLink = data.url;
+                    console.log("Download link: " + downloadLink);
 
-                        decision = confirm("Do you want to download Eagle Eyes Scan now?");
-                        if (decision) {
-                            window.location.href = downloadLink;
-                        }
+                    // Show user message with link and ask them if they want to download
+                    // If yes, then redirect to the link
+                    // If no, then do nothing
 
-                    },
-                    error: requestErrorHandler,
-                });
-        
-    }
+                    decision = confirm("Do you want to download Eagle Eyes Scan now?");
+                    if (decision) {
+                        window.location.href = downloadLink;
+                    }
 
-</script>
+                },
+                error: requestErrorHandler,
+            });
 
-<style>
-    input[type=text], input[type=password] {
-        width: 80%;
-        padding: 12px 20px;
-        margin: 8px 0;
-        display: inline-block;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
-    }
+        }
 
-</style>
+    </script>
 
-<!-- <button onclick="getDownloadLink()">Get Download Link</button> -->
+    <style>
+        input[type=text],
+        input[type=password] {
+            width: 80%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+    </style>
+
+    <!-- <button onclick="getDownloadLink()">Get Download Link</button> -->
 
 
-<!-- <form onsubmit="decryptAndRedirect(event)">
+    <!-- <form onsubmit="decryptAndRedirect(event)">
     <label for="password">Password:</label>
     <input type="password" id="password" name="password" required>
     <button type="submit">Submit</button>
 </form> -->
 
 
-<!-- Small forming asking Name, Team, Location, Why they want to use Eagle Eyes.  On submitting it gets the link -->
 
-<form onsubmit="event.preventDefault(); getDownloadLink();">
-    <!-- <label for="password">Password:</label>
+    <section id="signin">
+        <h1>Download Eagle Eyes Scan</h1>
+
+        <h2> Step 1: Sign in </h2>
+
+        {% include signinWidget.html %}
+        <script>
+
+            var globalUser = null;
+
+            document.addEventListener('signInComplete', function (e) {
+                /* Handle the event:
+                CustomEvent('signInComplete', { detail: { user: user } })
+                Generated by the signinWidget.html inclusion
+                */
+                globalUser = e.detail.user;
+                console.log('signInComplete event received: ' + globalUser);
+                $("#form").show();
+            });
+        </script>
+    </section>
+
+    <section id="form" hidden>
+
+        <h2> Step 2: Enter additional info, get download link </h2>
+        <!-- Small forming asking Name, Team, Location, Why they want to use Eagle Eyes.  On submitting it gets the link -->
+
+        <form onsubmit="event.preventDefault(); getDownloadLink();">
+            <!-- <label for="password">Password:</label>
     <input type="password" id="password" name="password" required>
     <button type="submit">Submit</button> -->
-  <div class="container">
-    <p>Please fill in this form to submit your request.</p>
-    <hr>
+            <div class="container">
 
-    <label for="name"><b>Name</b></label>
-    <br/>
-    <input type="text" placeholder="Enter Name" name="name" required>
-    <br/>
+                <label for="team"><b>Organization: </b></label>
+                Your team/company/agency, or enter "Individual" if you are not part of an organization
+                <br />
+                <input type="text" placeholder="Enter Team" name="team" required>
+                <br />
 
-    <label for="email"><b>Email</b></label>
-    <br/>
-    <input type="text" placeholder="Enter Email" name="email" required>
-    <br/>
+                <label for="location"><b>Location</b></label>: City/town, State/Province, Country
+                <br />
+                <input type="text" placeholder="Enter Location" name="location" required>
+                <br />
 
-    <label for="team"><b>Team</b></label>
-    <br/>
-    <input type="text" placeholder="Enter Team" name="team" required>
-    <br/>
+                <label for="reason"><b>Use case: </b></label> What are you interested in using Eagle Eyes for?
+                <br />
+                <!-- Height of 5-->
+                <textarea placeholder="Enter Reason" name="reason" style="height: 100px;  width:80%; resize: vertical;" required></textarea>
+                <br />
 
-    <label for="location"><b>Location</b></label>
-    <br/>
-    <input type="text" placeholder="Enter Location" name="location" required>
-    <br/>
+                <label for="reason"><b>Equiptment: </b></label> What drones/equiptment/software do you use? (e.g. DJI M3T with RC-Pro controller, DroneDeploy, etc)
+                <br />
+                <!-- Height of 5-->
+                <textarea placeholder="Enter Reason" name="reason" style="height: 100px;  width:80%; resize: vertical;" required></textarea>
+                <br />
 
-    <label for="reason"><b>What are you interested in using Eagle Eyes for?</b></label>
-    <br/>
-    <!-- Height of 5-->
-    <input type="text" placeholder="Enter Reason" name="reason" style="height: 100px;" required>
-    <br/>
+                <button type="submit" class="registerbtn">Submit and get download link</button>
+                <br/>
+                The app by default comes with a free license with useful but limited functionality.  
+                To upgrade your license, you'll click the "🔑" button from the app.  
 
-    <button type="submit" class="registerbtn">Submit and get download link</button>
-  </div>
-
-
-<script>
-    // Replace this with your encrypted URL
-    // Generate new link by entering the following in console:
-    //   CryptoJS.AES.encrypt(<URL>, <PASSWORD>).toString()
-    const encryptedUrl = 'U2FsdGVkX18BHIf1UQEvKsNMkTVL6bKfQbCFNmNuowSAEPOWZE1zlSWRVBUncn6+7didiq5tlJNyxycm0np3NmNUVq0eiKdw3M7FeW76kpi+s2kc4RSWlR+yB3lIASeoSQru9iHfiidfE5eacqcrVh9LX2PlHQlPFKc0LAuYCeY=';
+            </div>
 
 
+            <script>
+                // Replace this with your encrypted URL
+                // Generate new link by entering the following in console:
+                //   CryptoJS.AES.encrypt(<URL>, <PASSWORD>).toString()
+                const encryptedUrl = 'U2FsdGVkX18BHIf1UQEvKsNMkTVL6bKfQbCFNmNuowSAEPOWZE1zlSWRVBUncn6+7didiq5tlJNyxycm0np3NmNUVq0eiKdw3M7FeW76kpi+s2kc4RSWlR+yB3lIASeoSQru9iHfiidfE5eacqcrVh9LX2PlHQlPFKc0LAuYCeY=';
 
+                function decryptAndRedirect(event) {
+                    event.preventDefault();
+                    const password = document.getElementById('password').value;
 
+                    try {
+                        const decryptedUrl = CryptoJS.AES.decrypt(encryptedUrl, password).toString(CryptoJS.enc.Utf8);
 
-    function decryptAndRedirect(event) {
-        event.preventDefault();
-        const password = document.getElementById('password').value;
+                        // Check if the decrypted string is a valid URL
+                        if (isValidUrl(decryptedUrl)) {
+                            window.location.href = decryptedUrl;
+                        } else {
+                            alert('Incorrect password, please try again.');
+                        }
+                    } catch (error) {
+                        alert('An error occurred. Please try again.');
+                    }
+                }
 
-        try {
-            const decryptedUrl = CryptoJS.AES.decrypt(encryptedUrl, password).toString(CryptoJS.enc.Utf8);
-
-            // Check if the decrypted string is a valid URL
-            if (isValidUrl(decryptedUrl)) {
-                window.location.href = decryptedUrl;
-            } else {
-                alert('Incorrect password, please try again.');
-            }
-        } catch (error) {
-            alert('An error occurred. Please try again.');
-        }
-    }
-
-    function isValidUrl(url) {
-        try {
-            new URL(url);
-            return true;
-        } catch (_) {
-            return false;
-        }
-    }
-</script>
+                function isValidUrl(url) {
+                    try {
+                        new URL(url);
+                        return true;
+                    } catch (_) {
+                        return false;
+                    }
+                }
+            </script>
+    </section>
 </body>
-</html>
-
-
-
-
-</body>
-
