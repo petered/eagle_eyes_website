@@ -1,0 +1,202 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+
+<script>
+
+    class SigninWidget {
+        constructor(
+            firebaseConfig,
+            useLocalFirebaseEmulator = false,
+
+        ) {
+            this.useLocalFirebaseEmulator = useLocalFirebaseEmulator;
+            this.firebaseConfig = firebaseConfig;
+            firebase.initializeApp(firebaseConfig);
+            // Upon initialization, call the function to initialize Firebase
+            this.completeEmailLinkSigninIfApplicable();
+            this._user = null;
+
+        }
+
+
+        signInWithGoogle() {
+            var provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('email');
+            firebase.auth().signInWithPopup(provider).then((result) => {
+                this._user = result.user;
+                this.updateUserDisplay(this._user);
+                this.fireSigninEvent(this._user);
+            }).catch((error) => {
+                console.error('Error during Google sign in: ', error);
+            });
+        }
+
+        signInWithEmailLink() {
+            var email = document.getElementById('email').value;
+            var baseURL = window.location.origin;
+            var actionCodeSettings = {
+                // Make sure this URL is the URL of the page where you will handle the sign-in link
+                url: `${baseURL}/get_licensed/?machine_id=${machineId}`,
+                handleCodeInApp: true
+            };
+
+            firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+                .then(() => {
+                    window.localStorage.setItem('emailForSignIn', email);
+
+                    // Now, replace sign-in-div with an info box telling the user to check their email
+                    var signInDiv = document.getElementById('sign-in-div');
+                    signInDiv.innerHTML = 'Sign-in link sent to ' + email +
+                        ".  Be sure to check your spam folder if you don't see it in your inbox." +
+                        "<br/><br/>You can now close this tab.";
+
+                    // And give it a light-blue background to draw attention
+                    signInDiv.classList.add('info-box');
+
+                    console.log('Sign-in email sent to ' + email);
+                    // alert('Sign-in email sent to ' + email + ".  Be sure to check your spam folder if you don't see it in your inbox.");
+                })
+                .catch((error) => {
+                    console.error('Error sending sign-in email: ', error);
+                });
+
+        }
+
+        // Call this function on the page where users are redirected after clicking the sign-in link
+        completeEmailLinkSigninIfApplicable() {
+            if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+                // Get the email if it's saved in local storage
+                var email = window.localStorage.getItem('emailForSignIn');
+                if (!email) {
+                    // User opened the link on a different device. You will need to prompt them for their email
+                    email = window.prompt('Please provide your email for confirmation');
+                }
+
+                firebase.auth().signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        window.localStorage.removeItem('emailForSignIn'); // Clear the email from local storage
+
+                        // User is signed in
+                        this._user = result.user;
+                        console.log('User signed in: ', user);
+                        this.updateUserDisplay();
+                        this.fireSigninEvent(this._user);
+                        // checkLicence(); // Call checkLicence after successful login
+
+                        // Optional: Redirect to another page after successful sign in
+                    })
+                    .catch((error) => {
+                        console.error('Error during Email Link sign in: ', error);
+
+                        // Make the sign-in div an error class and display the error
+                        var signInDiv = document.getElementById('sign-in-div');
+                        signInDiv.innerHTML = 'Error during Email Link sign in.  Most likely, the link has been used already or is expired.  Please try again, and contact info@eagleeyessearch.com if you continue to have trouble.';
+                        signInDiv.classList.add('error-box');
+                        // And add a button to reload the page with just the machine_id (ie thisURLwithJustMachineIDArg)
+                        signInDiv.innerHTML += '<br/><button onclick="location.href = \'' + thisURLwithJustMachineIDArg + '\'">Reload</button>';
+
+                    });
+            }
+        }
+
+        fireSigninEvent(user) {
+            console.log('Firing signInComplete event with user: ', user);
+            const event = new CustomEvent('signInComplete', { detail: { user: user } });
+            document.dispatchEvent(event);
+        }
+
+        updateUserDisplay(user) {
+
+            document.getElementById('user-info').innerHTML = 'Signed in as: ' + user.email + ' ( ' + user.displayName + ' )';
+            // Give it that nice blue background by turning it into a .info-box
+            document.getElementById('user-info').classList.add('info-box');
+            document.getElementById('sign-in-div').style.display = 'none';
+            document.getElementById('user-info').innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Change user</button>';
+        }
+
+        getUser() {
+            return this._user;
+        }
+    }
+
+    const signinWidget = new SigninWidget(
+        {
+            apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
+            authDomain: "eagleeyessearch.firebaseapp.com",
+            projectId: "eagleeyessearch",
+            storageBucket: "eagleeyessearch.appspot.com",
+            messagingSenderId: "983592831720",
+            appId: "1:983592831720:web:57b3880d0185ea3110575d",
+            measurementId: "G-J057SPR81M"
+        },
+        false
+    );
+
+
+    // document.addEventListener("DOMContentLoaded", function () {
+    //     // Initialize menus to be hidden
+    //     var menus = document.getElementsByClassName('menu-content');
+    //     for (var i = 0; i < menus.length; i++) {
+    //         menus[i].style.display = "none";
+    //     }
+    //     // onSelectLicenceToken();
+    //     completeSignInWithEmailLinkIfApplicable();
+    //     return;
+    // });
+
+
+    function showEmailInputBtn() {
+        // Show the email sign-in form
+        document.getElementById('email-sign-in-form').style.display = 'block';
+        // Hide the initial button
+        document.getElementById('showEmailInputBtn').style.display = 'none';
+        // And the google-sign-in button
+        document.getElementById('google-sign-in-btn').style.display = 'none';
+        // Focus on the email input for user convenience
+        document.getElementById('email').style.display = 'block'; // Make sure email input is visible
+        document.getElementById('email').focus();
+    }
+
+</script>
+
+<div id='sign-in-div'>
+
+
+    <button id="google-sign-in-btn" onclick="signinWidget.signInWithGoogle()">Sign in with Google</button>
+    or
+
+    <div id="email-sign-in-form" style="display:none;">
+        <input type="email" id="email" placeholder="Email" style="display:none;">
+
+        <!-- Add a cancel button that just reloads this page from scratch -->
+        <button onclick="location.reload()" class="non_important_button">Cancel</button>
+
+        <button id="sendSignInLinkBtn" onclick="signinWidget.signInWithEmailLink()">Send Sign in Link</button>
+    </div>
+    <button id="showEmailInputBtn" onclick="showEmailInputBtn()">Sign In With Email</button>
+    <!-- <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Event listener for the button to show email input
+        document.getElementById('showEmailInputBtn').addEventListener('click', function () {
+            // Show the email sign-in form
+            document.getElementById('email-sign-in-form').style.display = 'block';
+            // Hide the initial button
+            this.style.display = 'none';
+            // And the google-sign-in button
+            document.getElementById('google-sign-in-btn').style.display = 'none';
+            // Focus on the email input for user convenience
+            document.getElementById('email').style.display = 'block'; // Make sure email input is visible
+            document.getElementById('email').focus();
+        });
+
+        // Attach the signInWithEmailLink function to the Send SignIn Link button
+        // document.getElementById('sendSignInLinkBtn').addEventListener('click', function () {
+        //     signInWithEmailLink();
+        // });
+    });
+
+</script> -->
+</div>
+<p id="user-info"></p>
