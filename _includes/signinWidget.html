@@ -36,9 +36,13 @@
         signInWithEmailLink() {
             var email = document.getElementById('email').value;
             var baseURL = window.location.origin;
+            console.log('baseURL: ', baseURL);
+            console.log('window.location.href: ', window.location.href);
             var actionCodeSettings = {
                 // Make sure this URL is the URL of the page where you will handle the sign-in link
-                url: `${baseURL}/get_licensed/?machine_id=${machineId}`,
+                //url: `${baseURL}/get_licensed/?machine_id=${machineId}`,
+                // Get the full url including args that this page was loaded with
+                url: window.location.href,
                 handleCodeInApp: true
             };
 
@@ -66,9 +70,12 @@
 
         // Call this function on the page where users are redirected after clicking the sign-in link
         completeEmailLinkSigninIfApplicable() {
+
             if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+                console.log('Email link sign-in detected');
                 // Get the email if it's saved in local storage
                 var email = window.localStorage.getItem('emailForSignIn');
+                console.log('... with email: ', email);
                 if (!email) {
                     // User opened the link on a different device. You will need to prompt them for their email
                     email = window.prompt('Please provide your email for confirmation');
@@ -76,12 +83,15 @@
 
                 firebase.auth().signInWithEmailLink(email, window.location.href)
                     .then((result) => {
+                        console.log('Email Link sign in successful: ', JSON.stringify(result));
                         window.localStorage.removeItem('emailForSignIn'); // Clear the email from local storage
 
+                        // var destringifiedUser = JSON.parse(JSON.stringify(result.user));
+                        // console.log("destringifiedUser: ", JSON.stringify(destringifiedUser));
                         // User is signed in
                         this._user = result.user;
-                        console.log('User signed in: ', user);
-                        this.updateUserDisplay();
+                        console.log('User signed in: ', this._user);
+                        this.updateUserDisplay(this._user);
                         this.fireSigninEvent(this._user);
                         // checkLicence(); // Call checkLicence after successful login
 
@@ -94,8 +104,8 @@
                         var signInDiv = document.getElementById('sign-in-div');
                         signInDiv.innerHTML = 'Error during Email Link sign in.  Most likely, the link has been used already or is expired.  Please try again, and contact info@eagleeyessearch.com if you continue to have trouble.';
                         signInDiv.classList.add('error-box');
-                        // And add a button to reload the page with just the machine_id (ie thisURLwithJustMachineIDArg)
-                        signInDiv.innerHTML += '<br/><button onclick="location.href = \'' + thisURLwithJustMachineIDArg + '\'">Reload</button>';
+                        // And add a button to reload the page without the user info attached
+                        signInDiv.innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Reload</button>';
 
                     });
             }
@@ -134,6 +144,24 @@
         false
     );
 
+    function getIsEmulatorFromURL() {
+        // Just see if there's an "is_emulator=true" in the URL
+        var url = new URL(window.location.href);
+        var isEmulator = url.searchParams.get("is_emulator");
+
+        return isEmulator === "true";
+    }
+
+    function getHostUrl(){
+                
+        var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+        // var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        console.log('useLocalFirebaseEmulator: ', useLocalFirebaseEmulator);
+        console.log('hostURL: ', hostURL);
+        
+        return hostURL;
+    }
 
     // document.addEventListener("DOMContentLoaded", function () {
     //     // Initialize menus to be hidden

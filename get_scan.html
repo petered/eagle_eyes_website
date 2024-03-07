@@ -18,9 +18,7 @@ permalink: /get_scan/
 <body>
     <script>
 
-        var useLocalFirebaseEmulator = false;  // When running local emulator with "firebase emulators:start", set this to "true
-        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-
+        
         function requestErrorHandler(jqXHR, textStatus, errorThrown) {
             console.log("Error: " + errorThrown);
             console.log("Status: " + textStatus);
@@ -57,6 +55,7 @@ permalink: /get_scan/
             // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
             // filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
 
+            var hostUrl = getHostUrl();
             var selectElement = document.getElementById('software_version');
             var filePath = "scan_releases/" + selectElement.value;
             var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
@@ -147,7 +146,7 @@ permalink: /get_scan/
         <script>
 
             var globalUser = null;
-
+            console.log("Signin widget included");
             document.addEventListener('signInComplete', function (e) {
                 /* Handle the event:
                 CustomEvent('signInComplete', { detail: { user: user } })
@@ -155,7 +154,44 @@ permalink: /get_scan/
                 */
                 globalUser = e.detail.user;
                 console.log('signInComplete event received: ' + globalUser);
-                $("#form").show();
+
+                // Send a request to the server to see if the user has already filled out the form. 
+                // If they have not - show it, if they have, show a greeting message and the download link.
+                hostURL = getHostUrl();
+                var fetch_url = hostURL + '/has_user_already_filled_in_form';
+                console.log("Checking URL: " + fetch_url);
+                globalUser.getIdToken(true).then(function (idToken) {
+                    $.ajax({
+                        url: fetch_url,
+                        type: 'GET',
+                        headers: {
+
+                            'Authorization': 'Bearer ' + idToken
+
+                        },
+                        success: function (data) {
+
+                            console.log("Got reply from has_user_already_filled_in_form: " + data);
+                            data = JSON.parse(data);
+                            formOrNull = data.form
+                            if (formOrNull === null) {
+                                $("#form").show();
+
+                                $("#download-button-div").show();
+                            } else {
+                                // Show a welcome back message with name and team 
+                                $("#welcome-back-message").text("Welcome back, " + formOrNull.name + " from " + formOrNull.team + ". Your download link is below.");
+                                $("#welcome-back-message").show();
+                                // Set Download button text to "Downlaod again" (it's the only button in the div)
+                                $("#download-button-div button").text("Download again");
+                                $("#download-button-div").show()
+                            }
+                        },
+                        error: requestErrorHandler,
+                    });
+                });
+
+
             });
 
 
@@ -283,14 +319,22 @@ permalink: /get_scan/
                 </select>
                 <br />
 
-                <button type="submit" class="registerbtn">Submit and start download</button>
-                <br />
 
 
 
             </div>
         </form>
     </section>
+
+    <div id="welcome-back-message" class="info-box" hidden></div>
+
+    <div id="download-button-div" hidden>
+        <button onclick="getDownloadLink()">Submit and start download</button>
+    </div>
+    <!-- <button id="download-button" type="submit" class="registerbtn" hidden>Submit and start download</button> -->
+    <br />
+
+
 
     <section id="post-download" class="info-box" hidden>
         Your download should have begun automatically.
