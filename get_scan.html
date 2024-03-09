@@ -49,11 +49,34 @@ permalink: /get_scan/
             window.scrollTo(0, document.body.scrollHeight);
         }
 
+        function validateCheckboxes() {
+            // List of all checkbox IDs
+            var checkboxIds = [
+                "understand_prototype",
+                "evaluation_purposes",
+                "assistant_not_replacement",
+                "software_distribution"
+            ];
+
+            // Check if all checkboxes are checked
+            for (var i = 0; i < checkboxIds.length; i++) {
+                if (!document.getElementById(checkboxIds[i]).checked) {
+                    alert("Please check all the boxes before submitting.");
+                    return false; // Prevent form submission
+                }
+            }
+
+            return true; // All checkboxes are checked, allow form submission
+        }
+
 
         function getDownloadLink() {
 
             // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
             // filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
+            if (!validateCheckboxes()) {
+                return; // Stop the function if validation fails
+            }
 
             var hostUrl = getHostUrl();
             var selectElement = document.getElementById('software_version');
@@ -94,6 +117,9 @@ permalink: /get_scan/
                         // Show user message with link and ask them if they want to download
                         // If yes, then redirect to the link
                         // If no, then do nothing
+
+                        // Hide the download button/div after submitting form
+                        $("#download-button-div").hide();
 
                         window.location.href = downloadLink;
                         $("#signin").hide();
