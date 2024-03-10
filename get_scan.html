@@ -20,6 +20,7 @@ permalink: /get_scan/
 
         
         function requestErrorHandler(jqXHR, textStatus, errorThrown) {
+            $("#hang-on-message").hide();
             console.log("Error: " + errorThrown);
             console.log("Status: " + textStatus);
             console.log("Response: " + jqXHR.responseText);
@@ -175,6 +176,7 @@ permalink: /get_scan/
                 hostURL = getHostUrl();
                 var fetch_url = hostURL + '/has_user_already_filled_in_form';
                 console.log("Checking URL: " + fetch_url);
+                $("#hang-on-message").show();
                 globalUser.getIdToken(true).then(function (idToken) {
                     $.ajax({
                         url: fetch_url,
@@ -185,6 +187,7 @@ permalink: /get_scan/
 
                         },
                         success: function (data) {
+                            $("#hang-on-message").hide();
 
                             console.log("Got reply from has_user_already_filled_in_form: " + data);
                             data = JSON.parse(data);
@@ -224,13 +227,15 @@ permalink: /get_scan/
                     'EagleEyesScan_0.4.3_MacOS_arm64.zip',
                     'EagleEyesScan_0.5.0rc2_MacOS_arm64.zip',
                     'EagleEyesScan_0.5.0rc3_MacOS_arm64.zip',
+                    'EagleEyesScan_0.5.0rc4_MacOS_arm64.zip',
                     'EagleEyesScan_0.4.3_Windows_x64.zip',
                     'EagleEyesScan_0.4.5_Windows_x64.zip',
                     'EagleEyesScan_0.5.0rc2_Windows_x64.zip',
                     'EagleEyesScan_0.5.0rc3_Windows_x64.zip',
+                    'EagleEyesScan_0.5.0rc4_Windows_x64.zip',
                 ];
-                windowsDefault = 'EagleEyesScan_0.5.0rc3_Windows_x64.zip';
-                macDefault = 'EagleEyesScan_0.5.0rc3_MacOS_arm64.zip';
+                windowsDefault = 'EagleEyesScan_0.5.0rc4_Windows_x64.zip';
+                macDefault = 'EagleEyesScan_0.5.0rc4_MacOS_arm64.zip';
 
                 var selectElement = document.getElementById('software_version');
                 var os = navigator.platform.toLowerCase();
@@ -329,12 +334,6 @@ permalink: /get_scan/
                 </div>
 
 
-                <!-- Software version list-selection (list-selection that we populate in javascript) -->
-                <label for="software_version"><b>Software version: </b></label>
-                <select id="software_version" name="software_version" required>
-                    <option value="" disabled selected>Select software version</option>
-                </select>
-                <br />
 
 
 
@@ -343,9 +342,21 @@ permalink: /get_scan/
         </form>
     </section>
 
+    <div id="hang-on-message" class="info-box" hidden>
+        Hang on a moment while we get your download link...
+    </div>
+
     <div id="welcome-back-message" class="info-box" hidden></div>
 
     <div id="download-button-div" hidden>
+
+        <!-- Software version list-selection (list-selection that we populate in javascript) -->
+        <label for="software_version"><b>Software version: </b></label>
+        <select id="software_version" name="software_version" required>
+            <option value="" disabled selected>Select software version</option>
+        </select>
+        <br />
+
         <button onclick="getDownloadLink()">Submit and start download</button>
     </div>
     <!-- <button id="download-button" type="submit" class="registerbtn" hidden>Submit and start download</button> -->
@@ -356,16 +367,14 @@ permalink: /get_scan/
     <section id="post-download" class="info-box" hidden>
         Your download should have begun automatically.
         If it didn't, you can click <a id="download-link" href="">here</a> to download it manually.
-        Note - this is a one-time link. If you need to download it again, you'll need to fill out the form again.
         <br /><br />
         This download of Eagle Eyes Scan comes with a free license with useful but limited functionality.
-        To enable the detection system, report generation, and livestreaming, you'll click the "🔑" button from the app.
-
+        To enable the detection system, report generation, and livestreaming, you can request a full license 
+        by clicking the "🔑" button from the app and follwing instructions from there.
 
         <br /><br />
-        More questions? Consult the <a
-            href="https://docs.google.com/document/d/12mhRVmhtQUfvJHy7tI7mB_oLd3aRqYJJPWzKlhKnTwY/edit?usp=sharing">User
-            Manual</a>.
+        More questions? Consult the     <a
+            href="https://docs.google.com/document/d/12mhRVmhtQUfvJHy7tI7mB_oLd3aRqYJJPWzKlhKnTwY/edit?usp=sharing">User Manual</a>.
 
         <!-- Add button to return to home page -->
         <br />
