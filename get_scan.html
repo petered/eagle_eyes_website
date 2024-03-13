@@ -18,7 +18,8 @@ permalink: /get_scan/
 <body>
     <script>
 
-        
+        var backUpLinkOrNull = null;
+
         function requestErrorHandler(jqXHR, textStatus, errorThrown) {
             $("#hang-on-message").hide();
             console.log("Error: " + errorThrown);
@@ -104,6 +105,13 @@ permalink: /get_scan/
                 }
             } 
 
+            downloadStatusSpan=$("#downloadStatus");
+            if (backUpLinkOrNull !== null) {
+                statusText = "Getting your download link... If the download doesn't start automatically, you can click <a href='" + backUpLinkOrNull + "'>here</a> to download it manually.";
+            } else {
+                statusText = "Hang on a moment while we get your download link...";
+            }
+
             console.log("Checking URL: " + fetch_url);
             console.log("Fetch URL: " + fetch_url);
             globalUser.getIdToken(true).then(function (idToken) {
@@ -128,6 +136,7 @@ permalink: /get_scan/
 
                         // Hide the download button/div after submitting form
                         $("#download-button-div").hide();
+
 
                         window.location.href = downloadLink;
                         $("#signin").hide();
@@ -199,6 +208,7 @@ permalink: /get_scan/
                             console.log("Got reply from has_user_already_filled_in_form: " + data);
                             data = JSON.parse(data);
                             formOrNull = data.form
+                            backupLinkOrnull = data.backupLink;
                             if (formOrNull === null) {
                                 $("#form").show();
 
@@ -369,10 +379,14 @@ permalink: /get_scan/
         <select id="software_version" name="software_version" required>
             <option value="" disabled selected>Select software version</option>
         </select>
+
         <br />
 
         <button onclick="getDownloadLink()">Submit and start download</button>
         <br />
+
+        <span id="downloadStatus" style="font-size: 0.8em;color:lightgray;"></span>
+
 
         <!-- Tiny grey font -->
 
