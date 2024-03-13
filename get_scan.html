@@ -63,16 +63,22 @@ permalink: /get_scan/
 
 
             // Pack the form data into an object
-            var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-            var formData = {};
-            for (var i = 0; i < formInputs.length; i++) {
-                var input = formInputs[i];
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    formData[input.name] = input.checked;
-                } else {
-                    formData[input.name] = input.value;
+            
+            hasFormBeenShown = $("#form").is(":visible");
+            console.log("Form has been shown?: " + hasFormBeenShown);
+            var formData = null;
+            if (hasFormBeenShown) {
+                var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
+                formData = {};
+                for (var i = 0; i < formInputs.length; i++) {
+                    var input = formInputs[i];
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        formData[input.name] = input.checked;
+                    } else {
+                        formData[input.name] = input.value;
+                    }
                 }
-            }
+            } 
 
             console.log("Checking URL: " + fetch_url);
             console.log("Fetch URL: " + fetch_url);
@@ -172,7 +178,10 @@ permalink: /get_scan/
                                 $("#download-button-div").show();
                             } else {
                                 // Show a welcome back message with name and team 
-                                $("#welcome-back-message").text("Welcome back, " + formOrNull.name + " from " + formOrNull.team + ". Your download link is below.");
+
+                                userName = formOrNull.name || "(Unknown user)";
+                                userTeam = formOrNull.team || "(Unknown team)";
+                                $("#welcome-back-message").text("Welcome back, " + userName + " from " + userTeam + ". Your download link is below.");
                                 $("#welcome-back-message").show();
                                 // Set Download button text to "Downlaod again" (it's the only button in the div)
                                 $("#download-button-div button").text("Download again");
@@ -199,17 +208,20 @@ permalink: /get_scan/
                 */
                 var softwareVersions = [
                     'EagleEyesScan_0.4.3_MacOS_arm64.zip',
-                    'EagleEyesScan_0.5.0rc2_MacOS_arm64.zip',
-                    'EagleEyesScan_0.5.0rc3_MacOS_arm64.zip',
-                    'EagleEyesScan_0.5.0rc4_MacOS_arm64.zip',
-                    'EagleEyesScan_0.4.3_Windows_x64.zip',
+                    // 'EagleEyesScan_0.5.0rc2_MacOS_arm64.zip',
+                    // 'EagleEyesScan_0.5.0rc3_MacOS_arm64.zip',
+                    // 'EagleEyesScan_0.5.0rc4_MacOS_arm64.zip',
+                    // 'EagleEyesScan_0.5.0rc5_MacOS_arm64.zip',
+                    'EagleEyesScan_0.5.0rc6_MacOS_arm64.zip',
+                    // 'EagleEyesScan_0.4.3_Windows_x64.zip',
                     'EagleEyesScan_0.4.5_Windows_x64.zip',
-                    'EagleEyesScan_0.5.0rc2_Windows_x64.zip',
-                    'EagleEyesScan_0.5.0rc3_Windows_x64.zip',
-                    'EagleEyesScan_0.5.0rc4_Windows_x64.zip',
+                    // 'EagleEyesScan_0.5.0rc2_Windows_x64.zip',
+                    // 'EagleEyesScan_0.5.0rc3_Windows_x64.zip',
+                    // 'EagleEyesScan_0.5.0rc4_Windows_x64.zip',
+                    'EagleEyesScan_0.5.0rc5_Windows_x64.zip',
                 ];
-                windowsDefault = 'EagleEyesScan_0.5.0rc4_Windows_x64.zip';
-                macDefault = 'EagleEyesScan_0.5.0rc4_MacOS_arm64.zip';
+                windowsDefault = 'EagleEyesScan_0.5.0rc5_Windows_x64.zip';
+                macDefault = 'EagleEyesScan_0.5.0rc6_MacOS_arm64.zip';
 
                 var selectElement = document.getElementById('software_version');
                 var os = navigator.platform.toLowerCase();
@@ -332,6 +344,10 @@ permalink: /get_scan/
         <br />
 
         <button onclick="getDownloadLink()">Submit and start download</button>
+        <br />
+
+        <!-- Tiny grey font -->
+
     </div>
     <!-- <button id="download-button" type="submit" class="registerbtn" hidden>Submit and start download</button> -->
     <br />
@@ -354,4 +370,11 @@ permalink: /get_scan/
         <br />
         <button onclick="location.href='/'" class="non_important_button">Return to home page</button>
     </section>
+
+<br />
+<br />
+<span style="font-size: 0.8em;color:lightgray;">
+    Problems with signin or download? Contact us at info@eagleeyessearch.com
+    </span>
+
 </body>
