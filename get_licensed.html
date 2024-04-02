@@ -20,6 +20,12 @@ permalink: /get_licensed/
 
         var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
         var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
+        urlParams = new URLSearchParams(window.location.search);
+        // Get the argument and convert it to a boolean.  It should default to true if not present.
+        // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
+        var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
+
         // var hostURL = 'https://us-central1-aaaaggfdsfdsdaa.cloudfunctions.net';
 
         var machineId = getMachineIdFromURL();
@@ -541,13 +547,15 @@ permalink: /get_licensed/
             */
             globalUser = e.detail.user;
             console.log('signInComplete event received: ' + globalUser);
-            // checkLicence();  # TODO: comment this back in when ready for full rollout
             // Hide the temporary "checking licenses" box
             $("#checking-licenses-box").hide();
             // Show the licenses section
-            // $("#licenses").show();  # TODO: Comment in we are ready for full rollout - we will show this instead
-            $("#early_adopter_signup").show();  // For now - we will show this
-
+            if (isEarlyAdopterMode) {
+                $("#early_adopter_signup").show();
+            } else {
+                checkLicence();
+                $("#licenses").show();
+            }
         });
     </script>
 
