@@ -1,0 +1,82 @@
+---
+layout: ee_page_layout
+title: Upload Media
+permalink: "/upload_media"
+---
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Files to Eagle Eyes</title>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-storage.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css?t=[timestamp]">
+    <script>
+        // Your Firebase configuration
+        var firebaseConfig = {
+            // Your Firebase config object
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        $(document).ready(function() {
+            $('#file-upload-form').submit(function(e) {
+                e.preventDefault();
+                // Assuming only one file for simplicity; adjust as necessary for multiple files
+                var files = $('#file-input')[0].files;
+                if (files.length > 10) {
+                    alert('Please upload no more than 10 files.');
+                    return;
+                }
+                Array.from(files).forEach(file => {
+                    if (file.size > 10 * 1024 * 1024 * 1024) {
+                        alert('Each file must be less than 10GB.');
+                        return;
+                    }
+                    uploadFile(file);
+                });
+            });
+        });
+
+        function uploadFile(file) {
+            var storageRef = firebase.storage().ref();
+            var uploadTask = storageRef.child('uploads/' + file.name).put(file);
+
+            // Handle the upload process...
+        }
+    </script>
+</head>
+<body>
+    <section id="intro-text">
+        <p>Use this form to upload images and videos to Eagle Eyes. We will email you results showing detections made by the current Eagle Eyes detector, and inform you if future updates to the detector produce improved results. Please allow up to 3 business days for a response, or contact us at info@eagleeyessearch.com if you need results faster.</p>
+        <p>By uploading, you allow Eagle Eyes to use these images/videos for internal evaluation purposes.</p>
+        <p>eagleeyessearch.com</p>
+    </section>
+
+    <section id="upload-form">
+        <h1>Upload File to Eagle Eyes</h1>
+        <form id="file-upload-form">
+            <p>Is this data public?</p>
+            <input type="radio" id="data-public-no" name="data-public" value="no" required>
+            <label for="data-public-no">No - Eagle Eyes may use it internally, but the data should not be made publicly available.</label><br>
+            <input type="radio" id="data-public-yes" name="data-public" value="yes" required>
+            <label for="data-public-yes">Yes - This data is public and can be shared.</label><br>
+
+            <p>Upload images or short videos. You can also include SRT files associated with videos. If you have more than 10 images to upload, you can put them into a zip file and upload that. The maximum file size is 10GB. If you are having difficulties with the upload - feel free to email us at info@eagleeyessearch.com - you can send us a Google-Drive / Dropbox link, or we can figure out another way to transfer the data.</p>
+
+            <input type="file" id="file-input" name="file" multiple required>
+            <br>
+            
+            <textarea name="description" placeholder="Description of footage - Please tell us a bit about the circumstances surrounding the footage, and what we can expect to find in there." required></textarea>
+            <br>
+            
+            <textarea name="comments" placeholder="Other Comments / Information"></textarea>
+            <br>
+            
+            <button type="submit">Upload File</button>
+        </form>
+    </section>
+</body>
+</html>

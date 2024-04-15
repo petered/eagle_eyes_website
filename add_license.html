@@ -17,65 +17,177 @@ permalink: /add_license/
 
 <body>
     <script>
-
-        var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
+    
+        var useLocalFirebaseEmulator = false;  // When running local emulator with "firebase emulators:start", set this to "true
         var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        var statusSpan = $('#creationStatus');
 
-        function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-            console.log("Error: " + errorThrown);
-            console.log("Status: " + textStatus);
-            console.log("Response: " + jqXHR.responseText);
-        }
+        function handleForm() {
+            console.log("handling form");
+            const form = document.querySelector('form');
+            // form.addEventListener('submit', function(event) {
+                // Prevent default form submission
+            event.preventDefault();
 
-        function addLicense() {
-            var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
+            // Capture form data
+            const licenseName = document.querySelector('[name="license_name"]').value;
+            const emails = document.querySelector('[name="emails"]').value.split(/,\s*/);
+            const domains = document.querySelector('[name="domains"]').value.split(/,\s*/);
+            const licenseDurationInput = document.querySelector('input[name="license_duration"]:checked');
+            const licenseDuration = licenseDurationInput ? licenseDurationInput.value : null;
+            const keysInputId = licenseDuration + '_keys';
+            const nTokens = document.getElementById(keysInputId) ? parseInt(document.getElementById(keysInputId).value, 10) : 0;
 
-            // Pack the form data into an object
-            var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-            var formData = {};
-            for (var i = 0; i < formInputs.length; i++) {
-                var input = formInputs[i];
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    formData[input.name] = input.checked;
-                } else {
-                    formData[input.name] = input.value;
-                }
+            // Calculate expiry timestamp based on license duration
+            const expiryDatetime = new Date();
+            switch (licenseDuration) {
+                case 'one_week':
+                    expiryDatetime.setDate(expiryDatetime.getDate() + 7);
+                    break;
+                case 'one_weeks':
+                    expiryDatetime.setDate(expiryDatetime.getDate() + 14);
+                    break;
+                case 'one_month':
+                    expiryDatetime.setMonth(expiryDatetime.getMonth() + 1);
+                    break;
+                case 'three_months':
+                    expiryDatetime.setMonth(expiryDatetime.getMonth() + 3);
+                    break;
+                case 'one_year':
+                    expiryDatetime.setFullYear(expiryDatetime.getFullYear() + 1);
+                    break;
+            }
+            const expiryTimestamp = expiryDatetime.getTime() / 1000;  // Convert to seconds
+
+            // Determine tier based on license duration
+            const tier = {
+                'one_week': 'sar',
+                'two_weeks': 'sar',
+                'one_month': 'sar',
+                'three_months': 'sar',
+                'one_year': 'sar',
+                'live': 'live'
+            }[licenseDuration];
+
+            // Prepare AJAX data
+            const data = {
+                license_name: licenseName,
+                emails: emails,
+                domains: domains,
+                expiry_timestamp: expiryTimestamp,
+                tier: tier,
+                n_tokens: nTokens,
+                extra_security_password: document.querySelector('[name="extra_security_password"]').value
+            };
+
+            // Send AJAX request to the server
+            sendLicenseData(data);
+            // });
+        };
+
+        function sendLicenseData(data) {
+            if (!globalUser) {
+                alert('User not authenticated');
+                return; // Exit the function if there is no user
             }
 
-            console.log("Checking URL: " + fetch_url);
-            console.log("Fetch URL: " + fetch_url);
+        // Retrieve the ID token from Firebase Auth
             globalUser.getIdToken(true).then(function (idToken) {
+                var requestURL = hostURL + '/add_new_license';
+                console.log("Sending request to " + requestURL + " with data: " + JSON.stringify(data));
+
+                // First... change the text of the Create License button to "Creating License..."
+                // document.querySelector('.createLicenseButton').textContent = 'Creating License...';
+                statusSpan = $('#creationStatus');
+                statusSpan.text('Creating...').addClass('error-box');
+                // statusSpan.classList.add('error-box');
+                // Disable the button to prevent multiple submissions
+                // $('.createLicenseButton').prop('disabled', true);
 
                 $.ajax({
-                    url: fetch_url,
-                    data: JSON.stringify(formData),
+                    url: requestURL,
+                    data: JSON.stringify(data),
                     type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
                     contentType: 'application/json', // This sets the Content-Type header to application/json
                     headers: {
                         'Authorization': 'Bearer ' + idToken
                     },
                     success: function (data) {
-                        data = JSON.parse(data);
-                        console.log("Success: " + data);
-                        var downloadLink = data.url;
-                        console.log("Download link: " + downloadLink);
+                        licenseData = JSON.parse(data);
+                        console.log("Success: " + licenseData);
 
                         // Show user message with link and ask them if they want to download
                         // If yes, then redirect to the link
                         // If no, then do nothing
-
-                        window.location.href = downloadLink;
-                        $("#signin").hide();
-                        $("#form").hide();
-                        $("#post-download").show();
-                        $("#download-link").attr("href", downloadLink);
-
-
+                        license_id = licenseData[0];
+                        expiryTimestamp = new Date(licenseData[1].expiry_timestamp * 1000).toLocaleString();
+                        licenseDataDisplay = 'License created successfully:\n' + JSON.stringify(licenseData, null, 2) + '\nExpiry: ' + expiryTimestamp;
+                        statusSpan.html('<pre>' + licenseDataDisplay + '</pre>').removeClass('error-box').addClass('info-box');
+                        if (useLocalFirebaseEmulator){
+                            linkToViewFirestore = 'http://localhost:4000/firestore/data/licenses/'+license_id;
+                        } else {
+                            linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + license_id;
+                        }
+                        statusSpan.append('<a href="' + linkToViewFirestore + '" target="_blank">View license in Firestore</a>');
                     },
-                    error: requestErrorHandler,
+                    error: function (xhr, status, error) {
+                        console.log("Error: " + xhr.statusText);
+                        console.log("Status: " + xhr.status);
+                        console.log("Response: " + xhr.responseText);
+                        statusSpan.text('Error creating license: ' + xhr.responseText);
+                        alert('Error creating license: ' + xhr.responseText);
+                    },
                 });
+
+
+            //     const xhr = new XMLHttpRequest();
+            //     xhr.open('POST', requestURL, true);
+            //     xhr.setRequestHeader('Content-Type', 'application/json');  // setting up the response to the request to be sent!
+            //     xhr.setRequestHeader('Authorization', 'Bearer ' + idToken);  // Set the Authorization header with the token
+                
+            //     xhr.onreadystatechange = function() {
+            //         if (xhr.readyState === 4) {  // Check if the request has completed
+            //             if (xhr.status === 200) {
+            //                 alert('License successfully created');
+            //                 document.getElementById("signin").style.display = 'none';
+            //                 document.getElementById("form").style.display = 'none';
+            //                 document.getElementById("post-download").style.display = 'block';
+            //                 statusSpan.text('License created successfully');
+            //             } else {
+            //                 // Handle different types of HTTP errors
+            //                 console.log("Error: " + xhr.statusText);
+            //                 console.log("Status: " + xhr.status);
+            //                 console.log("Response: " + xhr.responseText);
+            //                 statusSpan.text('Error creating license: ' + xhr.statusText);
+            //                 alert('Error creating license: ' + xhr.statusText);
+            //             }
+            //         }
+            //     };
+            //     xhr.onerror = function() {  // Handle network errors (e.g., problem reaching the server)
+            //         console.log("Network Error");
+            //         alert('Network Error: Could not connect to server');
+            //     };
+
+            //     xhr.send(JSON.stringify(data)); // submitting the actual request 
+            // }).catch(function(error) {
+            //     console.log('Error getting ID token:', error);
+            //     alert('Failed to authenticate user. Please try again.');
+            // });
+        });
+        }
+
+        function updateKeyInput(selectedDuration) {
+            // Disable all key inputs first
+            document.querySelectorAll('[id$="_keys"]').forEach(function(input) {
+                input.disabled = true;
             });
 
+            // Enable the selected one
+            const selectedInputId = selectedDuration + "_keys";
+            const selectedInput = document.getElementById(selectedInputId);
+            if (selectedInput) {
+                selectedInput.disabled = false;
+            }
         }
 
     </script>
@@ -92,16 +204,6 @@ permalink: /add_license/
         }
     </style>
 
-    <!-- <button onclick="getDownloadLink()">Get Download Link</button> -->
-
-
-    <!-- <form onsubmit="decryptAndRedirect(event)">
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required>
-    <button type="submit">Submit</button>
-</form> -->
-
-
     <br />
 
     <section id="signin">
@@ -115,15 +217,60 @@ permalink: /add_license/
         <script>
 
             var globalUser = null;
-
             document.addEventListener('signInComplete', function (e) {
                 /* Handle the event:
                 CustomEvent('signInComplete', { detail: { user: user } })
                 Generated by the signinWidget.html inclusion
                 */
-                globalUser = e.detail.user;
-                console.log('signInComplete event received: ' + globalUser);
-                $("#form").show();
+
+                // Use is_logged_in_user_admin to check if the user is an admin
+                // TODO: Make a check to server to see 
+                requestUrl = hostURL + '/is_logged_in_user_admin';
+                
+                console.log('signInComplete event received: ' + e.detail.user);
+                e.detail.user.getIdToken(true).then(function (idToken){
+                    console.log("Making request to "+hostURL+" for admin status with token "+idToken)
+                    
+                    statusSpan = $('#creationStatus');
+                    statusSpan.text('Checking if user is admin...');
+
+                    $.ajax({
+                        url: requestUrl,
+                        data: JSON.stringify({}),
+                        type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
+                        contentType: 'application/json', // This sets the Content-Type header to application/json
+                        headers: {
+                            'Authorization': 'Bearer ' + idToken
+                        },
+                        success: function (data) {
+                            data = JSON.parse(data);
+                            console.log("Success: " + data);
+
+                            isUserAdmin = data.is_admin;
+
+                            if (isUserAdmin) {
+                                globalUser = e.detail.user;
+                                console.log('signInComplete event received: ' + globalUser);
+                                statusSpan.text('');
+                                $("#form").show(); // Show the form only if the user is an allowed admin
+                            } else {
+                                $("#form").hide(); // Hide the form or take any other appropriate action
+                                // Optionally, display an error message or redirect non-admin users
+                                statusSpan.text('Access denied. Only specific admin users can sign in. You won\'t be able to add a license with this account').addClass('error-box');
+
+                                // alert("Access denied. Only specific admin users can sign in.  You won't be able to add a license with this account");
+                                // window.location.href = 'access-denied-page.html'; // Redirect to another page
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.log("Error: " + xhr.statusText);
+                            console.log("Status: " + xhr.status);
+                            console.log("Response: " + xhr.responseText);
+
+                            alert('Error checking if user is admin: ' + xhr.statusText);
+                        },
+                    });
+                })
             });
 
         </script>
@@ -134,87 +281,69 @@ permalink: /add_license/
 
     <section id="form" hidden>
 
-        <h3> Step 2: Enter additional info, get download link </h3>
-        <form onsubmit="event.preventDefault(); getDownloadLink();">
+        <h3> Welcome admin. Enter Licensing details below</h3>
+        <form onsubmit="event.preventDefault(); handleForm();">
             <div class="container">
 
-                <label for="license_name"><b>License Name: </b></label>
-                What to call this license
+                <label for="license_name"><b>Admin Password: </b></label>
+                Input the admin password for extra security
                 <br />
-                <input type="text" placeholder="Example County SAR Trial " name="license_name" required>
+                <input type="password" placeholder="Enter Admin Password" name="extra_security_password" required>
                 <br />
 
-                <label for="emails"><b>Emails: </b></label>
+                <label for="license_name"><b>License Name: (optional)</b></label>
+                What to call this license
+                <br />
+                <input type="text" placeholder="Example County SAR Trial " name="license_name">
+                <br />
+                <label for="emails"><b>Emails: (required)</b></label>
                 Comma-separated list of emails to add to this license
                 <br />
                 <input type="text" placeholder="joe@example.com,bob@example.com" name="emails" required>
                 <br />
-
-                <label for="domains"><b>Domains: </b></label>
+                <label for="domains"><b>Domains: (optional)</b></label>
                 Comma-separated list of domains to add to this license
                 <br />
-                <input type="text" placeholder="examplecountysar.org,someotherdomain.com" name="domains" required>
+                <input type="text" placeholder="examplecountysar.org,someotherdomain.com" name="domains">
                 <br />
 
-                <label for="location"><b>Location</b></label>: City/town, State/Province, Country
-                <br />
-                <input type="text" placeholder="Example Springs, Examplebama, USA" name="location" required>
-                <br />
-
-                <label for="expiry"><b>Use case: </b></label> What are you interested in using Eagle Eyes for?
-                <br />
-                <!-- Height of 5-->
-                <textarea placeholder="To locate ..." name="reason" style="height: 100px;  width:80%; resize: vertical;"
-                    required></textarea>
-                <br />
-
-                <label for="equipment"><b>Equiptment: </b></label> What drones/aircraft/equiptment/software do you use?
-                <br />
-                <!-- Height of 5-->
-                <textarea placeholder="DJI M3T with RC-Pro controller, DroneDeploy, ..." name="equipment"
-                    style="height: 100px;  width:80%; resize: vertical;" required></textarea>
-                <br />
-
-                <label for="checkboxes"> <b>Terms: </b>Please acknowledge the following:</label>
-                <div class="checkboxes">
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="understand_prototype" name="understand_prototype" required>
-                        <label for="understand_prototype"><span class="checkbox-label">I understand that this is
-                                prototype software - it may have bugs and may not work as expected.</span></label>
+                <label for="licenseDuration"><b>License Duration:</b> Please select the license duration and specify the number of license keys:</label>
+                <div class="license-options">
+                    <div class="radio-container">
+                        <input type="radio" id="one_week" name="license_duration" value="one_week" required onclick="updateKeyInput('one_week')">
+                        <label for="one_week">Pro - 1 Week, with <input type="number" id="one_week_keys" name="one_week_keys" value="1" min="1" disabled> keys</label>                       
                     </div>
 
-
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="evaluation_purposes" name="evaluation_purposes" required>
-                        <label for="evaluation_purposes"><span class="checkbox-label">I understand that this is for
-                                evaluation purposes only, and do not hold Eagle Eyes Search Inc responsible for anything
-                                arising from use of this software.</span></label>
+                    <div class="radio-container">
+                        <input type="radio" id="two_weeks" name="license_duration" value="two_weeks" required onclick="updateKeyInput('two_weeks')">
+                        <label for="two_weeks">Pro - 2 Weeks, with <input type="number" id="two_weeks_keys" name="two_weeks_keys" value="1" min="1" disabled> keys</label>                       
                     </div>
 
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="assistant_not_replacement" name="assistant_not_replacement" required>
-                        <label for="assistant_not_replacement"><span class="checkbox-label">I understand that the Eagle
-                                Eyes computer vision system is an assistant - not a replacement for a human spotter. It
-                                provides suggestions that can help spot things a human would miss, but also can miss
-                                things that a human would notice. The operator should always look over the raw footage
-                                with their own eyes.</span></label>
+                    <div class="radio-container">
+                        <input type="radio" id="one_month" name="license_duration" value="one_month" required onclick="updateKeyInput('one_month')">
+                        <label for="one_month">Pro - 1 Month, with <input type="number" id="one_month_keys" name="one_month_keys" value="2" min="1" disabled> keys</label>                        
+                    </div>
+                    <div class="radio-container">
+                        <input type="radio" id="three_months" name="license_duration" value="three_months" required onclick="updateKeyInput('three_months')">
+                        <label for="three_months">Pro - 3 Months, with <input type="number" id="three_months_keys" name="three_months_keys" value="2" min="1" disabled> keys</label>                        
                     </div>
 
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="software_distribution" name="software_distribution" required>
-                        <label for="software_distribution"><span class="checkbox-label">I acknowledge that this software
-                                is for my use only, and I will not distribute it.</span></label>
+                    <div class="radio-container">
+                        <input type="radio" id="one_year" name="license_duration" value="one_year" required onclick="updateKeyInput('one_year')">
+                        <label for="one_year">Pro - 1 Year, with <input type="number" id="one_year_keys" name="one_year_keys" value="3" min="1" disabled> keys</label>
+                    </div>
+                    <div class="radio-container">
+                        <input type="radio" id="live" name="license_duration" value="live" required onclick="updateKeyInput('live')">
+                        <label for="live">Live, with <input type="number" id="live_keys" name="live_keys" value="2" min="1" disabled> keys</label>
                     </div>
                 </div>
-
-
-                <button type="submit" class="registerbtn">Submit and start download</button>
+                <button type="submit" class="createLicenseButton">Create license</button>
+                <!-- Status field -->
                 <br />
-
-
 
             </div>
         </form>
+        <br />
     </section>
-
+    <div id="creationStatus"></div>
 </body>
