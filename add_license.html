@@ -17,70 +17,72 @@ permalink: /add_license/
 
 <body>
     <script>
-
-        var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
+    
+        var useLocalFirebaseEmulator = false;  // When running local emulator with "firebase emulators:start", set this to "true
         var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        var statusSpan = $('#creationStatus');
 
         function handleForm() {
             console.log("handling form");
             const form = document.querySelector('form');
-            form.addEventListener('submit', function(event) {
+            // form.addEventListener('submit', function(event) {
                 // Prevent default form submission
-                event.preventDefault();
+            event.preventDefault();
 
-                // Capture form data
-                const licenseName = document.querySelector('[name="license_name"]').value;
-                const emails = document.querySelector('[name="emails"]').value.split(/,\s*/);
-                const domains = document.querySelector('[name="domains"]').value.split(/,\s*/);
-                const licenseDurationInput = document.querySelector('input[name="license_duration"]:checked');
-                const licenseDuration = licenseDurationInput ? licenseDurationInput.value : null;
-                const keysInputId = licenseDuration + '_keys';
-                const nTokens = document.getElementById(keysInputId) ? parseInt(document.getElementById(keysInputId).value, 10) : 0;
+            // Capture form data
+            const licenseName = document.querySelector('[name="license_name"]').value;
+            const emails = document.querySelector('[name="emails"]').value.split(/,\s*/);
+            const domains = document.querySelector('[name="domains"]').value.split(/,\s*/);
+            const licenseDurationInput = document.querySelector('input[name="license_duration"]:checked');
+            const licenseDuration = licenseDurationInput ? licenseDurationInput.value : null;
+            const keysInputId = licenseDuration + '_keys';
+            const nTokens = document.getElementById(keysInputId) ? parseInt(document.getElementById(keysInputId).value, 10) : 0;
 
-                // Calculate expiry timestamp based on license duration
-                const expiryDatetime = new Date();
-                switch (licenseDuration) {
-                    case 'one_week':
-                        expiryDatetime.setDate(expiryDatetime.getDate() + 7);
-                        break;
-                    case 'one_weeks':
-                        expiryDatetime.setDate(expiryDatetime.getDate() + 14);
-                        break;
-                    case 'one_month':
-                        expiryDatetime.setMonth(expiryDatetime.getMonth() + 1);
-                        break;
-                    case 'three_months':
-                        expiryDatetime.setMonth(expiryDatetime.getMonth() + 3);
-                        break;
-                    case 'one_year':
-                        expiryDatetime.setFullYear(expiryDatetime.getFullYear() + 1);
-                        break;
-                }
-                const expiryTimestamp = expiryDatetime.getTime() / 1000;  // Convert to seconds
+            // Calculate expiry timestamp based on license duration
+            const expiryDatetime = new Date();
+            switch (licenseDuration) {
+                case 'one_week':
+                    expiryDatetime.setDate(expiryDatetime.getDate() + 7);
+                    break;
+                case 'one_weeks':
+                    expiryDatetime.setDate(expiryDatetime.getDate() + 14);
+                    break;
+                case 'one_month':
+                    expiryDatetime.setMonth(expiryDatetime.getMonth() + 1);
+                    break;
+                case 'three_months':
+                    expiryDatetime.setMonth(expiryDatetime.getMonth() + 3);
+                    break;
+                case 'one_year':
+                    expiryDatetime.setFullYear(expiryDatetime.getFullYear() + 1);
+                    break;
+            }
+            const expiryTimestamp = expiryDatetime.getTime() / 1000;  // Convert to seconds
 
-                // Determine tier based on license duration
-                const tier = {
-                    'one_week': 'one_week',
-                    'two_weeks': 'two_weeks',
-                    'one_month': 'one_month',
-                    'three_months': 'three_months',
-                    'one_year': 'one_year',
-                    'live': 'live'
-                }[licenseDuration];
+            // Determine tier based on license duration
+            const tier = {
+                'one_week': 'sar',
+                'two_weeks': 'sar',
+                'one_month': 'sar',
+                'three_months': 'sar',
+                'one_year': 'sar',
+                'live': 'live'
+            }[licenseDuration];
 
-                // Prepare AJAX data
-                const data = {
-                    license_name: licenseName,
-                    emails: emails,
-                    domains: domains,
-                    expiry_timestamp: expiryTimestamp,
-                    tier: tier,
-                    n_tokens: nTokens
-                };
+            // Prepare AJAX data
+            const data = {
+                license_name: licenseName,
+                emails: emails,
+                domains: domains,
+                expiry_timestamp: expiryTimestamp,
+                tier: tier,
+                n_tokens: nTokens,
+                extra_security_password: document.querySelector('[name="extra_security_password"]').value
+            };
 
-                // Send AJAX request to the server
-                sendLicenseData(data);
-            });
+            // Send AJAX request to the server
+            sendLicenseData(data);
+            // });
         };
 
         function sendLicenseData(data) {
@@ -92,38 +94,86 @@ permalink: /add_license/
         // Retrieve the ID token from Firebase Auth
             globalUser.getIdToken(true).then(function (idToken) {
                 var requestURL = hostURL + '/add_new_license';
+                console.log("Sending request to " + requestURL + " with data: " + JSON.stringify(data));
 
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', requestURL, true);
-                xhr.setRequestHeader('Content-Type', 'application/json');  // setting up the response to the request to be sent!
-                xhr.setRequestHeader('Authorization', 'Bearer ' + idToken);  // Set the Authorization header with the token
-                
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {  // Check if the request has completed
-                        if (xhr.status === 200) {
-                            alert('License successfully created');
-                            document.getElementById("signin").style.display = 'none';
-                            document.getElementById("form").style.display = 'none';
-                            document.getElementById("post-download").style.display = 'block';
+                // First... change the text of the Create License button to "Creating License..."
+                // document.querySelector('.createLicenseButton').textContent = 'Creating License...';
+                statusSpan = $('#creationStatus');
+                statusSpan.text('Creating...').addClass('error-box');
+                // statusSpan.classList.add('error-box');
+                // Disable the button to prevent multiple submissions
+                // $('.createLicenseButton').prop('disabled', true);
+
+                $.ajax({
+                    url: requestURL,
+                    data: JSON.stringify(data),
+                    type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
+                    contentType: 'application/json', // This sets the Content-Type header to application/json
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: function (data) {
+                        licenseData = JSON.parse(data);
+                        console.log("Success: " + licenseData);
+
+                        // Show user message with link and ask them if they want to download
+                        // If yes, then redirect to the link
+                        // If no, then do nothing
+                        license_id = licenseData[0];
+                        expiryTimestamp = new Date(licenseData[1].expiry_timestamp * 1000).toLocaleString();
+                        licenseDataDisplay = 'License created successfully:\n' + JSON.stringify(licenseData, null, 2) + '\nExpiry: ' + expiryTimestamp;
+                        statusSpan.html('<pre>' + licenseDataDisplay + '</pre>').removeClass('error-box').addClass('info-box');
+                        if (useLocalFirebaseEmulator){
+                            linkToViewFirestore = 'http://localhost:4000/firestore/data/licenses/'+license_id;
                         } else {
-                            // Handle different types of HTTP errors
-                            console.log("Error: " + xhr.statusText);
-                            console.log("Status: " + xhr.status);
-                            console.log("Response: " + xhr.responseText);
-                            alert('Error creating license: ' + xhr.statusText);
+                            linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + license_id;
                         }
-                    }
-                };
-                xhr.onerror = function() {  // Handle network errors (e.g., problem reaching the server)
-                    console.log("Network Error");
-                    alert('Network Error: Could not connect to server');
-                };
+                        statusSpan.append('<a href="' + linkToViewFirestore + '" target="_blank">View license in Firestore</a>');
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Error: " + xhr.statusText);
+                        console.log("Status: " + xhr.status);
+                        console.log("Response: " + xhr.responseText);
+                        statusSpan.text('Error creating license: ' + xhr.responseText);
+                        alert('Error creating license: ' + xhr.responseText);
+                    },
+                });
 
-                xhr.send(JSON.stringify(data)); // submitting the actual request 
-            }).catch(function(error) {
-                console.log('Error getting ID token:', error);
-                alert('Failed to authenticate user. Please try again.');
-            });
+
+            //     const xhr = new XMLHttpRequest();
+            //     xhr.open('POST', requestURL, true);
+            //     xhr.setRequestHeader('Content-Type', 'application/json');  // setting up the response to the request to be sent!
+            //     xhr.setRequestHeader('Authorization', 'Bearer ' + idToken);  // Set the Authorization header with the token
+                
+            //     xhr.onreadystatechange = function() {
+            //         if (xhr.readyState === 4) {  // Check if the request has completed
+            //             if (xhr.status === 200) {
+            //                 alert('License successfully created');
+            //                 document.getElementById("signin").style.display = 'none';
+            //                 document.getElementById("form").style.display = 'none';
+            //                 document.getElementById("post-download").style.display = 'block';
+            //                 statusSpan.text('License created successfully');
+            //             } else {
+            //                 // Handle different types of HTTP errors
+            //                 console.log("Error: " + xhr.statusText);
+            //                 console.log("Status: " + xhr.status);
+            //                 console.log("Response: " + xhr.responseText);
+            //                 statusSpan.text('Error creating license: ' + xhr.statusText);
+            //                 alert('Error creating license: ' + xhr.statusText);
+            //             }
+            //         }
+            //     };
+            //     xhr.onerror = function() {  // Handle network errors (e.g., problem reaching the server)
+            //         console.log("Network Error");
+            //         alert('Network Error: Could not connect to server');
+            //     };
+
+            //     xhr.send(JSON.stringify(data)); // submitting the actual request 
+            // }).catch(function(error) {
+            //     console.log('Error getting ID token:', error);
+            //     alert('Failed to authenticate user. Please try again.');
+            // });
+        });
         }
 
         function updateKeyInput(selectedDuration) {
@@ -140,57 +190,6 @@ permalink: /add_license/
             }
         }
 
-
-        // function addLicense() {
-        //     var requestURL = hostURL + '/add_new_license' 
-            
-        //     // Pack the form data into an object
-        //     var formInputs = document.querySelectorAll('input[type=text], input[type=radio], input[type=number]');
-        //     var formData = {};
-        //     for (var i = 0; i < formInputs.length; i++) {
-        //         var input = formInputs[i];
-        //         if (input.type === 'radio') {
-        //             formData[input.name] = input.checked;
-        //         } else {
-        //             formData[input.name] = input.value;
-        //         }
-        //     }
-
-        //     console.log("Request URL: " + requestURL);
-        //     globalUser.getIdToken(true).then(function (idToken) {
-
-        //         $.ajax({
-        //             url: requestUrl,
-        //             data: JSON.stringify(formData),
-        //             type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-        //             contentType: 'application/json', // This sets the Content-Type header to application/json
-        //             headers: {
-        //                 'Authorization': 'Bearer ' + idToken
-        //             },
-        //             success: function (data) {
-        //                 data = JSON.parse(data);
-        //                 console.log("Success: " + data);
-        //                 var downloadLink = data.url;
-        //                 console.log("Download link: " + downloadLink);
-
-        //                 // Show user message with link and ask them if they want to download
-        //                 // If yes, then redirect to the link
-        //                 // If no, then do nothing
-
-        //                 window.location.href = downloadLink;
-        //                 $("#signin").hide();
-        //                 $("#form").hide();
-        //                 $("#post-download").show();
-        //                 $("#download-link").attr("href", downloadLink);
-
-
-        //             },
-        //             error: requestErrorHandler,
-        //         });
-        //     });
-
-        // }
-
     </script>
 
     <style>
@@ -205,16 +204,6 @@ permalink: /add_license/
         }
     </style>
 
-    <!-- <button onclick="getDownloadLink()">Get Download Link</button> -->
-
-
-    <!-- <form onsubmit="decryptAndRedirect(event)">
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required>
-    <button type="submit">Submit</button>
-</form> -->
-
-
     <br />
 
     <section id="signin">
@@ -228,24 +217,60 @@ permalink: /add_license/
         <script>
 
             var globalUser = null;
-            // List of admin emails allowed to sign in
-            var allowedAdmins = ['joep@eagleeyessearch.com', 'peter@eagleeyessearch.com'];
-
             document.addEventListener('signInComplete', function (e) {
                 /* Handle the event:
                 CustomEvent('signInComplete', { detail: { user: user } })
                 Generated by the signinWidget.html inclusion
                 */
-                globalUser = e.detail.user;
-                console.log('signInComplete event received: ' + globalUser);
-                if (allowedAdmins.includes(globalUser.email)) {
-                    $("#form").show(); // Show the form only if the user is an allowed admin
-                } else {
-                    $("#form").hide(); // Hide the form or take any other appropriate action
-                    // Optionally, display an error message or redirect non-admin users
-                    alert("Access denied. Only specific admin users can sign in.");
-                    // window.location.href = 'access-denied-page.html'; // Redirect to another page
-                }
+
+                // Use is_logged_in_user_admin to check if the user is an admin
+                // TODO: Make a check to server to see 
+                requestUrl = hostURL + '/is_logged_in_user_admin';
+                
+                console.log('signInComplete event received: ' + e.detail.user);
+                e.detail.user.getIdToken(true).then(function (idToken){
+                    console.log("Making request to "+hostURL+" for admin status with token "+idToken)
+                    
+                    statusSpan = $('#creationStatus');
+                    statusSpan.text('Checking if user is admin...');
+
+                    $.ajax({
+                        url: requestUrl,
+                        data: JSON.stringify({}),
+                        type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
+                        contentType: 'application/json', // This sets the Content-Type header to application/json
+                        headers: {
+                            'Authorization': 'Bearer ' + idToken
+                        },
+                        success: function (data) {
+                            data = JSON.parse(data);
+                            console.log("Success: " + data);
+
+                            isUserAdmin = data.is_admin;
+
+                            if (isUserAdmin) {
+                                globalUser = e.detail.user;
+                                console.log('signInComplete event received: ' + globalUser);
+                                statusSpan.text('');
+                                $("#form").show(); // Show the form only if the user is an allowed admin
+                            } else {
+                                $("#form").hide(); // Hide the form or take any other appropriate action
+                                // Optionally, display an error message or redirect non-admin users
+                                statusSpan.text('Access denied. Only specific admin users can sign in. You won\'t be able to add a license with this account').addClass('error-box');
+
+                                // alert("Access denied. Only specific admin users can sign in.  You won't be able to add a license with this account");
+                                // window.location.href = 'access-denied-page.html'; // Redirect to another page
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.log("Error: " + xhr.statusText);
+                            console.log("Status: " + xhr.status);
+                            console.log("Response: " + xhr.responseText);
+
+                            alert('Error checking if user is admin: ' + xhr.statusText);
+                        },
+                    });
+                })
             });
 
         </script>
@@ -259,6 +284,12 @@ permalink: /add_license/
         <h3> Welcome admin. Enter Licensing details below</h3>
         <form onsubmit="event.preventDefault(); handleForm();">
             <div class="container">
+
+                <label for="license_name"><b>Admin Password: </b></label>
+                Input the admin password for extra security
+                <br />
+                <input type="password" placeholder="Enter Admin Password" name="extra_security_password" required>
+                <br />
 
                 <label for="license_name"><b>License Name: (optional)</b></label>
                 What to call this license
@@ -307,16 +338,12 @@ permalink: /add_license/
                     </div>
                 </div>
                 <button type="submit" class="createLicenseButton">Create license</button>
+                <!-- Status field -->
                 <br />
+
             </div>
         </form>
-    </section>
-
-    <section id="post-download" class="info-box" hidden>
-        The following licenses were added:
-        (still need to add this part)
-        <!-- Add button to return to home page -->
         <br />
-        <button onclick="location.href='/'" class="non_important_button">Return to home page</button>
     </section>
+    <div id="creationStatus"></div>
 </body>
