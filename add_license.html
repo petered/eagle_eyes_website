@@ -13,14 +13,23 @@ permalink: /add_license/
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <link rel="stylesheet" href="/css/form_buttons_and_boxes.css?t=[timestamp]">
 
+    <!-- The moment library is used to handle dates and times -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+
 </head>
 
 <body>
     <script>
     
-        var useLocalFirebaseEmulator = false;  // When running local emulator with "firebase emulators:start", set this to "true
-        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
         var statusSpan = $('#creationStatus');
+
+
+        function addDeltaToDate(date, deltaNum, deltaUnit) {
+            return moment(date).add(deltaNum, deltaUnit).toDate();
+        }
+
 
         function handleForm() {
             console.log("handling form");
@@ -39,24 +48,31 @@ permalink: /add_license/
             const nTokens = document.getElementById(keysInputId) ? parseInt(document.getElementById(keysInputId).value, 10) : 0;
 
             // Calculate expiry timestamp based on license duration
-            const expiryDatetime = new Date();
-            switch (licenseDuration) {
-                case 'one_week':
-                    expiryDatetime.setDate(expiryDatetime.getDate() + 7);
-                    break;
-                case 'one_weeks':
-                    expiryDatetime.setDate(expiryDatetime.getDate() + 14);
-                    break;
-                case 'one_month':
-                    expiryDatetime.setMonth(expiryDatetime.getMonth() + 1);
-                    break;
-                case 'three_months':
-                    expiryDatetime.setMonth(expiryDatetime.getMonth() + 3);
-                    break;
-                case 'one_year':
-                    expiryDatetime.setFullYear(expiryDatetime.getFullYear() + 1);
-                    break;
+            function getNewExpiryDate(currentDate, licenseDuration) {
+                switch (licenseDuration) {
+                    case 'one_week':
+                        return addDeltaToDate(currentDate, 7, 'days');
+                    case 'two_weeks':
+                        return addDeltaToDate(currentDate, 14, 'days');
+                    case 'one_month':
+                        return addDeltaToDate(currentDate, 1, 'months');
+                    case 'three_months':
+                        return addDeltaToDate(currentDate, 3, 'months');
+                    case 'one_year':
+                        return addDeltaToDate(currentDate, 12, 'months'); // Equivalent to 1 year
+                    default:
+                        console.log('UNSPECIFIED DURATION '+licenseDuration);
+                        return null;
+                }
             }
+            
+            const currentDatetime = new Date();
+            const expiryDatetime = getNewExpiryDate(currentDatetime, licenseDuration);
+            if (!expiryDatetime) {
+                console.log('Error: Invalid license duration');
+                return;
+            }
+            console.log("Expiry date: " + expiryDatetime);
             const expiryTimestamp = expiryDatetime.getTime() / 1000;  // Convert to seconds
 
             // Determine tier based on license duration
@@ -190,6 +206,8 @@ permalink: /add_license/
             }
         }
 
+
+
     </script>
 
     <style>
@@ -206,7 +224,11 @@ permalink: /add_license/
 
     <br />
 
+
     <section id="signin">
+
+        <div class="info-box" id="using-emulator-info" style="display: none;">Using local Firebase emulator</div>
+
         <h1>Add a License</h1>
 
         Eagle Eyes Scan is a desktop app, available for MacOS and Windows.
@@ -263,14 +285,24 @@ permalink: /add_license/
                             }
                         },
                         error: function (xhr, status, error) {
-                            console.log("Error: " + xhr.statusText);
                             console.log("Status: " + xhr.status);
                             console.log("Response: " + xhr.responseText);
-
-                            alert('Error checking if user is admin: ' + xhr.statusText);
+                            alert('Error checking if user is admin: ' + xhr.stresponseTextatusText);
                         },
                     });
                 })
+            });
+
+            var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+            var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+            console.log('useLocalFirebaseEmulator: ' + useLocalFirebaseEmulator);
+
+            // When document is loaded...
+            $(document).ready(function() {
+                console.log('Document ready');
+                if (useLocalFirebaseEmulator) {
+                    $('#using-emulator-info').show();
+                }
             });
 
         </script>

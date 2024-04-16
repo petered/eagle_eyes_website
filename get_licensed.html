@@ -57,7 +57,8 @@ permalink: /get_licensed/
 
         function reCheckLicence() {
             // First, temporarily hide the licenses section
-            document.getElementById('licenses').hidden = true;
+            $('#licenses').hide();
+
             // Wait 1/4 second so the user sees the section disappear
             setTimeout(function () {
                 // Then, re-check the licence
@@ -65,6 +66,7 @@ permalink: /get_licensed/
             }, 250);
             // // Then, re-check the licence
             // checkLicence(user);
+            // Un-hide the re-check button (no longer display none)
         }
 
         function filterDataForTier(licenceAndTokenData, tier) {
@@ -215,6 +217,7 @@ permalink: /get_licensed/
                 //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
                 var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + machineId;
                 // console.log("Fetch URL: " + fetch_url);
+                
                 console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
                 $.ajax({
                     url: fetch_url,
@@ -223,7 +226,12 @@ permalink: /get_licensed/
                         'Authorization': 'Bearer ' + idToken
                     },
                     success: onReceivingLicenseData,
-                    error: requestErrorHandler
+                    error: requestErrorHandler,
+                    // Finally
+                    complete: function () {
+                        // Hide the "checking licenses" box
+                        $("#licenses").show();
+                    }
                 });
             });
         }
@@ -554,7 +562,7 @@ permalink: /get_licensed/
                 $("#early_adopter_signup").show();
             } else {
                 checkLicence();
-                $("#licenses").show();
+                
             }
         });
     </script>
@@ -594,6 +602,9 @@ permalink: /get_licensed/
         <div id="checking-licenses-box" class="info-box">
             Checking available licenses...
         </div>
+
+        <!-- Add a "re-check button which is initially hidden -->
+        <button onclick="reCheckLicence()" id="re-check-button">Re-check</button>
 
         <table border="1" style="width: 100%;">
             <tr>
