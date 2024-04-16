@@ -154,41 +154,6 @@ permalink: /add_license/
                         alert('Error creating license: ' + xhr.responseText);
                     },
                 });
-
-
-            //     const xhr = new XMLHttpRequest();
-            //     xhr.open('POST', requestURL, true);
-            //     xhr.setRequestHeader('Content-Type', 'application/json');  // setting up the response to the request to be sent!
-            //     xhr.setRequestHeader('Authorization', 'Bearer ' + idToken);  // Set the Authorization header with the token
-                
-            //     xhr.onreadystatechange = function() {
-            //         if (xhr.readyState === 4) {  // Check if the request has completed
-            //             if (xhr.status === 200) {
-            //                 alert('License successfully created');
-            //                 document.getElementById("signin").style.display = 'none';
-            //                 document.getElementById("form").style.display = 'none';
-            //                 document.getElementById("post-download").style.display = 'block';
-            //                 statusSpan.text('License created successfully');
-            //             } else {
-            //                 // Handle different types of HTTP errors
-            //                 console.log("Error: " + xhr.statusText);
-            //                 console.log("Status: " + xhr.status);
-            //                 console.log("Response: " + xhr.responseText);
-            //                 statusSpan.text('Error creating license: ' + xhr.statusText);
-            //                 alert('Error creating license: ' + xhr.statusText);
-            //             }
-            //         }
-            //     };
-            //     xhr.onerror = function() {  // Handle network errors (e.g., problem reaching the server)
-            //         console.log("Network Error");
-            //         alert('Network Error: Could not connect to server');
-            //     };
-
-            //     xhr.send(JSON.stringify(data)); // submitting the actual request 
-            // }).catch(function(error) {
-            //     console.log('Error getting ID token:', error);
-            //     alert('Failed to authenticate user. Please try again.');
-            // });
         });
         }
 
@@ -296,6 +261,13 @@ permalink: /add_license/
             var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
             var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
             console.log('useLocalFirebaseEmulator: ' + useLocalFirebaseEmulator);
+            var fireStoreLink;
+            if (useLocalFirebaseEmulator){
+                fireStoreLink = 'http://localhost:4000/firestore/data/licenses/';
+            } else {
+                fireStoreLink = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F';
+            }
+
 
             // When document is loaded...
             $(document).ready(function() {
@@ -303,6 +275,8 @@ permalink: /add_license/
                 if (useLocalFirebaseEmulator) {
                     $('#using-emulator-info').show();
                 }
+
+                $('#place_to_view').html('<a href="' + fireStoreLink + '" target="_blank">View licenses in Firestore</a>');
             });
 
         </script>
@@ -314,6 +288,9 @@ permalink: /add_license/
     <section id="form" hidden>
 
         <h3> Welcome admin. Enter Licensing details below</h3>
+
+        <span id="place_to_view"></span>
+
         <form onsubmit="event.preventDefault(); handleForm();">
             <div class="container">
 

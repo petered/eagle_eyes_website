@@ -46,7 +46,8 @@ permalink: /get_licensed/
 
         function getMachineIdFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('machine_id');
+            // upper case
+            return urlParams.get('machine_id').toUpperCase();
         }
 
 
@@ -212,6 +213,8 @@ permalink: /get_licensed/
             }
             console.log('Checking license for user: ', user, ' with globalUser: ', globalUser);
 
+            $('#checking-licenses-box').show();
+
 
             user.getIdToken().then(function (idToken) {
                 //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
@@ -230,6 +233,7 @@ permalink: /get_licensed/
                     // Finally
                     complete: function () {
                         // Hide the "checking licenses" box
+                        $('#checking-licenses-box').hide();
                         $("#licenses").show();
                     }
                 });
@@ -524,7 +528,7 @@ permalink: /get_licensed/
 
             function updateMachineId() {
                 // Get the new machine ID
-                var newMachineId = document.getElementById("new-machine-id").value;
+                var newMachineId = document.getElementById("new-machine-id").value.toUpperCase();
                 // Update the displayed machine ID
                 document.getElementById("machine-id").textContent = newMachineId;
                 // Close the dialog
@@ -537,6 +541,11 @@ permalink: /get_licensed/
                 var newURL = window.location.origin + window.location.pathname + '?' + queryParams.toString();
                 // Redirect to the new URL
                 window.location.href = newURL;
+            }
+
+            function onClickBuy(tier) {
+                console.log('Buy button clicked for tier: ' + tier);
+                alert('Automated purchase of tier ' + tier + ' is not yet set up.  Please contact info@eagleeyessearch.com to purchase a license.');
             }
 
         </script>
@@ -595,16 +604,15 @@ permalink: /get_licensed/
 
     </section>
 
+    <div id="checking-licenses-box"  class="info-box" hidden>Checking available licenses...</div>
+    
     <section id="licenses" hidden>
 
         <h2>Step 2: Get a License Key</h2>
 
-        <div id="checking-licenses-box" class="info-box">
-            Checking available licenses...
-        </div>
 
         <!-- Add a "re-check button which is initially hidden -->
-        <button onclick="reCheckLicence()" id="re-check-button">Re-check</button>
+        <button onclick="reCheckLicence()" id="re-check-button" class="non_important_button">Re-check</button>
 
         <table border="1" style="width: 100%;">
             <tr>
@@ -635,7 +643,8 @@ permalink: /get_licensed/
                     <br />
                     <span class="{{ tier }}-tier license-span"></span>
                     <br />
-                    <button class="{{ tier }}-tier license-buy">Buy</button>
+                    <!-- <button class="{{ tier }}-tier license-buy">Buy</button> -->
+                    <button class="{{ tier }}-tier license-buy" onclick="onClickBuy('{{ tier }}')">Buy</button>
                     <button class="{{ tier }}-tier keys-request" title="Click to get key">Get Key</button>
                 </td>
                 {% endfor %}
