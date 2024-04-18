@@ -20,7 +20,22 @@ permalink: /add_license/
 </head>
 
 <body>
+    <style>
+        .user-type label, .user-type input, .license-duration label, .license-duration input {
+            display: block;
+        }
+
+    </style>
+
     <script>
+
+        const LicenseOptions = {
+            TWO_WEEK_SAR: 'two_weeks',
+            ONE_MONTH_SAR: 'one_month',
+            THREE_MONTH_SAR: 'three_months',
+            ONE_YEAR_SAR: 'one_year',
+            ETERNAL_LIVE: 'live'
+        }
     
         
         var statusSpan = $('#creationStatus');
@@ -42,6 +57,7 @@ permalink: /add_license/
             const licenseName = document.querySelector('[name="license_name"]').value;
             const emails = document.querySelector('[name="emails"]').value.split(/,\s*/);
             const domains = document.querySelector('[name="domains"]').value.split(/,\s*/);
+            const userType = document.querySelector('[name="userType"]').value;
             const licenseDurationInput = document.querySelector('input[name="license_duration"]:checked');
             const licenseDuration = licenseDurationInput ? licenseDurationInput.value : null;
             const keysInputId = licenseDuration + '_keys';
@@ -91,6 +107,7 @@ permalink: /add_license/
                 license_name: licenseName,
                 emails: emails,
                 domains: domains,
+                user_type: userType,
                 expiry_timestamp: expiryTimestamp,
                 tier: tier,
                 n_tokens: nTokens,
@@ -317,36 +334,35 @@ permalink: /add_license/
                 <input type="text" placeholder="examplecountysar.org,someotherdomain.com" name="domains">
                 <br />
 
-                <label for="licenseDuration"><b>License Duration:</b> Please select the license duration and specify the number of license keys:</label>
-                <div class="license-options">
-                    <div class="radio-container">
-                        <input type="radio" id="one_week" name="license_duration" value="one_week" required onclick="updateKeyInput('one_week')">
-                        <label for="one_week">Pro - 1 Week, with <input type="number" id="one_week_keys" name="one_week_keys" value="1" min="1" disabled> keys</label>                       
-                    </div>
-
-                    <div class="radio-container">
-                        <input type="radio" id="two_weeks" name="license_duration" value="two_weeks" required onclick="updateKeyInput('two_weeks')">
-                        <label for="two_weeks">Pro - 2 Weeks, with <input type="number" id="two_weeks_keys" name="two_weeks_keys" value="1" min="1" disabled> keys</label>                       
-                    </div>
-
-                    <div class="radio-container">
-                        <input type="radio" id="one_month" name="license_duration" value="one_month" required onclick="updateKeyInput('one_month')">
-                        <label for="one_month">Pro - 1 Month, with <input type="number" id="one_month_keys" name="one_month_keys" value="2" min="1" disabled> keys</label>                        
-                    </div>
-                    <div class="radio-container">
-                        <input type="radio" id="three_months" name="license_duration" value="three_months" required onclick="updateKeyInput('three_months')">
-                        <label for="three_months">Pro - 3 Months, with <input type="number" id="three_months_keys" name="three_months_keys" value="2" min="1" disabled> keys</label>                        
-                    </div>
-
-                    <div class="radio-container">
-                        <input type="radio" id="one_year" name="license_duration" value="one_year" required onclick="updateKeyInput('one_year')">
-                        <label for="one_year">Pro - 1 Year, with <input type="number" id="one_year_keys" name="one_year_keys" value="3" min="1" disabled> keys</label>
-                    </div>
-                    <div class="radio-container">
-                        <input type="radio" id="live" name="license_duration" value="live" required onclick="updateKeyInput('live')">
-                        <label for="live">Live, with <input type="number" id="live_keys" name="live_keys" value="2" min="1" disabled> keys</label>
-                    </div>
+                
+                <div class="user-type">
+                    <label for="userType"><b>User Type:</b></label>
+                    <input type="radio" id="volunteer" name="userType" value="volunteer" required>
+                    <label for="volunteer">Volunteer</label>
+                    <input type="radio" id="general" name="userType" value="general" required>
+                    <label for="general">General</label>
+                    <input type="radio" id="special" name="userType" value="special" required>
+                    <label for="special">Special</label>
                 </div>
+                
+                <div class="license-duration">
+                    <label for="licenseDuration"><b>License Duration:</b> Please select the license duration and specify the number of license keys:</label>
+                    <input type="radio" id="two_weeks" name="license_duration" value="two_weeks" required onclick="updateKeyInput('two_weeks')">
+                    <label for="two_weeks">(Intro License) Pro - 2 Weeks, with <input type="number" id="two_weeks_keys" name="two_weeks_keys" value="3" min="1" disabled> keys</label>                       
+                    
+                    <input type="radio" id="one_month" name="license_duration" value="one_month" required onclick="updateKeyInput('one_month')">
+                    <label for="one_month">Pro - 1 Month, with <input type="number" id="one_month_keys" name="one_month_keys" value="2" min="1" disabled> keys</label>                        
+                
+                    <input type="radio" id="three_months" name="license_duration" value="three_months" required onclick="updateKeyInput('three_months')">
+                    <label for="three_months">Pro - 3 Months, with <input type="number" id="three_months_keys" name="three_months_keys" value="2" min="1" disabled> keys</label>                        
+                
+                    <input type="radio" id="one_year" name="license_duration" value="one_year" required onclick="updateKeyInput('one_year')">
+                    <label for="one_year">Pro - 1 Year, with <input type="number" id="one_year_keys" name="one_year_keys" value="3" min="1" disabled> keys</label>
+                
+                    <input type="radio" id="live" name="license_duration" value="live" required onclick="updateKeyInput('live')">
+                    <label for="live">Live, with <input type="number" id="live_keys" name="live_keys" value="2" min="1" disabled> keys</label>
+                </div>
+
                 <button type="submit" class="createLicenseButton">Create license</button>
                 <!-- Status field -->
                 <br />
