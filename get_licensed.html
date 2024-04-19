@@ -218,9 +218,9 @@ permalink: /get_licensed/
 
             user.getIdToken().then(function (idToken) {
                 //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
-                var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + machineId;
+                licenseID = $('#license-id').val();
+                var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + machineId + (licenseID ? '&license_id=' + licenseID : '');
                 // console.log("Fetch URL: " + fetch_url);
-                
                 console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
                 $.ajax({
                     url: fetch_url,
@@ -340,7 +340,7 @@ permalink: /get_licensed/
                 var tierData = filterDataForTier(data, tier);
                 console.log('Tier data for ' + tier + ': ', tierData);
 
-                var licensesForTier = tierData.licenses_and_dispensed;
+                const licensesForTier = tierData.licenses_and_dispensed;
                 var tokensAndCodesForTier = tierData.tokens_and_codes;
 
                 console.log('Licenses for tier ' + tier + ': ', licensesForTier);
@@ -364,13 +364,20 @@ permalink: /get_licensed/
                     var option = $('<option></option>')
                         .text("Name: " + license.license_name + ", Expiry: " + expiryDate + ", ID: " + licenseId)
                         .val(licenseId);  // Set the value attribute to licenseId
+                    console.log('Adding option to select with id: ' + licenseId);
                     select.append(option);
                 });
                 // Add a callback to the select element to fill in the license info textarea when a license is selected
                 function updateTextArea() {
                     let selectedLicenseId = select.val();
+                    console.log('Selected license ID: ', selectedLicenseId);
+                    all_select_ids = select.children().map(function () {
+                        return $(this).val();
+                    }).get();
+                    console.log('All select IDs: ', all_select_ids);
+                    console.log('Licenses for tier: ', licensesForTier);
                     let selectedLicense = licensesForTier[selectedLicenseId].license;
-                    console.log('Selected license: ', selectedLicense);
+                    console.log('Selected license: '+selectedLicenseId +": ", selectedLicense);
                     let n_tokens_dispensed = licensesForTier[selectedLicenseId].n_tokens_dispensed;
                     let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
                     let textarea = $("." + tier + '-tier.license-info');
@@ -399,7 +406,8 @@ permalink: /get_licensed/
                     $("." + tier + '-tier.keys-request').display = thisTokenAlreadyHasKey ? 'none' : 'block';
                     $("." + tier + '-tier.keys-view').display = thisTokenAlreadyHasKey ? 'block' : 'none';
                 }
-
+                // Clear previous callbacks
+                select.off('change');
                 select.change(updateTextArea);
 
                 // Call the change function to fill in the textarea for the first license
@@ -407,6 +415,8 @@ permalink: /get_licensed/
                 textarea.val('<No licenses>');
 
                 let getKeyButton = $("." + tier + '-tier.keys-request');
+                // Clear any previous callbacks
+                getKeyButton.off('click');
                 // Set the callback for this button to request a key from this license_id
                 getKeyButton.click(function () {
                     getKeyForThisLicense(select.val(), globalUser);
@@ -623,7 +633,15 @@ permalink: /get_licensed/
 
 
         <!-- Add a "re-check button which is initially hidden -->
-        <button onclick="reCheckLicence()" id="re-check-button" class="non_important_button">Re-check</button>
+        <div>
+            <!-- Add an optional field for entering license ID -->
+            <!-- Add a little "?" which you can mouse-over for an explanation -->
+            Enter License ID (Optional):  
+            <span title="If your email is not associated with a license, you can enter the license ID here">ℹ️</span>
+            <input type="text" id="license-id" placeholder="(e.g. jI9Y9kg8oK3w2yf2)" style="width: calc(30ch + 2px);">
+            <button onclick="reCheckLicence()" id="re-check-button" class="non_important_button">Re-check</button>
+        </div>
+
 
         <table border="1" style="width: 100%;">
             <tr>
