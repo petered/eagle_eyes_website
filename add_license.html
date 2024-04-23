@@ -87,12 +87,14 @@ permalink: /add_license/
             
             const currentDatetime = new Date();
             const expiryDatetime = getNewExpiryDate(currentDatetime, licenseDuration);
+
             if (!expiryDatetime) {
-                console.log('Error: Invalid license duration');
-                return;
+                console.log('Expiry not set - taking duration to be eternal');
+                expiryTimestamp = null
+            } else {
+                console.log("Expiry date: " + expiryDatetime);
+                const expiryTimestamp = expiryDatetime.getTime() / 1000;  // Convert to seconds
             }
-            console.log("Expiry date: " + expiryDatetime);
-            const expiryTimestamp = expiryDatetime.getTime() / 1000;  // Convert to seconds
 
             // Determine tier based on license duration
             // CAREFUL - these must match the values in LicenseTier enum on the server
@@ -102,7 +104,7 @@ permalink: /add_license/
                 'one_month': 'SAR',
                 'three_months': 'SAR',
                 'one_year': 'SAR',
-                'live': 'Basic'
+                'live': 'Live'
             }[licenseDuration];
 
             // Prepare AJAX data
