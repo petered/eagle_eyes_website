@@ -1,0 +1,71 @@
+---
+layout: ee_page_layout
+title: Eagle Eyes - Buy a License
+permalink: /buy_license.html
+---
+
+<head>
+{% include login_page_head.html %}
+</head>
+</br>
+<section id="login_title" hidden>
+    </br>
+    <h2 style="text-align: center;">Eagle Eyes Login</h2>
+</section>
+    <div style="display: flex; justify-content: center;">
+        {% include signinWidget.html %}
+    </div>
+<section id="pricing_content" style="font-size: 80%;" hidden>
+
+    {% include compare_tiers.html %}
+    </br>
+
+    {% include pricing_clickable.html %}
+
+    </br>
+    <div style="text-align: center;">
+        <button id="purchaseButton" class="purchase-button" disabled>Purchase</button>
+    </div>
+
+</section>
+
+<script>
+    var globalUser = null;
+    $("#pricing_content").hide();
+    $("#login_title").show(); 
+
+    document.addEventListener('signInComplete', function (e) {
+        globalUser = e.detail.user;
+        console.log('signInComplete event received:', globalUser);
+        $("#login_title").hide();
+        $("#pricing_content").show();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const purchaseButton = document.getElementById('purchaseButton');
+
+        // Initially disable the purchase button until a price is selected
+        purchaseButton.disabled = true;
+        purchaseButton.classList.remove('enabled');
+
+        // Listen for the priceSelected event from the pricing table
+        document.addEventListener('priceSelected', function(e) {
+            purchaseButton.disabled = false; // Enable the button when a price is selected
+            purchaseButton.classList.add('enabled'); // Add the 'enabled' class for visual change
+            purchaseButton.onclick = () => purchase(e.detail.price); // Assign the purchase function with the selected price
+        });
+
+        // Optionally handle price deselection or resetting
+        document.addEventListener('clearSelections', function() {
+            purchaseButton.disabled = true; // Disable the button
+            purchaseButton.classList.remove('enabled'); // Remove the 'enabled' class for visual revert
+        });
+    });
+
+    function purchase(price) {
+        console.log("Purchasing at price:", price);
+        // Implement actual purchase logic here
+    }
+
+
+</script>
