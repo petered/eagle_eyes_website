@@ -1,10 +1,7 @@
 var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
 var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
 
-urlParams = new URLSearchParams(window.location.search);
-// Get the argument and convert it to a boolean.  It should default to true if not present.
-// var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
-var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
+
 
 // var hostURL = 'https://us-central1-aaaaggfdsfdsdaa.cloudfunctions.net';
 
@@ -24,8 +21,38 @@ thisURLwithJustMachineIDArg = window.location.origin + '/get_licensed/?machine_i
 
 // Wait for the HTML to load
 document.addEventListener("DOMContentLoaded", function () {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    // Get the argument and convert it to a boolean.  It should default to true if not present.
+    // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
+    var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
+    var paymentStatus = urlParams.get('payment');
+    console.log("Payment Status:", paymentStatus); // This should output 'success' if the URL is correct
+
+
+    if (paymentStatus === 'success') {
+        console.log('Payment was successful.');
+        $('#step2-button-container').hide();
+        $('#payment-successful-message').text('Your payment was successful. Follow the steps below to unlock your Eagle Eyes Scan license on your device.').show();
+        checkLicense(globalUser);
+        // Add additional logic for successful payment here
+    } else {
+        console.log('Payment was not successful or parameter is missing.');
+        // Add logic for handling other values or missing parameter here
+    }
     // Display the machine ID in the HTML
     document.getElementById('machine-id').textContent = machineId;
+    
+    var issueKeyButton = document.getElementById('issueKeyButton');
+    issueKeyButton.addEventListener('click', function() {
+
+        getKeyForThisLicense(selectedLicenseId, globalUser);
+    });
+    var copyKeyButton = document.getElementById('license-key-copy-button');
+    copyKeyButton.addEventListener('click', function() {
+
+        copyTextToClipboard();
+    });
 });
 
 function getMachineIdFromURL() {
@@ -75,12 +102,16 @@ function filterDataForTier(licenseAndTokenData, tier) {
     return filteredData;
 }
 
-function copyTextToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function () {
-        console.log('Async: Copying to clipboard was successful!');
-    }, function (err) {
-        console.error('Async: Could not copy text: ', err);
-    });
+function copyTextToClipboard() {
+    var licenseKey = document.getElementById("license-key");
+    navigator.clipboard.writeText(licenseKey.value)
+        .then(() => {
+            console.log('Text copied to clipboard successfully!');
+            $('#license-key-status').text("Key " + licenseKey.value.slice(0, 10) + '...' + " has been copied to the clipboard. You can now paste it into the Eagle Eyes app.").addClass('info-box');
+        })
+        .catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
 }
 
 function licenseTokenToString(token) {
@@ -107,10 +138,10 @@ function onNewKeyReceived(tokenAndCodeJSONString) {
     $('#license-key').val(code);
 
     // Copy the code to the clipboard
-    copyTextToClipboard(code);
+    copyTextToClipboard();
     $('#license-key-status').text("Key " + code.slice(0, 10) + '...' + " has been copied to the clipboard. You can now paste it into the Eagle Eyes app.").addClass('info-box');
     // Copy button 
-    $('#license-key-copy-button').text('Copy Key Again');
+    $('#license-key-copy-button').text('Copy Key to Clipboard');
 
     console.log("Showed new key: ", code.slice(0, 10) + '...');
 
@@ -128,12 +159,12 @@ function getKeyForThisLicense(licenseID, user) {
     // First, get the user's ID token
     // We're calling the "request_token_from_license" cloud function with args machine_id and license_id
     console.log('Requesting key for license ID: ', licenseID);
+    $('#issueKeyButton').addClass('non_important_button');
     // First - lets check if there is already a key for this license on this machine
     console.log('Global data: ', globalData);
     console.log('Tokens and codes: ', globalData.tokens_and_codes);
     allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
     isThereAlreadyAKey = allLicenseIdsInTokens.includes(licenseID);
-
     n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
 
     // If there is not a key, warn the user that they are about to request a key and this will decrement the number of available keys
@@ -264,8 +295,8 @@ function onReceivingLicenseData(data) {
             "tier": "Basic",
             "expiry_timestamp": 1711929600.0,
             "email": "*",
-            "machine_id": "*",
-            "license_id": null,
+            "machine_id": "nd34kjs",
+            "license_id": sdjk34d,
             "license_name": "Universal Basic License",
             "key": null,
             "_version": 1
@@ -296,10 +327,11 @@ function onReceivingLicenseData(data) {
     console.log('Data received: ', data);
     var licenseData = JSON.parse(data); // Ensure data is parsed correctly
     globalData = licenseData; // Save for global use
-    var select = document.getElementById('license-select');
-    var textarea = document.getElementById('license-info');
-    var checkingBox = document.getElementById('checking-licenses-box');
-    var selectLicenseButton = document.getElementById('selectLicenseButton');
+    var select = document.getElementById('license-select'); // the license selector
+    var textarea = document.getElementById('license-info'); // contents of license info box
+    var textarea2 = document.getElementById('second-license-info-box'); // contents of license info box
+    var checkingBox = document.getElementById('checking-licenses-box'); // blue info-box field
+    var selectLicenseButton = document.getElementById('selectLicenseButton'); // button that selects the license
 
     select.innerHTML = ''; // Clear existing options
 
@@ -329,10 +361,22 @@ function onReceivingLicenseData(data) {
 
     select.onchange = function () {
         selectedLicenseId = this.value;
-        if (!this.value) return; // Guard against no selection
-        selectedLicense = globalData.licenses_and_dispensed[this.value].license;
-        selectedLicenseInfo = `Name: ${selectedLicense.license_name}\nExpiry: ${new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString()}\nTier: ${selectedLicense.tier}\nEmails: ${selectedLicense.emails.join(', ')}\nMachine ID: ${selectedLicense.machine_id}\nLicense ID: ${this.value}\nKeys Remaining: ${selectedLicense.n_tokens - selectedLicense.n_tokens_dispensed} of ${selectedLicense.n_tokens}`;
+        if (!selectedLicenseId) return; // Guard against no selection 
+        selectedLicense = globalData.licenses_and_dispensed[selectedLicenseId].license; // this = the select element // this.value= the selected license ID // licenseid.license is the license object that is part of the license ID
+        let license_name = selectedLicense.license_name;
+        let license_expiry = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
+        let license_tier = selectedLicense.tier;
+        let emails = selectedLicense.emails.join(', ');
+        let n_tokens_dispensed = globalData.licenses_and_dispensed[this.value].n_tokens_dispensed;
+        let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
+        let n_tokens_total = selectedLicense.n_tokens;
+        selectedLicenseInfo = `Name: ${license_name}\nExpiry: ${license_expiry}\nTier: ${license_tier}\nEmails: ${emails}\nLicense ID: ${selectedLicenseId}\nKeys Remaining: ${n_tokens_remaining} of ${n_tokens_total}`;
         textarea.value = selectedLicenseInfo;
+        textarea2.value = selectedLicenseInfo;
+        // var allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+        // console.log(allLicenseIdsInTokens);
+
+
     };
 
     // Trigger change event on load to display the first entry's details if available
@@ -341,18 +385,35 @@ function onReceivingLicenseData(data) {
         select.onchange();
     }
 }
-    
+
+
 function selectLicense() {
     var selectField = document.getElementById('select-license-info');
     selectField.textContent = `License ID ${selectedLicenseId} selected`;
     var secondTextArea = document.getElementById(`second-license-info-box`);
     secondTextArea.value = selectedLicenseInfo;
+    var issueKeyInfoBox = document.getElementById(`issue-key-info`);
+    var code = isThereAlreadyAKey();
+    console.log(code);
+    if (!code) {
+        $('#issueKeyButton').removeClass('non_important_button').show();
+        console.log("there is no key yet");
+        $('#license-key').val("");
+        issueKeyInfoBox.textContent = "Important: Before proceeding, please be aware that issued keys are specific to a device. The process of issuing a key is irreversible; once a key is issued, it cannot be revoked or transferred to another device.";
+    }
+    else {
+        issueKeyInfoBox.textContent = "A key has already been issued for this license and this device.";
+        $('#license-key').val(code);
+        $('#key-view').show();
+        $('#issueKeyButton').removeClass('non_important_button').hide();
+    }
     $('#select-license-info').show();
-    $('#issue_key').show();
-
+    $('#issue-key').show();
+    
 }
 
 function onSelectLicenseToken() {
+    $('#issueKeyButton').removeClass('non_important_button invisible-button');
     var licenseTokensSelect = document.getElementById('license-tokens-select');
     console.log('Index: ', licenseTokensSelect.selectedIndex);
     if (licenseTokensSelect.selectedIndex === -1) {
@@ -383,20 +444,25 @@ function onSelectLicenseToken() {
 }
 
 function isThereAlreadyAKey() {
-    console.log(selectedLicense);
-    // console.log('Global data: ', globalData);
-    // console.log('Tokens and codes: ', globalData.tokens_and_codes);
-    // allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
-    // var keyAlreadyIssued = allLicenseIdsInTokens.includes(selectedLicenseId);
-    // // n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
-    // if (keyAlreadyIssued) {
-    //     return true;
-    //     console.log('there is already a key');
-    // }
-    // else {
-    //     return false;
-    //     console.log('there is no key');
-    // }
+    console.log('Global data: ', globalData);
+    console.log('Tokens and codes: ', globalData.tokens_and_codes);
+    allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+    var keyAlreadyIssued = allLicenseIdsInTokens.includes(selectedLicenseId);
+    var TokensAndCode = globalData.tokens_and_codes;
+    // n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
+    if (keyAlreadyIssued) {
+        for (let key in TokensAndCode) {
+            if (TokensAndCode[key].token.license_id === selectedLicenseId) {
+                $('#issueKeyButton').removeClass('non_important_button').hide();
+                return TokensAndCode[key].code;  // Returns the code when the license ID matches
+                console.log('there is already a key');
+            }
+        }
+    }
+    else {
+        return false;
+        console.log('there is no key');
+    }
 }
 
 function copyLicenseKey() {
@@ -466,6 +532,6 @@ function onClickBuy(tier) {
 }
 
 issueKeyButton.click(function () {
-    getKeyForThisLicense(select.val(), globalUser);
-});
+    getKeyForThisLicense(select.val(), globalUser);}
+);
 
