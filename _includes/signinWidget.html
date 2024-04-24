@@ -1,6 +1,9 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<!-- Include form_buttons_and_boxes.scss (it's in scss/form_buttons_and_boxes.scss) but we need to get it in liquid -->
+<style src="/css/form_buttons_and_boxes.css"></style>
+<link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
 
 
 <script>
@@ -17,6 +20,19 @@
             // Upon initialization, call the function to initialize Firebase
             this.completeEmailLinkSigninIfApplicable();
             this._user = null;
+
+            // Check if user is still signed in from a previous session
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    this._user = user;
+                    console.log("User is signed in", user);
+                    this.updateUserDisplay(user);
+                    this.fireSigninEvent(user);
+                } else {
+                    console.log("No user is signed in.");
+                }
+            });
+
 
         }
 
@@ -135,12 +151,26 @@
             // Give it that nice blue background by turning it into a .info-box
             document.getElementById('user-info').classList.add('info-box');
             document.getElementById('sign-in-div').style.display = 'none';
-            document.getElementById('user-info').innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Change user</button>';
+            // document.getElementById('user-info').innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Change user</button>';
+            // Need to sign-out now
+            document.getElementById('user-info').innerHTML += '<br/><button onclick="signOutAndChangeUser()"  class="non_important_button">Change user</button>';
         }
+
 
         getUser() {
             return this._user;
         }
+    }
+
+
+    function signOutAndChangeUser() {
+        firebase.auth().signOut().then(() => {
+            console.log('User signed out.');
+            // Reset the user display or redirect to the login page
+            location.reload()
+        }).catch((error) => {
+            console.error('Sign out error', error);
+        });
     }
 
     const signinWidget = new SigninWidget(
