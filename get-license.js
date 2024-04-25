@@ -40,17 +40,19 @@ function checkURLParameters() {
     // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
     // var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
     var licenseIdFromUrl = urlParams.get('license_id');
-    console.log(licenseIdFromUrl);
+
+    console.log("License ID from URL? "+licenseIdFromUrl);
     // checks for license_id= followed by one or more alphanumeric characters. 
     // licenseId is set to match[1] if the license_id is found; otherwise, it is set to null.
 
     if (licenseIdFromUrl && /^[a-zA-Z0-9]+$/.test(licenseIdFromUrl)) {
         console.log("license_id included:", licenseIdFromUrl);
         $('#license-id').val(licenseIdFromUrl);
-        $('#licenses').show();
-        $('html, body').animate({
-            scrollTop: $("#licenses").offset().top
-        }, 1000); // 1000 milliseconds = 1 second
+        checkLicense(globalUser);
+        // $('#licenses').show();
+        // $('html, body').animate({
+        //     scrollTop: $("#licenses").offset().top
+        // }, 1000); // 1000 milliseconds = 1 second
         // Add logic for handling other values or missing parameter here
     } else {
         console.log('license_id not included or invalid.');
@@ -59,13 +61,19 @@ function checkURLParameters() {
     
     // Display the machine ID in the HTML
     document.getElementById('machine-id').textContent = machineId;
-    checkLicense(globalUser);
+    
+}
+
+function getParamFromURL(paramName, defaultValue = undefined) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(paramName) || defaultValue;
 }
 
 function getMachineIdFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    // upper case
-    return urlParams.get('machine_id').toUpperCase();
+    // const urlParams = new URLSearchParams(window.location.search);
+    // // upper case
+    // return urlParams.get('machine_id').toUpperCase();
+    return getParamFromURL('machine_id')?.toUpperCase();
 }
 
 function getIsEmulatorFromURL() {
@@ -551,8 +559,8 @@ function updateMachineId() {
 }
 
 issueKeyButton.click(function () {
-    getKeyForThisLicense(select.val(), globalUser);}
-);
+    getKeyForThisLicense(select.val(), globalUser);
+});
 
 function onClickBuy() {
     console.log('Buy button clicked');
@@ -583,11 +591,3 @@ function onClickBuy() {
     })
 
 }
-
-
-
-
-
-
-
-
