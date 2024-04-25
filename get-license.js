@@ -557,7 +557,7 @@ issueKeyButton.click(function () {
 function onClickBuy() {
     console.log('Buy button clicked');
     
-    url = `${hostURL}/get_stripe_payment_link?tier=${tier}&machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}&{is_emulator=${useLocalFirebaseEmulator}}`;
+    url = `${hostURL}/get_stripe_payment_link?machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}${useLocalFirebaseEmulator ? '&is_emulator=true' : ''}`;
 
 
     // Make an ajax request to the get_stripe_payment_link cloud function
@@ -583,7 +583,6 @@ function onClickBuy() {
     })
 
 }
-
 
 
 
