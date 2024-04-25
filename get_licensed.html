@@ -37,16 +37,24 @@ permalink: /get_licensed/
             document.getElementById('machine-id').textContent = machineId;
         });
 
-        function getMachineIdFromURL() {
+        function getParamFromURL(paramName, defaultValue = undefined) {
             const urlParams = new URLSearchParams(window.location.search);
-            // upper case
-            return urlParams.get('machine_id').toUpperCase();
+            return urlParams.get(paramName) || defaultValue;
+        }
+
+        function getMachineIdFromURL() {
+            // const urlParams = new URLSearchParams(window.location.search);
+            // // upper case
+            // return urlParams.get('machine_id').toUpperCase();
+            return getParamFromURL('machine_id').toUpperCase();
         }
 
 
         function getIsEmulatorFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('is_emulator') === 'true';
+            // return urlParams.get('is_emulator') === 'true';
+            // Case insensitive
+            return urlParams.get('is_emulator')?.toLowerCase() === 'true';
         }
 
         function reCheckLicence() {
@@ -559,9 +567,33 @@ permalink: /get_licensed/
 
             function onClickBuy(tier) {
                 console.log('Buy button clicked for tier: ' + tier);
-                alert('Automated purchase of tier ' + tier + ' is not yet set up.  Please contact info@eagleeyessearch.com to purchase a license.');
-            }
+                
+                url = `${hostURL}/get_stripe_payment_link?tier=${tier}&machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}&{is_emulator=${useLocalFirebaseEmulator}}`;
 
+
+                // Make an ajax request to the get_stripe_payment_link cloud function
+                // This will return a link to the Stripe checkout page
+                globalUser.getIdToken(true).then(function (idToken) {
+                    $.ajax({
+                        headers: {'Authorization': 'Bearer ' + idToken},
+                        url: url,  // Add the machine ID to the URL
+                        method: 'GET',
+                        success: function (data) {
+                            console.log('Received data: ', data);
+                            // Open the link in a new tab
+                            decodedData = JSON.parse(data);
+                            paymentUrl = decodedData.url;
+                            window.open(paymentUrl, '_blank');
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            // Handle the error
+                            requestErrorHandler(jqXHR, textStatus, errorThrown);
+                        }
+                    });
+                    // alert('Automated purchase of tier ' + tier + ' is not yet set up.  Please contact info@eagleeyessearch.com to purchase a license.');
+                })
+            
+            }
         </script>
 
     <h2> Step 1: Sign in </h2>
