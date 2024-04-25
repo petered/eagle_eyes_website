@@ -44,16 +44,24 @@ permalink: /get_licensed/
             document.getElementById('machine-id').textContent = machineId;
         });
 
-        function getMachineIdFromURL() {
+        function getParamFromURL(paramName, defaultValue = undefined) {
             const urlParams = new URLSearchParams(window.location.search);
-            // upper case
-            return urlParams.get('machine_id').toUpperCase();
+            return urlParams.get(paramName) || defaultValue;
+        }
+
+        function getMachineIdFromURL() {
+            // const urlParams = new URLSearchParams(window.location.search);
+            // // upper case
+            // return urlParams.get('machine_id').toUpperCase();
+            return getParamFromURL('machine_id').toUpperCase();
         }
 
 
         function getIsEmulatorFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('is_emulator') === 'true';
+            // return urlParams.get('is_emulator') === 'true';
+            // Case insensitive
+            return urlParams.get('is_emulator')?.toLowerCase() === 'true';
         }
 
         function reCheckLicence() {
@@ -567,12 +575,15 @@ permalink: /get_licensed/
             function onClickBuy(tier) {
                 console.log('Buy button clicked for tier: ' + tier);
                 
+                url = `${hostURL}/get_stripe_payment_link?tier=${tier}&machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}&{is_emulator=${useLocalFirebaseEmulator}}`;
+
+
                 // Make an ajax request to the get_stripe_payment_link cloud function
                 // This will return a link to the Stripe checkout page
                 globalUser.getIdToken(true).then(function (idToken) {
                     $.ajax({
-                        url: hostURL + '/get_stripe_payment_link?tier=' + tier+'&machine_id='+machineId,
                         headers: {'Authorization': 'Bearer ' + idToken},
+                        url: url,  // Add the machine ID to the URL
                         method: 'GET',
                         success: function (data) {
                             console.log('Received data: ', data);
