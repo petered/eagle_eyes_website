@@ -1,0 +1,62 @@
+---
+layout: ee_page_layout
+title: Payment Success
+permalink: /post-payment/
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Status</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const licenseId = urlParams.get('license_id');
+            const machineId = urlParams.get('machine_id');
+            const is_emulator = urlParams.get('is_emulator');
+            const messageElement = document.getElementById('message');
+            const detailElement = document.getElementById('details');
+            const licenseInfoElement = document.getElementById('license-info');
+            const returnButton = document.getElementById('return-button');
+
+            if (status === 'success') {
+                messageElement.textContent = 'Payment Success';
+                detailElement.textContent = 'Your payment has been successfully processed. Thank you for your purchase!';
+                if (licenseId) {
+                    licenseInfoElement.textContent = 'Your license id is ' + licenseId 
+                    if (machineId) {
+                        returnButton.textContent = 'Activate License for this Machine';
+                    } else {
+                        returnButton.textContent = 'View Your Licenses';
+                    }
+                }
+            } else if (status === 'cancelled') {
+                messageElement.textContent = 'Payment Cancelled';
+                detailElement.textContent = 'Your payment was not completed. If this was an error, please try again.';
+            }
+
+            const returnUrl = `/get-license/?early_adopter=false&machine_id=${machineId || ''}${licenseId ? '&license_id=' + licenseId : ''}${is_emulator ? '&is_emulator=' + is_emulator : ''}`;
+            returnButton.href = returnUrl;
+        });
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 id="message">Loading...</h1>
+            <p id="details"></p>
+            <p id="license-info"></p>
+            <br/><br/>
+            <a href="#" id="return-button" class="btn btn-primary">Return to Licensing Page</a>
+            <br/><br/>
+            If you have any questions, please contact us at <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
