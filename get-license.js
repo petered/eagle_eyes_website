@@ -385,6 +385,7 @@ function onReceivingLicenseData(data) {
         selectLicenseButton.disabled = true;
     }
 
+
     select.onchange = function () {
         selectedLicenseId = this.value;
         if (!selectedLicenseId) return; // Guard against no selection 
@@ -405,11 +406,27 @@ function onReceivingLicenseData(data) {
 
     };
 
+    // If a license id is specified in the box, select that one
+    var licenseIdFromBox = $('#license-id').val();
+    // if (licenseIdFromBox) {
+    //     // Select the license with the specified ID
+    //     select.value = licenseIdFromBox;
+    //     select.onchange(); // Trigger the change event
+    // }
+    
+
+    // console.log("licenseIdFromBox: ", licenseIdFromBox);
+
     // Trigger change event on load to display the first entry's details if available
     if (select.options.length > 0) {
-        select.selectedIndex = 0;
+        // Get index of selected id or 0 if not found
+        // console.log("select.options: ", select.options);
+        // console.log("index: ", Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0);
+        select.selectedIndex = Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0;
         select.onchange();
     }
+
+
 }
 
 
