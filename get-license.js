@@ -430,18 +430,11 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     var licenseData = JSON.parse(data); // Ensure data is parsed correctly
     
     globalData = licenseData; // Save for global use
-    // var select = document.getElementById('license-select'); // the license selector
     var select = $('#license-select'); // the license selector
-    // var textarea = document.getElementById('license-info'); // contents of license info box
     var textarea = $('#license-info'); // contents of license info box
-    // var textarea2 = document.getElementById('second-license-info-box'); // contents of license info box
     var checkingBox = $('#licenses-found-info'); // blue info-box field
     checkingBox.show()
-    // var selectLicenseButton = document.getElementById('selectLicenseButton'); // button that selects the license
     selectLicenseButton = $('#selectLicenseButton');
-
-    // select.innerHTML = ''; // Clear existing options
-    // Clear existing children of select
     select.innerHTML = '';
 
     const arrayOfLicenseIds = Object.keys(licenseData.licenses_and_dispensed);
@@ -450,7 +443,6 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     console.log("Number of licenses: ", numberOfLicenses);
     // Remove hidden attribute
     // $("#licenses-found-info").text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`).show();
-    
 
     if (numberOfLicenses > 0) {
         checkingBox.text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`);
@@ -459,37 +451,21 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
             var option = document.createElement('option');
             option.value = licenseId;
             option.text = `${licenseId.substring(0, 3)}: ${license.license_name}, exp: ${new Date(license.expiry_timestamp * 1000).toLocaleDateString()}`;
-            // select.appendChild(option);
             select.append(option);
         });
-        // select.style.display = 'block'; // Ensure the select is visible if licenses are available
         select.css('display', 'block');
-        // textarea.value = ''; // Clear the default message in the textarea
         textarea.text('');
-
-
-        // selectLicenseButton.classList.remove('non-clickable');
-        // selectLicenseButton.disabled = false;
         selectLicenseButton.removeClass('non-clickable');
         selectLicenseButton.prop('disabled', false);
 
     } else {
 
         checkingBox.text("No licenses connected to this account");
-        // select.style.display = 'none'; // Hide the select if no licenses are available
-        
-        // textarea.value = ''; // Maintain consistent message in textarea
         if (licenseIDusedInRequest) {
             textarea.text('No licenses connected to this account or matching license ID ' + licenseIDusedInRequest);
         } else {
             textarea.text('No licenses connected to this account');
         }
-        // Hide the select, because there's nothing to select
-        // selectLicenseButton.classList.add('non-clickable');
-        // selectLicenseButton.disabled = true;
-        // selectLicenseButton.addClass('non-clickable');
-        // selectLicenseButton.addClass('non_important_button');
-    
         selectLicenseButton.prop('disabled', true);
     }
 
@@ -508,36 +484,12 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
         let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
         let n_tokens_total = selectedLicense.n_tokens;
         selectedLicenseInfo = `Name: ${license_name}\nExpiry: ${license_expiry}\nTier: ${license_tier}\nEmails: ${emails}\nLicense ID: ${selectedLicenseId}\nKeys Remaining: ${n_tokens_remaining} of ${n_tokens_total}`;
-        // textarea.value = selectedLicenseInfo;
-        // textarea2.value = selectedLicenseInfo;
         textarea.text(selectedLicenseInfo);
-        // textarea2.value = selectedLicenseInfo;
-        // var allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
-        // console.log(allLicenseIdsInTokens);
-
-
     };
-
-    // If a license id is specified in the box, select that one
-    var licenseIdFromBox = $('#license-id').val();
-    // if (licenseIdFromBox) {
-    //     // Select the license with the specified ID
-    //     select.value = licenseIdFromBox;
-    //     select.onchange(); // Trigger the change event
-    // }
-    
-
-    // console.log("licenseIdFromBox: ", licenseIdFromBox);
-
     // Trigger change event on load to display the first entry's details if available
-    // if (select.options.length > 0) {
     if (numberOfLicenses > 0) {
-        // Get index of selected id or 0 if not found
-        // console.log("select.options: ", select.options);
-        // console.log("index: ", Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0);
-        // select.selectedIndex = Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0;
-        // use arrayOfLicenseIds
-        select.selectedIndex = arrayOfLicenseIds.indexOf(licenseIdFromBox) || 0;
+        console.log("licenseIDusedInRequest: ", licenseIDusedInRequest);
+        select.val(licenseIDusedInRequest);
         select.onchange();
     }
 
