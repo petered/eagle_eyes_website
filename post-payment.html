@@ -11,36 +11,33 @@ permalink: /post-payment/
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Status</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const status = urlParams.get('status');
-            const licenseId = urlParams.get('license_id');
-            const machineId = urlParams.get('machine_id');
-            const is_emulator = urlParams.get('is_emulator');
-            const messageElement = document.getElementById('message');
-            const detailElement = document.getElementById('details');
-            const licenseInfoElement = document.getElementById('license-info');
-            const returnButton = document.getElementById('return-button');
+        $(document).ready(function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var status = urlParams.get('status');
+            var licenseId = urlParams.get('license_id');
+            var machineId = urlParams.get('machine_id');
+            var isEmulator = urlParams.get('is_emulator');
+
+            var returnUrl = `/get-license/?early_adopter=false&machine_id=${machineId || ''}${licenseId ? '&license_id=' + licenseId : ''}${isEmulator ? '&is_emulator=' + isEmulator : ''}`;
+            $('#return-button').attr('href', returnUrl);
 
             if (status === 'success') {
-                messageElement.textContent = 'Payment Success';
-                detailElement.textContent = 'Your payment has been successfully processed. Thank you for your purchase!';
+                $('#message').text('Payment Success');
+                $('#details').text('Your payment has been successfully processed. Thank you for your purchase!');
                 if (licenseId) {
-                    licenseInfoElement.textContent = 'Your license id is ' + licenseId 
+                    $('#license-info').text('Your license id is ' + licenseId);
                     if (machineId) {
-                        returnButton.textContent = 'Activate License for this Machine';
+                        $('#return-button').text('Activate License for this Machine');
                     } else {
-                        returnButton.textContent = 'View Your Licenses';
+                        $('#return-button').text('View Your Licenses');
                     }
                 }
             } else if (status === 'cancelled') {
-                messageElement.textContent = 'Payment Cancelled';
-                detailElement.textContent = 'Your payment was not completed. If this was an error, please try again.';
+                $('#message').text('Payment Cancelled');
+                $('#details').text('Your payment was not completed. If this was an error, please try again.');
             }
-
-            const returnUrl = `/get-license/?early_adopter=false&machine_id=${machineId || ''}${licenseId ? '&license_id=' + licenseId : ''}${is_emulator ? '&is_emulator=' + is_emulator : ''}`;
-            returnButton.href = returnUrl;
         });
     </script>
 </head>

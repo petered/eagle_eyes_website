@@ -13,6 +13,8 @@ var selectedLicenseId = null;
 
 var selectedLicenseInfo = null;
 
+const urlParams = new URLSearchParams(window.location.search);
+
 console.log("Machine ID: " + machineId);
 
 thisURLwithJustMachineIDArg = window.location.origin + '/get_licensed/?machine_id=' + machineId;
@@ -33,36 +35,89 @@ document.addEventListener("DOMContentLoaded", function ()
     });
 });
 
-function checkURLParameters() {
-    const urlParams = new URLSearchParams(window.location.search);
-
+function fillMachineIDFromArgs() {
+    // Get machine id, if any from url and fill it in with jquery to the machine-id box
+    machine_id = urlParams.get('machine_id');
+    console.log("Machine ID from URL? "+machine_id);
+    if (machine_id) {
+        $('#machine-id').text(machine_id);
+    }
     // Get the argument and convert it to a boolean.  It should default to true if not present.
     // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
     // var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
-    var licenseIdFromUrl = urlParams.get('license_id');
+    // var licenseIdFromUrl = urlParams.get('license_id');
 
-    console.log("License ID from URL? "+licenseIdFromUrl);
-    // checks for license_id= followed by one or more alphanumeric characters. 
-    // licenseId is set to match[1] if the license_id is found; otherwise, it is set to null.
+    // console.log("License ID from URL? "+licenseIdFromUrl);
+    // // checks for license_id= followed by one or more alphanumeric characters. 
+    // // licenseId is set to match[1] if the license_id is found; otherwise, it is set to null.
 
-    if (licenseIdFromUrl && /^[a-zA-Z0-9]+$/.test(licenseIdFromUrl)) {
-        console.log("license_id included:", licenseIdFromUrl);
-        $('#license-id').val(licenseIdFromUrl);
-        checkLicense(globalUser);
-        // $('#licenses').show();
-        // $('html, body').animate({
-        //     scrollTop: $("#licenses").offset().top
-        // }, 1000); // 1000 milliseconds = 1 second
-        // Add logic for handling other values or missing parameter here
-    } else {
-        console.log('license_id not included or invalid.');
-        // Add additional logic for handling missing or invalid license_id here
-    }
+    // if (licenseIdFromUrl && /^[a-zA-Z0-9]+$/.test(licenseIdFromUrl)) {
+    //     console.log("license_id included:", licenseIdFromUrl);
+    //     $('#license-id').val(licenseIdFromUrl);
+    //     // checkLicense(globalUser);
+    //     $('#licenses').show();
+    //     // $('html, body').animate({
+    //     //     scrollTop: $("#licenses").offset().top
+    //     // }, 1000); // 1000 milliseconds = 1 second
+    //     // Add logic for handling other values or missing parameter here
+    // } else {
+    //     console.log('license_id not included or invalid.');
+    //     // Add additional logic for handling missing or invalid license_id here
+    // }
     
-    // Display the machine ID in the HTML
-    document.getElementById('machine-id').textContent = machineId;
+    // // Display the machine ID in the HTML
+    // document.getElementById('machine-id').textContent = machineId;
     
 }
+
+
+
+function checkLicenseIDFromArgsAndUpdateAvailableLicenses() {
+
+    licenseIdFromUrl = urlParams.get('license_id');
+    if (licenseIdFromUrl) {
+        $('#license-id').val(licenseIdFromUrl);
+        checkLicense(globalUser);
+        $('#licenses').show();
+    } else {
+        checkLicense(globalUser);
+        console.log('license_id not included or invalid.');
+    }
+
+
+
+    // const urlParams = new URLSearchParams(window.location.search);
+
+    // // Get the argument and convert it to a boolean.  It should default to true if not present.
+    // // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
+    // // var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
+    // var licenseIdFromUrl = urlParams.get('license_id');
+
+    // console.log("License ID from URL? "+licenseIdFromUrl);
+    // // checks for license_id= followed by one or more alphanumeric characters. 
+    // // licenseId is set to match[1] if the license_id is found; otherwise, it is set to null.
+
+    // if (licenseIdFromUrl && /^[a-zA-Z0-9]+$/.test(licenseIdFromUrl)) {
+    //     console.log("license_id included:", licenseIdFromUrl);
+    //     $('#license-id').val(licenseIdFromUrl);
+    //     // checkLicense(globalUser);
+    //     $('#licenses').show();
+    //     // $('html, body').animate({
+    //     //     scrollTop: $("#licenses").offset().top
+    //     // }, 1000); // 1000 milliseconds = 1 second
+    //     // Add logic for handling other values or missing parameter here
+    // } else {
+    //     console.log('license_id not included or invalid.');
+    //     // Add additional logic for handling missing or invalid license_id here
+    // }
+    
+    // // Display the machine ID in the HTML
+    // document.getElementById('machine-id').textContent = machineId;
+    
+}
+
+
+
 
 function getParamFromURL(paramName, defaultValue = undefined) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -89,7 +144,11 @@ function reCheckLicense() {
     setTimeout(function () {
         // Then, re-check the license
         checkLicense(globalUser);
+        $('#licenses').show();
+        scrollToBottomWithDelay();
     }, 250);
+
+
     // // Then, re-check the license
     // checkLicense(user);
     // Un-hide the re-check button (no longer display none)
@@ -156,9 +215,10 @@ function onNewKeyReceived(tokenAndCodeJSONString) {
     $('#license-key-status').text("Key " + code.slice(0, 10) + '...' + " has been copied to the clipboard. You can now paste it into the Eagle Eyes app.").addClass('info-box');
     // Copy button 
     $('#license-key-copy-button').text('Copy Key to Clipboard');
-    $('html, body').animate({
-        scrollTop: $("#issue-key").offset().top
-    }, 1000); // 1000 milliseconds = 1 second
+    // $('html, body').animate({
+    //     scrollTop: $("#issue-key").offset().top
+    // }, 1000); // 1000 milliseconds = 1 second
+    // scrollToBottomWithDelay();
 
     console.log("Showed new key: ", code.slice(0, 10) + '...');
 
@@ -168,7 +228,7 @@ function onNewKeyReceived(tokenAndCodeJSONString) {
 
     // alert('New key received.  Code ' + code.slice(0, 10) + '... has been copied to the clipboard.  You can now paste it into the Eagle Eyes app.');
     // Scroll to the bottom of the page
-    window.scrollTo(0, document.body.scrollHeight);
+    // window.scrollTo(0, document.body.scrollHeight);
 }
 
 function getKeyForThisLicense(licenseID, user) {
@@ -221,6 +281,19 @@ function getKeyForThisLicense(licenseID, user) {
     })
 }
 
+function scrollToBottomWithDelay() {
+    // Scroll to the bottom of the page after a small delay of half a second
+    // setTimeout(function () {
+    //     window.scrollTo(0, document.body.scrollHeight);
+    // }, 1000);
+    // Use the animation approach 
+    $('html, body').animate({
+        scrollTop: $("#end-of-page").offset().top
+    }, 1000); // 1000 milliseconds = 1 second
+
+}
+    
+
 function showError(message) {
 
 
@@ -240,26 +313,27 @@ function showError(message) {
     $('#try-again-button').css('display', 'block');
 
     // Scroll to the bottom of the page
-    window.scrollTo(0, document.body.scrollHeight);
+    scrollToBottomWithDelay();
 }
 
 // side-effect: reads value of license-id box and checks 
 function checkLicense(user) {
-    $('#licenses').show();
-    $('html, body').animate({
-        scrollTop: $("#licenses").offset().top
-    }, 1000); // 1000 milliseconds = 1 second
+    // $('#licenses').show();
+    scrollToBottomWithDelay();
+    // $('html, body').animate({
+    //     scrollTop: $("#licenses").offset().top
+    // }, 1000); // 1000 milliseconds = 1 second
     // If user is null, use globalUser
     if (!user) {
         user = globalUser;
     }
     console.log('Checking license for user: ', user, ' with globalUser: ', globalUser);
-    $('#checking-licenses-box').show();
+    // $('#checking-licenses-box').show();
 
     // calls function to check for licenses, with value in manual license-id box as optional
     user.getIdToken().then(function (idToken) {
         //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
-        licenseID = $('#license-id').val();
+        const licenseID = $('#license-id').val();
         var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + machineId + (licenseID ? '&license_id=' + licenseID : '');
         // console.log("Fetch URL: " + fetch_url);
         console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
@@ -269,13 +343,15 @@ function checkLicense(user) {
             headers: {
                 'Authorization': 'Bearer ' + idToken
             },
-            success: onReceivingLicenseData,
+            // success: onReceivingLicenseData,
+            // Make onReceiving also get the licenseID as a oneliner
+            success: function (data) {onReceivingLicenseData(data, licenseID);},
             error: requestErrorHandler,
             // Finally
             complete: function () {
                 console.log("complete");
                 // Hide the "checking licenses" box
-                $('#select-licenses').show();
+                // $('#select-licenses').show();
                 // $("#licenses").show();
             }
         });
@@ -311,7 +387,7 @@ function requestErrorHandler(jqXHR, textStatus, errorThrown) {
     showError(errorText);
 }
 
-function onReceivingLicenseData(data) {
+function onReceivingLicenseData(data, licenseIDusedInRequest) {
             /* Expected format of example data: 
 
     {
@@ -352,54 +428,90 @@ function onReceivingLicenseData(data) {
 
     console.log('Data received: ', data);
     var licenseData = JSON.parse(data); // Ensure data is parsed correctly
+    
     globalData = licenseData; // Save for global use
-    var select = document.getElementById('license-select'); // the license selector
-    var textarea = document.getElementById('license-info'); // contents of license info box
-    var textarea2 = document.getElementById('second-license-info-box'); // contents of license info box
-    var checkingBox = document.getElementById('checking-licenses-box'); // blue info-box field
-    var selectLicenseButton = document.getElementById('selectLicenseButton'); // button that selects the license
+    // var select = document.getElementById('license-select'); // the license selector
+    var select = $('#license-select'); // the license selector
+    // var textarea = document.getElementById('license-info'); // contents of license info box
+    var textarea = $('#license-info'); // contents of license info box
+    // var textarea2 = document.getElementById('second-license-info-box'); // contents of license info box
+    var checkingBox = $('#licenses-found-info'); // blue info-box field
+    checkingBox.show()
+    // var selectLicenseButton = document.getElementById('selectLicenseButton'); // button that selects the license
+    selectLicenseButton = $('#selectLicenseButton');
 
-    select.innerHTML = ''; // Clear existing options
+    // select.innerHTML = ''; // Clear existing options
+    // Clear existing children of select
+    select.innerHTML = '';
 
-    var numberOfLicenses = Object.keys(licenseData.licenses_and_dispensed).length;
+    const arrayOfLicenseIds = Object.keys(licenseData.licenses_and_dispensed);
+    var numberOfLicenses = arrayOfLicenseIds.length;
+
+    console.log("Number of licenses: ", numberOfLicenses);
+    // Remove hidden attribute
+    // $("#licenses-found-info").text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`).show();
+    
 
     if (numberOfLicenses > 0) {
-        checkingBox.textContent = `We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`;
+        checkingBox.text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`);
         Object.keys(licenseData.licenses_and_dispensed).forEach(licenseId => {
             var license = licenseData.licenses_and_dispensed[licenseId].license;
             var option = document.createElement('option');
             option.value = licenseId;
-            option.text = `${license.license_name}, exp: ${new Date(license.expiry_timestamp * 1000).toLocaleDateString()}`;
-            select.appendChild(option);
+            option.text = `${licenseId.substring(0, 3)}: ${license.license_name}, exp: ${new Date(license.expiry_timestamp * 1000).toLocaleDateString()}`;
+            // select.appendChild(option);
+            select.append(option);
         });
-        select.style.display = 'block'; // Ensure the select is visible if licenses are available
-        textarea.value = ''; // Clear the default message in the textarea
-        selectLicenseButton.classList.remove('non-clickable');
-        selectLicenseButton.disabled = false;
+        // select.style.display = 'block'; // Ensure the select is visible if licenses are available
+        select.css('display', 'block');
+        // textarea.value = ''; // Clear the default message in the textarea
+        textarea.text('');
+
+
+        // selectLicenseButton.classList.remove('non-clickable');
+        // selectLicenseButton.disabled = false;
+        selectLicenseButton.removeClass('non-clickable');
+        selectLicenseButton.prop('disabled', false);
 
     } else {
-        checkingBox.textContent = "No licenses connected to this account";
-        select.style.display = 'none'; // Hide the select if no licenses are available
-        textarea.value = ''; // Maintain consistent message in textarea
-        selectLicenseButton.classList.add('non-clickable');
-        selectLicenseButton.disabled = true;
+
+        checkingBox.text("No licenses connected to this account");
+        // select.style.display = 'none'; // Hide the select if no licenses are available
+        
+        // textarea.value = ''; // Maintain consistent message in textarea
+        if (licenseIDusedInRequest) {
+            textarea.text('No licenses connected to this account or matching license ID ' + licenseIDusedInRequest);
+        } else {
+            textarea.text('No licenses connected to this account');
+        }
+        // Hide the select, because there's nothing to select
+        // selectLicenseButton.classList.add('non-clickable');
+        // selectLicenseButton.disabled = true;
+        // selectLicenseButton.addClass('non-clickable');
+        // selectLicenseButton.addClass('non_important_button');
+    
+        selectLicenseButton.prop('disabled', true);
     }
 
 
     select.onchange = function () {
-        selectedLicenseId = this.value;
+        // selectedLicenseId = this.value;
+        selectedLicenseId = select.val();
+        console.log('Selected license ID: ', selectedLicenseId);
         if (!selectedLicenseId) return; // Guard against no selection 
         selectedLicense = globalData.licenses_and_dispensed[selectedLicenseId].license; // this = the select element // this.value= the selected license ID // licenseid.license is the license object that is part of the license ID
         let license_name = selectedLicense.license_name;
         let license_expiry = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
         let license_tier = selectedLicense.tier;
         let emails = selectedLicense.emails.join(', ');
-        let n_tokens_dispensed = globalData.licenses_and_dispensed[this.value].n_tokens_dispensed;
+        let n_tokens_dispensed = globalData.licenses_and_dispensed[selectedLicenseId].n_tokens_dispensed;
         let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
         let n_tokens_total = selectedLicense.n_tokens;
         selectedLicenseInfo = `Name: ${license_name}\nExpiry: ${license_expiry}\nTier: ${license_tier}\nEmails: ${emails}\nLicense ID: ${selectedLicenseId}\nKeys Remaining: ${n_tokens_remaining} of ${n_tokens_total}`;
-        textarea.value = selectedLicenseInfo;
-        textarea2.value = selectedLicenseInfo;
+        // textarea.value = selectedLicenseInfo;
+        // textarea2.value = selectedLicenseInfo;
+        textarea.text(selectedLicenseInfo);
+        // textarea2.value = selectedLicenseInfo;
         // var allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
         // console.log(allLicenseIdsInTokens);
 
@@ -418,11 +530,14 @@ function onReceivingLicenseData(data) {
     // console.log("licenseIdFromBox: ", licenseIdFromBox);
 
     // Trigger change event on load to display the first entry's details if available
-    if (select.options.length > 0) {
+    // if (select.options.length > 0) {
+    if (numberOfLicenses > 0) {
         // Get index of selected id or 0 if not found
         // console.log("select.options: ", select.options);
         // console.log("index: ", Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0);
-        select.selectedIndex = Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0;
+        // select.selectedIndex = Array.from(select.options).findIndex(option => option.value === licenseIdFromBox) || 0;
+        // use arrayOfLicenseIds
+        select.selectedIndex = arrayOfLicenseIds.indexOf(licenseIdFromBox) || 0;
         select.onchange();
     }
 
@@ -449,15 +564,18 @@ function selectLicense() {
         $('#license-key').val(code);
         $('#key-view').show();
         $('#issueKeyButton').removeClass('non_important_button').hide();
-        $('html, body').animate({
-            scrollTop: $("#key-view").offset().top
-        }, 1000); // 1000 milliseconds = 1 second
+        // $('html, body').animate({
+        //     scrollTop: $("#key-view").offset().top
+        // }, 1000); // 1000 milliseconds = 1 second
+        // scrollToBottomWithDelay();
     }
     $('#select-license-info').show();
     $('#issue-key').show();
-    $('html, body').animate({
-        scrollTop: $("#issue-key").offset().top
-    }, 1000); // 1000 milliseconds = 1 second
+    // $('html, body').animate({
+    //     scrollTop: $("#issue-key").offset().top
+    // }, 1000); // 1000 milliseconds = 1 second
+    console.log("Selected license: ", selectedLicenseInfo);
+    scrollToBottomWithDelay();
     
 }
 
@@ -581,9 +699,12 @@ issueKeyButton.click(function () {
 
 function onClickBuy() {
     console.log('Buy button clicked');
-    
-    url = `${hostURL}/get_stripe_payment_link?machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}${useLocalFirebaseEmulator ? '&is_emulator=true' : ''}`;
 
+    purchaseButton = $('#purchase');
+    
+    // Add a "processsing" class
+    purchaseButton.addClass('processing');
+    url = `${hostURL}/get_stripe_payment_link?machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}${useLocalFirebaseEmulator ? '&is_emulator=true' : ''}`;
 
     // Make an ajax request to the get_stripe_payment_link cloud function
     // This will return a link to the Stripe checkout page
@@ -593,6 +714,7 @@ function onClickBuy() {
             url: url,  // Add the machine ID to the URL
             method: 'GET',
             success: function (data) {
+                purchaseButton.removeClass('processing');
                 console.log('Received data: ', data);
                 // Open the link in a new tab
                 decodedData = JSON.parse(data);
