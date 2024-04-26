@@ -109,7 +109,7 @@ permalink: /add_license/
                         <label for="volunteer">Volunteer</label>
                     </div>
                     <div class="radio-container">
-                        <input type="radio" id="general" name="userType" value="general" required>
+                        <input type="radio" id="general" name="userType" value="general" required checked>
                         <label for="general">General</label>
                     </div>
                     <div class="radio-container">
@@ -125,8 +125,13 @@ permalink: /add_license/
                     </select>
                     <br />
                 </fieldset>
+
+                <label for="number_of_keys"><b>Number of Keys:</b></label>
+                <input type="number" placeholder="Enter Number of Keys" id="number_of_keys" name="number_of_keys" value="1" required>
+                <br /><br />
+
                 <br />
-                <button type="submit" class="createLicenseButton">Create license</button>
+                <button type="submit" id="createLicenseButton">Create license</button>
                 <br />
             </div>
         </form>
@@ -135,11 +140,6 @@ permalink: /add_license/
     <div id="creationStatus"></div>
 
     <script>
-
-        console.log('About to define handleForm');
-
-        hostURL = getHostURL();
-
         $(document).ready(function() {
             // Populate license duration select
             const licenseOptions = [
@@ -150,7 +150,7 @@ permalink: /add_license/
                 { value: 'one_year', text: 'Pro - 1 Year' },
                 { value: 'live', text: 'Live' }
             ];
-
+    
             const $licenseDurationSelect = $('#licenseDurationSelect');
             $.each(licenseOptions, function(index, option) {
                 $licenseDurationSelect.append($('<option>', {
@@ -158,39 +158,128 @@ permalink: /add_license/
                     text: option.text
                 }));
             });
-
-        });
-
-        console.log('About to register sign-in listener');
-        // Listener for sign-in completion
-        document.addEventListener('signInComplete', function (e) {
-            var globalUser = e.detail.user;
-            console.log('User signed in: ' + globalUser.email);
-            globalUser.getIdToken(true).then(function (idToken) {
-                var requestURL = hostURL + '/is_logged_in_user_admin';
-                console.log('Request URL: ' + requestURL);
-                $.ajax({
-                    url: requestURL,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function (data) {
-                        var isAdmin = JSON.parse(data).is_admin;
-                        console.log('isAdmin: ' + isAdmin);
-                        if (isAdmin) {
-                            $('#form').show();
-                        } else {
-                            $('#creationStatus').text('Access denied. You are not authorized to add licenses.');
-                            $('#form').hide();
+    
+            // Listener for sign-in completion
+            document.addEventListener('signInComplete', function (e) {
+                var globalUser = e.detail.user;
+                globalUser.getIdToken(true).then(function (idToken) {
+                    var requestURL = getHostUrl() + '/is_logged_in_user_admin';
+                    $.ajax({
+                        url: requestURL,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        headers: {
+                            'Authorization': 'Bearer ' + idToken
+                        },
+                        success: function (data) {
+                            var isAdmin = JSON.parse(data).is_admin;
+                            if (isAdmin) {
+                                $('#form').show();
+                            } else {
+                                $('#creationStatus').text('Access denied. You are not authorized to add licenses.');
+                                $('#form').hide();
+                            }
+                        },
+                        error: function () {
+                            alert('Failed to verify admin status.');
                         }
-                    },
-                    error: function () {
-                        alert('Failed to verify admin status.');
-                    }
+                    });
                 });
             });
         });
+    
+        function handleForm() {
+            event.preventDefault();
+            const licenseName = $('#license_name').val();
+            const emails = $('#emails').val().split(/,\s*/);
+            const domains = $('#domains').val().split(/,\s*/);
+            const userType = $('input[name="userType"]:checked').val();
+            const licenseDuration = $('#licenseDurationSelect').val();
+            const numberOfKeys = parseInt($('#number_of_keys').val(), 10);
+            const extraSecurityPassword = $('#extra_security_password').val();
+
+            // Calculate expiry timestamp based on selected license duration
+            let expiryTimestamp = null;
+            let tier = null;
+            if (licenseDuration !== 'live') {
+                const now = moment();
+                switch (licenseDuration) {
+                    case 'two_weeks':
+                        expiryTimestamp = now.add(14, 'days').unix();
+                        tier = 'SAR';
+                        break;
+                    case 'one_month':
+                        expiryTimestamp = now.add(1, 'month').unix();
+                        tier = 'SAR';
+                        break;
+                    case 'three_months':
+                        expiryTimestamp = now.add(3, 'months').unix();
+                        tier = 'SAR';
+                        break;
+                    case 'one_year':
+                        expiryTimestamp = now.add(1, 'year').unix();
+                        tier = 'SAR';
+                        break;
+                    case 'live':
+                        expiryTimestamp = null;
+                        tier = 'Live';
+                        break;
+                }
+            }
+
+            const data = {
+                license_name: licenseName,
+                emails: emails,
+                domains: domains,
+                user_type: userType,
+                license_duration: licenseDuration,
+                tier: tier,
+                n_tokens: numberOfKeys,
+                expiry_timestamp: expiryTimestamp,
+                extra_security_password: extraSecurityPassword
+            };
+
+            sendLicenseData(data);
+        }
+
+    function sendLicenseData(data) {
+        const globalUser = firebase.auth().currentUser;
+        // Add processing class to button
+        $('#createLicenseButton').addClass('processing');
+        globalUser.getIdToken(true).then(function (idToken) {
+            $.ajax({
+                url: getHostUrl() + '/add_new_license',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function (response) {
+                    console.log("License created successfully:", response);
+                    decodedJson = JSON.parse(response);
+                    if (decodedJson) {
+                        $('#creationStatus').html('<p>License Key: ' + decodedJson.license_key + '</p>');
+                    } else {
+                        $('#creationStatus').html('<p>User Verfied</p>');
+                    }
+                    $('#creationStatus').removeClass('error-box').addClass('info-box');
+                    $('#createLicenseButton').removeClass('processing')
+                    // Scroll to bottom
+                    window.scrollTo(0, document.body.scrollHeight);
+
+                },
+                error: function (xhr, status, error) {
+                    console.log("Error creating license:", xhr.responseText);
+                    $('#creationStatus').html('<p>Error creating license: ' + xhr.responseText + '</p>');
+                    // Add .error-box class
+                    $('#creationStatus').removeClass('info-box').addClass('error-box');
+                    // Remove processing class from button
+                    $('#createLicenseButton').removeClass('processing')
+                }
+            });
+        });
+    }
     </script>
+    
 </body>
