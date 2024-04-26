@@ -11,7 +11,7 @@ permalink: /add_license/
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <!-- Import JQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css?t=[timestamp]">
+    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
 
     <!-- The moment library is used to handle dates and times -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
@@ -206,7 +206,27 @@ permalink: /add_license/
             }
         }
 
+        document.addEventListener("DOMContentLoaded", function() {
+            const licenseDurationSelect = document.getElementById('licenseDurationSelect');
 
+            // Define the license options
+            const licenseOptions = [
+                { value: 'no_license', text: 'No License' },
+                { value: 'two_weeks', text: 'Intro License: Pro - 2 Weeks' },
+                { value: 'one_month', text: 'Pro - 1 Month' },
+                { value: 'three_months', text: 'Pro - 3 Months' },
+                { value: 'one_year', text: 'Pro - 1 Year' },
+                { value: 'live', text: 'Live' }
+            ];
+
+            // Populate the select element with options
+            licenseOptions.forEach(option => {
+                const newOption = document.createElement('option');
+                newOption.value = option.value;
+                newOption.textContent = option.text;
+                licenseDurationSelect.appendChild(newOption);
+            });
+        });
 
     </script>
 
@@ -328,32 +348,36 @@ permalink: /add_license/
 
         <form onsubmit="event.preventDefault(); handleForm();">
             <div class="container">
-
-                <label for="license_name"><b>Admin Password: </b></label>
+        
+                <label for="extra_security_password"><b>Admin Password: </b></label>
                 Input the admin password for extra security
                 <br />
-                <input type="password" placeholder="Enter Admin Password" name="extra_security_password" required>
+                <input type="password" placeholder="Enter Admin Password" id="extra_security_password" name="extra_security_password" required>
                 <br />
-
+        
                 <label for="license_name"><b>License Name: (optional)</b></label>
                 What to call this license
                 <br />
-                <input type="text" placeholder="Example County SAR Trial " name="license_name">
+                <input type="text" placeholder="Enter License Name" id="license_name" name="license_name">
                 <br />
+                <br />
+        
                 <label for="emails"><b>Emails: (required)</b></label>
                 Comma-separated list of emails to add to this license
                 <br />
-                <input type="text" placeholder="joe@example.com,bob@example.com" name="emails" required>
+                <input type="text" placeholder="joe@example.com,bob@example.com" id="emails" name="emails" required>
                 <br />
+                <br />
+        
                 <label for="domains"><b>Domains: (optional)</b></label>
                 Comma-separated list of domains to add to this license
                 <br />
-                <input type="text" placeholder="examplecountysar.org,someotherdomain.com" name="domains">
+                <input type="text" placeholder="examplecountysar.org,someotherdomain.com" id="domains" name="domains">
                 <br />
-
-                <div class="user-type">
-                    <label for="userType"><b>User Type:</b></label>
-                    
+                <br />
+        
+                <fieldset>
+                    <legend><b>User Type:</b></legend>
                     <div class="radio-container">
                         <input type="radio" id="volunteer" name="userType" value="volunteer" required>
                         <label for="volunteer">Volunteer</label>
@@ -366,42 +390,22 @@ permalink: /add_license/
                         <input type="radio" id="special" name="userType" value="special" required>
                         <label for="special">Special</label>
                     </div>
-                </div>
-                
-                
-                <label for="licenseDuration"><b>License Duration:</b> Please select the license duration and specify the number of license keys:</label>
-                <div class="license-options"> 
-
-                    <div class="radio-container">
-                        <input type="radio" id="two_weeks" name="license_duration" value="two_weeks" required onclick="updateKeyInput('two_weeks')">
-                        <label for="two_weeks">Intro License: Pro - 2 Weeks, with <input type="number" id="two_weeks_keys" name="two_weeks_keys" value="3" min="1" disabled> keys</label>                       
+                </fieldset>
+        
+                <fieldset>
+                    <legend><b>License Duration:</b> Please select the license duration and specify the number of license keys:</legend>
+                    <div class="license-options">
+                        <!-- Radio Buttons with JavaScript calls removed for better practices, to be implemented externally -->
                     </div>
-
-                    <div class="radio-container">
-                        <input type="radio" id="one_month" name="license_duration" value="one_month" required onclick="updateKeyInput('one_month')">
-                        <label for="one_month">Pro - 1 Month, with <input type="number" id="one_month_keys" name="one_month_keys" value="2" min="1" disabled> keys</label>                        
-                    </div>
-                    <div class="radio-container">
-                        <input type="radio" id="three_months" name="license_duration" value="three_months" required onclick="updateKeyInput('three_months')">
-                        <label for="three_months">Pro - 3 Months, with <input type="number" id="three_months_keys" name="three_months_keys" value="2" min="1" disabled> keys</label>                        
-                    </div>
-
-                    <div class="radio-container">
-                        <input type="radio" id="one_year" name="license_duration" value="one_year" required onclick="updateKeyInput('one_year')">
-                        <label for="one_year">Pro - 1 Year, with <input type="number" id="one_year_keys" name="one_year_keys" value="3" min="1" disabled> keys</label>
-                    </div>
-                    <div class="radio-container">
-                        <input type="radio" id="live" name="license_duration" value="live" required onclick="updateKeyInput('live')">
-                        <label for="live">Live, with <input type="number" id="live_keys" name="live_keys" value="2" min="1" disabled> keys</label>
-                    </div>
-                </div>
-
+                </fieldset>
+        
                 <button type="submit" class="createLicenseButton">Create license</button>
                 <!-- Status field -->
                 <br />
-
+        
             </div>
         </form>
+        
         <br />
     </section>
     <div id="creationStatus"></div>
