@@ -20,13 +20,14 @@ permalink: /buy_license.html
     {% include compare_tiers.html %}
     </br>
 
-    {% include pricing_clickable.html %}
+    {% include pricing_table_new.html clickable=true %}
 
     </br>
     <div style="text-align: center;">
         <button id="purchaseButton" class="purchase-button" disabled>Purchase</button>
     </div>
 
+    <div id="status-message"></div>
 </section>
 
 <script>
@@ -52,7 +53,7 @@ permalink: /buy_license.html
         document.addEventListener('priceSelected', function(e) {
             purchaseButton.disabled = false; // Enable the button when a price is selected
             purchaseButton.classList.add('enabled'); // Add the 'enabled' class for visual change
-            purchaseButton.onclick = () => purchase(e.detail.price); // Assign the purchase function with the selected price
+            purchaseButton.onclick = () => purchase(e.detail.product_id); // Assign the purchase function with the selected price
         });
 
         // Optionally handle price deselection or resetting
@@ -62,10 +63,59 @@ permalink: /buy_license.html
         });
     });
 
-    function purchase(price) {
-        console.log("Purchasing at price:", price);
-        // Implement actual purchase logic here
+    function purchase(product_id) {
+        console.log("Purchasing product with id:", product_id);
+        
+        var purchaseButton = $('#purchase');
+        
+        // Add a "processing" class to indicate activity
+        purchaseButton.addClass('processing');
+        
+        // Use the existing URL query string and append the product_id
+        // var hostURL = 
+        var queryString = hostURL.search;
+        if (queryString.length > 1) {
+            queryString += `&product_id=${product_id}`;
+        } else {
+            queryString = `?product_id=${product_id}`;
+        }
+        var url = `${hostURL}/get_stripe_payment_link${queryString}`;
+
+        // Get the user ID token and then execute the AJAX request
+        globalUser.getIdToken(true).then(function (idToken) {
+            $.ajax({
+                headers: {'Authorization': 'Bearer ' + idToken},
+                url: url,
+                method: 'GET',
+                success: function (data) {
+                    // Upon success, remove "processing" class and handle the received data
+                    purchaseButton.removeClass('processing');
+                    console.log('Received data:', data);
+                    var decodedData = JSON.parse(data);
+                    var paymentUrl = decodedData.url;
+                    
+                    // Open the Stripe checkout in a new tab
+                    window.open(paymentUrl, '_blank');
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    // Handle any errors during the AJAX request
+                    purchaseButton.removeClass('processing');
+                    // requestErrorHandler(jqXHR, textStatus, errorThrown);
+                    console.error('Error fetching payment link:', textStatus, errorThrown);
+                    $('#status-message').text('Error fetching payment link: ' + textStatus).addClass('error-box');
+                }
+            });
+        }).catch(function (error) {
+            // Handle errors in getting the ID token
+            console.log('Error getting user ID token:', error);
+            purchaseButton.removeClass('processing');
+            // Put error message in status and add class error-box
+            $('#status-message').text('Error getting user ID token: ' + error);
+            $('#status-message').addClass('error-box');
+
+        });
     }
+
 
 
 </script>
