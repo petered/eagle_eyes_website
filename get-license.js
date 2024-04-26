@@ -650,35 +650,14 @@ issueKeyButton.click(function () {
 });
 
 function onClickBuy() {
+
     console.log('Buy button clicked');
 
     purchaseButton = $('#purchase');
     
     // Add a "processsing" class
     purchaseButton.addClass('processing');
-    url = `${hostURL}/get_stripe_payment_link?machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}${useLocalFirebaseEmulator ? '&is_emulator=true' : ''}`;
-
-    // Make an ajax request to the get_stripe_payment_link cloud function
-    // This will return a link to the Stripe checkout page
-    globalUser.getIdToken(true).then(function (idToken) {
-        $.ajax({
-            headers: {'Authorization': 'Bearer ' + idToken},
-            url: url,  // Add the machine ID to the URL
-            method: 'GET',
-            success: function (data) {
-                purchaseButton.removeClass('processing');
-                console.log('Received data: ', data);
-                // Open the link in a new tab
-                decodedData = JSON.parse(data);
-                paymentUrl = decodedData.url;
-                window.open(paymentUrl, '_blank');
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                // Handle the error
-                requestErrorHandler(jqXHR, textStatus, errorThrown);
-            }
-        });
-        // alert('Automated purchase of tier ' + tier + ' is not yet set up.  Please contact info@eagleeyessearch.com to purchase a license.');
-    })
-
+    url = `${window.location.origin}/buy_license?${window.location.search.slice(1)}`;
+    console.log('Redirecting to: ', url);
+    window.open(url);
 }

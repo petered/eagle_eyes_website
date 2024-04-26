@@ -24,7 +24,9 @@ permalink: /buy_license.html
 
     </br>
     <div style="text-align: center;">
-        <button id="purchaseButton" class="purchase-button" disabled>Purchase</button>
+        <div style="font-size: 85%; margin-top: 10px;">* If you have not already registered for a SAR license, you will be directed to register first.</div>
+        <button id="purchaseButton" class="purchase-button" disabled>Select a License type to Purchase</button>
+        <!-- Light grey text under button that users will need to register for approval before making a purchase -->
     </div>
 
     <div id="status-message"></div>
@@ -53,6 +55,7 @@ permalink: /buy_license.html
         document.addEventListener('priceSelected', function(e) {
             purchaseButton.disabled = false; // Enable the button when a price is selected
             purchaseButton.classList.add('enabled'); // Add the 'enabled' class for visual change
+            purchaseButton.innerText = `Purchase ${e.detail.name} License`; // Update the button text
             purchaseButton.onclick = () => purchase(e.detail.product_id); // Assign the purchase function with the selected price
         });
 
@@ -79,7 +82,9 @@ permalink: /buy_license.html
         } else {
             queryString = `?product_id=${product_id}`;
         }
-        var url = `${hostURL}/get_stripe_payment_link${queryString}`;
+        // Include all url arguments passed in to this url
+        var url = `${hostURL}/get_stripe_payment_link${queryString}&${window.location.search.slice(1)}`;
+        console.log('Fetching payment link from:', url);
 
         // Get the user ID token and then execute the AJAX request
         globalUser.getIdToken(true).then(function (idToken) {
@@ -95,7 +100,9 @@ permalink: /buy_license.html
                     var paymentUrl = decodedData.url;
                     
                     // Open the Stripe checkout in a new tab
-                    window.open(paymentUrl, '_blank');
+                    // window.open(paymentUrl, '_blank');
+                    // Don't do new tab
+                    window.location.href = paymentUrl;
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     // Handle any errors during the AJAX request
