@@ -140,6 +140,18 @@ permalink: /add_license/
     <div id="creationStatus"></div>
 
     <script>
+
+        var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        console.log('useLocalFirebaseEmulator: ' + useLocalFirebaseEmulator);
+        var fireStoreLink;
+        if (useLocalFirebaseEmulator){
+            fireStoreLink = 'http://localhost:4000/firestore/default/data/licenses/';
+        } else {
+            fireStoreLink = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F';
+        }
+        $('#place_to_view').html('<a href="' + fireStoreLink + ' " target="_blank">View Licenses</a>');
+
         $(document).ready(function() {
             // Populate license duration select
             const licenseOptions = [
@@ -258,11 +270,16 @@ permalink: /add_license/
                 success: function (response) {
                     console.log("License created successfully:", response);
                     decodedJson = JSON.parse(response);
-                    if (decodedJson) {
-                        $('#creationStatus').html('<p>License Key: ' + decodedJson.license_key + '</p>');
-                    } else {
-                        $('#creationStatus').html('<p>User Verfied</p>');
-                    }
+                    // license_id=license_id,
+                    // new_license=new_license_json_dict,  # Or None if no new license was created
+                    // users_added=emails,
+                    // if (decodedJson) {
+                    //     $('#creationStatus').html('<p>License Key: ' + decodedJson.license_key + '</p>');
+                    // } else {
+                    //     $('#creationStatus').html('<p>User Verfied</p>');
+                    // }
+                    // Just directly post response
+                    $('#creationStatus').html('<p>' + response + '</p>');
                     $('#creationStatus').removeClass('error-box').addClass('info-box');
                     $('#createLicenseButton').removeClass('processing')
                     // Scroll to bottom
