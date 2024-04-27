@@ -258,6 +258,7 @@ permalink: /add_license/
         const globalUser = firebase.auth().currentUser;
         // Add processing class to button
         $('#createLicenseButton').addClass('processing');
+        statusSpan = $('#creationStatus');
         globalUser.getIdToken(true).then(function (idToken) {
             $.ajax({
                 url: getHostUrl() + '/add_new_license',
@@ -269,7 +270,7 @@ permalink: /add_license/
                 },
                 success: function (response) {
                     console.log("License created successfully:", response);
-                    decodedJson = JSON.parse(response);
+                    licenseData = JSON.parse(response);
                     // license_id=license_id,
                     // new_license=new_license_json_dict,  # Or None if no new license was created
                     // users_added=emails,
@@ -279,18 +280,32 @@ permalink: /add_license/
                     //     $('#creationStatus').html('<p>User Verfied</p>');
                     // }
                     // Just directly post response
-                    $('#creationStatus').html('<p>' + response + '</p>');
-                    $('#creationStatus').removeClass('error-box').addClass('info-box');
-                    $('#createLicenseButton').removeClass('processing')
-                    // Scroll to bottom
-                    window.scrollTo(0, document.body.scrollHeight);
 
+                    license_id = licenseData['license_id']
+                    license = licenseData['new_license']
+                    var expiryDateStr;
+                    // if (licenseData[1].expiry_timestamp === null) {
+                    if (license===null || license?.expiry_timestamp === null) {
+                        expiryDateStr = 'No Expiry';
+                    } else {
+                        expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
+                    }
+                    
+                    if (useLocalFirebaseEmulator){
+                        linkToViewFirestore = 'http://localhost:4000/firestore/default/data/licenses/'+license_id;
+                    } else {
+                        linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + license_id;
+                    }
+                    licenseDataDisplay = 'License created successfully:\n<pre>' + JSON.stringify(licenseData, null, 2) + '</pre>\nExpiry: ' + expiryDateStr + '\n<a href="' + linkToViewFirestore + '" target="_blank">View License in Firestore</a>';
+                    statusSpan.html(licenseDataDisplay).removeClass('error-box').addClass('info-box');
+                    // Make button normal again
+                    $('#createLicenseButton').removeClass('processing')
                 },
                 error: function (xhr, status, error) {
                     console.log("Error creating license:", xhr.responseText);
-                    $('#creationStatus').html('<p>Error creating license: ' + xhr.responseText + '</p>');
+                    statusSpan.html('<p>Error creating license: ' + xhr.responseText + '</p>');
                     // Add .error-box class
-                    $('#creationStatus').removeClass('info-box').addClass('error-box');
+                    statusSpan.removeClass('info-box').addClass('error-box');
                     // Remove processing class from button
                     $('#createLicenseButton').removeClass('processing')
                 }
