@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+
+
+<head>
+	<meta charset="UTF-8" />
+	<meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0" name="viewport">
+
+	<!-- Open Graph -->
+	<meta property="og:title" content="Eagle Eyes" />
+	<meta property="og:url" content="https://www.eagleeyessearch.com/" />
+	<meta property="og:type" content="website" />
+	<meta property="og:image" content="https://eagleeyessearch.com/images/eagle_eyes_logo_2.png" />
+	<meta property="og:description" content="The Future of Aerial Search" />
+
+	<!-- Twitter Theme -->
+	<meta name="twitter:widgets:theme" content="light">
+	
+	<!-- Title &amp; Favicon -->
+	<title>Eagle Eyes Search | Description</title>
+	<link rel="apple-touch-icon" sizes="180x180" href="images/favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="images/favicon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="images/favicon/favicon-16x16.png">
+	<link rel="manifest" href="images/favicon/site.webmanifest">
+	<link rel="mask-icon" href="images/favicon/safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="msapplication-TileColor" content="#da532c">
+	<meta name="theme-color" content="#ffffff">
+
+	<!-- Font -->
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700%7CHind+Madurai:400,500&amp;subset=latin-ext" rel="stylesheet">
+	
+	<!-- Css -->
+	<link rel="stylesheet" href="css/core.min.css" />
+	<link rel="stylesheet" href="css/skin.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+	<link rel="shortcut icon" type="image/png" href="images/eagle_eyes_icon_rounded_filtered.png">
+	<link rel="stylesheet" href="css/custom-styling.css" />
+
+    <style>
+        .content-grid-3 {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
+
+	<!--[if lt IE 9]>
+    	<script type="text/javascript" src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('nav.overlay-navigation a').click(function() {
+        $('.overlay-navigation-wrapper').hide(); // this will hide the element
+		$('body').css('overflow', 'auto');
+        $('html').css('overflow', 'auto');
+        $('body').removeClass('no-scroll');
+        $('html').removeClass('no-scroll');
+		// Hacky stuff
+        // or
+        //$('.v-align-middle').removeClass('v-align-middle'); // this will remove the class
+    });
+});
+</script>
+
+</head>
+
+<head>
+  <!-- Add necessary meta tags and other head elements here -->
+
+  <style>
+    .banner {
+      position: relative;
+      height: 100px; /* Adjust as needed */
+      width: 100%;
+      overflow: hidden; /* to contain the pseudo element */
+    }
+  
+    .banner::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('/images/eagle_eyes_website_header_bg.jpg') no-repeat center;
+      background-size: cover;
+      filter: brightness(50%);
+      z-index: 1; /* to ensure it's below other content */
+    }
+  
+    .banner-text, .banner-img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2; /* to ensure it's above the background */
+    }
+   .banner-link img {
+      width: 100px; /* adjust as per requirement */
+      height: 50px;
+       align-content: flex-start;
+       z-index: 2;
+       position: absolute;
+       top: 20%;
+    }
+  
+    /* Modern looking font */
+    .lead {
+      width: 80%;
+      margin: auto;
+      font: 1.2em/1.5em "Hind Madurai", sans-serif;
+    }
+    </style>
+</head>
+
+<body class="shop home-page">
+  <div class="banner">
+    <a class="banner-link" href="/">
+      <img src="/images/back_to_eagleeyes.png"/>
+    </a>
+    <!-- <div class="banner-text">Eagle Eyes Scan</div> -->
+    <img class="banner-img" src="/images/eagle_eyes_flat_logo_2.png" style="width:30%"/>
+  </div>
+    
+  <section class="content evensection">
+      <div class="lead">
+        <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Files to Eagle Eyes</title>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0.0/firebase-storage.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css?t=[timestamp]">
+    <script>
+        // Your Firebase configuration
+        var firebaseConfig = {
+            // Your Firebase config object
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        $(document).ready(function() {
+            $('#file-upload-form').submit(function(e) {
+                e.preventDefault();
+                // Assuming only one file for simplicity; adjust as necessary for multiple files
+                var files = $('#file-input')[0].files;
+                if (files.length > 10) {
+                    alert('Please upload no more than 10 files.');
+                    return;
+                }
+                Array.from(files).forEach(file => {
+                    if (file.size > 10 * 1024 * 1024 * 1024) {
+                        alert('Each file must be less than 10GB.');
+                        return;
+                    }
+                    uploadFile(file);
+                });
+            });
+        });
+
+        function uploadFile(file) {
+            var storageRef = firebase.storage().ref();
+            var uploadTask = storageRef.child('uploads/' + file.name).put(file);
+
+            // Handle the upload process...
+        }
+    </script>
+</head>
+<body>
+    <section id="intro-text">
+        <p>Use this form to upload images and videos to Eagle Eyes. We will email you results showing detections made by the current Eagle Eyes detector, and inform you if future updates to the detector produce improved results. Please allow up to 3 business days for a response, or contact us at info@eagleeyessearch.com if you need results faster.</p>
+        <p>By uploading, you allow Eagle Eyes to use these images/videos for internal evaluation purposes.</p>
+        <p>eagleeyessearch.com</p>
+    </section>
+
+    <section id="upload-form">
+        <h1>Upload File to Eagle Eyes</h1>
+        <form id="file-upload-form">
+            <p>Is this data public?</p>
+            <input type="radio" id="data-public-no" name="data-public" value="no" required>
+            <label for="data-public-no">No - Eagle Eyes may use it internally, but the data should not be made publicly available.</label><br>
+            <input type="radio" id="data-public-yes" name="data-public" value="yes" required>
+            <label for="data-public-yes">Yes - This data is public and can be shared.</label><br>
+
+            <p>Upload images or short videos. You can also include SRT files associated with videos. If you have more than 10 images to upload, you can put them into a zip file and upload that. The maximum file size is 10GB. If you are having difficulties with the upload - feel free to email us at info@eagleeyessearch.com - you can send us a Google-Drive / Dropbox link, or we can figure out another way to transfer the data.</p>
+
+            <input type="file" id="file-input" name="file" multiple required>
+            <br>
+            
+            <textarea name="description" placeholder="Description of footage - Please tell us a bit about the circumstances surrounding the footage, and what we can expect to find in there." required></textarea>
+            <br>
+            
+            <textarea name="comments" placeholder="Other Comments / Information"></textarea>
+            <br>
+            
+            <button type="submit">Upload File</button>
+        </form>
+    </section>
+</body>
+</html>
+      </div>
+  </section>
+  
+</body>
+</html>

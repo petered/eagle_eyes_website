@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html>
+
+
+<head>
+	<meta charset="UTF-8" />
+	<meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0" name="viewport">
+
+	<!-- Open Graph -->
+	<meta property="og:title" content="Eagle Eyes" />
+	<meta property="og:url" content="https://www.eagleeyessearch.com/" />
+	<meta property="og:type" content="website" />
+	<meta property="og:image" content="https://eagleeyessearch.com/images/eagle_eyes_logo_2.png" />
+	<meta property="og:description" content="The Future of Aerial Search" />
+
+	<!-- Twitter Theme -->
+	<meta name="twitter:widgets:theme" content="light">
+	
+	<!-- Title &amp; Favicon -->
+	<title>Eagle Eyes Search | Description</title>
+	<link rel="apple-touch-icon" sizes="180x180" href="images/favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="images/favicon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="images/favicon/favicon-16x16.png">
+	<link rel="manifest" href="images/favicon/site.webmanifest">
+	<link rel="mask-icon" href="images/favicon/safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="msapplication-TileColor" content="#da532c">
+	<meta name="theme-color" content="#ffffff">
+
+	<!-- Font -->
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700%7CHind+Madurai:400,500&amp;subset=latin-ext" rel="stylesheet">
+	
+	<!-- Css -->
+	<link rel="stylesheet" href="css/core.min.css" />
+	<link rel="stylesheet" href="css/skin.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+	<link rel="shortcut icon" type="image/png" href="images/eagle_eyes_icon_rounded_filtered.png">
+	<link rel="stylesheet" href="css/custom-styling.css" />
+
+    <style>
+        .content-grid-3 {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
+
+	<!--[if lt IE 9]>
+    	<script type="text/javascript" src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('nav.overlay-navigation a').click(function() {
+        $('.overlay-navigation-wrapper').hide(); // this will hide the element
+		$('body').css('overflow', 'auto');
+        $('html').css('overflow', 'auto');
+        $('body').removeClass('no-scroll');
+        $('html').removeClass('no-scroll');
+		// Hacky stuff
+        // or
+        //$('.v-align-middle').removeClass('v-align-middle'); // this will remove the class
+    });
+});
+</script>
+
+</head>
+
+<head>
+  <!-- Add necessary meta tags and other head elements here -->
+
+  <style>
+    .banner {
+      position: relative;
+      height: 100px; /* Adjust as needed */
+      width: 100%;
+      overflow: hidden; /* to contain the pseudo element */
+    }
+  
+    .banner::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('/images/eagle_eyes_website_header_bg.jpg') no-repeat center;
+      background-size: cover;
+      filter: brightness(50%);
+      z-index: 1; /* to ensure it's below other content */
+    }
+  
+    .banner-text, .banner-img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2; /* to ensure it's above the background */
+    }
+   .banner-link img {
+      width: 100px; /* adjust as per requirement */
+      height: 50px;
+       align-content: flex-start;
+       z-index: 2;
+       position: absolute;
+       top: 20%;
+    }
+  
+    /* Modern looking font */
+    .lead {
+      width: 80%;
+      margin: auto;
+      font: 1.2em/1.5em "Hind Madurai", sans-serif;
+    }
+    </style>
+</head>
+
+<body class="shop home-page">
+  <div class="banner">
+    <a class="banner-link" href="/">
+      <img src="/images/back_to_eagleeyes.png"/>
+    </a>
+    <!-- <div class="banner-text">Eagle Eyes Scan</div> -->
+    <img class="banner-img" src="/images/eagle_eyes_flat_logo_2.png" style="width:30%"/>
+  </div>
+    
+  <section class="content evensection">
+      <div class="lead">
+        <head>
+
+    <!-- Include Firebase SDK -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+<!-- Include form_buttons_and_boxes.scss (it's in scss/form_buttons_and_boxes.scss) but we need to get it in liquid -->
+<style src="/css/form_buttons_and_boxes.css"></style>
+<link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
+
+    <script>
+
+
+        var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
+        urlParams = new URLSearchParams(window.location.search);
+        // Get the argument and convert it to a boolean.  It should default to true if not present.
+        // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
+        var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
+
+        // var hostURL = 'https://us-central1-aaaaggfdsfdsdaa.cloudfunctions.net';
+
+        var machineId = getMachineIdFromURL();
+
+        var globalUser = null;
+
+        var globalData = null;
+
+        console.log("Machine ID: " + machineId);
+
+        thisURLwithJustMachineIDArg = window.location.origin + '/get_licensed/?machine_id=' + machineId;
+
+        // Wait for the HTML to load
+        document.addEventListener("DOMContentLoaded", function () {
+            // Display the machine ID in the HTML
+            document.getElementById('machine-id').textContent = machineId;
+        });
+
+        function getParamFromURL(paramName, defaultValue = undefined) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(paramName) || defaultValue;
+        }
+
+        function getMachineIdFromURL() {
+            // const urlParams = new URLSearchParams(window.location.search);
+            // // upper case
+            // return urlParams.get('machine_id').toUpperCase();
+            return getParamFromURL('machine_id').toUpperCase();
+        }
+
+
+        function getIsEmulatorFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            // return urlParams.get('is_emulator') === 'true';
+            // Case insensitive
+            return urlParams.get('is_emulator')?.toLowerCase() === 'true';
+        }
+
+        function reCheckLicence() {
+            // First, temporarily hide the licenses section
+            $('#licenses').hide();
+
+            // Wait 1/4 second so the user sees the section disappear
+            setTimeout(function () {
+                // Then, re-check the licence
+                checkLicence(globalUser);
+            }, 250);
+            // // Then, re-check the licence
+            // checkLicence(user);
+            // Un-hide the re-check button (no longer display none)
+        }
+
+        function filterDataForTier(licenceAndTokenData, tier) {
+            // Filter the data to only include licenses and tokens for the specified tier
+
+            var filteredData = {};
+            filteredData.licenses_and_dispensed = {};
+            filteredData.tokens_and_codes = {};
+            for (var licenceId in licenceAndTokenData.licenses_and_dispensed) {
+                var licence = licenceAndTokenData.licenses_and_dispensed[licenceId].license;
+                if (licence.tier.toLowerCase() === tier.toLowerCase()) {
+                    filteredData.licenses_and_dispensed[licenceId] = licenceAndTokenData.licenses_and_dispensed[licenceId];
+                }
+            }
+            for (var tokenId in licenceAndTokenData.tokens_and_codes) {
+                var tokenAndCode = licenceAndTokenData.tokens_and_codes[tokenId];
+                if (tokenAndCode.token.tier.toLowerCase() === tier.toLowerCase()) {
+                    filteredData.tokens_and_codes[tokenId] = tokenAndCode;
+                }
+            }
+            return filteredData;
+        }
+
+        function copyTextToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function () {
+                console.log('Async: Copying to clipboard was successful!');
+            }, function (err) {
+                console.error('Async: Could not copy text: ', err);
+            });
+        }
+
+        function licenseTokenToString(token) {
+            expiryDateStr = new Date(token.expiry_timestamp * 1000).toLocaleDateString();
+            return `Tier: ${token.tier}\nEmail: ${token.email}\nMachine ID: ${token.machine_id}\nExpiry: ${expiryDateStr}\nLicense ID: ${token.license_id}`;
+        }
+
+        // function sendTokenAndCodeToUserEmail(tokenAndCode) {
+        //     // Send the token and code to the user's email
+        //     // First, get the user's ID token
+
+        //     user.getIdToken().then(function (idToken) {
+        //         // Then, send a request to the cloud function to send the token and code to the user's email
+        //         var fetch_url = 'http://
+
+        function onNewKeyReceived(tokenAndCodeJSONString) {
+            // When a new key is received, re-check the licence
+            let tokenAndCode = JSON.parse(tokenAndCodeJSONString);
+            let code = tokenAndCode.code;
+            let token = tokenAndCode.token;
+
+            $('#key-view').css('display', 'block');
+            $('#license-info').val(licenseTokenToString(token));
+            $('#license-key').val(code);
+
+            // Copy the code to the clipboard
+            copyTextToClipboard(code);
+            $('#license-key-status').text("Key " + code.slice(0, 10) + '...' + " has been copied to the clipboard. You can now paste it into the Eagle Eyes app.").addClass('info-box');
+            // Copy button 
+            $('#license-key-copy-button').text('Copy Key Again');
+
+            console.log("Showed new key: ", code.slice(0, 10) + '...');
+
+            // now, you also need to re-check the licence - so that it confirms that the key has been used.
+            // Note that this is only really necessary if the user generated a new key but whatever
+            reCheckLicence();
+
+            // alert('New key received.  Code ' + code.slice(0, 10) + '... has been copied to the clipboard.  You can now paste it into the Eagle Eyes app.');
+            // Scroll to the bottom of the page
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function getKeyForThisLicense(licenseID, user) {
+            // Get the key for this license
+            // First, get the user's ID token
+            // We're calling the "request_token_from_license" cloud function with args machine_id and license_id
+            console.log('Requesting key for license ID: ', licenseID);
+            // First - lets check if there is already a key for this license on this machine
+            console.log('Global data: ', globalData);
+            console.log('Tokens and codes: ', globalData.tokens_and_codes);
+            allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+            isThereAlreadyAKey = allLicenseIdsInTokens.includes(licenseID);
+
+            n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
+
+            // If there is not a key, warn the user that they are about to request a key and this will decrement the number of available keys
+            if (!isThereAlreadyAKey) {
+                var confirmRequest = confirm("Are you sure you want to request a key for this license?\n\nThis will use up 1 of the " + n_tokens_remaining + " remaining keys for this license, and cannot be reversed.\n\nProceed?");
+                if (!confirmRequest) {
+                    return;
+                }
+            }
+
+            if (!user) {
+                user = globalUser;
+            }
+
+            user.getIdToken(true).then(function (idToken) {
+                // Then, send a request to the cloud function to get the key
+                // var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/request_token_from_license?machine_id=' + machineId + '&license_id=' + licenseID;
+                var fetch_url = hostURL + '/request_token_from_license?machine_id=' + machineId + '&license_id=' + licenseID;
+                // var fetch_url = hostURL+'/request_AAAAA?machine_id=' + machineId + '&license_id=' + licenseID;
+
+                console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
+                console.log("Fetch URL: " + fetch_url);
+                $.ajax({
+                    url: fetch_url,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: onNewKeyReceived,
+                    error: requestErrorHandler,
+                });
+            })
+        }
+
+        function showError(message) {
+
+
+            // Show an error message to the user
+            var errorBox = document.createElement('div');
+            errorBox.classList.add('error-box');
+            // Width 80% of the screen
+            errorBox.style.width = '80%';
+            // Center horizontally
+            errorBox.style.margin = '0 auto';
+
+            errorBox.textContent = message;
+            // Append to end of 'end-of-page' div
+            document.getElementById('end-of-page').appendChild(errorBox);
+
+            // Show the "try again" button (try-again-button) (just make it not hidden)
+            $('#try-again-button').css('display', 'block');
+
+            // Scroll to the bottom of the page
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function checkLicence(user) {
+            // If user is null, use globalUser
+            if (!user) {
+                user = globalUser;
+            }
+            console.log('Checking license for user: ', user, ' with globalUser: ', globalUser);
+
+            $('#checking-licenses-box').show();
+
+
+            user.getIdToken().then(function (idToken) {
+                //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
+                licenseID = $('#license-id').val();
+                var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + machineId + (licenseID ? '&license_id=' + licenseID : '');
+                // console.log("Fetch URL: " + fetch_url);
+                console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
+                $.ajax({
+                    url: fetch_url,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: onReceivingLicenseData,
+                    error: requestErrorHandler,
+                    // Finally
+                    complete: function () {
+                        // Hide the "checking licenses" box
+                        $('#checking-licenses-box').hide();
+                        $("#licenses").show();
+                    }
+                });
+            });
+        }
+
+        function requestErrorHandler(jqXHR, textStatus, errorThrown) {
+            // Handle different error scenarios
+            errorText = 'Error during license check: ';
+            if (textStatus === 'timeout') {
+                // showError('The request timed out.  You');
+                errorText += 'The request timed out.  You may have a slow internet connection.';
+            } else if (textStatus === 'error') {
+                // Server might be down or unreachable (e.g., network error)
+                if (!jqXHR.status) {
+                    // showError('Network error: The server might be down or unreachable - do you have an internet connection?');
+                    errorText += 'Network error: The server at ' + hostURL + ' might be down or unreachable.  ' + jqXHR.statusText;
+                } else {
+                    // HTTP error response from the server, handle accordingly
+                    let status = jqXHR.status;
+                    let errorMessage = jqXHR.responseJSON?.error || jqXHR.statusText || "Unknown error";
+                    // showError(`Error ${status} during license check: ${errorMessage}`);
+                    errorText += `Error ${status} during license check: ${errorMessage}`;
+                }
+            } else {
+                // Handle other statuses as needed
+                // showError('Unexpected error:', textStatus);
+                errorText += 'Unexpected error: ' + textStatus;
+            }
+            errorText += "If you are connected to the internet, and the problem persists, please copy this error message and email us at info@eagleeyessearch.com.";
+            // It might be a good idea to show a user-friendly error message
+            // showError('An error occurred during the license check. Please try again later.');
+            showError(errorText);
+        }
+
+
+        function onReceivingLicenseData(data) {
+            /* Expected format of example data: 
+
+            {
+            "tokens_and_codes": {
+                "MJPQNXHFUOC6SWLN": {
+                "token": {
+                    "tier": "Basic",
+                    "expiry_timestamp": 1711929600.0,
+                    "email": "*",
+                    "machine_id": "*",
+                    "license_id": null,
+                    "license_name": "Universal Basic License",
+                    "key": null,
+                    "_version": 1
+                },
+                "code": "SZX7VSFWFPSBJXVAVY4SHHW3EAGSU6ZYWEYHMGNG3FVWKYJ3HG47344NOT3QDUAASOMLK7DDPIHK7TT5RCEIC4DH6GMHAZ6DYW3BKVMHRNMEJJMAMTHG7RDAXBUGMWXRA2W3NQEM2UB2XTSVWEKVEBKOIDQGDJGAPTJBMMJAGYW4HSPEY2PMYOSJWL3MQHRRFDCPMO2ZV6WWGK2KJFYRHRW6YFYA27YSV423QEUZONJPVJ2DW52L3ODIEV23ASQE47ANFJ5OAG5ERFFWW3NWWFHEE7QR3MNX7QIXVLZDGW3LIZ6Q655FDMZ5LEDKSFRDHO6JQBCJULTRWAZRQOIPYY35XFKU6IWX7FC3K4D4EWJRNDAMJJTMQARGQSXABSJMOT4IJBJQBVA2752VBVTRROANRF34XP2IMZD27TWYU5PSDPDRY2DLVVERCSVHQL5GSSRHV5ETTGTPQJT76KG73EHBSU7SV2KVQUBOFQBOWPP4SCH2J7I5FTYPCG4A"
+                }
+            },
+            "licenses_and_dispensed": {
+                "jkg8nI9Yw2y9K3f7": {
+                "license": {
+                    "tier": "SAR",
+                    "expiry_timestamp": 1711929600.0,
+                    "emails": [
+                    "peter.ed.oconnor@gmail.com"
+                    ],
+                    "domains": [],
+                    "license_name": "Peter's License",
+                    "n_tokens": 3,
+                    "key": null,
+                    "_version": 0
+                },
+                "n_tokens_dispensed": 0
+                }
+            }
+            }
+            */
+
+
+            console.log('Data: ', data);
+
+            // Un-hide the licenses section
+            document.getElementById('licenses').hidden = false;
+
+            data = JSON.parse(data);
+
+            globalData = data;  // Save the data for later use
+
+            console.log('Parsed: ', data);
+            // Just fill the sar-tier textareas with the sar-tier data
+            // Fill the basic-tier textareas with the basic-tier data
+            $('sar-tier.license-info').val('SAR tier info');
+            // Delete the whole user-info div 
+
+
+            // For each tier
+            for (let tier of ['basic', 'sar']) {
+                // <span class="-tier license-count"></span>
+                // <select class="-tier license-select"></select>
+                // <textarea class="-tier license-info"></textarea>
+                // <span class="-tier license-span"></span>
+                // <button class="-tier license-buy">Buy</button>
+                // <button class="-tier keys-request" title="Click to request a key">Get Key</button>
+                // <button class="-tier keys-view" title="Click to view key">View Key</button>
+
+                // Get the subdictionary for this tier
+                var tierData = filterDataForTier(data, tier);
+                console.log('Tier data for ' + tier + ': ', tierData);
+
+                const licensesForTier = tierData.licenses_and_dispensed;
+                var tokensAndCodesForTier = tierData.tokens_and_codes;
+
+                console.log('Licenses for tier ' + tier + ': ', licensesForTier);
+                // var licencesForTier = data.licenses.filter(license => license.tier == tier);  // IS THIS WRONG?
+
+                nLicensesForThisTier = Object.keys(licensesForTier).length;
+                // console.log('Licence count element is '+$('.-tier.license-count'))
+                console.log("Count box: ", $(tier + '-tier .license-count').select());
+                $("." + tier + '-tier.license-count').text(nLicensesForThisTier + ' license' + (nLicensesForThisTier === 1 ? '' : 's') + ' available');
+                console.log(nLicensesForThisTier + ' available for tier ' + tier);
+
+
+                var select = $("." + tier + '-tier.license-select');
+                select.empty();
+                console.log("Keys: ", Object.keys(licensesForTier));
+                Object.keys(licensesForTier).forEach(licenseId => {
+
+                    var license = licensesForTier[licenseId].license;
+                    // Get an expiry date-string from the expiry_timestamp (which is a float in s since epoch)
+                    var expiryDate = new Date(license.expiry_timestamp * 1000).toLocaleDateString();
+                    var option = $('<option></option>')
+                        .text("Name: " + license.license_name + ", Expiry: " + expiryDate + ", ID: " + licenseId)
+                        .val(licenseId);  // Set the value attribute to licenseId
+                    console.log('Adding option to select with id: ' + licenseId);
+                    select.append(option);
+                });
+                // Add a callback to the select element to fill in the license info textarea when a license is selected
+                function updateTextArea() {
+                    let selectedLicenseId = select.val();
+                    console.log('Selected license ID: ', selectedLicenseId);
+                    all_select_ids = select.children().map(function () {
+                        return $(this).val();
+                    }).get();
+                    console.log('All select IDs: ', all_select_ids);
+                    console.log('Licenses for tier: ', licensesForTier);
+                    let selectedLicense = licensesForTier[selectedLicenseId].license;
+                    console.log('Selected license: '+selectedLicenseId +": ", selectedLicense);
+                    let n_tokens_dispensed = licensesForTier[selectedLicenseId].n_tokens_dispensed;
+                    let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
+                    let textarea = $("." + tier + '-tier.license-info');
+                    textarea.empty();
+                    expiryDate = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
+                    // Join emails and domains list, then join the two lists with a comma
+                    emailsAndDomains = selectedLicense.emails.concat(selectedLicense.domains).join(', ');
+                    textarea.val('Name: ' + selectedLicense.license_name + '\nEmails: ' + emailsAndDomains + '\nExpiry: ' + expiryDate + '\nKeys Remaining: ' + n_tokens_remaining + ' of ' + selectedLicense.n_tokens + '\nID: ' + selectedLicenseId);
+                    console.log('Filled in the license info textarea');
+
+                    // Check for any tokens where license_id matches the selected license id
+                    let thisTokenAlreadyHasKey = Object.values(tokensAndCodesForTier).find(tokenAndCode => tokenAndCode.token.license_id == selectedLicenseId);
+                    console.log('Token with same ID: ', thisTokenAlreadyHasKey);
+
+                    var thisMachineText;
+
+                    let getKeyButton = $("." + tier + '-tier.keys-request');
+                    if (thisTokenAlreadyHasKey) {
+                        getKeyButton.text('Get Key');
+                        thisMachineText = 'Key already assigned to this machine';
+                    } else {
+                        getKeyButton.text('Generate Key');
+                        thisMachineText = 'No key for this machine yet';
+                    }
+                    $("." + tier + '-tier.license-span').text(thisMachineText);
+                    $("." + tier + '-tier.keys-request').display = thisTokenAlreadyHasKey ? 'none' : 'block';
+                    $("." + tier + '-tier.keys-view').display = thisTokenAlreadyHasKey ? 'block' : 'none';
+                }
+                // Clear previous callbacks
+                select.off('change');
+                select.change(updateTextArea);
+
+                // Call the change function to fill in the textarea for the first license
+                var textarea = $("." + tier + '-tier.license-info');
+                textarea.val('<No licenses>');
+
+                let getKeyButton = $("." + tier + '-tier.keys-request');
+                // Clear any previous callbacks
+                getKeyButton.off('click');
+                // Set the callback for this button to request a key from this license_id
+                getKeyButton.click(function () {
+                    getKeyForThisLicense(select.val(), globalUser);
+                });
+                if (nLicensesForThisTier > 0) {  // If there are licenses available
+                    updateTextArea();
+                    $("." + tier + '-tier.license-buy').text('Update').addClass('non_important_button');
+                    getKeyButton.show()
+                    // // And make it non-important
+                    // $("." + tier + '-tier.license-buy').addClass('non_important_button');
+                    // getKeyButton.text('Request Key');
+                } else {
+                    // Turn the "buy" button into a "buy" button
+                    $("." + tier + '-tier.license-buy').text('Buy');
+                    // getKeyButton.text('Get Key');
+                    // Hide the get_key button
+                    getKeyButton.hide()
+                }
+
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+
+        }
+
+        function onSelectLicenceToken() {
+            var licenseTokensSelect = document.getElementById('license-tokens-select');
+            console.log('Index: ', licenseTokensSelect.selectedIndex);
+            if (licenseTokensSelect.selectedIndex === -1) {
+                return;  // Means no token is selected
+            }
+            var selectedTokenAndCodeSerialized = licenseTokensSelect.options[licenseTokensSelect.selectedIndex].value;
+            var selectedTokenAndCode = JSON.parse(selectedTokenAndCodeSerialized); // Parse the JSON string back to an object
+
+            var selectedToken = selectedTokenAndCode.token;
+            // var selectedCode = selectedTokenAndCode.code;
+            console.log('Selected token and code: ', selectedTokenAndCode);
+            console.log('Selected token: ', selectedTokenAndCode.token);
+            console.log('Selected code: ', selectedTokenAndCode.code);
+
+            // var selectedToken = JSON.parse(selectedTokenAndCode.token); // Parse the JSON string back to an object
+
+            // var selectedToken = licenseTokensSelect.options[licenseTokensSelect.selectedIndex].value;
+            console.log('Selected token: ', selectedToken, "Fields: ", selectedToken.tier, selectedToken.email, selectedToken.machine_id, selectedToken.expiry_date, selectedToken.code);
+
+            // Now update the license token info textarea (newline separated)
+            var licenseTokenInfo = document.getElementById('license-token-info');
+            licenseTokenInfo.value = `Tier: ${selectedToken.tier}\nEmail: ${selectedToken.email}\nMachine ID: ${selectedToken.machine_id}\nExpiry: ${selectedToken.expiry_date}\nCode: ${selectedToken.code}`;
+
+            // Now update the license key textarea
+            var licenseKey = document.getElementById('license-key');
+            licenseKey.value = selectedTokenAndCode.code;
+
+        }
+
+        function copyLicenseKey() {
+            var licenseKey = document.getElementById("license-key");
+            licenseKey.select();
+            document.execCommand("copy");
+            var licenceCode = licenseKey.value;
+        }
+
+        function toggleMenu(expandableMenuDivId, makeVisible = null) {
+            // Use jQuery to select the menu and title elements within the specified div
+            var $menu = $('#' + expandableMenuDivId + ' .menu-content').first();
+            var $title = $('#' + expandableMenuDivId + ' .menu-title').first();
+
+            if (makeVisible === null) {
+                makeVisible = ($menu.css('display') === 'none' || $menu.css('display') === '')
+            }
+
+            // Toggle the display of the menu
+            if (makeVisible) {
+                $menu.css('display', 'block');
+                $title.removeClass('collapsed');
+            } else {
+                $menu.css('display', 'none');
+                $title.addClass('collapsed');
+            }
+        }
+
+        // On load - check whether to show the emulator info box
+        $(document).ready(function () {
+            if (useLocalFirebaseEmulator) {
+                $('#using-emulator-info').show();
+            }
+        });
+
+
+
+    </script>
+
+</head>
+
+
+<body>
+
+    <!-- Put link to get_licensed.html in the header -->
+    <br />
+    If you don't have Eagle Eyes Scan yet, first <a href="/get_scan">Download it here</a>.
+
+
+    <h1>Eagle Eyes Login / Sign up</h1>
+
+    <div class="info-box" id="using-emulator-info" hidden>Using local Firebase emulator</div>
+
+    <!-- Show the machine ID -->
+    <p>Machine ID: <span id="machine-id"></span>
+
+        <button onclick="openMachineIdDialog()" , class="non_important_button">Change</button>
+
+        <dialog id="machine-id-dialog">
+            <h3>Enter Machine ID</h3>
+            <input type="text" id="new-machine-id" placeholder="Enter new Machine ID">
+            <button onclick="updateMachineId()"
+                style="display: inline-block; padding: 5px 10px; font-size: 12px;">Change</button>
+            <button onclick="closeMachineIdDialog()"
+                style="display: inline-block; padding: 5px 10px; font-size: 12px;">Cancel</button>
+        </dialog>
+
+        <script>
+            function openMachineIdDialog() {
+                var dialog = document.getElementById("machine-id-dialog");
+                dialog.showModal();
+            }
+
+            function closeMachineIdDialog() {
+                var dialog = document.getElementById("machine-id-dialog");
+                dialog.close();
+            }
+
+            function updateMachineId() {
+                // Get the new machine ID
+                var newMachineId = document.getElementById("new-machine-id").value.toUpperCase();
+                // Update the displayed machine ID
+                document.getElementById("machine-id").textContent = newMachineId;
+                // Close the dialog
+                closeMachineIdDialog();
+                // Create a new URLSearchParams object from the current query string
+                var queryParams = new URLSearchParams(window.location.search);
+                // Set the new machine ID (this will replace it if it already exists, or add it if it doesn't)
+                queryParams.set('machine_id', newMachineId);
+                // Create the new URL
+                var newURL = window.location.origin + window.location.pathname + '?' + queryParams.toString();
+                // Redirect to the new URL
+                window.location.href = newURL;
+            }
+
+            function onClickBuy(tier) {
+                console.log('Buy button clicked for tier: ' + tier);
+                
+                url = `${hostURL}/get_stripe_payment_link?tier=${tier}&machine_id=${machineId}&dev_token=${getParamFromURL('dev_token')}${useLocalFirebaseEmulator ? '&is_emulator=true' : ''}`;
+
+
+                // Make an ajax request to the get_stripe_payment_link cloud function
+                // This will return a link to the Stripe checkout page
+                globalUser.getIdToken(true).then(function (idToken) {
+                    $.ajax({
+                        headers: {'Authorization': 'Bearer ' + idToken},
+                        url: url,  // Add the machine ID to the URL
+                        method: 'GET',
+                        success: function (data) {
+                            console.log('Received data: ', data);
+                            // Open the link in a new tab
+                            decodedData = JSON.parse(data);
+                            paymentUrl = decodedData.url;
+                            window.open(paymentUrl, '_blank');
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            // Handle the error
+                            requestErrorHandler(jqXHR, textStatus, errorThrown);
+                        }
+                    });
+                    // alert('Automated purchase of tier ' + tier + ' is not yet set up.  Please contact info@eagleeyessearch.com to purchase a license.');
+                })
+            
+            }
+        </script>
+
+    <h2> Step 1: Sign in </h2>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<!-- Include form_buttons_and_boxes.scss (it's in scss/form_buttons_and_boxes.scss) but we need to get it in liquid -->
+<style src="/css/form_buttons_and_boxes.css"></style>
+<link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
+
+
+<script>
+
+    class SigninWidget {
+        constructor(
+            firebaseConfig,
+            useLocalFirebaseEmulator = false,
+
+        ) {
+            this.useLocalFirebaseEmulator = useLocalFirebaseEmulator;
+            this.firebaseConfig = firebaseConfig;
+            firebase.initializeApp(firebaseConfig);
+            // Upon initialization, call the function to initialize Firebase
+            this.completeEmailLinkSigninIfApplicable();
+            this._user = null;
+
+            // Check if user is still signed in from a previous session
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    this._user = user;
+                    console.log("User is signed in", user);
+                    this.updateUserDisplay(user);
+                    this.fireSigninEvent(user);
+                } else {
+                    console.log("No user is signed in.");
+                }
+            });
+
+
+        }
+
+
+        signInWithGoogle() {
+            var provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('email');
+            firebase.auth().signInWithPopup(provider).then((result) => {
+                this._user = result.user;
+                this.updateUserDisplay(this._user);
+                this.fireSigninEvent(this._user);
+            }).catch((error) => {
+                console.error('Error during Google sign in: ', error);
+            });
+        }
+
+        signInWithEmailLink(returnURL = null) {
+            if (!returnURL) {
+                returnURL = window.location.href;
+            }
+            var email = document.getElementById('email').value;
+            var baseURL = window.location.origin;
+            console.log('baseURL: ', baseURL);
+            console.log('window.location.href: ', window.location.href);
+            console.log('returnURL: ', returnURL);
+            var actionCodeSettings = {
+                // Make sure this URL is the URL of the page where you will handle the sign-in link
+                // url: `${baseURL}/get_licensed/?machine_id=${machineId}`,
+                // Get the full url including args that this page was loaded with
+                // url: window.location.href,
+                url: `${baseURL}/get_scan`,
+                handleCodeInApp: true
+            };
+
+            console.log("Sending action code to email: ", email, " with settings: ", actionCodeSettings);
+            firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+                .then(() => {
+                    window.localStorage.setItem('emailForSignIn', email);
+
+                    // Now, replace sign-in-div with an info box telling the user to check their email
+                    var signInDiv = document.getElementById('sign-in-div');
+                    signInDiv.innerHTML = 'Sign-in link sent to ' + email +
+                        ".  Be sure to check your spam folder if you don't see it in your inbox." +
+                        "<br/><br/>You can now close this tab.";
+
+                    // And give it a light-blue background to draw attention
+                    signInDiv.classList.add('info-box');
+
+                    console.log('Sign-in email sent to ' + email);
+                    // alert('Sign-in email sent to ' + email + ".  Be sure to check your spam folder if you don't see it in your inbox.");
+                })
+                .catch((error) => {
+                    console.error('Error sending sign-in email: ', error);
+                    // Append the error message in a div to the end of the body
+                    var errorDiv = document.createElement('div');
+                    errorDiv.innerHTML = 'Error sending sign-in email: ' + error.message;
+                    errorDiv.classList.add('error-box');
+                    document.body.appendChild(errorDiv);
+
+                });
+
+        }
+
+        // Call this function on the page where users are redirected after clicking the sign-in link
+        completeEmailLinkSigninIfApplicable() {
+
+            if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+                console.log('Email link sign-in detected');
+                // Get the email if it's saved in local storage
+                var email = window.localStorage.getItem('emailForSignIn');
+                console.log('... with email: ', email);
+                if (!email) {
+                    // User opened the link on a different device. You will need to prompt them for their email
+                    email = window.prompt('Please provide your email for confirmation');
+                }
+
+                firebase.auth().signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        console.log('Email Link sign in successful: ', JSON.stringify(result));
+                        window.localStorage.removeItem('emailForSignIn'); // Clear the email from local storage
+
+                        // var destringifiedUser = JSON.parse(JSON.stringify(result.user));
+                        // console.log("destringifiedUser: ", JSON.stringify(destringifiedUser));
+                        // User is signed in
+                        this._user = result.user;
+                        console.log('User signed in: ', this._user);
+                        this.updateUserDisplay(this._user);
+                        this.fireSigninEvent(this._user);
+                        // checkLicence(); // Call checkLicence after successful login
+
+                        // Optional: Redirect to another page after successful sign in
+                    })
+                    .catch((error) => {
+                        console.error('Error during Email Link sign in: ', error);
+
+                        // Make the sign-in div an error class and display the error
+                        var signInDiv = document.getElementById('sign-in-div');
+                        signInDiv.innerHTML = 'Error during Email Link sign in.  Most likely, the link has been used already or is expired.  Please try again, and contact info@eagleeyessearch.com if you continue to have trouble.';
+                        signInDiv.classList.add('error-box');
+                        // And add a button to reload the page without the user info attached
+                        signInDiv.innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Reload</button>';
+
+                    });
+            }
+        }
+
+        fireSigninEvent(user) {
+            console.log('Firing signInComplete event with user: ', user);
+            const event = new CustomEvent('signInComplete', { detail: { user: user } });
+            document.dispatchEvent(event);
+        }
+
+        updateUserDisplay(user) {
+
+            document.getElementById('user-info').innerHTML = 'Signed in as: ' + user.email + ' ( ' + user.displayName + ' )';
+            // Give it that nice blue background by turning it into a .info-box
+            document.getElementById('user-info').classList.add('info-box');
+            document.getElementById('sign-in-div').style.display = 'none';
+            // document.getElementById('user-info').innerHTML += '<br/><button onclick="location.reload()"  class="non_important_button">Change user</button>';
+            // Need to sign-out now
+            document.getElementById('user-info').innerHTML += '<br/><button onclick="signOutAndChangeUser()"  class="non_important_button">Change user</button>';
+        }
+
+
+        getUser() {
+            return this._user;
+        }
+    }
+
+
+    function signOutAndChangeUser() {
+        firebase.auth().signOut().then(() => {
+            console.log('User signed out.');
+            // Reset the user display or redirect to the login page
+            location.reload()
+        }).catch((error) => {
+            console.error('Sign out error', error);
+        });
+    }
+
+    const signinWidget = new SigninWidget(
+        {
+            apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
+            authDomain: "eagleeyessearch.firebaseapp.com",
+            projectId: "eagleeyessearch",
+            storageBucket: "eagleeyessearch.appspot.com",
+            messagingSenderId: "983592831720",
+            appId: "1:983592831720:web:57b3880d0185ea3110575d",
+            measurementId: "G-J057SPR81M"
+        },
+        false
+    );
+
+    function getIsEmulatorFromURL() {
+        // Just see if there's an "is_emulator=true" in the URL
+        var url = new URL(window.location.href);
+        var isEmulator = url.searchParams.get("is_emulator");
+
+        return isEmulator === "true";
+    }
+
+    function getHostUrl(){
+                
+        var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+        // var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        console.log('useLocalFirebaseEmulator: ', useLocalFirebaseEmulator);
+        console.log('hostURL: ', hostURL);
+        
+        return hostURL;
+    }
+
+    // document.addEventListener("DOMContentLoaded", function () {
+    //     // Initialize menus to be hidden
+    //     var menus = document.getElementsByClassName('menu-content');
+    //     for (var i = 0; i < menus.length; i++) {
+    //         menus[i].style.display = "none";
+    //     }
+    //     // onSelectLicenceToken();
+    //     completeSignInWithEmailLinkIfApplicable();
+    //     return;
+    // });
+
+
+    function showEmailInputBtn() {
+        // Show the email sign-in form
+        document.getElementById('email-sign-in-form').style.display = 'block';
+        // Hide the initial button
+        document.getElementById('showEmailInputBtn').style.display = 'none';
+        // And the google-sign-in button
+        document.getElementById('google-sign-in-btn').style.display = 'none';
+        // Focus on the email input for user convenience
+        document.getElementById('email').style.display = 'block'; // Make sure email input is visible
+        document.getElementById('email').focus();
+    }
+
+</script>
+
+<div id='sign-in-div'>
+
+
+    <button id="google-sign-in-btn" onclick="signinWidget.signInWithGoogle()">Sign in with Google</button>
+    or
+
+    <div id="email-sign-in-form" style="display:none;">
+        <input type="email" id="email" placeholder="Email" style="display:none;width:80%">
+
+        <!-- Add a cancel button that just reloads this page from scratch -->
+        <button onclick="location.reload()" class="non_important_button">Cancel</button>
+
+        <button id="sendSignInLinkBtn" onclick="signinWidget.signInWithEmailLink()">Send Sign in Link</button>
+    </div>
+    <button id="showEmailInputBtn" onclick="showEmailInputBtn()">Sign In With Email</button>
+    <!-- <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Event listener for the button to show email input
+        document.getElementById('showEmailInputBtn').addEventListener('click', function () {
+            // Show the email sign-in form
+            document.getElementById('email-sign-in-form').style.display = 'block';
+            // Hide the initial button
+            this.style.display = 'none';
+            // And the google-sign-in button
+            document.getElementById('google-sign-in-btn').style.display = 'none';
+            // Focus on the email input for user convenience
+            document.getElementById('email').style.display = 'block'; // Make sure email input is visible
+            document.getElementById('email').focus();
+        });
+
+        // Attach the signInWithEmailLink function to the Send SignIn Link button
+        // document.getElementById('sendSignInLinkBtn').addEventListener('click', function () {
+        //     signInWithEmailLink();
+        // });
+    });
+
+</script> -->
+</div>
+<p id="user-info"></p>
+    <script>
+
+        var globalUser = null;
+
+        document.addEventListener('signInComplete', function (e) {
+            /* Handle the event:
+            CustomEvent('signInComplete', { detail: { user: user } })
+            Generated by the signinWidget.html inclusion
+            */
+            globalUser = e.detail.user;
+            console.log('signInComplete event received: ' + globalUser);
+            // Hide the temporary "checking licenses" box
+            $("#checking-licenses-box").hide();
+            // Show the licenses section
+            if (isEarlyAdopterMode) {
+                $("#early_adopter_signup").show();
+            } else {
+                checkLicence();
+                
+            }
+        });
+    </script>
+
+
+    <!-- <button onclick="checkLicence()">Check again for available licenses and tokens</button> -->
+    <br />
+
+    <!--  -->
+
+
+    <!-- Just make tiers lower case: ('basic', 'sar')-no f-->
+
+    
+
+    <!-- Try again button... Hidden by default but becomes visible when check fails -->
+    <button onclick="reCheckLicence()" id="try-again-button" style="display: none;">Try again</button>
+
+    <section id="early_adopter_signup" hidden>
+
+        <h2>Step 2: Sign up for Early Adopter Program</h2>
+
+        We are running an early adopter program for search and rescue teams to try our detection system. 
+
+        If you are on a search and rescue team and would like to trial the SAR license (which enables the computer vision system and live video streaming), 
+        we welcome you to sign up using <a href="https://docs.google.com/forms/d/e/1FAIpQLSe1te7w7fIp3CTyLg6ffkg6hHd94fTViCgD3uzfqQz1ZPbKFA/viewform">this form</a>.
+        <br/>
+        <br/>
+        You'll see that you have the option to either upload data (which we will keep confidential and use only for the purpose of improving our system) or pay a small fee ($50CAD / $37USD), which gets you an early adopter trial lasting a minimum of 2 months.
+
+    </section>
+
+    <div id="checking-licenses-box"  class="info-box" hidden>Checking available licenses...</div>
+    
+    <section id="licenses" hidden>
+
+        <h2>Step 2: Get a License Key</h2>
+
+
+        <!-- Add a "re-check button which is initially hidden -->
+        <div>
+            <!-- Add an optional field for entering license ID -->
+            <!-- Add a little "?" which you can mouse-over for an explanation -->
+            Enter License ID (Optional):  
+            <span title="If your email is not associated with a license, you can enter the license ID here">ℹ️</span>
+            <input type="text" id="license-id" placeholder="(e.g. jI9Y9kg8oK3w2yf2)" style="width: calc(30ch + 2px);">
+            <button onclick="reCheckLicence()" id="re-check-button" class="non_important_button">Re-check</button>
+        </div>
+
+
+        <table border="1" style="width: 100%;">
+            <tr>
+                
+
+                
+                
+                <th style="width: 50%;">Basic</th>
+                
+
+                
+                
+                <th style="width: 50%;">SAR</th>
+                
+            </tr>
+            <tr>
+                
+                <!-- basic: "Basic", sar: "SAR" -->
+
+                <td style="width: 50%;">
+                    <span class="basic-tier license-count"></span>
+                    <select class="basic-tier license-select" style="width: 95%; box-sizing: border-box;"></select>
+                    <textarea class="basic-tier license-info"
+                        style="width: 95%; height: 6em; white-space: nowrap; overflow-x: auto; white-space: pre-wrap;"
+                        readonly></textarea>
+                    <br />
+                    <span class="basic-tier license-span"></span>
+                    <br />
+                    <!-- <button class="basic-tier license-buy">Buy</button> -->
+                    <button class="basic-tier license-buy" onclick="onClickBuy('basic')">Buy</button>
+                    <button class="basic-tier keys-request" title="Click to get key">Get Key</button>
+                </td>
+                
+                <!-- basic: "Basic", sar: "SAR" -->
+
+                <td style="width: 50%;">
+                    <span class="sar-tier license-count"></span>
+                    <select class="sar-tier license-select" style="width: 95%; box-sizing: border-box;"></select>
+                    <textarea class="sar-tier license-info"
+                        style="width: 95%; height: 6em; white-space: nowrap; overflow-x: auto; white-space: pre-wrap;"
+                        readonly></textarea>
+                    <br />
+                    <span class="sar-tier license-span"></span>
+                    <br />
+                    <!-- <button class="sar-tier license-buy">Buy</button> -->
+                    <button class="sar-tier license-buy" onclick="onClickBuy('sar')">Buy</button>
+                    <button class="sar-tier keys-request" title="Click to get key">Get Key</button>
+                </td>
+                
+            </tr>
+
+        </table>
+
+
+    </section>
+
+    <section id="key-view" hidden>
+
+        <h2>Step 3: View and Copy Key</h2>
+        Info: <br />
+        <textarea id="license-info"
+            style="width: 100%; height: 6em; white-space: nowrap; overflow-x: auto; white-space: pre-wrap;"
+            readonly></textarea>
+        <br />
+        Key: <br />
+        <textarea id="license-key" style="width: 100%; height: 7em;" readonly></textarea>
+        <div id="license-key-status"></div>
+        <button id='license-key-copy-button' onclick="copyLicenseKey()">Copy Key</button>
+
+
+    </section>
+
+    <div id="end-of-page"> </div>
+    <!-- Leave a little space on the bottom -->
+    <br />
+    <br />
+</body>
+      </div>
+  </section>
+  
+</body>
+</html>
