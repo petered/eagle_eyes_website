@@ -330,6 +330,8 @@ function checkLicense(user) {
     console.log('Checking license for user: ', user, ' with globalUser: ', globalUser);
     // $('#checking-licenses-box').show();
 
+    $('#license-info').text("⏳ Checking available licenses...")
+
     // calls function to check for licenses, with value in manual license-id box as optional
     user.getIdToken().then(function (idToken) {
         //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
@@ -469,9 +471,17 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
         selectLicenseButton.prop('disabled', true);
     }
 
+    // Make a function for getting the number of tokens remaining given a license ID.  If n_tokens is null, return null
+    function getNumberOfTokensRemainingOrNull(licenseId) {
+        // console.log("Looking up number of tokens for license ID: ", licenseId);
+        n_tokens_dispensed = globalData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
+        n_tokens_total = licenseData.licenses_and_dispensed[licenseId].license.n_tokens;
+        return n_tokens_total === null ? null : n_tokens_total - n_tokens_dispensed;
+        // return licenseData.licenses_and_dispensed[licenseId].license.n_tokens === null ? null : licenseData.licenses_and_dispensed[licenseId].license.n_tokens - licenseData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
+    }
 
-    select.onchange = function () {
-        // selectedLicenseId = this.value;
+    // select.onchange = function () {
+    select.change(function () {
         selectedLicenseId = select.val();
         console.log('Selected license ID: ', selectedLicenseId);
         if (!selectedLicenseId) return; // Guard against no selection 
@@ -480,20 +490,44 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
         let license_expiry = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
         let license_tier = selectedLicense.tier;
         let emails = selectedLicense.emails.join(', ');
-        let n_tokens_dispensed = globalData.licenses_and_dispensed[selectedLicenseId].n_tokens_dispensed;
-        let n_tokens_remaining = (selectedLicense.n_tokens === null) ? 'Unlimited' : selectedLicense.n_tokens - n_tokens_dispensed;
+        let n_tokens_remaining = getNumberOfTokensRemainingOrNull(selectedLicenseId);
         let n_tokens_total = selectedLicense.n_tokens;
         selectedLicenseInfo = `Name: ${license_name}\nExpiry: ${license_expiry}\nTier: ${license_tier}\nEmails: ${emails}\nLicense ID: ${selectedLicenseId}\nKeys Remaining: ${n_tokens_remaining} of ${n_tokens_total}`;
         textarea.text(selectedLicenseInfo);
-    };
-    // Trigger change event on load to display the first entry's details if available
+    });
+
+    // Auto select the specified license ID, if available, otherwise, select the one with the latest expiry date with at least one key remaining
     if (numberOfLicenses > 0) {
         console.log("licenseIDusedInRequest: ", licenseIDusedInRequest);
-        select.val(licenseIDusedInRequest);
-        select.onchange();
+        var licenseIdtoShow = null;
+        if (licenseIDusedInRequest) {
+            if ( arrayOfLicenseIds.includes(licenseIDusedInRequest)){
+                licenseIdtoShow = licenseIDusedInRequest;
+            } else {
+                // Set text area text
+                not_found_text = `License ID ${licenseIDusedInRequest} not found or expired.`;
+                if (numberOfLicenses > 0) {
+                    not_found_text += `  Select another license from the list above.`;
+                }
+                console.log(not_found_text);
+                textarea.text(not_found_text);
+                // $('#second-license-info-box').text(`License ID ${licenseIDusedInRequest} not found`);
+            }
+        } else {
+            // Select the license with the latest expiry date that has at least one key remaining
+            licenseIdtoShow = arrayOfLicenseIds.filter((a) => getNumberOfTokensRemainingOrNull(a) !== 0 ).reduce((a, b) => licenseData.licenses_and_dispensed[a].license.expiry_timestamp > licenseData.licenses_and_dispensed[b].license.expiry_timestamp ? a : b);
+        }
+
+        // const licenseIDToShow = licenseIDusedInRequest || arrayOfLicenseIds.filter((a) => getNumberOfTokensRemainingOrNull(a) !== 0 ).reduce((a, b) => licenseData.licenses_and_dispensed[a].license.expiry_timestamp > licenseData.licenses_and_dispensed[b].license.expiry_timestamp ? a : b);
+        if (licenseIdtoShow) {
+            select.val(licenseIdtoShow);
+            select.change();
+            // If the license ID was specified in the URL, select it
+            if (licenseIDusedInRequest) {
+                selectLicense();
+            }
+        }
     }
-
-
 }
 
 
