@@ -205,6 +205,7 @@ function onNewKeyReceived(tokenAndCodeJSONString) {
     let tokenAndCode = JSON.parse(tokenAndCodeJSONString);
     let code = tokenAndCode.code;
     let token = tokenAndCode.token;
+    $('#final-status-box').hide()
 
     $('#key-view').css('display', 'block');
     $('#license-info').val(licenseTokenToString(token));
@@ -224,15 +225,18 @@ function onNewKeyReceived(tokenAndCodeJSONString) {
 
     // now, you also need to re-check the license - so that it confirms that the key has been used.
     // Note that this is only really necessary if the user generated a new key but whatever
-    reCheckLicense();
+    //reCheckLicense();
 
     // alert('New key received.  Code ' + code.slice(0, 10) + '... has been copied to the clipboard.  You can now paste it into the Eagle Eyes app.');
     // Scroll to the bottom of the page
     // window.scrollTo(0, document.body.scrollHeight);
+    scrollToBottomWithDelay();
 }
 
 function getKeyForThisLicense(licenseID, user) {
     // Make sure not to proceed if machine ID is missing
+    
+    $('#final-status-box').text('⏳ Issuing key...').css('display', 'block').show()
     if (!machineId || machineId == "") { 
         alert('There is no machine ID connected to your session. Please request a key from the "Check License" menu in Eagle Eyes Scan desktop app.');
         return;
@@ -246,11 +250,11 @@ function getKeyForThisLicense(licenseID, user) {
     console.log('Global data: ', globalData);
     console.log('Tokens and codes: ', globalData.tokens_and_codes);
     allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
-    isThereAlreadyAKey = allLicenseIdsInTokens.includes(licenseID);
+    isThereAlreadyAKeyForThisLicense = allLicenseIdsInTokens.includes(licenseID);
     n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
 
     // If there is not a key, warn the user that they are about to request a key and this will decrement the number of available keys
-    if (!isThereAlreadyAKey) {
+    if (!isThereAlreadyAKeyForThisLicense) {
         var confirmRequest = confirm("Are you sure you want to request a key for this license?\n\nThis will use up 1 of the " + n_tokens_remaining + " remaining keys for this license, and cannot be reversed.\n\nProceed?");
         if (!confirmRequest) {
             return;
@@ -298,16 +302,20 @@ function showError(message) {
 
 
     // Show an error message to the user
-    var errorBox = document.createElement('div');
-    errorBox.classList.add('error-box');
-    // Width 80% of the screen
-    errorBox.style.width = '80%';
-    // Center horizontally
-    errorBox.style.margin = '0 auto';
+    // $('#final-status-box').text(message).classList.add('error-box').show();
+    // Fix for jquery
+    $('#final-status-box').text(message).addClass('error-box').css('display', 'block').show();
+    
+    // var errorBox = document.createElement('div');
+    // errorBox
+    // // Width 80% of the screen
+    // errorBox.style.width = '80%';
+    // // Center horizontally
+    // errorBox.style.margin = '0 auto';
 
-    errorBox.textContent = message;
-    // Append to end of 'end-of-page' div
-    document.getElementById('end-of-page').appendChild(errorBox);
+    // errorBox.textContent = message;
+    // // Append to end of 'end-of-page' div
+    // document.getElementById('end-of-page').appendChild(errorBox);
 
     // Show the "try again" button (try-again-button) (just make it not hidden)
     $('#try-again-button').css('display', 'block');
@@ -374,7 +382,7 @@ function requestErrorHandler(jqXHR, textStatus, errorThrown) {
         } else {
             // HTTP error response from the server, handle accordingly
             let status = jqXHR.status;
-            let errorMessage = jqXHR.responseJSON?.error || jqXHR.statusText || "Unknown error";
+            let errorMessage = jqXHR.responseText || jqXHR.responseJSON?.error || jqXHR.statusText || "Unknown error";
             // showError(`Error ${status} during license check: ${errorMessage}`);
             errorText += `Error ${status} during license check: ${errorMessage}`;
         }
@@ -383,7 +391,7 @@ function requestErrorHandler(jqXHR, textStatus, errorThrown) {
         // showError('Unexpected error:', textStatus);
         errorText += 'Unexpected error: ' + textStatus;
     }
-    errorText += "If you are connected to the internet, and the problem persists, please copy this error message and email us at info@eagleeyessearch.com.";
+    errorText += "\n\nIf you believe you should not be getting this error, please copy the above error message and email us at info@eagleeyessearch.com.";
     // It might be a good idea to show a user-friendly error message
     // showError('An error occurred during the license check. Please try again later.');
     showError(errorText);
@@ -446,13 +454,49 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     // Remove hidden attribute
     // $("#licenses-found-info").text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`).show();
 
+    licenseIDsWithTokensOnThisMachine = Object.values(licenseData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+
+    // Create a function to compare two licenses for which is "better" (higher priority)
+    function compareLicenses(licenseId1, licenseId2) {
+        // Access license data and properties
+        const license1 = licenseData.licenses_and_dispensed[licenseId1].license;
+        const license2 = licenseData.licenses_and_dispensed[licenseId2].license;
+        const license1HasTokenOnThisMachine = licenseIDsWithTokensOnThisMachine.includes(licenseId1);
+        const license2HasTokenOnThisMachine = licenseIDsWithTokensOnThisMachine.includes(licenseId2);
+        const license1HasKeyRemaining = getNumberOfTokensRemainingOrNull(licenseId1) > 0;
+        const license2HasKeyRemaining = getNumberOfTokensRemainingOrNull(licenseId2) > 0;
+    
+        // Compare whether the license has a token on this machine
+        if (license1HasTokenOnThisMachine !== license2HasTokenOnThisMachine) {
+            return license1HasTokenOnThisMachine ? -1 : 1;
+        }
+        
+        // Compare whether the license has a token on this machine or keys remaining
+        const license1Priority = license1HasTokenOnThisMachine || license1HasKeyRemaining;
+        const license2Priority = license2HasTokenOnThisMachine || license2HasKeyRemaining;
+        if (license1Priority !== license2Priority) {
+            return license1Priority ? -1 : 1;
+        }
+        
+        // Compare by expiry date as the final criterion
+        return license2.expiry_timestamp - license1.expiry_timestamp;
+    }
+
+    // Sort the license IDs by the compare function
+    arrayOfLicenseIds.sort(compareLicenses);
+
+
     if (numberOfLicenses > 0) {
         checkingBox.text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`);
-        Object.keys(licenseData.licenses_and_dispensed).forEach(licenseId => {
+        arrayOfLicenseIds.forEach(licenseId => {
             var license = licenseData.licenses_and_dispensed[licenseId].license;
             var option = document.createElement('option');
             option.value = licenseId;
-            option.text = `${licenseId.substring(0, 3)}: ${license.license_name}, exp: ${new Date(license.expiry_timestamp * 1000).toLocaleDateString()}`;
+            n_keys_remaining = getNumberOfTokensRemainingOrNull(licenseId);
+            issuedStatus = licenseIDsWithTokensOnThisMachine.includes(licenseId) ? 'Key Issued' : `${n_keys_remaining} Key${n_keys_remaining === 1 ? '' : 's'}`;
+            // Format expiry date like "May 5, 2024"
+            expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
+            option.text = `${licenseId.substring(0, 3)}: ${license.tier} (${issuedStatus}), Expires: ${expiryDateStr}`;
             select.append(option);
         });
         select.css('display', 'block');
@@ -480,6 +524,8 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
         // return licenseData.licenses_and_dispensed[licenseId].license.n_tokens === null ? null : licenseData.licenses_and_dispensed[licenseId].license.n_tokens - licenseData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
     }
 
+    
+
     // select.onchange = function () {
     select.change(function () {
         selectedLicenseId = select.val();
@@ -487,13 +533,17 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
         if (!selectedLicenseId) return; // Guard against no selection 
         selectedLicense = globalData.licenses_and_dispensed[selectedLicenseId].license; // this = the select element // this.value= the selected license ID // licenseid.license is the license object that is part of the license ID
         let license_name = selectedLicense.license_name;
-        let license_expiry = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString();
+        let expiryDateStr = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
         let license_tier = selectedLicense.tier;
         let emails = selectedLicense.emails.join(', ');
         let n_tokens_remaining = getNumberOfTokensRemainingOrNull(selectedLicenseId);
         let n_tokens_total = selectedLicense.n_tokens;
-        selectedLicenseInfo = `Name: ${license_name}\nExpiry: ${license_expiry}\nTier: ${license_tier}\nEmails: ${emails}\nLicense ID: ${selectedLicenseId}\nKeys Remaining: ${n_tokens_remaining} of ${n_tokens_total}`;
+        selectedLicenseInfo = `Name: ${license_name}\nExpiry: ${expiryDateStr}\nTier: ${license_tier}\nEmails: ${emails}\nLicense ID: ${selectedLicenseId}\nKeys Remaining: ${n_tokens_remaining} of ${n_tokens_total}\nKey issued on this Machine: ${licenseIDsWithTokensOnThisMachine.includes(selectedLicenseId) ? 'Yes' : 'No'}`;
         textarea.text(selectedLicenseInfo);
+        // Hide the step 4 box
+        $('#issue-key').hide();
+        $('#key-view').hide();
+        $('#final-status-box').hide();
     });
 
     // Auto select the specified license ID, if available, otherwise, select the one with the latest expiry date with at least one key remaining
@@ -514,8 +564,28 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
                 // $('#second-license-info-box').text(`License ID ${licenseIDusedInRequest} not found`);
             }
         } else {
-            // Select the license with the latest expiry date that has at least one key remaining
-            licenseIdtoShow = arrayOfLicenseIds.filter((a) => getNumberOfTokensRemainingOrNull(a) !== 0 ).reduce((a, b) => licenseData.licenses_and_dispensed[a].license.expiry_timestamp > licenseData.licenses_and_dispensed[b].license.expiry_timestamp ? a : b);
+            // Just select the first license (because it's sorted by priority already)
+            licenseIdtoShow = arrayOfLicenseIds[0];
+
+            // licenseIDsWithTokensOnThisMachine = Object.values(licenseData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+            // // Select the license with the latest expiry date that has at least one key remaining
+            // // Rank licenses by: 
+            // // 1. Do they have a token on this machine already?
+            // // 2. Do they have a token on this machine already OR do they have a key remaining?
+            // // 3. Latest expiry date
+            // var candidateLicenseIds = arrayOfLicenseIds;
+            // // If there are licenses with tokens on this machine, filter the candidate license IDs to only include those
+            // if (licenseIDsWithTokensOnThisMachine.length > 0) {
+            //     candidateLicenseIds = arrayOfLicenseIds.filter(licenseId => licenseIDsWithTokensOnThisMachine.includes(licenseId));
+            // } else { // If there are no licenses with tokens on this machine, filter the candidate license IDs to only include those with keys remaining
+            //     candidateLicenseIds = arrayOfLicenseIds.filter(licenseId => getNumberOfTokensRemainingOrNull(licenseId) > 0);
+            // }
+            // // If there are still candidate license IDs, select the one with the latest expiry date
+            // if (candidateLicenseIds.length > 0) {
+            //     licenseIdtoShow = candidateLicenseIds.reduce((a, b) => licenseData.licenses_and_dispensed[a].license.expiry_timestamp > licenseData.licenses_and_dispensed[b].license.expiry_timestamp ? a : b);
+            // } 
+
+            // licenseIdtoShow = ... TODO: Implement this
         }
 
         // const licenseIDToShow = licenseIDusedInRequest || arrayOfLicenseIds.filter((a) => getNumberOfTokensRemainingOrNull(a) !== 0 ).reduce((a, b) => licenseData.licenses_and_dispensed[a].license.expiry_timestamp > licenseData.licenses_and_dispensed[b].license.expiry_timestamp ? a : b);
@@ -537,7 +607,7 @@ function selectLicense() {
     var secondTextArea = document.getElementById(`second-license-info-box`);
     secondTextArea.value = selectedLicenseInfo;
     var issueKeyInfoBox = document.getElementById(`issue-key-info`);
-    var code = isThereAlreadyAKey();
+    var code = isThereAlreadyAKey(selectedLicenseId);
     console.log("logging code :" + code);
     if (!code) {
         $('#issueKeyButton').removeClass('non_important_button').show();
@@ -596,16 +666,16 @@ function onSelectLicenseToken() {
 
 }
 
-function isThereAlreadyAKey() {
+function isThereAlreadyAKey(licenseID) {
     console.log('Global data: ', globalData);
     console.log('Tokens and codes: ', globalData.tokens_and_codes);
     allLicenseIdsInTokens = Object.values(globalData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
-    var keyAlreadyIssued = allLicenseIdsInTokens.includes(selectedLicenseId);
+    var keyAlreadyIssued = allLicenseIdsInTokens.includes(licenseID);
     var TokensAndCode = globalData.tokens_and_codes;
     // n_tokens_remaining = globalData.licenses_and_dispensed[licenseID].license.n_tokens - globalData.licenses_and_dispensed[licenseID].n_tokens_dispensed;
     if (keyAlreadyIssued) {
         for (let key in TokensAndCode) {
-            if (TokensAndCode[key].token.license_id === selectedLicenseId) {
+            if (TokensAndCode[key].token.license_id === licenseID) {
                 // console.log('there is already a key');
                 $('#issueKeyButton').removeClass('non_important_button').hide();
                 return TokensAndCode[key].code;  // Returns the code when the license ID matches
