@@ -26,7 +26,7 @@ permalink: /post-payment/
             var licenseId = urlParams.get('license_id');
             var machineId = urlParams.get('machine_id');
             var email = urlParams.get('email', null);
-            var isEmulator = urlParams.get('is_emulator', false);
+            var isEmulator = getIsEmulatorFromURL(window.location.search);
             hostURL = isEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net'
 
             console.log(`Payment status: ${status}, isEmulator: ${isEmulator}, licenseId: ${licenseId}, machineId: ${machineId}, hostURL: ${hostURL}`);
@@ -36,7 +36,7 @@ permalink: /post-payment/
 
             if (status === 'success') {
                 $('#message').text('Payment Success');
-                $('#details').text(`Your payment for License ${licenseId} has been successfully processed. Thank you for your purchase! You should soon have an email confirming your receipt of this license.`);
+                $('#details').text(`Your payment for License ${licenseId} has been successfully processed. Thank you for your purchase! You should soon have an email confirming your receipt of this license.  This code can be used to request keys from your license, so keep it within your team.`);
                 if (licenseId) {
                     // $('#license-info').text('Your license id is ' + licenseId);
                     confirmLicense(licenseId);
@@ -60,7 +60,7 @@ permalink: /post-payment/
                     data: {license_id: licenseId},
                     success: function(response) {
                         // $('.info-box').show().text('License confirmed: ' + response.license.name);
-                        $('#status').addClass('info-box').show().text(response);
+                        $('#status').addClass('info-box').show().text("✅ "+response);
                         if (machineId) {
                             $('#return-button').text('Activate License for this Machine');
                         } else {
@@ -69,7 +69,7 @@ permalink: /post-payment/
                     },
                     error: function(xhr) {
                         // $('.error-box').show().text('Error: ' + xhr.responseText);
-                        $('#status').addClass('error-box').show().text('Error: ' + xhr.responseText);
+                        $('#status').addClass('error-box').show().text(`❌ ${xhr.responseText}`);
                         $('#return-button').text('Back to Licenses Page');
                     }
                 });
