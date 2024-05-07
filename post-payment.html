@@ -12,31 +12,67 @@ permalink: /post-payment/
     <title>Payment Status</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style src="/css/form_buttons_and_boxes.css"></style>
+    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
+
+    <!-- Import shared.js from root of this site -->
+    <script src="/shared.js"></script>
     <script>
+
         $(document).ready(function() {
             var urlParams = new URLSearchParams(window.location.search);
+            console.log(urlParams);
             var status = urlParams.get('status');
             var licenseId = urlParams.get('license_id');
             var machineId = urlParams.get('machine_id');
-            var isEmulator = urlParams.get('is_emulator');
+            var email = urlParams.get('email', null);
+            var isEmulator = urlParams.get('is_emulator', false);
+            hostURL = isEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net'
+
+            console.log(`Payment status: ${status}, isEmulator: ${isEmulator}, licenseId: ${licenseId}, machineId: ${machineId}, hostURL: ${hostURL}`);
 
             var returnUrl = `/get-license/?early_adopter=false&machine_id=${machineId || ''}${licenseId ? '&license_id=' + licenseId : ''}${isEmulator ? '&is_emulator=' + isEmulator : ''}`;
             $('#return-button').attr('href', returnUrl);
 
             if (status === 'success') {
                 $('#message').text('Payment Success');
-                $('#details').text('Your payment has been successfully processed. Thank you for your purchase!  You should soon have an email confirming your receipt of this license.');
+                $('#details').text(`Your payment for License ${licenseId} has been successfully processed. Thank you for your purchase! You should soon have an email confirming your receipt of this license.`);
                 if (licenseId) {
-                    $('#license-info').text('Your license id is ' + licenseId);
-                    if (machineId) {
-                        $('#return-button').text('Activate License for this Machine');
-                    } else {
-                        $('#return-button').text('View Your Licenses');
-                    }
+                    // $('#license-info').text('Your license id is ' + licenseId);
+                    confirmLicense(licenseId);
+                    
                 }
             } else if (status === 'cancelled') {
                 $('#message').text('Payment Cancelled');
                 $('#details').text('Your payment was not completed. If this was an error, please try again.');
+            }
+
+            function confirmLicense(licenseId) {
+                console.log(`Confirming license ${licenseId} in database`);
+
+                // url = hostURL + "/confirm_license_in_database?license_id=" + licenseId;
+                $('#status').show().text('⏳ Confirming license in database...');
+                url = `${hostURL}/confirm_license_in_database?license_id=${licenseId}&email=${email}`;
+                console.log(`URL: ${url}`);
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    data: {license_id: licenseId},
+                    success: function(response) {
+                        // $('.info-box').show().text('License confirmed: ' + response.license.name);
+                        $('#status').addClass('info-box').show().text(response);
+                        if (machineId) {
+                            $('#return-button').text('Activate License for this Machine');
+                        } else {
+                            $('#return-button').text('View Your Licenses');
+                        }
+                    },
+                    error: function(xhr) {
+                        // $('.error-box').show().text('Error: ' + xhr.responseText);
+                        $('#status').addClass('error-box').show().text('Error: ' + xhr.responseText);
+                        $('#return-button').text('Back to Licenses Page');
+                    }
+                });
             }
         });
     </script>
@@ -48,6 +84,7 @@ permalink: /post-payment/
             <h1 id="message">Loading...</h1>
             <p id="details"></p>
             <p id="license-info"></p>
+            <div id="status" style="display:none;"></div>
             <br/><br/>
             <a href="#" id="return-button" class="btn btn-primary">Return to Licensing Page</a>
             <br/><br/>
