@@ -18,7 +18,7 @@
             this.firebaseConfig = firebaseConfig;
             firebase.initializeApp(firebaseConfig);
             // Upon initialization, call the function to initialize Firebase
-            this.completeEmailLinkSigninIfApplicable();
+            
             this._user = null;
 
             // Check if user is still signed in from a previous session
@@ -30,6 +30,7 @@
                     this.fireSigninEvent(user);
                 } else {
                     console.log("No user is signed in.");
+                    this.completeEmailLinkSigninIfApplicable();
                 }
             });
 
@@ -99,7 +100,7 @@
 
         // Call this function on the page where users are redirected after clicking the sign-in link
         completeEmailLinkSigninIfApplicable() {
-
+            // If user is not already signed in and the URL has a sign-in link
             if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
                 console.log('Email link sign-in detected');
                 // Get the email if it's saved in local storage
