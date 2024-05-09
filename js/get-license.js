@@ -343,7 +343,9 @@ function checkLicense(user) {
     // calls function to check for licenses, with value in manual license-id box as optional
     user.getIdToken().then(function (idToken) {
         //   var fetch_url = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/check_available_licenses_and_tokens?machine_id=' + machineId;
-        const licenseID = $('#license-id').val();
+        // const licenseID = $('#license-id').val();
+        // Strip it 
+        const licenseID = $('#license-id').val().trim();
         var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + machineId + (licenseID ? '&license_id=' + licenseID : '');
         // console.log("Fetch URL: " + fetch_url);
         console.log("Checking URL: " + fetch_url + " with ID token: " + idToken.slice(0, 10) + '...');
