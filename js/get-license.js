@@ -318,7 +318,7 @@ function showError(message) {
     // document.getElementById('end-of-page').appendChild(errorBox);
 
     // Show the "try again" button (try-again-button) (just make it not hidden)
-    $('#try-again-button').css('display', 'block');
+    // $('#try-again-button').css('display', 'block');
 
     // Scroll to the bottom of the page
     scrollToBottomWithDelay();
