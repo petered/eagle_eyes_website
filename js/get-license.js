@@ -438,7 +438,9 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
 
     // console.log('Data received: ', data);
     const licenseData = JSON.parse(data); // Ensure data is parsed correctly
+    console.log(`Received license data with ${Object.keys(licenseData.licenses_and_dispensed).length} licenses and ${Object.keys(licenseData.tokens_and_codes).length} tokens, with a request for license ID: "${licenseIDusedInRequest}"`);
     
+
     globalData = licenseData; // Save for global use
     var select = $('#license-select'); // the license selector
     var textarea = $('#license-info'); // contents of license info box
@@ -604,12 +606,19 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
                 selectLicense();
             } else {
                 // Hide the step 4 box
+                console.log("Requested license not used")
                 $('#issue-key').hide();
+                $('#key-view').hide();
             }
-        } 
+        } else {
+            console.log('No license to show');
+            $('#issue-key').hide();
+            $('#key-view').hide();
+        }
     } else {
-        console.log('No license to show');
+        console.log('Zero license available');
         $('#issue-key').hide();
+        $('#key-view').hide();
     }
 }
 
