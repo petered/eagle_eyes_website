@@ -436,8 +436,8 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     }
     */
 
-    console.log('Data received: ', data);
-    var licenseData = JSON.parse(data); // Ensure data is parsed correctly
+    // console.log('Data received: ', data);
+    const licenseData = JSON.parse(data); // Ensure data is parsed correctly
     
     globalData = licenseData; // Save for global use
     var select = $('#license-select'); // the license selector
@@ -455,6 +455,18 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     // $("#licenses-found-info").text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`).show();
 
     licenseIDsWithTokensOnThisMachine = Object.values(licenseData.tokens_and_codes).map(tokenAndCode => tokenAndCode.token.license_id);
+
+    // Make a function for getting the number of tokens remaining given a license ID.  If n_tokens is null, return null
+    function getNumberOfTokensRemainingOrNull(licenseId) {
+        // console.log("Looking up number of tokens for license ID: ", licenseId);
+        // console.log(`From licenseData with keys ${Object.keys(licenseData.licenses_and_dispensed)}`)
+        // console.log(`Array of license IDs: ${arrayOfLicenseIds}`)
+
+        n_tokens_dispensed = licenseData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
+        n_tokens_total = licenseData.licenses_and_dispensed[licenseId].license.n_tokens;
+        return n_tokens_total === null ? null : n_tokens_total - n_tokens_dispensed;
+        // return licenseData.licenses_and_dispensed[licenseId].license.n_tokens === null ? null : licenseData.licenses_and_dispensed[licenseId].license.n_tokens - licenseData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
+    }
 
     // Create a function to compare two licenses for which is "better" (higher priority)
     function compareLicenses(licenseId1, licenseId2) {
@@ -485,10 +497,12 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     // Sort the license IDs by the compare function
     arrayOfLicenseIds.sort(compareLicenses);
 
-
+    // Clear the select box
+    select.empty();
     if (numberOfLicenses > 0) {
         checkingBox.text(`We found ${numberOfLicenses} licence${numberOfLicenses === 1 ? '' : 's'} connected to your email address`);
         arrayOfLicenseIds.forEach(licenseId => {
+
             var license = licenseData.licenses_and_dispensed[licenseId].license;
             var option = document.createElement('option');
             option.value = licenseId;
@@ -514,24 +528,15 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
         }
         selectLicenseButton.prop('disabled', true);
     }
-
-    // Make a function for getting the number of tokens remaining given a license ID.  If n_tokens is null, return null
-    function getNumberOfTokensRemainingOrNull(licenseId) {
-        // console.log("Looking up number of tokens for license ID: ", licenseId);
-        n_tokens_dispensed = globalData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
-        n_tokens_total = licenseData.licenses_and_dispensed[licenseId].license.n_tokens;
-        return n_tokens_total === null ? null : n_tokens_total - n_tokens_dispensed;
-        // return licenseData.licenses_and_dispensed[licenseId].license.n_tokens === null ? null : licenseData.licenses_and_dispensed[licenseId].license.n_tokens - licenseData.licenses_and_dispensed[licenseId].n_tokens_dispensed;
-    }
-
     
 
-    // select.onchange = function () {
-    select.change(function () {
+    // The "off" is key here - it erases the old handler.
+    select.off('change').change(function () {
         selectedLicenseId = select.val();
-        console.log('Selected license ID: ', selectedLicenseId);
+        // console.log('Selected license ID: ', selectedLicenseId);
         if (!selectedLicenseId) return; // Guard against no selection 
-        selectedLicense = globalData.licenses_and_dispensed[selectedLicenseId].license; // this = the select element // this.value= the selected license ID // licenseid.license is the license object that is part of the license ID
+        
+        selectedLicense = licenseData.licenses_and_dispensed[selectedLicenseId].license; // this = the select element // this.value= the selected license ID // licenseid.license is the license object that is part of the license ID
         let license_name = selectedLicense.license_name;
         let expiryDateStr = new Date(selectedLicense.expiry_timestamp * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
         let license_tier = selectedLicense.tier;
@@ -590,13 +595,21 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
 
         // const licenseIDToShow = licenseIDusedInRequest || arrayOfLicenseIds.filter((a) => getNumberOfTokensRemainingOrNull(a) !== 0 ).reduce((a, b) => licenseData.licenses_and_dispensed[a].license.expiry_timestamp > licenseData.licenses_and_dispensed[b].license.expiry_timestamp ? a : b);
         if (licenseIdtoShow) {
+            console.log(`Showing license ID ${licenseIdtoShow}`)
             select.val(licenseIdtoShow);
+            console.log(`LicenseData keys (before calling change) ${Object.keys(licenseData.licenses_and_dispensed)}`);
             select.change();
             // If the license ID was specified in the URL, select it
-            if (licenseIDusedInRequest) {
+            if (licenseIDusedInRequest == licenseIdtoShow) {
                 selectLicense();
+            } else {
+                // Hide the step 4 box
+                $('#issue-key').hide();
             }
-        }
+        } 
+    } else {
+        console.log('No license to show');
+        $('#issue-key').hide();
     }
 }
 
