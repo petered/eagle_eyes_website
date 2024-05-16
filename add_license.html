@@ -97,11 +97,11 @@ permalink: /add_license/
                         <fieldset>
                             <legend><b>How to assign emails?</b></legend>
                             <div class="radio-container">
-                                <input type="radio" id="same_license" name="licenseOption" value="same" required checked>
+                                <input type="radio" id="same_license" name="sameLicenseIdValue" value="true" required checked>
                                 <label for="same_license">Assign all emails to the same license ID</label>
                             </div>
                             <div class="radio-container">
-                                <input type="radio" id="separate_license" name="licenseOption" value="separate" required>
+                                <input type="radio" id="separate_license" name="sameLicenseIdValue" value="false" required>
                                 <label for="separate_license">Create a separate license ID for each email address</label>
                             </div>
                         </fieldset>
@@ -224,12 +224,13 @@ permalink: /add_license/
             const licenseDuration = $('#licenseDurationSelect').val();
             const numberOfKeys = parseInt($('#number_of_keys').val(), 10);
             const extraSecurityPassword = $('#extra_security_password').val();
-            const licenseOption = $('input[name="licenseOption"]:checked').val();
+            const sameLicenseIdValue = $('input[name="sameLicenseIdValue"]:checked').val();
+            const sameLicenseId = sameLicenseIdValue === 'true';
+            console.log(sameLicenseIdValue);
 
             // Calculate expiry timestamp based on selected license duration
             let expiryTimestamp = null;
             let tier = null;
-            let sameLicenseId = null;
             if (licenseDuration !== 'live') {
                 const now = moment();
                 switch (licenseDuration) {
@@ -255,12 +256,6 @@ permalink: /add_license/
                         break;
                 }
             }
-            if (licenseOption === 'same') {
-                sameLicenseId = true;
-            } else {
-                sameLicenseId = false;  
-            }
-
 
             const data = {
                 license_name: licenseName,
@@ -272,7 +267,7 @@ permalink: /add_license/
                 n_tokens: numberOfKeys,
                 expiry_timestamp: expiryTimestamp,
                 extra_security_password: extraSecurityPassword,
-                sameLicenseId: sameLicenseId
+                same_license_id: sameLicenseId
             };
 
             sendLicenseData(data);
@@ -304,23 +299,36 @@ permalink: /add_license/
                     //     $('#creationStatus').html('<p>User Verfied</p>');
                     // }
                     // Just directly post response
-
-                    license_id = licenseData['license_id']
-                    license = licenseData['new_license']
-                    var expiryDateStr;
-                    // if (licenseData[1].expiry_timestamp === null) {
-                    if (license===null || license?.expiry_timestamp === null) {
-                        expiryDateStr = 'No Expiry';
-                    } else {
-                        expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
+                    var AllLicenseData = {};
+                    var licenseObjectData = {};
+                    for (const key in licenseData) {
+                        if (licenseData.hasOwnProperty(key)) {
+                            const license = licenseData[key];
+                            const licenseId = license['license_id'];
+                            const licenseInfo = license['new_license'];
+                            var expiryDateStr;
+                            // if (licenseData[1].expiry_timestamp === null) {
+                            if (licenseInfo===null || licenseInfo?.expiry_timestamp === null) {
+                                expiryDateStr = 'No Expiry';
+                            } else {
+                                expiryDateStr = new Date(licenseInfo.expiry_timestamp * 1000).toLocaleString();
+                            }
+                            
+                            if (useLocalFirebaseEmulator){
+                                linkToViewFirestore = 'http://localhost:4000/firestore/default/data/licenses/'+licenseId;
+                            } else {
+                                linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + licenseId;
+                            }
+                            licenseObjectData = JSON.stringify(license, null, 2) + '</pre>\nExpiry: ' + expiryDateStr + '\n<a href="' + linkToViewFirestore + '" target="_blank">View License in Firestore</a>';
+                            AllLicenseData[key] = licenseObjectData;
+                        }
                     }
-                    
-                    if (useLocalFirebaseEmulator){
-                        linkToViewFirestore = 'http://localhost:4000/firestore/default/data/licenses/'+license_id;
-                    } else {
-                        linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + license_id;
+                    licenseDataDisplay = 'License(s) created successfully:';
+                    for (key in AllLicenseData) {
+                        licenseDataDisplay += '\n<pre>'
+                        licenseDataDisplay += AllLicenseData[key];
                     }
-                    licenseDataDisplay = 'License created successfully:\n<pre>' + JSON.stringify(licenseData, null, 2) + '</pre>\nExpiry: ' + expiryDateStr + '\n<a href="' + linkToViewFirestore + '" target="_blank">View License in Firestore</a>';
+                    console.log(licenseDataDisplay);
                     statusSpan.html(licenseDataDisplay).removeClass('error-box').addClass('info-box');
                     // Make button normal again
                     $('#createLicenseButton').removeClass('processing')
