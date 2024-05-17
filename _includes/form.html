@@ -130,7 +130,6 @@
 
 
         function submitForm() {
-
             console.log('form type is: ' + formType);
 
             if (formType == 'register') {
@@ -197,6 +196,9 @@
                     success: function (data) {
                         console.log("Success" + data);
 
+                        // Remove "processing" class to the submit button
+                        $("#submitButton").removeClass('processing');
+
                         // Show user message with link and ask them if they want to download
                         // If yes, then redirect to the link
                         // If no, then do nothing
@@ -206,7 +208,11 @@
                         $("#signin").hide();
                         $("#post-form").show();
                     },
-                    error: requestErrorHandler,
+                    error: function() {
+                        // Remove "processing" class to the submit button
+                        $("#submitButton").removeClass('processing');
+                        requestErrorHandler();
+                    }
                 });
             });
         }
@@ -223,15 +229,12 @@
             // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
             // filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
 
-
             var hostUrl = getHostUrl();
             var selectElement = document.getElementById('software_version');
             var filePath = "scan_releases/" + selectElement.value;
             var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
 
-
             // Pack the form data into an object
-
             hasFormBeenShown = $("#form").is(":visible");
             console.log("Form has been shown?: " + hasFormBeenShown);
             var formData = null;
@@ -239,6 +242,8 @@
                 if (!validateCheckboxes()) {
                     return; // Stop the function if validation fails
                 }
+                // Add "processing" class to the submit button
+                $("#submitButton").addClass('processing');
                 var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
                 formData = {};
                 for (var i = 0; i < formInputs.length; i++) {
@@ -277,6 +282,8 @@
                         var downloadLink = data.url;
                         console.log("Download link: " + downloadLink);
 
+                        // Remove "processing" class to the submit button
+                        $("#submitButton").removeClass('processing');
                         // Show user message with link and ask them if they want to download
                         // If yes, then redirect to the link
                         // If no, then do nothing
@@ -291,7 +298,11 @@
                         $("#post-form").show();
                         $("#download-link").attr("href", downloadLink);
                     },
-                    error: requestErrorHandler,
+                    error: function() {
+                        // Remove "processing" class to the submit button
+                        $("#submitButton").removeClass('processing');
+                        requestErrorHandler();
+                    }
                 });
             });
 
