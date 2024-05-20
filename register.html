@@ -52,11 +52,18 @@ To do:
     </section>
     </br>
 
+
+    <div style="display: flex; justify-content: center; align-items: center;" hidden>
+        <div id="hang-on-message" class="info-box" ></div>
+    </div>
+
     <section id="post-form" class="info-box" hidden> 
         <div id="checking-licenses-box" class="info-box" >Your registration request was submitted successfully. </br>We will process new requests and email you within 3 business days. </br>Please reach out to info@eagleeyessearch.com if you have any questions.</div>
     </section>
 
 <script>
+
+    $("#hang-on-message").hide();
 
     var globalUser = null;
 
@@ -75,7 +82,7 @@ To do:
         hostURL = getHostUrl();
         var fetch_url = hostURL + '/has_user_already_filled_in_form';
         console.log("Checking URL: " + fetch_url);
-        $("#hang-on-message").show();
+        $("#hang-on-message").text("Hang on a moment while we while we get everything ready for you...").show();
         globalUser.getIdToken(true).then(function (idToken) {
             $.ajax({
                 url: fetch_url,
@@ -85,6 +92,7 @@ To do:
                 },
                 success: function (data) {
                     $("#signin-explainer").hide();
+                    $("#hang-on-message").hide();
                     console.log("Got reply from has_user_already_filled_in_form: " + data);
                     data = JSON.parse(data);
                     console.log(data);
