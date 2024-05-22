@@ -22,6 +22,7 @@ permalink: /get-scan/
     <section id="signin" style="display: flex; justify-content: center; align-items: center;">
         {% include signinWidget.html %}
     </section>
+
     <section id="form-container" class="form-container" hidden>
         <h1 style="text-align: center;">Download Eagle Eyes Scan</h1>
         <p>Tell us a bit about yourself. Complete this short form, and you'll receive your download link immediately.</p>
@@ -29,7 +30,7 @@ permalink: /get-scan/
     </section>
 
     <div style="display: flex; justify-content: center; align-items: center;" hidden>
-        <div id="hang-on-message" class="info-box" >Hang on a moment while we get your download link...</div>
+        <div id="hang-on-message" class="info-box" ></div>
     </div>
 
     <div style="display: flex; justify-content: center; align-items: center;">
@@ -50,9 +51,13 @@ permalink: /get-scan/
         </div>
 
         <br />
+        <div>
+            <div id="mac-support-message" class="info-box" style="text-align: center;"></div>
+        </div>
+        <br/>
 
         <div style="display: flex; justify-content: center; align-items: center;">
-            <button onclick="submitForm()">Submit and start download</button>
+            <button id="submitButton" onclick="submitForm()">Submit and start download</button>
         </div>
         <br />
 
@@ -106,13 +111,12 @@ permalink: /get-scan/
             */
             globalUser = e.detail.user;
             console.log('signInComplete event received: ' + globalUser);
-
             // Send a request to the server to see if the user has already filled out the form. 
             // If they have not - show it, if they have, show a greeting message and the download link.
             hostURL = getHostUrl();
             var fetch_url = hostURL + '/has_user_already_filled_in_form';
-            console.log("Checking URL: " + fetch_url);
-            $("#hang-on-message").show();
+            console.log("Checking URL: " + fetch_url);           
+            $("#hang-on-message").text("Hang on a moment while we while we get everything ready for you...").show();
             globalUser.getIdToken(true).then(function (idToken) {
                 $.ajax({
                     url: fetch_url,
@@ -194,6 +198,10 @@ permalink: /get-scan/
                 optionElement.selected = true;
             } else if (os.includes('win') && (version === windowsDefault)) {
                 optionElement.selected = true;
+            }
+
+            if (os.includes('mac') ) {
+                    $("#mac-support-message").html("For Apple devices, we recommend installing on a device with ARM64 architecture (M1, M2, M3, or M4 chipsets).<br/>We do offer a distribution for Intel-based (x86) Mac OS systems, but performance may vary. Use at your own risk.").show();
             }
 
             selectElement.appendChild(optionElement);

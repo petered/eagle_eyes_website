@@ -7,135 +7,150 @@ permalink: /add_license/
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Prompt</title>
+    <title>Add Eagle Eyes License (Admin)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <!-- Import JQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <link rel="stylesheet" href="/css/form_buttons_and_boxes.css">
-    <!-- The moment library is used to handle dates and times -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-
-    <!-- shared.js functions -->
     <script src="/shared.js"></script>
 </head>
-
 <body>
     <style>
         .container {
-            width: 80%; /* Set the width of the form container */
-            margin: auto; /* Center the container */
+            width: 80%;
+            margin: auto;
+            display: flex;
+            flex-wrap: wrap; /* Allows content to wrap onto the next line if needed */
         }
     
-        .container label, .container input, .container select, .container textarea {
-            display: block; /* Ensures each element appears on its own line */
-            margin: 10px 0; /* Adds vertical spacing */
-            width: 100%; /* Full width to align correctly */
+        .form-section {
+            flex: 1 1 50%; /* Each section takes up half of the container width */
+            padding: 10px;
         }
-    
-        .container label.title {
-            display: inline-block; /* Titles on the same line as fields */
-            margin-right: 10px; /* Space between title and field */
-            font-size: 0.9em; /* Smaller font size for titles */
+
+        .last-four-container {
+            display: flex;
+            justify-content: space-between; /* Distributes space evenly between the children */
+            width: 100%; /* Takes full width of the container */
         }
-    
-        .radio-container {
-            display: block; /* Ensures each radio option container is on a new line */
-            margin-top: 5px;
+
+        .last-four-container .form-section, .last-four-container .submit-section {
+            flex: 1; /* Each child will take equal space */
+            margin: 0 10px; /* Adds margin between the form sections */
         }
-    
-        .radio-container input[type="radio"] {
-            display: inline-block; /* Radio buttons are inline */
-            width: auto; /* Override width to fit content */
-            margin-right: 5px; /* Space between radio button and label */
+
+        .submit-section {
+            display: flex;
+            align-items: center; /* Centers the button vertically */
+            justify-content: center; /* Centers the button horizontally */
         }
-    
-        .radio-container label {
-            display: inline; /* Labels inline with radio buttons */
-            font-size: 0.9em; /* Smaller font size for radio labels */
+
+        label, input, select, textarea {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
         }
-    
+
         input[type="text"], input[type="password"], select, textarea {
-            padding: 8px 16px; /* Adjust padding */
-            border: 1px solid #ccc; /* Standard border */
-            box-sizing: border-box; /* Border box model */
+            padding: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
         }
-    
-        br {
-            display: block; /* Ensures breaks are effective */
-            margin: 5px 0; /* Adds margin around breaks */
+
+        .radio-container {
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .radio-container input[type="radio"] {
+            margin-right: 5px;
+        }
+
+        .radio-container label {
+            font-size: 0.9em;
         }
     </style>
-    
-    
-
 
     <section id="signin">
         <div class="info-box" id="using-emulator-info" style="display: none;">Using local Firebase emulator</div>
         <h1>Add a License</h1>
-        Eagle Eyes Scan is a desktop app, available for MacOS and Windows.
         <h3> Step 1: Sign in </h3>
         {% include signinWidget.html %}
     </section>
 
     <section id="form" hidden>
-        <h3> Welcome admin. Enter Licensing details below</h3>
+        <h3>Welcome admin. Enter Licensing details below</h3>
         <span id="place_to_view"></span>
         <form onsubmit="event.preventDefault(); handleForm();">
             <div class="container">
-                <label for="extra_security_password"><b>Admin Password: </b></label>
-                Input the admin password for extra security
-                <br />
-                <input type="password" placeholder="Enter Admin Password" id="extra_security_password" name="extra_security_password" required>
-                <br />
-                <label for="license_name"><b>License Name: (optional)</b></label>
-                What to call this license
-                <br />
-                <input type="text" placeholder="Enter License Name" id="license_name" name="license_name">
-                <br /><br />
-                <label for="emails"><b>Emails: (required)</b></label>
-                Comma-separated list of emails to add to this license
-                <br />
-                <input type="text" placeholder="joe@example.com,bob@example.com" id="emails" name="emails" required>
-                <br /><br />
-                <label for="domains"><b>Domains: (optional)</b></label>
-                Comma-separated list of domains to add to this license
-                <br />
-                <input type="text" placeholder="examplecountysar.org,someotherdomain.com" id="domains" name="domains">
-                <br /><br />
-                <fieldset>
-                    <legend><b>User Type:</b></legend>
-                    <div class="radio-container">
-                        <input type="radio" id="volunteer" name="userType" value="volunteer" required>
-                        <label for="volunteer">Volunteer</label>
+                <div class="form-section">
+                    <label for="extra_security_password"><b>Admin Password: </b></label>
+                    <input type="password" placeholder="Enter Admin Password" id="extra_security_password" name="extra_security_password" required>
+                </div>
+                <div class="form-section">
+                    <label for="license_name"><b>License Name: (optional)</b></label>
+                    <input type="text" placeholder="Enter License Name" id="license_name" name="license_name">
+                </div>
+                <div style="text-align: left;">
+                    <div class="form-section">
+                        <fieldset>
+                            <legend><b>How to assign emails?</b></legend>
+                            <div class="radio-container">
+                                <input type="radio" id="same_license" name="sameLicenseIdValue" value="true" required checked>
+                                <label for="same_license">Assign all emails to the same license ID</label>
+                            </div>
+                            <div class="radio-container">
+                                <input type="radio" id="separate_license" name="sameLicenseIdValue" value="false" required>
+                                <label for="separate_license">Create a separate license ID for each email address</label>
+                            </div>
+                        </fieldset>
                     </div>
-                    <div class="radio-container">
-                        <input type="radio" id="general" name="userType" value="general" required checked>
-                        <label for="general">General</label>
-                    </div>
-                    <div class="radio-container">
-                        <input type="radio" id="special" name="userType" value="special" required>
-                        <label for="special">Special</label>
-                    </div>
-                </fieldset>
-                <br />
-                <fieldset>
-                    <legend><b>License Duration:</b></legend>
-                    <select id="licenseDurationSelect" name="license_duration" required>
-                        <!-- Options will be dynamically populated here -->
-                    </select>
-                    <br />
-                </fieldset>
+                </div>
+                <div class="form-section">
+                    <label for="emails"><b>Emails: (required)</b></label>
+                    <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com, bob@example.com" required></textarea>
+                </div>
+                <div class="form-section">
+                    <label for="domains"><b>Domains: (optional)</b></label>
+                    <input type="text" placeholder="examplecountysar.org,someotherdomain.com" id="domains" name="domains">
+                </div>
 
-                <label for="number_of_keys"><b>Number of Keys:</b></label>
-                <input type="number" placeholder="Enter Number of Keys" id="number_of_keys" name="number_of_keys" value="1" required>
-                <br /><br />
-
-                <br />
-                <button type="submit" id="createLicenseButton">Create license</button>
-                <br />
+                <!-- New flex container for the last four sections -->
+                <div class="last-four-container">
+                    <div class="form-section">
+                        <fieldset>
+                            <legend><b>User Type:</b></legend>
+                            <div class="radio-container">
+                                <input type="radio" id="volunteer" name="userType" value="volunteer" required>
+                                <label for="volunteer">Volunteer</label>
+                            </div>
+                            <div class="radio-container">
+                                <input type="radio" id="general" name="userType" value="general" required checked>
+                                <label for="general">General</label>
+                            </div>
+                            <div class="radio-container">
+                                <input type="radio" id="special" name="userType" value="special" required>
+                                <label for="special">Special</label>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="form-section">
+                        <fieldset>
+                            <legend><b>License Duration:</b></legend>
+                            <select id="licenseDurationSelect" name="license_duration" required></select>
+                        </fieldset>
+                    </div>
+                    <div class="form-section">
+                        <label for="number_of_keys"><b>Number of Keys:</b></label>
+                        <input type="number" placeholder="Enter Number of Keys" id="number_of_keys" name="number_of_keys" value="1" required>
+                    </div>
+                    <div class="submit-section">
+                        <button type="submit" id="createLicenseButton">Create license</button>
+                    </div>
+                </div>
             </div>
         </form>
-        <br />
     </section>
     <div id="creationStatus"></div>
 
@@ -209,6 +224,9 @@ permalink: /add_license/
             const licenseDuration = $('#licenseDurationSelect').val();
             const numberOfKeys = parseInt($('#number_of_keys').val(), 10);
             const extraSecurityPassword = $('#extra_security_password').val();
+            const sameLicenseIdValue = $('input[name="sameLicenseIdValue"]:checked').val();
+            const sameLicenseId = sameLicenseIdValue === 'true';
+            console.log(sameLicenseIdValue);
 
             // Calculate expiry timestamp based on selected license duration
             let expiryTimestamp = null;
@@ -248,7 +266,8 @@ permalink: /add_license/
                 tier: tier,
                 n_tokens: numberOfKeys,
                 expiry_timestamp: expiryTimestamp,
-                extra_security_password: extraSecurityPassword
+                extra_security_password: extraSecurityPassword,
+                same_license_id: sameLicenseId
             };
 
             sendLicenseData(data);
@@ -280,23 +299,36 @@ permalink: /add_license/
                     //     $('#creationStatus').html('<p>User Verfied</p>');
                     // }
                     // Just directly post response
-
-                    license_id = licenseData['license_id']
-                    license = licenseData['new_license']
-                    var expiryDateStr;
-                    // if (licenseData[1].expiry_timestamp === null) {
-                    if (license===null || license?.expiry_timestamp === null) {
-                        expiryDateStr = 'No Expiry';
-                    } else {
-                        expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
+                    var AllLicenseData = {};
+                    var licenseObjectData = {};
+                    for (const key in licenseData) {
+                        if (licenseData.hasOwnProperty(key)) {
+                            const license = licenseData[key];
+                            const licenseId = license['license_id'];
+                            const licenseInfo = license['new_license'];
+                            var expiryDateStr;
+                            // if (licenseData[1].expiry_timestamp === null) {
+                            if (licenseInfo===null || licenseInfo?.expiry_timestamp === null) {
+                                expiryDateStr = 'No Expiry';
+                            } else {
+                                expiryDateStr = new Date(licenseInfo.expiry_timestamp * 1000).toLocaleString();
+                            }
+                            
+                            if (useLocalFirebaseEmulator){
+                                linkToViewFirestore = 'http://localhost:4000/firestore/default/data/licenses/'+licenseId;
+                            } else {
+                                linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + licenseId;
+                            }
+                            licenseObjectData = JSON.stringify(license, null, 2) + '</pre>\nExpiry: ' + expiryDateStr + '\n<a href="' + linkToViewFirestore + '" target="_blank">View License in Firestore</a>';
+                            AllLicenseData[key] = licenseObjectData;
+                        }
                     }
-                    
-                    if (useLocalFirebaseEmulator){
-                        linkToViewFirestore = 'http://localhost:4000/firestore/default/data/licenses/'+license_id;
-                    } else {
-                        linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + license_id;
+                    licenseDataDisplay = 'License(s) created successfully:';
+                    for (key in AllLicenseData) {
+                        licenseDataDisplay += '\n<pre>'
+                        licenseDataDisplay += AllLicenseData[key];
                     }
-                    licenseDataDisplay = 'License created successfully:\n<pre>' + JSON.stringify(licenseData, null, 2) + '</pre>\nExpiry: ' + expiryDateStr + '\n<a href="' + linkToViewFirestore + '" target="_blank">View License in Firestore</a>';
+                    console.log(licenseDataDisplay);
                     statusSpan.html(licenseDataDisplay).removeClass('error-box').addClass('info-box');
                     // Make button normal again
                     $('#createLicenseButton').removeClass('processing')
