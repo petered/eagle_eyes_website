@@ -1,4 +1,51 @@
-<div class="feature-table bkg-grey-ultralight" style="padding-bottom: 20px;"> 
+<style>
+    .feature-highlights {
+        display: flex;
+        justify-content: space-between; /* Ensure space between the containers */
+        max-width: 1000px; /* Maximum width of the table */
+        padding: 20px; /* Optional: padding around the main container */
+        flex-wrap: wrap; /* Allow wrapping if there's not enough space */
+        margin: 0 auto; /* Center the container horizontally */
+        margin-top: 0; /* or decrease the value if it's not zero */
+        padding-top: 0; /* or decrease the value if it's not zero */
+        margin-bottom: 50px;
+    }
+
+    .sub-container {
+        flex: 1 1 calc(33.33% - 20px); /* Adjust to fit 3 containers in one row */
+        margin: 10px; /* Add padding between the containers */
+        padding: 15px; /* Internal padding within each container */
+        box-sizing: border-box; /* Ensure padding is included in the width */
+        text-align: center; /* Center align text and images */
+    }
+
+    .sub-container img.icon {
+        width: 50px; /* Adjust the size of the icon */
+        height: auto; /* Maintain aspect ratio */
+        margin-bottom: 10px; /* Space between the icon and the title */
+    }
+
+    .sub-container h3 {
+        font-weight: bold;
+        margin: 10px 0; /* Space between the title and the description */
+    }
+
+    .sub-container p {
+        margin: 10px 0; /* Space between elements */
+    }
+
+    /* Adjust the margin for the first and last sub-container to remove extra space */
+    .sub-container:first-child {
+        margin-left: 0;
+    }
+
+    .sub-container:last-child {
+        margin-right: 0;
+    }
+
+</style>
+
+<div class="centered-feature bkg-grey-ultralight" style="padding-bottom: 20px;"> 
     <h3 class="weight-bold mb-30" style="text-align: center">Available Tiers</h3>
     <div class="plan-header">
         <div class="column-dropdown"></div> <!-- Empty cell for alignment -->
@@ -103,3 +150,47 @@
         <div class="column-pro"></div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the explainer rows to be hidden by default
+        document.querySelectorAll('.explainer').forEach(explainer => {
+            explainer.style.display = 'none';
+        });
+
+        // Automatically open the first feature
+        const firstToggle = document.querySelector('.toggle');
+        if (firstToggle) {
+            const firstExplainer = firstToggle.closest('.plan-row').nextElementSibling;
+            if (firstExplainer && firstExplainer.classList.contains('explainer')) {
+                firstExplainer.style.display = 'table-row';
+                firstToggle.textContent = '−';
+            }
+        }
+
+        // Add click event listener to all toggles
+        document.querySelectorAll('.toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const isActive = this.textContent === '−';
+                
+                // Close all explainers
+                document.querySelectorAll('.explainer').forEach(explainer => {
+                    explainer.style.display = 'none';
+                });
+                // Reset all toggles to plus
+                document.querySelectorAll('.toggle').forEach(toggle => {
+                    toggle.textContent = '+';
+                });
+
+                // Open the clicked explainer if it was not already active
+                if (!isActive) {
+                    const explainer = this.closest('.plan-row').nextElementSibling;
+                    if (explainer && explainer.classList.contains('explainer')) {
+                        explainer.style.display = 'table-row';
+                        this.textContent = '−';
+                    }
+                }
+            });
+        });
+    });
+</script>
