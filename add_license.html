@@ -139,6 +139,7 @@ permalink: /add_license/
                         <fieldset>
                             <legend><b>License Duration:</b></legend>
                             <select id="licenseDurationSelect" name="license_duration" required></select>
+                            <input type="text" id="customDaysInput" placeholder="Enter custom days" style="display:none;">
                         </fieldset>
                     </div>
                     <div class="form-section">
@@ -175,6 +176,7 @@ permalink: /add_license/
                 { value: 'one_month', text: 'Pro - 1 Month' },
                 { value: 'three_months', text: 'Pro - 3 Months' },
                 { value: 'one_year', text: 'Pro - 1 Year' },
+                { value: 'custom', text: 'Custom'},
                 { value: 'live', text: 'Live' }
             ];
     
@@ -184,6 +186,14 @@ permalink: /add_license/
                     value: option.value,
                     text: option.text
                 }));
+            });
+
+            $licenseDurationSelect.on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#customDaysInput').show();
+                } else {
+                    $('#customDaysInput').hide();
+                }
             });
     
             // Listener for sign-in completion
@@ -248,6 +258,11 @@ permalink: /add_license/
                         break;
                     case 'one_year':
                         expiryTimestamp = now.add(1, 'year').unix();
+                        tier = 'SAR';
+                        break;
+                    case 'custom':
+                        const customDays = parseInt($('#customDaysInput').val(), 10);
+                        expiryTimestamp = now.add(customDays, 'days').unix();
                         tier = 'SAR';
                         break;
                     case 'live':
