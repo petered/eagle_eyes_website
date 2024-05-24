@@ -1,0 +1,170 @@
+<style>
+    .faq-container {
+        width: 80%;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .faq-item {
+        border-bottom: 1px solid #ccc;
+        padding: 10px 0;
+    }
+
+    .faq-question {
+        display: flex;
+        align-items: center;
+        font-size: 1.2em;
+        cursor: pointer;
+    }
+
+    .faq-question .toggle-sign {
+        font-size: 1.5em;
+        margin-right: 15px;
+        user-select: none;
+    }
+
+    .faq-answer {
+        display: none;
+        padding: 10px 0;
+        font-size: 1.1em;
+    }
+
+    .faq-media {
+        display: flex;
+    }
+
+    .faq-media-inner {
+        width: 100%;
+        max-width: 512px; /* Prevents the video from being wider than 576 pixels */
+        position: relative;
+        padding-top: 56.25%; /* 16:9 aspect ratio */
+        overflow: hidden;
+    }
+
+    .faq-media-inner iframe {
+        border:none; 
+        width:100%; 
+        max-width: 512px; /* Prevents the video from being wider than 576 pixels */
+        height:100%; 
+        max-height: 288px; /* Prevents the video from being taller than 324 pixels */
+        position:absolute; 
+        left:0px; 
+        top:0px; 
+    }
+
+</style>
+
+<div class="faq-container centered-feature">
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">What are the pricing options?</span>
+        </div>
+        <div class="faq-answer">
+            {% include pricing_table_new.html clickable=false %}
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">Where can I find a manual or video walkthrough?</span>
+        </div>
+        <div class="faq-answer">
+            <br/>
+            <h4>5 minute intro to Eagle Eyes Scan</h4>
+            <div class="faq-media">
+                <div class="faq-media-inner">
+                    <iframe allow="fullscreen" allowfullscreen height="324" src="https://streamable.com/e/v5nhsl?loop=0" width="576" style="border:none;"></iframe>
+                </div>
+            </div>
+            <h4>Livestreaming with HDMI</h4>
+            <div class="faq-media">
+                <div class="faq-media-inner">
+                    <div><iframe allow="fullscreen" allowfullscreen height="100%" src="https://streamable.com/e/gl1d09?loop=0" width="100%"></iframe></div>
+                </div>
+            </div>
+            <h4>Eagle Eyes Scan Manual</h4>
+            <div>
+                    <p>The user manual can be viewed <a href="https://docs.google.com/document/d/12mhRVmhtQUfvJHy7tI7mB_oLd3aRqYJJPWzKlhKnTwY/edit?usp=sharing">here</a>.</p>
+            </div>
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">Does Eagle Eyes Scan run on Mac?</span>
+        </div>
+        <div class="faq-answer">
+            Eagle Eyes Scan runs on both Windows and MacOS/OSX. For Apple devices, we strongly recommend installing on a device with ARM64 architecture (M1, M2, M3, or M4 chipsets). We do offer a distribution for Intel-based (x86) Apple computers, but performance may vary.
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">Does the software work offline?</span>
+        </div>
+        <div class="faq-answer">
+            Yes. The application works completely offline. The only thing you need the internet for is to get a license key to unlock the software on your device once.
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">Can I share my license with others?
+            </span>
+        </div>
+        <div class="faq-answer">
+            We currently only offer machine-locked licenses, meaning that a license is specific to the device you run the software on. You are free to share your device with other users within your organization. In order to accommodate multiple devices, we offer team licences that contain multiple keys. A key unlocks the license on a single device. Once issued, keys cannot be revoked or transferred to another device.
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">Do my recordings remain on my computer?
+            </span>
+        </div>
+        <div class="faq-answer">
+            Yes - we take data-privacy seriously, and Eagle Eyes Scan will never upload your recordings to the internet. 
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">
+            <span class="toggle-sign">+</span>
+            <span class="question-text">Is thermal footage supported?
+            </span>
+        </div>
+        <div class="faq-answer">
+            Currently, the detector does not run on Thermal. It is something we are working on adding. However, you can still look at and annotate thermal imagery with Eagle Eyes. When you load a video, you can load the thermal recording alongside it. Eagle Eyes will take care of aligning the two in time. For images - Eagle Eyes looks for common patterns (like DJI_0123_W.JPG, DJI_0123_T.JPG) and tries to match them up by name. You can press “T” to switch between visual and thermal. 
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.faq-question').forEach(question => {
+        question.addEventListener('click', function() {
+            const toggleSign = this.querySelector('.toggle-sign');
+            const answer = this.nextElementSibling;
+
+            if (toggleSign.textContent === '+') {
+                // Close all open answers
+                document.querySelectorAll('.faq-answer').forEach(answer => {
+                    answer.style.display = 'none';
+                });
+                document.querySelectorAll('.faq-question .toggle-sign').forEach(toggleSign => {
+                    toggleSign.textContent = '+';
+                });
+
+                // Open the clicked answer
+                answer.style.display = 'block';
+                toggleSign.textContent = '−';
+            } else {
+                // Close the clicked answer
+                answer.style.display = 'none';
+                toggleSign.textContent = '+';
+            }
+        });
+    });
+});
+</script>
