@@ -33,21 +33,12 @@ To do:
         <h1 style="text-align: center;">Register for an Eagle Eyes Scan SAR license</h1>
         <p>Purchasing an Eagle Eyes Scan SAR license requires registration. Please complete this form to register your organisation. We will process new request within 3 business days. Upon approval, you will be able to purchase a license using the email address above.</p>
         {% include form.html form_type='register' %}
-        <div id="additional-box-1" class="checkbox-container">
-            <input type="checkbox" id="distribution_policy" name="distribution_policy" required>
-            <label for="distribution_policy"><span class="checkbox-label required">I confirm that any licenses I may purchase in the future will be for internal use only and shall not be transferred, sold, or distributed outside of my organization.</span></label>
-        </div>
-        <div id="additional-box-2" class="checkbox-container">
-            <input type="checkbox" id="SAR_only" name="SAR_only" required>
-            <label for="SAR_only"><span class="checkbox-label required">I confirm that this software will be used for search and rescue purposes only.</span></label>
-        </div>
-        <div class="checkbox-container">
-            <input type="checkbox" id="receive_communication" name="receive_communication" required>
-            <label for="receive_communication"><span class="checkbox-label required">I agree to receive communications specific to my registration request and related product information.</span></label>
-        </div>
         <br/>
         <div id="submit-container">
             <button id="submitButton" onclick="submitForm()" type="submit">Submit</button>
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <div id="required-fields-alert" style="max-width: 550px; text-align: center; font-size: 70%; font-style: italic; color: red" hidden>Please complete all required fields</div>
         </div>
     </section>
     <br/>
@@ -82,7 +73,7 @@ To do:
         hostURL = getHostUrl();
         var fetch_url = hostURL + '/has_user_already_filled_in_form';
         console.log("Checking URL: " + fetch_url);
-        $("#hang-on-message").text("Hang on a moment while we while we get everything ready for you...").show();
+        $("#hang-on-message").text("Hang on a moment while we get everything ready for you...").show();
         globalUser.getIdToken(true).then(function (idToken) {
             $.ajax({
                 url: fetch_url,
@@ -98,7 +89,7 @@ To do:
                     console.log(data);
                     formOrNull = data.form;
                     if (formOrNull === null) {
-                        console.log('user did not fill in form yet');
+                        console.log('User did not fill in form yet.');
                         $("#form-container").show();
                         $("#download-button-div").show();
                     } else {

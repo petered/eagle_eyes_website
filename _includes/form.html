@@ -1,53 +1,45 @@
 <!-- Don't forget to include form_styling in document head -->
 
     <section id="form">
-
-        <form id="register-form" onsubmit="event.preventDefault(); submitForm(); return false;">
-            <label for="name"><b>Name:</b> Your full name</label>
+        <p style="text-align: center;"><i>* required information</i></p>
+        <form id="fields" onsubmit="submitForm()">
+            <label for="name" class="required"><b>Name:</b> Your full name</label>
             <input type="text" id="name" name="name" placeholder="Firstname Lastname" required>
 
-            <label for="team"><b>Organization Name:</b> Your team/company/agency, or enter "Individual" if you are not part of an organization</label>
+            <label for="team" class="required"><b>Organization Name:</b> Your team/company/agency, or enter "Individual" if you are not part of an organization</label>
             <input type="text" id="team" name="team" placeholder="Enter your organization's name" required>
 
-            <label for="website"><b>Organization Website:</b></label>
+            <label for="website" class="required"><b>Organization Website:</b></label>
             <input type="text" id="website" name="website" placeholder="http://www.example.com" required>
 
-            <label for="location"><b>Location:</b> City, State/Province, Country</label>
+            <label for="location" class="required"><b>Location:</b> City, State/Province, Country</label>
             <input type="text" id="location" name="location" placeholder="Example Springs, Examplebama, USA" required>
 
-            <label for="use-case"><b>What are you interested in using Eagle Eyes for?</b></label>
+            <label for="use-case" class="required"><b>What are you interested in using Eagle Eyes for?</b></label>
             <textarea id="use-case" name="use_case" placeholder="To locate ... so I can ..." rows="4" required></textarea>
 
-            <label for="questions"><b>Questions or remarks:</b></label>
+            <label for="questions"><b>Questions or remarks:</b> (optional)</label>
             <textarea id="questions" name="questions" placeholder="" rows="4"></textarea>
 
-            <label for="checkboxes"> <b>Terms: </b>Please acknowledge the following:</label>
+            <div id="terms-of-use" class="info-box">
+    
+                <p style="text-align: center;"><b>Terms of Use</b></p>
+                <ul style="font-size: 80%;">
+                    <li>The Eagle Eyes system does not replace human oversight. It may miss details that a human operator could catch. Operators should always review the raw footage personally.</li>
+                    <li>Any licenses purchased in the future will be for internal use only and shall not be transferred, sold, or distributed to other organizations.</li>
+                    <li>This software is intended to be used for search and rescue purposes only.</li>
+                </ul>
+            </div>
+    
             <div class="checkboxes">
                 <div class="checkbox-container">
-                    <input type="checkbox" id="understand_limitations" name="understand_limitations" required>
-                    <label for="understand_limitations"><span class="checkbox-label required">I understand that the Eagle Eyes system assists but doesn't replace human oversight. It may miss details a human would catch. Operators should always review the raw footage personally.</span></label>
-                </div>                
-                <div class="checkbox-container">
-                    <input type="checkbox" id="information_correct" name="information_correct" required>
-                    <label for="information_correct"><span class="checkbox-label required">I confirm that all information provided is accurate and true.</span></label>
+                    <input type="checkbox" id="agree_terms" name="agree_terms" required>
+                    <label for="agree_terms"><span class="checkbox-label required">I have read and agree to the Eagle Eyes Scan Terms of Use above.</span></label>
                 </div>
                 <div class="checkbox-container">
                     <input type="checkbox" id="receive_newsletter" name="receive_newsletter">
                     <label for="receive_newsletter"><span class="checkbox-label">I want to receive updates about Eagle Eyes Search.</span></label>
                 </div>
-                <!-- Additional checkboxes that are only shown and mandatory in register form -->
-                <!-- <div class="checkbox-container">
-                    <input type="checkbox" id="receive_communication" name="receive_communication" required>
-                    <label for="receive_communication"><span class="checkbox-label required">I agree to receive communications specific to my registration request and related product information.</span></label>
-                </div>
-                <div id="additional-box-1" class="checkbox-container">
-                    <input type="checkbox" id="distribution_policy" name="distribution_policy" required>
-                    <label for="distribution_policy"><span class="checkbox-label required">I confirm that any licenses I may purchase in the future will be for internal use only and shall not be transferred, sold, or distributed outside of my organization.</span></label>
-                </div>
-                <div id="additional-box-2" class="checkbox-container">
-                    <input type="checkbox" id="SAR_only" name="SAR_only" required>
-                    <label for="SAR_only"><span class="checkbox-label required">I confirm that this software will be used for search and rescue purposes only.</span></label>
-                </div> -->
             </div>
         </form>
     </section>
@@ -97,40 +89,30 @@
             window.scrollTo(0, document.body.scrollHeight);
         }
 
-        function validateCheckboxes() {
-            var checkboxIds = null;
-            // List of all checkbox IDs
-            if (formType == 'register') {
-                checkboxIds = [
-                    "information_correct",
-                    "receive_communication",
-                    "understand_limitations",
-                    "distribution_policy",
-                    "SAR_only",
-                ];
-            } else if (formType == 'signup') {
-                checkboxIds = [
-                    "information_correct",
-                    "understand_limitations",
-                ];
-            } else {
-                console.log("Unknown form type: " + formType);
-            }
+        // function validateCheckboxes() {
+        //     var checkboxIds = null;
+        //     // List of all checkbox IDs
+        //     checkboxIds = ["agree_terms"];
+        //     // Check if all checkboxes are checked
+        //     for (var i = 0; i < checkboxIds.length; i++) {
+        //         if (!document.getElementById(checkboxIds[i]).checked) {
+        //             alert("Please check all required boxes before submitting.");
+        //             return false; // Prevent form submission
+        //         }
+        //     }
 
-            // Check if all checkboxes are checked
-            for (var i = 0; i < checkboxIds.length; i++) {
-                if (!document.getElementById(checkboxIds[i]).checked) {
-                    alert("Please check all the boxes before submitting.");
-                    return false; // Prevent form submission
-                }
-            }
-
-            return true; // All checkboxes are checked, allow form submission
-        }
+        //     return true; // All checkboxes are checked, allow form submission
+        // }
 
 
         function submitForm() {
             console.log('form type is: ' + formType);
+
+            if (!validateForm()) {
+                console.log("Form validation failed");
+                $("#required-fields-alert").show();
+                return false; // Prevent form submission if validation fails
+            }
 
             if (formType == 'register') {
                 console.log('launching processRegisterForm');
@@ -141,15 +123,40 @@
             } else {
                 console.log("Unknown form type: " + formType);
             }
+
+            return true; // Allow form submission if validation passes
+
         }
 
+        function validateForm() {
+            var isValid = true;
+            var requiredFields = document.querySelectorAll('#fields [required]');
+
+            requiredFields.forEach(function(field) {
+                if ((field.type === 'checkbox' || field.type === 'radio') && !field.checked) {
+                    isValid = false;
+                    field.nextElementSibling.style.color = 'red'; // Highlight invalid checkboxes
+                } else if ((field.type !== 'checkbox' && field.type !== 'radio') && !field.value.trim()) {
+                    isValid = false;
+                    field.style.borderColor = 'red'; // Highlight invalid text inputs
+                } else {
+                    if (field.type === 'checkbox' || field.type === 'radio') {
+                        field.nextElementSibling.style.color = ''; // Reset checkbox highlight
+                    } else {
+                        field.style.borderColor = ''; // Reset text input highlight
+                    }
+                }
+            });
+
+            return isValid;
+        }
 
         function processRegisterForm() {
             // exit function when form not validated
-            if (!validateCheckboxes()) { 
-                console.log("Something wrong with the checkboxes");
-                return;  
-            }
+            // if (!validateCheckboxes()) { 
+            //     console.log("Something wrong with the checkboxes");
+            //     return;  
+            // }
 
             // Add "processing" class to the submit button
             $("#submitButton").addClass('processing');
@@ -239,9 +246,9 @@
             console.log("Form has been shown?: " + hasFormBeenShown);
             var formData = null;
             if (hasFormBeenShown) {
-                if (!validateCheckboxes()) {
-                    return; // Stop the function if validation fails
-                }
+                // if (!validateCheckboxes()) {
+                //     return; // Stop the function if validation fails
+                // }
                 // Add "processing" class to the submit button
                 $("#submitButton").addClass('processing');
                 var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
