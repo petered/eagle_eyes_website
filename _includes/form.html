@@ -2,7 +2,7 @@
 
     <section id="form">
         <p style="text-align: center;"><i>* required information</i></p>
-        <form id="fields" onsubmit="submitForm()">
+        <form id="fields" onsubmit="return submitForm(event)">
             <label for="name" class="required"><b>Name:</b> Your full name</label>
             <input type="text" id="name" name="name" placeholder="Firstname Lastname" required>
 
@@ -105,12 +105,13 @@
         // }
 
 
-        function submitForm() {
+        function submitForm(event) {
             console.log('form type is: ' + formType);
 
             if (!validateForm()) {
                 console.log("Form validation failed");
-                $("#required-fields-alert").show();
+                $("#status").html("Please complete all required fields").show();
+                event.preventDefault();
                 return false; // Prevent form submission if validation fails
             }
 
@@ -152,40 +153,33 @@
         }
 
         function processRegisterForm() {
-            // exit function when form not validated
-            // if (!validateCheckboxes()) { 
-            //     console.log("Something wrong with the checkboxes");
-            //     return;  
-            // }
-
             // Add "processing" class to the submit button
             $("#submitButton").addClass('processing');
 
             // Pack the form data into an object
             var formData = {};
             var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-            for (var i = 0; i < formInputs.length; i++) {
-                var input = formInputs[i];
-
+            formInputs.forEach(function(input) {
                 if (input.type === 'checkbox') {
-                    // Set 'yes' if the checkbox is checked, 'no' if it's not
                     formData[input.name] = input.checked ? 'yes' : 'no';
                 } else if (input.type === 'radio') {
-                    // Only set the value if the radio button is checked
                     if (input.checked) {
                         formData[input.name] = input.value;
                     }
                 } else {
-                    // Handle all other input types
                     formData[input.name] = input.value;
                 }
+            });
+
+            // Remove empty keys or invalid entries
+            for (var key in formData) {
+                if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
+                    delete formData[key];
+                }
             }
+
             console.log(formData);
 
-            sendForm(formData);
-        }
-        
-        function sendForm(formData) {
             var fetch_url = hostURL + '/submit_register_form';
 
             console.log("Fetch URL: " + fetch_url);
@@ -244,32 +238,38 @@
             // Pack the form data into an object
             hasFormBeenShown = $("#form").is(":visible");
             console.log("Form has been shown?: " + hasFormBeenShown);
-            var formData = null;
+            var formData = {};
             if (hasFormBeenShown) {
-                // if (!validateCheckboxes()) {
-                //     return; // Stop the function if validation fails
-                // }
                 // Add "processing" class to the submit button
                 $("#submitButton").addClass('processing');
-                var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-                formData = {};
-                for (var i = 0; i < formInputs.length; i++) {
-                    var input = formInputs[i];
-                    if (input.type === 'checkbox' || input.type === 'radio') {
-                        formData[input.name] = input.checked;
+                var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+                formInputs.forEach(function(input) {
+                    if (input.type === 'checkbox') {
+                        formData[input.name] = input.checked ? 'yes' : 'no';
+                    } else if (input.type === 'radio') {
+                        if (input.checked) {
+                            formData[input.name] = input.value;
+                        }
                     } else {
                         formData[input.name] = input.value;
                     }
-                }
+                });
             } 
 
-            downloadStatusSpan=$("#downloadStatus");
+            // Remove empty keys or invalid entries
+            for (var key in formData) {
+                if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
+                    delete formData[key];
+                }
+            }
+
+            statusSpan=$("#status");
             statusText = "Hang on a moment, download should start automatically...";
             console.log("Back up link: " + backUpLinkOrNull);
             if (backUpLinkOrNull !== null) {
                 statusText += "If it doesn't, you can click <a href='" + backUpLinkOrNull + "'>here</a> to download it manually.";
             }
-            downloadStatusSpan.html(statusText);
+            statusSpan.html(statusText);
 
             console.log("Checking URL: " + fetch_url);
             console.log("Fetch URL: " + fetch_url);
