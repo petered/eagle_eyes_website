@@ -2,24 +2,28 @@
 
     <section id="form">
         <p style="text-align: center;"><i>* required information</i></p>
-        <form id="fields" onsubmit="return submitForm(event)">
+        <form id="fields">
             <label for="name" class="required"><b>Name:</b> Your full name</label>
-            <input type="text" id="name" name="name" placeholder="Firstname Lastname" required>
+            <input type="text" id="name" name="name" placeholder="Firstname Lastname" style="margin-bottom: 15px; margin-top: 0px;" required>
 
             <label for="team" class="required"><b>Organization Name:</b> Your team/company/agency, or enter "Individual" if you are not part of an organization</label>
-            <input type="text" id="team" name="team" placeholder="Enter your organization's name" required>
+            <input type="text" id="team" name="team" placeholder="Enter your organization's name" style="margin-bottom: 15px; margin-top: 0px;" required>
 
             <label for="website" class="required"><b>Organization Website:</b></label>
-            <input type="text" id="website" name="website" placeholder="http://www.example.com" required>
+            <input type="text" id="website" name="website" placeholder="http://www.example.com" style="margin-bottom: 15px; margin-top: 0px;" required>
 
             <label for="location" class="required"><b>Location:</b> City, State/Province, Country</label>
-            <input type="text" id="location" name="location" placeholder="Example Springs, Examplebama, USA" required>
+            <input type="text" id="location" name="location" placeholder="Example Springs, Examplebama, USA" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-            <label for="use-case" class="required"><b>What are you interested in using Eagle Eyes for?</b></label>
+            <label for="use-case" class="required">What are you interested in using Eagle Eyes for?</label>
             <textarea id="use-case" name="use_case" placeholder="To locate ... so I can ..." rows="4" required></textarea>
 
+            {% if include.form_type == 'trial' %}
+                {% include trial-questions.html %}
+            {% endif %}
+
             <label for="questions"><b>Questions or remarks:</b> (optional)</label>
-            <textarea id="questions" name="questions" placeholder="" rows="4"></textarea>
+            <textarea id="questions" name="questions" placeholder="" rows="4" style="margin-bottom: 15px; margin-top: 0px;"></textarea>
 
             <div id="terms-of-use" class="info-box">
     
@@ -89,33 +93,37 @@
             window.scrollTo(0, document.body.scrollHeight);
         }
 
-        // function validateCheckboxes() {
-        //     var checkboxIds = null;
-        //     // List of all checkbox IDs
-        //     checkboxIds = ["agree_terms"];
-        //     // Check if all checkboxes are checked
-        //     for (var i = 0; i < checkboxIds.length; i++) {
-        //         if (!document.getElementById(checkboxIds[i]).checked) {
-        //             alert("Please check all required boxes before submitting.");
-        //             return false; // Prevent form submission
-        //         }
-        //     }
+        function populateForm(formData) {
+            // Get all form inputs
+            var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
+            
+            // Iterate through each input in the form
+            for (var i = 0; i < formInputs.length; i++) {
+                var input = formInputs[i];
 
-        //     return true; // All checkboxes are checked, allow form submission
-        // }
+                // Check if the input's name exists in the formData
+                if (formData.hasOwnProperty(input.name)) {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        // Set the checked property based on formData
+                        input.checked = formData[input.name];
+                    } else {
+                        // Set the value property based on formData
+                        input.value = formData[input.name];
+                    }
+                }
+            }
+        }
 
-
-        function submitForm(event) {
+        function submitForm() {
             console.log('form type is: ' + formType);
 
             if (!validateForm()) {
                 console.log("Form validation failed");
                 $("#status").html("Please complete all required fields").show();
-                event.preventDefault();
                 return false; // Prevent form submission if validation fails
             }
 
-            if (formType == 'register') {
+            if (formType == 'register' || formType == 'trial') {
                 console.log('launching processRegisterForm');
                 processRegisterForm();
             } else if (formType == 'signup') {
@@ -170,6 +178,13 @@
                     formData[input.name] = input.value;
                 }
             });
+
+            if (formType == 'trial') {
+                // Add the trial type to the form data
+                formData['trial_request'] = true;
+            } else {
+                formData['trial_request'] = false;
+            }
 
             // Remove empty keys or invalid entries
             for (var key in formData) {
