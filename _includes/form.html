@@ -140,20 +140,46 @@
         function validateForm() {
             var isValid = true;
             var requiredFields = document.querySelectorAll('#fields [required]');
+            var radioGroups = {};
 
             requiredFields.forEach(function(field) {
-                if ((field.type === 'checkbox' || field.type === 'radio') && !field.checked) {
-                    isValid = false;
-                    field.nextElementSibling.style.color = 'red'; // Highlight invalid checkboxes
-                } else if ((field.type !== 'checkbox' && field.type !== 'radio') && !field.value.trim()) {
-                    isValid = false;
-                    field.style.borderColor = 'red'; // Highlight invalid text inputs
-                } else {
-                    if (field.type === 'checkbox' || field.type === 'radio') {
-                        field.nextElementSibling.style.color = ''; // Reset checkbox highlight
-                    } else {
-                        field.style.borderColor = ''; // Reset text input highlight
+                // Only process fields that have the 'required' attribute
+                if (field.hasAttribute('required')) {
+                    if (field.type === 'radio') {
+                        if (!radioGroups[field.name]) {
+                            radioGroups[field.name] = [];
+                        }
+                        radioGroups[field.name].push(field);
+                    } else if (field.type === 'checkbox' && !field.checked) {
+                        isValid = false;
+                        field.nextElementSibling.style.color = 'red'; // Highlight invalid checkboxes
+                    } else if (field.type !== 'checkbox' && field.type !== 'radio') {
+                        if (!field.value.trim()) {
+                            isValid = false;
+                            field.style.borderColor = 'red'; // Highlight invalid text inputs
+                        } else {
+                            field.style.borderColor = ''; // Reset text input highlight
+                        }
                     }
+                }
+            });
+
+            // Validate radio button groups
+            Object.keys(radioGroups).forEach(function(groupName) {
+                var group = radioGroups[groupName];
+                var groupIsValid = group.some(function(radio) {
+                    return radio.checked;
+                });
+
+                if (!groupIsValid) {
+                    isValid = false;
+                    group.forEach(function(radio) {
+                        radio.nextElementSibling.style.color = 'red'; // Highlight invalid radio group
+                    });
+                } else {
+                    group.forEach(function(radio) {
+                        radio.nextElementSibling.style.color = ''; // Reset radio group highlight
+                    });
                 }
             });
 
@@ -179,18 +205,21 @@
                 }
             });
 
-            if (formType == 'trial') {
-                // Add the trial type to the form data
-                formData['trial_request'] = true;
-            } else {
-                formData['trial_request'] = false;
-            }
+            console.log(formData);
+
 
             // Remove empty keys or invalid entries
             for (var key in formData) {
                 if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
                     delete formData[key];
                 }
+            }
+
+            if (formType == 'trial') {
+                // Add the trial type to the form data
+                formData['trial_request'] = true;
+            } else {
+                formData['trial_request'] = false;
             }
 
             console.log(formData);
