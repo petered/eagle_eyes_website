@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Comparing computer vision tools for Search and Rescue"
+title: "Computer vision tools for drones in search and rescue"
 image: "/images/blog/drones-in-them-hills.jpg"
 date:   2023-03-15 16:46:00 -0800
 author: Peter O'Connor
@@ -47,9 +47,7 @@ there in the first place.
 Enter computer vision.  In the last few years, a number of tools have been developed to scan drone 
 images and videos for objects of interest during a search and rescue operation.  
 
-In this article - we will give a brief introduction and comparison of the tools that appear on the market at 
-time of writing (March 14, 2023): **Loc8**, **Searchlight**, **SARUAV**, and of course - **Eagle Eyes**.  These are just the
-commercial tools available now - there are a whole slew of experimental prototypes from the academic literature, 
+In this article - we will give a brief introduction and comparison of currently available tools for drones in search and rescue to help locate missing persons: **Loc8**, **Searchlight**, **SARUAV**, and of course - **Eagle Eyes**.  These are just the commercial tools available now - there are a whole slew of experimental prototypes from the academic literature, 
 and those might just be the subject for another article one day.
 
 _Before we start, a disclaimer:  As the author of one of these tools (Eagle Eyes), I cannot claim to be unbiased.
