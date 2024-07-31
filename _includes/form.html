@@ -3,10 +3,6 @@
     <section id="form">
         <p style="text-align: center;"><i>* required information</i></p>
         <form id="fields">
-            <!-- {% if include.form_type == 'trial' %}
-                <label for="email" class="required"><b>Email:</b></label>
-                <input type="email" id="email" name="email" placeholder="Your email address" style="margin-bottom: 15px; margin-top: 0px;" required>
-            {% endif %} -->
             <label for="name" class="required"><b>Name:</b> Your full name</label>
             <input type="text" id="name" name="name" placeholder="Firstname Lastname" style="margin-bottom: 15px; margin-top: 0px;" required>
 
@@ -55,7 +51,6 @@
     <script>
             // This line enables Jekyll to pass the clickable parameter when including this file
         const formType = '{{ include.form_type }}';
-        var formData = {};
         
         var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
         var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
@@ -100,7 +95,7 @@
 
         function populateForm(formData) {
             // Get all form inputs
-            var formInputs = document.querySelectorAll('input[type=text], input[type=email], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
+            var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
             
             // Iterate through each input in the form
             for (var i = 0; i < formInputs.length; i++) {
@@ -118,33 +113,28 @@
                 }
             }
         }
-        
-        function clickButton() {
-            console.log('form type is: ' + formType);
-            hasFormBeenShown = $("#form").is(":visible");
-            console.log("Form has been shown?: " + hasFormBeenShown);
 
-            if (formType == 'signup' && !hasFormBeenShown) {
-                requestDownload();
-            } else {
-                if (!validateForm()) {
-                    console.log("Form validation failed");
-                    $("#status").html("Please complete all required fields").show();
-                    return false; // Prevent form submission if validation fails
-                }
-                if (formType == 'register' || formType == 'trial') {
-                    console.log('launching processRegisterForm');
-                    processRegisterForm();
-                } else if (formType == 'signup' && hasFormBeenShown) {
-                    if (hasFormBeenShown) {
-                        console.log('launching processSignupForm');
-                        processSignupForm();
-                    }
-                    requestDownload();
-                } else {
-                    console.log("Unknown form type: " + formType);
-                }
+        function submitForm() {
+            console.log('form type is: ' + formType);
+
+            if (!validateForm()) {
+                console.log("Form validation failed");
+                $("#status").html("Please complete all required fields").show();
+                return false; // Prevent form submission if validation fails
             }
+
+            if (formType == 'register' || formType == 'trial') {
+                console.log('launching processRegisterForm');
+                processRegisterForm();
+            } else if (formType == 'signup') {
+                console.log('launching processSignupForm');
+                processSignupForm();
+            } else {
+                console.log("Unknown form type: " + formType);
+            }
+
+            return true; // Allow form submission if validation passes
+
         }
 
         function validateForm() {
@@ -201,6 +191,7 @@
             $("#submitButton").addClass('processing');
 
             // Pack the form data into an object
+            var formData = {};
             var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
             formInputs.forEach(function(input) {
                 if (input.type === 'checkbox') {
@@ -277,28 +268,105 @@
                 $('#using-emulator-info').show();
             }
         });
-        
+
         function processSignupForm() {
-            // Add "processing" class to the submit button
-            $("#submitButton").addClass('processing');
-            var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-            formInputs.forEach(function(input) {
-                if (input.type === 'checkbox') {
-                    formData[input.name] = input.checked ? 'yes' : 'no';
-                } else if (input.type === 'radio') {
-                    if (input.checked) {
+
+            // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
+            // filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
+
+            var hostUrl = getHostUrl();
+            var selectElement = document.getElementById('software_version');
+            var filePath = "scan_releases/" + selectElement.value;
+            var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
+
+            // Pack the form data into an object
+            hasFormBeenShown = $("#form").is(":visible");
+            console.log("Form has been shown?: " + hasFormBeenShown);
+            var formData = {};
+            if (hasFormBeenShown) {
+                // Add "processing" class to the submit button
+                $("#submitButton").addClass('processing');
+                var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+                formInputs.forEach(function(input) {
+                    if (input.type === 'checkbox') {
+                        formData[input.name] = input.checked ? 'yes' : 'no';
+                    } else if (input.type === 'radio') {
+                        if (input.checked) {
+                            formData[input.name] = input.value;
+                        }
+                    } else {
                         formData[input.name] = input.value;
                     }
-                } else {
-                    formData[input.name] = input.value;
-                }
-            });
+                });
+            } 
+
             // Remove empty keys or invalid entries
             for (var key in formData) {
                 if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
                     delete formData[key];
                 }
             }
+
+            statusSpan=$("#status");
+            statusText = "Hang on a moment, download should start automatically...";
+            console.log("Back up link: " + backUpLinkOrNull);
+            if (backUpLinkOrNull !== null) {
+                statusText += "If it doesn't, you can click <a href='" + backUpLinkOrNull + "'>here</a> to download it manually.";
+            }
+            statusSpan.html(statusText);
+
+            console.log("Checking URL: " + fetch_url);
+            console.log("Fetch URL: " + fetch_url);
+            globalUser.getIdToken(true).then(function (idToken) {
+
+                $.ajax({
+                    url: fetch_url,
+                    data: JSON.stringify(formData),
+                    type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
+                    contentType: 'application/json', // This sets the Content-Type header to application/json
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: function (data) {
+                        data = JSON.parse(data);
+                        console.log("Success: " + data);
+                        var downloadLink = data.url;
+                        console.log("Download link: " + downloadLink);
+
+                        // Remove "processing" class to the submit button
+                        $("#submitButton").removeClass('processing');
+                        // Show user message with link and ask them if they want to download
+                        // If yes, then redirect to the link
+                        // If no, then do nothing
+
+                        // Hide the download button/div after submitting form
+                        $("#download-button-div").hide();
+
+
+                        window.location.href = downloadLink;
+                        $("#signin").hide();
+                        $("#form-container").hide();
+                        $("#post-form").show();
+                        $("#download-link").attr("href", downloadLink);
+                        
+                        // Fathom download-event tracking
+                        fathom.trackEvent('download_scan', {
+                            _value: 0,
+                            download: filePath
+                        });
+                        
+                        // Hotjar download-event tracking
+                        // hj('event', 'download_' + filePath.replace(/[^a-zA-Z0-9]/g, '_'));
+                        hj('event', 'download_scan');
+                    },
+                    error: function() {
+                        // Remove "processing" class to the submit button
+                        $("#submitButton").removeClass('processing');
+                        requestErrorHandler();
+                    }
+                });
+            });
+
         }
 
 
