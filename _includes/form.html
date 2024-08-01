@@ -1,126 +1,148 @@
 <!-- Don't forget to include form_styling in document head -->
 
-    <section id="form">
-        <p style="text-align: center;"><i>* required information</i></p>
-        <form id="fields">
-            <label for="name" class="required"><b>Name:</b> Your full name</label>
-            <input type="text" id="name" name="name" placeholder="Firstname Lastname" style="margin-bottom: 15px; margin-top: 0px;" required>
+<section id="form">
+    <p style="text-align: center;"><i>* required information</i></p>
+    <form id="fields">
+        <!-- {% if include.form_type == 'trial' %}
+            <label for="email" class="required"><b>Email:</b></label>
+            <input type="email" id="email" name="email" placeholder="Your email address" style="margin-bottom: 15px; margin-top: 0px;" required>
+        {% endif %} -->
+        <label for="name" class="required"><b>Name:</b> Your full name</label>
+        <input type="text" id="name" name="name" placeholder="Firstname Lastname" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-            <label for="team" class="required"><b>Organization Name:</b> Your team/company/agency, or enter "Individual" if you are not part of an organization</label>
-            <input type="text" id="team" name="team" placeholder="Enter your organization's name" style="margin-bottom: 15px; margin-top: 0px;" required>
+        <label for="team" class="required"><b>Organization Name:</b> Your team/company/agency, or enter "Individual" if you are not part of an organization</label>
+        <input type="text" id="team" name="team" placeholder="Enter your organization's name" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-            <label for="website" class="required"><b>Organization Website:</b></label>
-            <input type="text" id="website" name="website" placeholder="http://www.example.com" style="margin-bottom: 15px; margin-top: 0px;" required>
+        <label for="website" class="required"><b>Organization Website:</b></label>
+        <input type="text" id="website" name="website" placeholder="http://www.example.com" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-            <label for="location" class="required"><b>Location:</b> City, State/Province, Country</label>
-            <input type="text" id="location" name="location" placeholder="Example Springs, Examplebama, USA" style="margin-bottom: 15px; margin-top: 0px;" required>
+        <label for="location" class="required"><b>Location:</b> City, State/Province, Country</label>
+        <input type="text" id="location" name="location" placeholder="Example Springs, Examplebama, USA" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-            <label for="use-case" class="required">What are you interested in using Eagle Eyes for?</label>
-            <textarea id="use-case" name="use_case" placeholder="To locate ... so I can ..." rows="4" required></textarea>
+        <label for="use-case" class="required">What are you interested in using Eagle Eyes for?</label>
+        <textarea id="use-case" name="use_case" placeholder="To locate ... so I can ..." rows="4" required></textarea>
 
-            {% if include.form_type == 'trial' %}
-                {% include trial-questions.html %}
-            {% endif %}
+        {% if include.form_type == 'trial' %}
+            {% include trial-questions.html %}
+        {% endif %}
 
-            <label for="questions"><b>Questions or remarks:</b> (optional)</label>
-            <textarea id="questions" name="questions" placeholder="" rows="4" style="margin-bottom: 15px; margin-top: 0px;"></textarea>
+        <label for="questions"><b>Questions or remarks:</b> (optional)</label>
+        <textarea id="questions" name="questions" placeholder="" rows="4" style="margin-bottom: 15px; margin-top: 0px;"></textarea>
 
-            <div id="terms-of-use" class="info-box">
-    
-                <p style="text-align: center;"><b>Terms of Use</b></p>
-                <ul style="font-size: 80%; font-style: italic;">
-                    <li>The Eagle Eyes system does not replace human oversight. It may miss details that a human operator could catch. Operators should always review the raw footage personally.</li>
-                    <li>Any licenses purchased in the future will be for internal use only and shall not be transferred, sold, or distributed to other organizations.</li>
-                    <li>This software is intended to be used for search and rescue purposes only.</li>
-                </ul>
+        <div id="terms-of-use" class="info-box">
+
+            <p style="text-align: center;"><b>Terms of Use</b></p>
+            <ul style="font-size: 80%; font-style: italic;">
+                <li>The Eagle Eyes system does not replace human oversight. It may miss details that a human operator could catch. Operators should always review the raw footage personally.</li>
+                <li>Any licenses purchased in the future will be for internal use only and shall not be transferred, sold, or distributed to other organizations.</li>
+                <li>This software is intended to be used for search and rescue purposes only.</li>
+            </ul>
+        </div>
+
+        <div class="checkboxes">
+            <div class="checkbox-container">
+                <input type="checkbox" id="agree_terms" name="agree_terms" required>
+                <label for="agree_terms"><span class="checkbox-label required">I have read and agree to the Eagle Eyes Scan Terms of Use above.</span></label>
             </div>
-    
-            <div class="checkboxes">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="agree_terms" name="agree_terms" required>
-                    <label for="agree_terms"><span class="checkbox-label required">I have read and agree to the Eagle Eyes Scan Terms of Use above.</span></label>
-                </div>
-                <div class="checkbox-container">
-                    <input type="checkbox" id="receive_newsletter" name="receive_newsletter">
-                    <label for="receive_newsletter"><span class="checkbox-label">I want to receive updates about Eagle Eyes Search.</span></label>
-                </div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="receive_newsletter" name="receive_newsletter">
+                <label for="receive_newsletter"><span class="checkbox-label">I want to receive updates about Eagle Eyes Search.</span></label>
             </div>
-        </form>
-    </section>
+        </div>
+    </form>
+</section>
 
-    <script>
-            // This line enables Jekyll to pass the clickable parameter when including this file
-        const formType = '{{ include.form_type }}';
+<script>
+        // This line enables Jekyll to pass the clickable parameter when including this file
+    const formType = '{{ include.form_type }}';
+    var formData = {};
+    
+    var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+    
+
+
+    function getIsEmulatorFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        // return urlParams.get('is_emulator') === 'true';
+        // Case insensitive
+        return urlParams.get('is_emulator')?.toLowerCase() === 'true';
+    }
+
+    function requestErrorHandler(jqXHR, textStatus, errorThrown) {
+        $("#hang-on-message").hide();
+        console.log("Error: " + errorThrown);
+        console.log("Status: " + textStatus);
+        console.log("Response: " + jqXHR.responseText);
+        showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + jqXHR.responseText);
+    }
+
+    function showError(message) {
+        // Show an error message to the user
+        var errorBox = document.createElement('div');
+        errorBox.classList.add('error-box');
+        // Width 80% of the screen
+        errorBox.style.width = '80%';
+        // Center horizontally
+        errorBox.style.margin = '0 auto';
+
+        errorBox.textContent = message;
+        // Append to end of 'end-of-page' div
+        // document.getElementById('end-of-page').appendChild(errorBox);
+        document.body.appendChild(errorBox);
+
+        // Show the "try again" button (try-again-button) (just make it not hidden)
+        // $('#try-again-button').css('display', 'block');
+
+        // Scroll to the bottom of the page
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function populateForm(formData) {
+        // Get all form inputs
+        var formInputs = document.querySelectorAll('input[type=text], input[type=email], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
         
-        var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
-        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        
+        // Iterate through each input in the form
+        for (var i = 0; i < formInputs.length; i++) {
+            var input = formInputs[i];
 
-
-        function getIsEmulatorFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            // return urlParams.get('is_emulator') === 'true';
-            // Case insensitive
-            return urlParams.get('is_emulator')?.toLowerCase() === 'true';
-        }
-
-        function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-            $("#hang-on-message").hide();
-            console.log("Error: " + errorThrown);
-            console.log("Status: " + textStatus);
-            console.log("Response: " + jqXHR.responseText);
-            showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + jqXHR.responseText);
-        }
-
-        function showError(message) {
-            // Show an error message to the user
-            var errorBox = document.createElement('div');
-            errorBox.classList.add('error-box');
-            // Width 80% of the screen
-            errorBox.style.width = '80%';
-            // Center horizontally
-            errorBox.style.margin = '0 auto';
-
-            errorBox.textContent = message;
-            // Append to end of 'end-of-page' div
-            // document.getElementById('end-of-page').appendChild(errorBox);
-            document.body.appendChild(errorBox);
-
-            // Show the "try again" button (try-again-button) (just make it not hidden)
-            // $('#try-again-button').css('display', 'block');
-
-            // Scroll to the bottom of the page
-            window.scrollTo(0, document.body.scrollHeight);
-        }
-
-        function populateForm(formData) {
-            // Get all form inputs
-            var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-            
-            // Iterate through each input in the form
-            for (var i = 0; i < formInputs.length; i++) {
-                var input = formInputs[i];
-
-                // Check if the input's name exists in the formData
-                if (formData.hasOwnProperty(input.name)) {
-                    if (input.type === 'checkbox' || input.type === 'radio') {
-                        // Set the checked property based on formData
-                        input.checked = formData[input.name];
-                    } else {
-                        // Set the value property based on formData
-                        input.value = formData[input.name];
-                    }
+            // Check if the input's name exists in the formData
+            if (formData.hasOwnProperty(input.name)) {
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    // Set the checked property based on formData
+                    input.checked = formData[input.name];
+                } else {
+                    // Set the value property based on formData
+                    input.value = formData[input.name];
                 }
             }
         }
+    }
+    
+    function clickButton() {
+        console.log('form type is: ' + formType);
+        hasFormBeenShown = $("#form").is(":visible");
+        console.log("Form has been shown?: " + hasFormBeenShown);
 
-        function submitForm() {
-            console.log('form type is: ' + formType);
-
+        if (formType == 'signup' && !hasFormBeenShown) {
+            requestDownload();
+        } else {
             if (!validateForm()) {
                 console.log("Form validation failed");
                 $("#status").html("Please complete all required fields").show();
                 return false; // Prevent form submission if validation fails
+            }
+            if (formType == 'register' || formType == 'trial') {
+                console.log('launching processRegisterForm');
+                processRegisterForm();
+            } else if (formType == 'signup' && hasFormBeenShown) {
+                if (hasFormBeenShown) {
+                    console.log('launching processSignupForm');
+                    processSignupForm();
+                }
+                requestDownload();
+            } else {
+                console.log("Unknown form type: " + formType);
             }
 
             if (formType == 'register' || formType == 'trial') {
@@ -136,175 +158,82 @@
             return true; // Allow form submission if validation passes
 
         }
+    }
 
-        function validateForm() {
-            var isValid = true;
-            var requiredFields = document.querySelectorAll('#fields [required]');
-            var radioGroups = {};
+    function validateForm() {
+        var isValid = true;
+        var requiredFields = document.querySelectorAll('#fields [required]');
+        var radioGroups = {};
 
-            requiredFields.forEach(function(field) {
-                // Only process fields that have the 'required' attribute
-                if (field.hasAttribute('required')) {
-                    if (field.type === 'radio') {
-                        if (!radioGroups[field.name]) {
-                            radioGroups[field.name] = [];
-                        }
-                        radioGroups[field.name].push(field);
-                    } else if (field.type === 'checkbox' && !field.checked) {
-                        isValid = false;
-                        field.nextElementSibling.style.color = 'red'; // Highlight invalid checkboxes
-                    } else if (field.type !== 'checkbox' && field.type !== 'radio') {
-                        if (!field.value.trim()) {
-                            isValid = false;
-                            field.style.borderColor = 'red'; // Highlight invalid text inputs
-                        } else {
-                            field.style.borderColor = ''; // Reset text input highlight
-                        }
+        requiredFields.forEach(function(field) {
+            // Only process fields that have the 'required' attribute
+            if (field.hasAttribute('required')) {
+                if (field.type === 'radio') {
+                    if (!radioGroups[field.name]) {
+                        radioGroups[field.name] = [];
                     }
-                }
-            });
-
-            // Validate radio button groups
-            Object.keys(radioGroups).forEach(function(groupName) {
-                var group = radioGroups[groupName];
-                var groupIsValid = group.some(function(radio) {
-                    return radio.checked;
-                });
-
-                if (!groupIsValid) {
+                    radioGroups[field.name].push(field);
+                } else if (field.type === 'checkbox' && !field.checked) {
                     isValid = false;
-                    group.forEach(function(radio) {
-                        radio.nextElementSibling.style.color = 'red'; // Highlight invalid radio group
-                    });
-                } else {
-                    group.forEach(function(radio) {
-                        radio.nextElementSibling.style.color = ''; // Reset radio group highlight
-                    });
-                }
-            });
-
-            return isValid;
-        }
-
-        function processRegisterForm() {
-            // Add "processing" class to the submit button
-            $("#submitButton").addClass('processing');
-
-            // Pack the form data into an object
-            var formData = {};
-            var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-            formInputs.forEach(function(input) {
-                if (input.type === 'checkbox') {
-                    formData[input.name] = input.checked ? 'yes' : 'no';
-                } else if (input.type === 'radio') {
-                    if (input.checked) {
-                        formData[input.name] = input.value;
+                    field.nextElementSibling.style.color = 'red'; // Highlight invalid checkboxes
+                } else if (field.type !== 'checkbox' && field.type !== 'radio') {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.style.borderColor = 'red'; // Highlight invalid text inputs
+                    } else {
+                        field.style.borderColor = ''; // Reset text input highlight
                     }
-                } else {
-                    formData[input.name] = input.value;
                 }
-            });
-
-            console.log(formData);
-
-
-            // Remove empty keys or invalid entries
-            for (var key in formData) {
-                if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
-                    delete formData[key];
-                }
-            }
-
-            if (formType == 'trial') {
-                // Add the trial type to the form data
-                formData['trial_request'] = true;
-            } else {
-                formData['trial_request'] = false;
-            }
-
-            console.log(formData);
-
-            var fetch_url = hostURL + '/submit_register_form';
-
-            console.log("Fetch URL: " + fetch_url);
-
-            globalUser.getIdToken(true).then(function (idToken) {
-
-                $.ajax({
-                    url: fetch_url,
-                    data: JSON.stringify(formData),
-                    type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-                    contentType: 'application/json', // This sets the Content-Type header to application/json
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function (data) {
-                        console.log("Success" + data);
-
-                        // Remove "processing" class to the submit button
-                        $("#submitButton").removeClass('processing');
-
-                        // Show user message with link and ask them if they want to download
-                        // If yes, then redirect to the link
-                        // If no, then do nothing
-
-                        // Hide the download button/div after submitting form
-                        $("#form-container").hide();
-                        $("#signin").hide();
-                        $("#post-form").show();
-                    },
-                    error: function() {
-                        // Remove "processing" class to the submit button
-                        $("#submitButton").removeClass('processing');
-                        requestErrorHandler();
-                    }
-                });
-            });
-        }
-
-        // On load - check whether to show the emulator info box
-        $(document).ready(function () {
-            if (useLocalFirebaseEmulator) {
-                $('#using-emulator-info').show();
             }
         });
 
-        function processSignupForm() {
+        // Validate radio button groups
+        Object.keys(radioGroups).forEach(function(groupName) {
+            var group = radioGroups[groupName];
+            var groupIsValid = group.some(function(radio) {
+                return radio.checked;
+            });
 
-            // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
-            // filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
-
-            var hostUrl = getHostUrl();
-            var selectElement = document.getElementById('software_version');
-            var filePath = "scan_releases/" + selectElement.value;
-            var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
-
-            // Pack the form data into an object
-            hasFormBeenShown = $("#form").is(":visible");
-            console.log("Form has been shown?: " + hasFormBeenShown);
-            var formData = {};
-            if (hasFormBeenShown) {
-                // Add "processing" class to the submit button
-                $("#submitButton").addClass('processing');
-                var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-                formInputs.forEach(function(input) {
-                    if (input.type === 'checkbox') {
-                        formData[input.name] = input.checked ? 'yes' : 'no';
-                    } else if (input.type === 'radio') {
-                        if (input.checked) {
-                            formData[input.name] = input.value;
-                        }
-                    } else {
-                        formData[input.name] = input.value;
-                    }
+            if (!groupIsValid) {
+                isValid = false;
+                group.forEach(function(radio) {
+                    radio.nextElementSibling.style.color = 'red'; // Highlight invalid radio group
                 });
-            } 
+            } else {
+                group.forEach(function(radio) {
+                    radio.nextElementSibling.style.color = ''; // Reset radio group highlight
+                });
+            }
+        });
 
-            // Remove empty keys or invalid entries
-            for (var key in formData) {
-                if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
-                    delete formData[key];
+        return isValid;
+    }
+
+    function processRegisterForm() {
+        // Add "processing" class to the submit button
+        $("#submitButton").addClass('processing');
+
+        // Pack the form data into an object
+        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+        formInputs.forEach(function(input) {
+            if (input.type === 'checkbox') {
+                formData[input.name] = input.checked ? 'yes' : 'no';
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    formData[input.name] = input.value;
                 }
+            } else {
+                formData[input.name] = input.value;
+            }
+        });
+
+        console.log(formData);
+
+
+        // Remove empty keys or invalid entries
+        for (var key in formData) {
+            if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
+                delete formData[key];
             }
 
             statusSpan=$("#status");
@@ -369,5 +298,82 @@
 
         }
 
+        if (formType == 'trial') {
+            // Add the trial type to the form data
+            formData['trial_request'] = true;
+        } else {
+            formData['trial_request'] = false;
+        }
 
-    </script>
+        console.log(formData);
+
+        var fetch_url = hostURL + '/submit_register_form';
+
+        console.log("Fetch URL: " + fetch_url);
+
+        globalUser.getIdToken(true).then(function (idToken) {
+
+            $.ajax({
+                url: fetch_url,
+                data: JSON.stringify(formData),
+                type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
+                contentType: 'application/json', // This sets the Content-Type header to application/json
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function (data) {
+                    console.log("Success" + data);
+
+                    // Remove "processing" class to the submit button
+                    $("#submitButton").removeClass('processing');
+
+                    // Show user message with link and ask them if they want to download
+                    // If yes, then redirect to the link
+                    // If no, then do nothing
+
+                    // Hide the download button/div after submitting form
+                    $("#form-container").hide();
+                    $("#signin").hide();
+                    $("#post-form").show();
+                },
+                error: function() {
+                    // Remove "processing" class to the submit button
+                    $("#submitButton").removeClass('processing');
+                    requestErrorHandler();
+                }
+            });
+        });
+    }
+
+    // On load - check whether to show the emulator info box
+    $(document).ready(function () {
+        if (useLocalFirebaseEmulator) {
+            $('#using-emulator-info').show();
+        }
+    });
+    
+    function processSignupForm() {
+        // Add "processing" class to the submit button
+        $("#submitButton").addClass('processing');
+        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+        formInputs.forEach(function(input) {
+            if (input.type === 'checkbox') {
+                formData[input.name] = input.checked ? 'yes' : 'no';
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    formData[input.name] = input.value;
+                }
+            } else {
+                formData[input.name] = input.value;
+            }
+        });
+        // Remove empty keys or invalid entries
+        for (var key in formData) {
+            if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
+                delete formData[key];
+            }
+        }
+    }
+
+
+</script>
