@@ -144,19 +144,6 @@
             } else {
                 console.log("Unknown form type: " + formType);
             }
-
-            if (formType == 'register' || formType == 'trial') {
-                console.log('launching processRegisterForm');
-                processRegisterForm();
-            } else if (formType == 'signup') {
-                console.log('launching processSignupForm');
-                processSignupForm();
-            } else {
-                console.log("Unknown form type: " + formType);
-            }
-
-            return true; // Allow form submission if validation passes
-
         }
     }
 
@@ -235,67 +222,6 @@
             if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
                 delete formData[key];
             }
-
-            statusSpan=$("#status");
-            statusText = "Hang on a moment, download should start automatically...";
-            console.log("Back up link: " + backUpLinkOrNull);
-            if (backUpLinkOrNull !== null) {
-                statusText += "If it doesn't, you can click <a href='" + backUpLinkOrNull + "'>here</a> to download it manually.";
-            }
-            statusSpan.html(statusText);
-
-            console.log("Checking URL: " + fetch_url);
-            console.log("Fetch URL: " + fetch_url);
-            globalUser.getIdToken(true).then(function (idToken) {
-
-                $.ajax({
-                    url: fetch_url,
-                    data: JSON.stringify(formData),
-                    type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-                    contentType: 'application/json', // This sets the Content-Type header to application/json
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function (data) {
-                        data = JSON.parse(data);
-                        console.log("Success: " + data);
-                        var downloadLink = data.url;
-                        console.log("Download link: " + downloadLink);
-
-                        // Remove "processing" class to the submit button
-                        $("#submitButton").removeClass('processing');
-                        // Show user message with link and ask them if they want to download
-                        // If yes, then redirect to the link
-                        // If no, then do nothing
-
-                        // Hide the download button/div after submitting form
-                        $("#download-button-div").hide();
-
-
-                        window.location.href = downloadLink;
-                        $("#signin").hide();
-                        $("#form-container").hide();
-                        $("#post-form").show();
-                        $("#download-link").attr("href", downloadLink);
-                        
-                        // Fathom download-event tracking
-                        fathom.trackEvent('download_scan', {
-                            _value: 0,
-                            download: filePath
-                        });
-                        
-                        // Hotjar download-event tracking
-                        // hj('event', 'download_' + filePath.replace(/[^a-zA-Z0-9]/g, '_'));
-                        hj('event', 'download_scan');
-                    },
-                    error: function() {
-                        // Remove "processing" class to the submit button
-                        $("#submitButton").removeClass('processing');
-                        requestErrorHandler();
-                    }
-                });
-            });
-
         }
 
         if (formType == 'trial') {
