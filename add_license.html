@@ -16,59 +16,77 @@ permalink: /add_license/
 </head>
 <body>
     <style>
+        /* Add a wrapper to contain the left and right containers */
         .container {
-            width: 80%;
-            margin: auto;
             display: flex;
-            flex-wrap: wrap; /* Allows content to wrap onto the next line if needed */
+            justify-content: space-between; /* Ensure equal spacing between left and right containers */
+            width: 100%; /* Make the container full width */
+            margin: auto; /* Center the entire form */
+            box-sizing: border-box;
         }
-    
+
+        /* Left container */
+        .left-container {
+            flex: 0 1 60%; /* 60% of the width */
+            padding: 20px;
+            box-sizing: border-box; /* Ensure padding doesn't affect the width */
+        }
+
+        /* Right container */
+        .right-container {
+            flex: 0 1 40%; /* 40% of the width */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Ensure form section styling */
         .form-section {
-            flex: 1 1 50%; /* Each section takes up half of the container width */
-            padding: 10px;
+            margin-bottom: 20px;
         }
 
-        .last-four-container {
-            display: flex;
-            justify-content: space-between; /* Distributes space evenly between the children */
-            width: 100%; /* Takes full width of the container */
-        }
-
-        .last-four-container .form-section, .last-four-container .submit-section {
-            flex: 1; /* Each child will take equal space */
-            margin: 0 10px; /* Adds margin between the form sections */
-        }
-
-        .submit-section {
-            display: flex;
-            align-items: center; /* Centers the button vertically */
-            justify-content: center; /* Centers the button horizontally */
-        }
-
+        /* Ensure labels and inputs take full width */
         label, input, select, textarea {
             display: block;
             width: 100%;
             margin-bottom: 10px;
         }
 
-        input[type="text"], input[type="password"], select, textarea {
+        input[type="text"], input[type="password"], input[type="number"], select, textarea {
             padding: 8px;
             border: 1px solid #ccc;
             box-sizing: border-box;
         }
 
+        /* Radio button styling */
         .radio-container {
-            margin-top: 5px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
+            justify-content: flex-start; /* Aligns the radio button and label to the left */
+            width: 100%; /* Ensures the container takes full width */
+            margin-bottom: 5px; /* Adjusts vertical space between radio options */
         }
 
         .radio-container input[type="radio"] {
-            margin-right: 5px;
+            margin-right: 10px;
         }
 
-        .radio-container label {
-            font-size: 0.9em;
+        /* Style for submit button section */
+        .submit-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Fieldset for grouping input sections */
+        fieldset {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        legend {
+            font-weight: bold;
+            margin-bottom: 5px; /* Slightly reduces space under the legend */
         }
     </style>
 
@@ -83,16 +101,34 @@ permalink: /add_license/
         <h3>Welcome admin. Enter Licensing details below</h3>
         <span id="place_to_view"></span>
         <form onsubmit="event.preventDefault(); handleForm();">
+            <!-- Container for left and right columns -->
             <div class="container">
-                <div class="form-section">
-                    <label for="extra_security_password"><b>Admin Password: </b></label>
-                    <input type="password" placeholder="Enter Admin Password" id="extra_security_password" name="extra_security_password" required>
+                <!-- Left container for form inputs -->
+                <div class="left-container">
+                    <div class="form-section">
+                        <label for="extra_security_password"><b>Admin Password: </b></label>
+                        <input type="password" placeholder="Enter Admin Password" id="extra_security_password" name="extra_security_password" required>
+                    </div>
+                    <div class="form-section">
+                        <label for="license_name"><b>License Name: (optional)</b></label>
+                        <input type="text" placeholder="Enter License Name" id="license_name" name="license_name">
+                    </div>
+                    <div class="form-section">
+                        <label for="register_email"><b>Email of registered person: (required)</b></label>
+                        <input type="text" placeholder="Enter email" id="register_email" name="register_email" required>
+                    </div>
+                    <div class="form-section" style="width: 80%;">
+                        <label for="emails"><b>Other emails: (optional)</b></label>
+                        <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com, bob@example.com"></textarea>
+                    </div>
+                    <div class="form-section">
+                        <label for="domains"><b>Domains: (optional)</b></label>
+                        <input type="text" placeholder="examplecountysar.org,someotherdomain.com" id="domains" name="domains">
+                    </div>
                 </div>
-                <div class="form-section">
-                    <label for="license_name"><b>License Name: (optional)</b></label>
-                    <input type="text" placeholder="Enter License Name" id="license_name" name="license_name">
-                </div>
-                <div style="text-align: left;">
+    
+                <!-- Right container for radio buttons and submit button -->
+                <div class="right-container">
                     <div class="form-section">
                         <fieldset>
                             <legend><b>How to assign emails?</b></legend>
@@ -106,20 +142,9 @@ permalink: /add_license/
                             </div>
                         </fieldset>
                     </div>
-                </div>
-                <div class="form-section">
-                    <label for="emails"><b>Emails: (required)</b></label>
-                    <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com, bob@example.com" required></textarea>
-                </div>
-                <div class="form-section">
-                    <label for="domains"><b>Domains: (optional)</b></label>
-                    <input type="text" placeholder="examplecountysar.org,someotherdomain.com" id="domains" name="domains">
-                </div>
-
-                <!-- New flex container for the last four sections -->
-                <div class="last-four-container">
+                    
                     <div class="form-section">
-                        <fieldset>
+                        <!-- <fieldset>
                             <legend><b>User Type:</b></legend>
                             <div class="radio-container">
                                 <input type="radio" id="volunteer" name="userType" value="volunteer" required>
@@ -133,8 +158,9 @@ permalink: /add_license/
                                 <input type="radio" id="special" name="userType" value="special" required>
                                 <label for="special">Special</label>
                             </div>
-                        </fieldset>
+                        </fieldset> -->
                     </div>
+    
                     <div class="form-section">
                         <fieldset>
                             <legend><b>License Duration:</b></legend>
@@ -142,15 +168,31 @@ permalink: /add_license/
                             <input type="text" id="customDaysInput" placeholder="Enter custom days" style="display:none;">
                         </fieldset>
                     </div>
+    
+                    <div class="form-section">
+                        <fieldset>
+                            <legend><b>Is this a trial?</b></legend>
+                            <div class="radio-container">
+                                <input type="radio" id="trial_true" name="is_trial" value="true" required checked>
+                                <label for="trial_true">Yes</label>
+                            </div>
+                            <div class="radio-container">
+                                <input type="radio" id="trial_false" name="is_trial" value="false" required>
+                                <label for="trial_false">No</label>
+                            </div>
+                        </fieldset>
+                    </div>
+    
                     <div class="form-section">
                         <label for="number_of_keys"><b>Number of Keys:</b></label>
                         <input type="number" placeholder="Enter Number of Keys" id="number_of_keys" name="number_of_keys" value="1" required>
                     </div>
+    
                     <div class="submit-section">
                         <button type="submit" id="createLicenseButton">Create license</button>
                     </div>
-                </div>
-            </div>
+                </div> 
+            </div>                    
         </form>
     </section>
     <div id="creationStatus"></div>
@@ -223,6 +265,8 @@ permalink: /add_license/
                     });
                 });
             });
+            // Call prefillEmail when the document is ready
+            prefillEmail();
         });
     
         function handleForm() {
@@ -363,15 +407,14 @@ permalink: /add_license/
     function prefillEmail() {
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const email = urlParams.get('emails'); // Get 'emails' parameter from URL
+        const email = urlParams.get('email'); // Get 'email' parameter from URL
 
         // Check if the 'emails' parameter exists and set the value of the input field
         if (email) {
-            document.getElementById('emails').value = email;
+            document.getElementById('register_email').value = email;
         }
     }
 
-    window.onload = prefillEmail;
     </script>
     
 </body>
