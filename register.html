@@ -33,21 +33,12 @@ To do:
         <h1 style="text-align: center;">Register for an Eagle Eyes Scan SAR license</h1>
         <p>Purchasing an Eagle Eyes Scan SAR license requires registration. Please complete this form to register your organisation. We will process new request within 3 business days. Upon approval, you will be able to purchase a license using the email address above.</p>
         {% include form.html form_type='register' %}
-        <div id="additional-box-1" class="checkbox-container">
-            <input type="checkbox" id="distribution_policy" name="distribution_policy" required>
-            <label for="distribution_policy"><span class="checkbox-label required">I confirm that any licenses I may purchase in the future will be for internal use only and shall not be transferred, sold, or distributed outside of my organization.</span></label>
-        </div>
-        <div id="additional-box-2" class="checkbox-container">
-            <input type="checkbox" id="SAR_only" name="SAR_only" required>
-            <label for="SAR_only"><span class="checkbox-label required">I confirm that this software will be used for search and rescue purposes only.</span></label>
-        </div>
-        <div class="checkbox-container">
-            <input type="checkbox" id="receive_communication" name="receive_communication" required>
-            <label for="receive_communication"><span class="checkbox-label required">I agree to receive communications specific to my registration request and related product information.</span></label>
-        </div>
         <br/>
         <div id="submit-container">
-            <button id="submitButton" onclick="submitForm()" type="submit">Submit</button>
+            <button id="submitButton" onclick="clickButton()" type="submit">Submit</button>
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <div id="status" style="max-width: 550px; text-align: center; font-size: 70%; font-style: italic; color: red" hidden>Please complete all required fields</div>
         </div>
     </section>
     <br/>
@@ -82,7 +73,7 @@ To do:
         hostURL = getHostUrl();
         var fetch_url = hostURL + '/has_user_already_filled_in_form';
         console.log("Checking URL: " + fetch_url);
-        $("#hang-on-message").text("Hang on a moment while we while we get everything ready for you...").show();
+        $("#hang-on-message").text("Hang on a moment while we get everything ready for you...").show();
         globalUser.getIdToken(true).then(function (idToken) {
             $.ajax({
                 url: fetch_url,
@@ -98,9 +89,9 @@ To do:
                     console.log(data);
                     formOrNull = data.form;
                     if (formOrNull === null) {
-                        console.log('user did not fill in form yet');
+                        console.log('User did not fill in form yet.');
                         $("#form-container").show();
-                        $("#download-button-div").show();
+                        $("#submit-container").show();
                     } else {
                         populateForm(formOrNull);
                         $("#form-container").show();
@@ -111,74 +102,6 @@ To do:
             });
         });
     });
-    
-    
-    window.addEventListener('DOMContentLoaded', function () {
-        /*
-
-            Software version list-selection (list-selection that we populate in javascript)
-        <label for="software_version"><b>Software version: </b></label>
-        <select id="software_version" name="software_version" required>
-            <option value="" disabled selected>Select software version</option>
-        </select>
-        <br />
-        */
-        windowsDefault = 'EagleEyesScanInstaller_0.5.1rc6_Windows_x86_64.exe';
-        macDefault = 'EagleEyesScan_0.5.1rc6_MacOS_arm64.zip';
-        var softwareVersions = [
-            //'EagleEyesScan_0.4.3_MacOS_arm64.zip',
-            // 'EagleEyesScan_0.5.0rc2_MacOS_arm64.zip',
-            // 'EagleEyesScan_0.5.0rc3_MacOS_arm64.zip',
-            // 'EagleEyesScan_0.5.0rc4_MacOS_arm64.zip',
-            // 'EagleEyesScan_0.5.0rc5_MacOS_arm64.zip',
-            'EagleEyesScan_0.5.0rc6_MacOS_x86_64.zip',
-            // 'EagleEyesScan_0.5.0rc7_MacOS_arm64.zip',
-            // 'EagleEyesScan_0.4.3_Windows_x64.zip',
-            //'EagleEyesScan_0.4.5_Windows_x86_64.zip',
-            // 'EagleEyesScan_0.5.0rc2_Windows_x86_64.zip',
-            // 'EagleEyesScan_0.5.0rc3_Windows_x86_64.zip',
-            // 'EagleEyesScan_0.5.0rc4_Windows_x86_64.zip',
-            windowsDefault,
-            macDefault,
-        ];
-        var selectElement = document.getElementById('software_version');
-        var os = navigator.platform.toLowerCase();
-
-        softwareVersions.forEach(function (version) {
-            var optionElement = document.createElement('option');
-            optionElement.value = version;
-            optionElement.textContent = version;
-
-            if (os.includes('mac') && (version === macDefault)) {
-                optionElement.selected = true;
-            } else if (os.includes('win') && (version === windowsDefault)) {
-                optionElement.selected = true;
-            }
-            selectElement.appendChild(optionElement);
-        });
-    });
-
-    function populateForm(formData) {
-        // Get all form inputs
-        var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-        
-        // Iterate through each input in the form
-        for (var i = 0; i < formInputs.length; i++) {
-            var input = formInputs[i];
-
-            // Check if the input's name exists in the formData
-            if (formData.hasOwnProperty(input.name)) {
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    // Set the checked property based on formData
-                    input.checked = formData[input.name];
-                } else {
-                    // Set the value property based on formData
-                    input.value = formData[input.name];
-                }
-            }
-        }
-    }
-
 
 </script>
     
