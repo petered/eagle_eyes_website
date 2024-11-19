@@ -1,0 +1,76 @@
+---
+layout: ee_page_layout
+title: Fix Caltopo Geojson
+permalink: /fix-caltopo-geojson/
+---
+
+
+<body>
+    <h1>GeoJSON Sanitizer</h1>
+    <input type="file" id="fileInput" accept=".json"><br><br>
+    <button id="processButton" disabled>Process and Download</button>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('processButton').addEventListener('click', processFile);
+
+        let selectedFile;
+
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            if (selectedFile) {
+                document.getElementById('processButton').disabled = false;
+            } else {
+                document.getElementById('processButton').disabled = true;
+            }
+        }
+
+        function processFile() {
+            if (!selectedFile) {
+                alert('No file selected');
+                return;
+            }
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let geoJsonFeatureCollection = JSON.parse(e.target.result);
+                    sanitizeGeoJsonInplace(geoJsonFeatureCollection);
+                    let outputJson = JSON.stringify(geoJsonFeatureCollection, null, 2);
+                    let newFilename = selectedFile.name.replace(/\.json$/i, '') + '_fixed.json';
+                    downloadFile(outputJson, newFilename);
+                } catch (err) {
+                    alert('Error processing file: ' + err.message);
+                }
+            };
+            reader.readAsText(selectedFile);
+        }
+
+        function sanitizeGeoJsonInplace(geoJsonFeatureCollection) {
+            // The geoJsonFeatureCollection is an object with a key "features" that contains an array of features
+
+            // In CalTopo - the point features have 4 coordinates (lat, lon, alt, time) - but the time is not standard so we cut it.
+            geoJsonFeatureCollection["features"].forEach(function(feature) {
+                if (feature["geometry"]["type"] === "Point") {
+                    feature["geometry"]["coordinates"] = feature["geometry"]["coordinates"].slice(0, 3);
+                }
+            });
+        }
+
+        function downloadFile(content, filename) {
+            let blob = new Blob([content], { type: 'application/json' });
+            let url = URL.createObjectURL(blob);
+
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        }
+    </script>
+</body>
