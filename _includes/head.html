@@ -62,18 +62,37 @@
 		})(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
 	</script>
 	<script>
-	$(document).ready(function() {
-		$('nav.overlay-navigation a').click(function() {
-			$('.overlay-navigation-wrapper').hide(); // this will hide the element
-			$('body').css('overflow', 'auto');
-			$('html').css('overflow', 'auto');
-			$('body').removeClass('no-scroll');
-			$('html').removeClass('no-scroll');
-			// Hacky stuff
-			// or
-			//$('.v-align-middle').removeClass('v-align-middle'); // this will remove the class
+
+		function getIsEmulatorFromURL() {
+			// Just see if there's an "is_emulator=true" in the URL
+			var url = new URL(window.location.href);
+			var isEmulator = url.searchParams.get("is_emulator");
+
+			return isEmulator === "true";
+		}
+
+		function getHostUrl(){
+					
+			var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+			// var useLocalFirebaseEmulator = true;  // When running local emulator with "firebase emulators:start", set this to "true
+			var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+			console.log('useLocalFirebaseEmulator: ', useLocalFirebaseEmulator);
+			console.log('hostURL: ', hostURL);
+			
+			return hostURL;
+		}
+		$(document).ready(function() {
+			$('nav.overlay-navigation a').click(function() {
+				$('.overlay-navigation-wrapper').hide(); // this will hide the element
+				$('body').css('overflow', 'auto');
+				$('html').css('overflow', 'auto');
+				$('body').removeClass('no-scroll');
+				$('html').removeClass('no-scroll');
+				// Hacky stuff
+				// or
+				//$('.v-align-middle').removeClass('v-align-middle'); // this will remove the class
+			});
 		});
-	});
 	</script>
 
 </head>
