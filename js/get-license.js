@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", function ()
     var copyKeyButton = document.getElementById('license-key-copy-button');
     copyKeyButton.addEventListener('click', function() {
         copyTextToClipboard();
+        var licenseKey = document.getElementById("license-key").value;
+        licenseKeyAcquired(licenseKey);
     });
 });
 
@@ -788,4 +790,14 @@ function onClickBuy() {
     url = `${window.location.origin}/buy_license?${window.location.search.slice(1)}`;
     console.log('Redirecting to: ', url);
     window.open(url);
+}
+
+function licenseKeyAcquired(licenseKey) {
+    // Used to relay back to Eagle Eyes Pilot that the license key has been acquired and 
+    // the web page can be closed
+    if (window.AndroidBridge && typeof AndroidBridge.onLicenseKeyAcquired === "function") {
+        AndroidBridge.onLicenseKeyAcquired(licenseKey);
+    } else {
+        console.log("AndroidBridge is not available.");
+    }
 }
