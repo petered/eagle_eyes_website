@@ -14,10 +14,14 @@ jobs:
       - name: Checkout source repo
         uses: actions/checkout@v3
 
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
       - name: Push contents to eagleeyesears.com repo
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.STAGING_DEPLOY_TOKEN }}
-          repository: Eagle-Eyes-Search/website_staging
-          branch: main
-          force: true
+        run: |
+          git remote add staging https://$STAGING_DEPLOY_TOKEN@github.com/Eagle-Eyes-Search/website_staging.git
+          git push staging HEAD:main --force
+        env:
+          STAGING_DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
