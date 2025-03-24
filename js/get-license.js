@@ -797,7 +797,11 @@ function licenseKeyAcquired(licenseKey) {
     // the web page can be closed
     if (window.AndroidBridge && typeof AndroidBridge.onLicenseKeyAcquired === "function") {
         AndroidBridge.onLicenseKeyAcquired(licenseKey);
+        // Add text to the bottom of the pages saying - "License key acquired.  You can now close this page."
+        $('#debug-status-box').text('License key acquired.  You can now close this page.').addClass('info-box').show();
     } else {
         console.log("AndroidBridge is not available.");
+        // Add text to the bottom of the pages saying - "License key acquired.  You can now close this page."
+        $('#debug-status-box').text('License key acquired.  You can now close this page.').addClass('info-box').show();
     }
 }
