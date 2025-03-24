@@ -1,0 +1,292 @@
+<!-- Modern Sign In Widget -->
+<div class="signin-container">
+    <div class="signin-box">
+        <h2>Sign In</h2>
+        <p class="subtext">Access your Eagle Eyes account</p>
+        
+        <!-- Google Sign In Button -->
+        <button id="googleSignIn" class="signin-button google">
+            <img src="/images/google-icon.svg" alt="Google" class="google-icon">
+            Sign in with Google
+        </button>
+
+        <!-- Email Sign In Form -->
+        <div class="email-signin">
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <form id="emailSignInForm" class="email-form">
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" required placeholder="Enter your email">
+                </div>
+                <button type="submit" class="signin-button email">
+                    Sign in with Email
+                </button>
+            </form>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+</div>
+
+<style>
+    .signin-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
+    }
+
+    .signin-box {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .signin-box h2 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        color: #333;
+        text-align: center;
+    }
+
+    .subtext {
+        color: #666;
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .signin-button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .signin-button.google {
+        background-color: white;
+        border: 1px solid #ddd;
+        color: #333;
+    }
+
+    .signin-button.google:hover {
+        background-color: #f8f8f8;
+    }
+
+    .google-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 24px 0;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .divider span {
+        padding: 0 10px;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .email-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .form-group input {
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #1e90ff;
+    }
+
+    .signin-button.email {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .signin-button.email:hover {
+        background-color: #1873cc;
+    }
+
+    .status-message {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        text-align: center;
+        display: none;
+    }
+
+    .status-message.success {
+        background-color: #e6f4ea;
+        color: #1e8e3e;
+        display: block;
+    }
+
+    .status-message.error {
+        background-color: #fce8e6;
+        color: #d93025;
+        display: block;
+    }
+</style>
+
+<script>
+    // Make getHostUrl globally available
+    window.getHostUrl = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const useEmulator = urlParams.get('is_emulator') === 'true';
+        
+        // Only use emulator if explicitly requested via URL parameter
+        if (useEmulator) {
+            console.log('Using emulator URL for API calls');
+            return 'http://localhost:5001/eagleeyessearch/us-central1';
+        }
+        console.log('Using production URL for API calls');
+        return 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+    };
+
+    class SignInWidget {
+        constructor() {
+            // Configure Firebase to use emulators if requested
+            const urlParams = new URLSearchParams(window.location.search);
+            const useEmulator = urlParams.get('is_emulator') === 'true';
+            
+            if (useEmulator) {
+                console.log('Using Firebase emulators in SignInWidget');
+                // Configure all Firebase services to use emulators
+                if (firebase.auth) {
+                    firebase.auth().useEmulator('http://localhost:9099');
+                }
+                if (firebase.storage) {
+                    firebase.storage().useEmulator('http://localhost:9199');
+                }
+                if (firebase.firestore) {
+                    firebase.firestore().useEmulator('localhost', 8080);
+                }
+                if (firebase.functions) {
+                    firebase.functions().useEmulator('localhost', 5001);
+                }
+            }
+
+            // Initialize Firestore if not already initialized
+            if (!firebase.firestore) {
+                console.error('Firestore is not available');
+                return;
+            }
+
+            this.googleButton = document.getElementById('googleSignIn');
+            this.emailForm = document.getElementById('emailSignInForm');
+            this.emailInput = document.getElementById('email');
+            this.statusMessage = document.getElementById('statusMessage');
+            
+            this.setupEventListeners();
+        }
+
+        setupEventListeners() {
+            // Google Sign In
+            this.googleButton.addEventListener('click', () => this.handleGoogleSignIn());
+            
+            // Email Sign In
+            this.emailForm.addEventListener('submit', (e) => this.handleEmailSignIn(e));
+        }
+
+        async handleGoogleSignIn() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await firebase.auth().signInWithPopup(provider);
+                this.handleSignInSuccess(result.user);
+            } catch (error) {
+                this.showError('Failed to sign in with Google. Please try again.');
+            }
+        }
+
+        async handleEmailSignIn(e) {
+            e.preventDefault();
+            const email = this.emailInput.value.trim();
+            
+            if (!email) {
+                this.showError('Please enter your email address.');
+                return;
+            }
+
+            try {
+                const actionCodeSettings = {
+                    url: window.location.href,
+                    handleCodeInApp: true
+                };
+
+                await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+                this.showSuccess('Check your email for the sign-in link!');
+            } catch (error) {
+                this.showError('Failed to send sign-in link. Please try again.');
+            }
+        }
+
+        handleSignInSuccess(user) {
+            // Dispatch sign in complete event
+            const event = new CustomEvent('signInComplete', {
+                detail: { user }
+            });
+            document.dispatchEvent(event);
+        }
+
+        showSuccess(message) {
+            this.statusMessage.textContent = message;
+            this.statusMessage.className = 'status-message success';
+        }
+
+        showError(message) {
+            this.statusMessage.textContent = message;
+            this.statusMessage.className = 'status-message error';
+        }
+    }
+
+    // Initialize the widget when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new SignInWidget();
+    });
+</script> 
