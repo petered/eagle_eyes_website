@@ -138,6 +138,10 @@ title: Account Management - Eagle Eyes
     .download-link:hover {
         text-decoration: underline;
     }
+    .table th:nth-child(1) { width: 40%; }  /* Platform - wider to fit text */
+    .table th:nth-child(2) { width: 18%; }  /* Version - slightly narrower */
+    .table th:nth-child(3) { width: 22%; }  /* Release Date - slightly narrower */
+    .table th:nth-child(4) { width: 20%; }  /* Download - slightly narrower */
 </style>
 
 <script>
@@ -199,7 +203,7 @@ title: Account Management - Eagle Eyes
                 accountContent.style.display = 'block';
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 
-                // Fetch and display licenses and downloads only when user is signed in
+                // Fetch and display licenses and downloads when page is accessed with an authenticated user
                 fetchLicenses(user.uid);
                 fetchAvailableDownloads();
             } else {
@@ -223,16 +227,15 @@ title: Account Management - Eagle Eyes
             });
         }
 
-        // Listen for sign in completion
+        // Modify this event to avoid duplicate fetching
         document.addEventListener('signInComplete', function(e) {
             const user = e.detail.user;
             signinSection.style.display = 'none';
             accountContent.style.display = 'block';
             userEmail.textContent = `Logged in as: ${user.email}`;
             
-            // Fetch and display licenses and downloads after successful sign in
+            // Only fetch licenses, not downloads (to avoid duplicates)
             fetchLicenses(user.uid);
-            fetchAvailableDownloads();
         });
     });
 
@@ -303,20 +306,20 @@ title: Account Management - Eagle Eyes
             } else {
                 for (const file of pilotFiles) {
                     try {
-                        // Ensure we're using the file name string, not an object
-                        const fileName = typeof file === 'object' ? file.name : file;
+                        // Use the structured data directly
+                        const fileName = file.name;
+                        const version = file.version || 'Unknown';
+                        const platform = file.platform || 'Unknown';
+                        const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
+                        
                         const filePath = `pilot-releases/current/${fileName}`;
                         const downloadUrl = await generateDownloadLink(filePath, user);
-                        
-                        // Extract platform and version from filename
-                        const platform = fileName.includes('Android') ? 'Android' : 'Unknown';
-                        const version = fileName.match(/_(\d+\.\d+\.\d+)_/)?.[1] || 'Unknown';
                         
                         pilotDownloads.innerHTML += `
                             <tr>
                                 <td>${platform}</td>
                                 <td>${version}</td>
-                                <td>2024-03-20</td>
+                                <td>${releaseDate}</td>
                                 <td><a href="${downloadUrl}" class="download-link" onclick="trackDownload('pilot', '${fileName}')">Download</a></td>
                             </tr>
                         `;
@@ -336,25 +339,20 @@ title: Account Management - Eagle Eyes
             } else {
                 for (const file of scanFiles) {
                     try {
-                        // Ensure we're using the file name string, not an object
-                        const fileName = typeof file === 'object' ? file.name : file;
+                        // Use the structured data directly
+                        const fileName = file.name;
+                        const version = file.version || 'Unknown';
+                        const platform = file.platform || 'Unknown';
+                        const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
+                        
                         const filePath = `scan_releases/current/${fileName}`;
                         const downloadUrl = await generateDownloadLink(filePath, user);
-                        
-                        // Extract platform and version from filename
-                        let platform = 'Unknown';
-                        if (fileName.includes('MacOS')) {
-                            platform = fileName.includes('arm64') ? 'macOS (ARM64)' : 'macOS (x86_64)';
-                        } else if (fileName.includes('Windows')) {
-                            platform = 'Windows (x86_64)';
-                        }
-                        const version = fileName.match(/_(\d+\.\d+\.\d+)_/)?.[1] || 'Unknown';
                         
                         scanDownloads.innerHTML += `
                             <tr>
                                 <td>${platform}</td>
                                 <td>${version}</td>
-                                <td>2024-03-20</td>
+                                <td>${releaseDate}</td>
                                 <td><a href="${downloadUrl}" class="download-link" onclick="trackDownload('scan', '${fileName}')">Download</a></td>
                             </tr>
                         `;
