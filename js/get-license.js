@@ -188,7 +188,7 @@ function copyTextToClipboard() {
             console.error('Failed to copy text: ', err);
         });
 
-    $('#close-page-button').show();
+    // $('#close-page-button').show();
 }
 
 function licenseTokenToString(token) {
