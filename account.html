@@ -17,9 +17,10 @@ title: Account Management - Eagle Eyes
 <div class="section-block" style="padding-top: 20px;">
     <div class="row">
         <div class="column width-8 offset-2">
-            <!-- Sign in section -->
-            <div id="signinSection" style="display: none;">
-                {% include signinwidget-main.html %}
+            <!-- Sign in button (will trigger overlay) -->
+            <div id="signinButtonSection" style="display: none; text-align: center; margin-bottom: 40px;">
+                <p style="margin-bottom: 20px;">Sign in to access your account, downloads, and licenses.</p>
+                <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
             </div>
 
             <!-- Account content section -->
@@ -190,7 +191,7 @@ title: Account Management - Eagle Eyes
 
     // Wait for DOM to load
     document.addEventListener('DOMContentLoaded', function() {
-        const signinSection = document.getElementById('signinSection');
+        const signinButtonSection = document.getElementById('signinButtonSection');
         const accountContent = document.getElementById('accountContent');
         const userEmail = document.getElementById('userEmailDisplay');
         const signOutButton = document.getElementById('signOutButton');
@@ -199,7 +200,7 @@ title: Account Management - Eagle Eyes
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
                 // User is signed in
-                signinSection.style.display = 'none';
+                signinButtonSection.style.display = 'none';
                 accountContent.style.display = 'block';
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 
@@ -208,7 +209,7 @@ title: Account Management - Eagle Eyes
                 fetchAvailableDownloads();
             } else {
                 // User is signed out
-                signinSection.style.display = 'block';
+                signinButtonSection.style.display = 'block';
                 accountContent.style.display = 'none';
             }
         });
@@ -218,7 +219,7 @@ title: Account Management - Eagle Eyes
             signOutButton.addEventListener('click', function() {
                 firebase.auth().signOut().then(function() {
                     // Sign-out successful
-                    signinSection.style.display = 'block';
+                    signinButtonSection.style.display = 'block';
                     accountContent.style.display = 'none';
                 }).catch(function(error) {
                     // An error happened
@@ -230,7 +231,7 @@ title: Account Management - Eagle Eyes
         // Modify this event to avoid duplicate fetching
         document.addEventListener('signInComplete', function(e) {
             const user = e.detail.user;
-            signinSection.style.display = 'none';
+            signinButtonSection.style.display = 'none';
             accountContent.style.display = 'block';
             userEmail.textContent = `Logged in as: ${user.email}`;
             
@@ -465,6 +466,28 @@ title: Account Management - Eagle Eyes
     function getIsEmulatorFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get('is_emulator') === 'true';
+    }
+
+    // Function to trigger the overlay sign-in
+    function triggerSignInOverlay() {
+        // This should use the same mechanism that the navbar sign-in button uses
+        // If there's a global function or event, call it here
+        if (typeof showSignInOverlay === 'function') {
+            showSignInOverlay();
+        } else if (typeof openSignInModal === 'function') {
+            openSignInModal();
+        } else {
+            // Fallback: dispatch a custom event that the navbar might be listening for
+            document.dispatchEvent(new CustomEvent('openSignInOverlay'));
+            
+            // If all else fails, try to click the navbar sign-in button programmatically
+            const navSignInButton = document.querySelector('.nav-signin-button, .signin-button, #navSignInButton');
+            if (navSignInButton) {
+                navSignInButton.click();
+            } else {
+                console.error('Could not find a way to trigger the sign-in overlay. Please check your implementation.');
+            }
+        }
     }
 </script>
 
