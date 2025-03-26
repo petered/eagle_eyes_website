@@ -181,3 +181,53 @@
 	</script>
 
 </head>
+
+<!-- Google Maps Initialization -->
+<script>
+    function initGoogleMaps() {
+        console.log('Google Maps callback triggered');
+        if (typeof google === 'undefined') {
+            console.error('Google Maps not loaded');
+            return;
+        }
+        console.log('Google Maps loaded successfully');
+        
+        // Only initialize autocomplete if we're on a page with the location input
+        const locationInput = document.getElementById('location');
+        if (locationInput) {
+            const autocomplete = new google.maps.places.Autocomplete(locationInput, {
+                types: ['(cities)'],
+                fields: ['address_components', 'formatted_address', 'geometry'],
+                componentRestrictions: { country: [] }
+            });
+            
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+                if (!place.address_components) {
+                    console.log("No details available for input: '" + place.name + "'");
+                    return;
+                }
+
+                let city = '', state = '', country = '';
+                place.address_components.forEach(component => {
+                    const type = component.types[0];
+                    if (type === 'locality' || type === 'postal_town') {
+                        city = component.long_name;
+                    } else if (type === 'administrative_area_level_1') {
+                        state = component.long_name;
+                    } else if (type === 'country') {
+                        country = component.long_name;
+                    }
+                });
+
+                const formattedLocation = [city, state, country]
+                    .filter(part => part)
+                    .join(', ');
+                
+                locationInput.value = formattedLocation;
+            });
+            
+            console.log('Autocomplete initialized for location input');
+        }
+    }
+</script>
