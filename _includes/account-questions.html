@@ -1,3 +1,7 @@
+<head>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ site.google_maps_api_key }}&libraries=places&callback=initGoogleMaps" async defer></script>
+
+</head>
 <section id="form">
     <p style="text-align: center;"><i>* required information</i></p>
     <form id="fields">
@@ -67,7 +71,28 @@
     </form>
 </section>
 
-<script src="https://places.googleapis.com/v1/places/ChIJj61dQgK6j4AR4GeTYWZsKWw?fields=id,displayName&key=={{ site.google_maps_api_key }}&libraries=places"></script>
+<script>
+    function initGoogleMaps() {
+        console.log('Google Maps callback triggered');
+        // Move your initialization code here
+        const locationInput = document.getElementById('location');
+        if (!locationInput) {
+            console.error('Location input not found');
+            return;
+        }
+        
+        const autocomplete = new google.maps.places.Autocomplete(locationInput, {
+            types: ['(cities)'],
+            fields: ['address_components', 'formatted_address', 'geometry'],
+            componentRestrictions: { country: [] }
+        });
+        
+        console.log('Autocomplete initialized');
+        
+        // Rest of your autocomplete code...
+    }
+</script>
+
 
 <script>
     // This line enables Jekyll to pass the clickable parameter when including this file
@@ -354,13 +379,20 @@
             handleSignupTypeChange(selectedOption);
         }
 
-        // Initialize Places Autocomplete
+        // Add this debug line
+        console.log('Google Maps loaded:', !!google.maps.places);
+        
         const locationInput = document.getElementById('location');
+        // Add this debug line
+        console.log('Location input found:', !!locationInput);
+
         const autocomplete = new google.maps.places.Autocomplete(locationInput, {
-            types: ['(cities)'], // Restrict to cities
+            types: ['(cities)'],
             fields: ['address_components', 'formatted_address', 'geometry'],
-            componentRestrictions: { country: [] } // Empty array means all countries
+            componentRestrictions: { country: [] }
         });
+        // Add this debug line
+        console.log('Autocomplete initialized:', !!autocomplete);
 
         // Handle place selection
         autocomplete.addListener('place_changed', function() {
