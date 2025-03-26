@@ -8,7 +8,12 @@ title: Account Management - Eagle Eyes
         <div class="column width-12">
             <div class="centered">
                 <h2 class="mb-10">Account</h2>
-                <div id="userEmailDisplay" style="color: #666; font-size: 16px; margin-bottom: 0;"></div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                    <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                    <div id="signOutContainer" style="display: none;">
+                        <a href="#" id="signOutButton" class="button small rounded" style="padding: 8px 15px; font-size: 14px;">Sign Out</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -146,81 +151,58 @@ title: Account Management - Eagle Eyes
 </style>
 
 <script>
-    // Initialize Firebase if not already initialized
-    if (!firebase.apps.length) {
-        try {
-            firebase.initializeApp({
-                apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
-                authDomain: "eagleeyessearch.firebaseapp.com",
-                projectId: "eagleeyessearch",
-                storageBucket: "eagleeyessearch.appspot.com",
-                messagingSenderId: "983592831720",
-                appId: "1:983592831720:web:57b3880d0185ea3110575d",
-                measurementId: "G-J057SPR81M"
-            });
-
-            // Initialize Firestore with logging
-            console.log('Firebase Firestore:', firebase.firestore);
-            if (typeof firebase.firestore === "function") {
-                const firestoreInstance = firebase.firestore();
-                console.log('Initialized Firestore instance:', firestoreInstance);
-            } else {
-                console.error('Firestore is not available as a function');
-            }
-
-            // Configure emulators if requested
-            const urlParams = new URLSearchParams(window.location.search);
-            const useEmulator = urlParams.get('is_emulator') === 'true';
-            
-            if (useEmulator) {
-                console.log('Using Firebase emulators in account.html');
-                if (firebase.storage) {
-                    firebase.storage().useEmulator('http://localhost:9199');
-                }
-                if (firebase.firestore) {
-                    firebase.firestore().useEmulator('localhost', 8080);
-                }
-                if (firebase.functions) {
-                    firebase.functions().useEmulator('localhost', 5001);
-                }
-            }
-        } catch (error) {
-            console.log('Firebase already initialized:', error);
-        }
-    }
-
     // Wait for DOM to load
     document.addEventListener('DOMContentLoaded', function() {
         const signinButtonSection = document.getElementById('signinButtonSection');
         const accountContent = document.getElementById('accountContent');
         const userEmail = document.getElementById('userEmailDisplay');
+        const signOutContainer = document.getElementById('signOutContainer');
         const signOutButton = document.getElementById('signOutButton');
 
-        // Check authentication state
-        firebase.auth().onAuthStateChanged(function(user) {
+        // Listen for auth state changes
+        document.addEventListener('authStateChanged', function(e) {
+            const user = e.detail.user;
             if (user) {
                 // User is signed in
                 signinButtonSection.style.display = 'none';
                 accountContent.style.display = 'block';
                 userEmail.textContent = `Logged in as: ${user.email}`;
+                signOutContainer.style.display = 'block'; // Show the sign-out button
                 
-                // Fetch and display licenses and downloads when page is accessed with an authenticated user
+                // Fetch and display licenses and downloads
                 fetchLicenses(user.uid);
                 fetchAvailableDownloads();
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
                 accountContent.style.display = 'none';
+                userEmail.textContent = '';
+                signOutContainer.style.display = 'none'; // Hide the sign-out button
             }
         });
 
+        // Initial auth state check
+        if (firebase.auth().currentUser) {
+            const user = firebase.auth().currentUser;
+            signinButtonSection.style.display = 'none';
+            accountContent.style.display = 'block';
+            userEmail.textContent = `Logged in as: ${user.email}`;
+            signOutContainer.style.display = 'block'; // Show the sign-out button
+            fetchLicenses(user.uid);
+            fetchAvailableDownloads();
+        }
+
         // Handle sign out
         if (signOutButton) {
-            signOutButton.addEventListener('click', function() {
+            signOutButton.addEventListener('click', function(e) {
+                e.preventDefault(); // Prevent the default link behavior
+                
                 firebase.auth().signOut().then(function() {
-                    // Sign-out successful
-                    signinButtonSection.style.display = 'block';
-                    accountContent.style.display = 'none';
+                    // Sign-out successful - the auth state listener will handle UI updates
+                    console.log('User signed out successfully');
+                    
+                    // Optionally reload the page for a clean state
+                    window.location.reload();
                 }).catch(function(error) {
                     // An error happened
                     console.error('Error signing out:', error);
@@ -228,15 +210,10 @@ title: Account Management - Eagle Eyes
             });
         }
 
-        // Modify this event to avoid duplicate fetching
+        // Keep this event handler for backward compatibility
         document.addEventListener('signInComplete', function(e) {
             const user = e.detail.user;
-            signinButtonSection.style.display = 'none';
-            accountContent.style.display = 'block';
-            userEmail.textContent = `Logged in as: ${user.email}`;
-            
-            // Only fetch licenses, not downloads (to avoid duplicates)
-            fetchLicenses(user.uid);
+            toggleSignIn(); // Hide the overlay
         });
     });
 
@@ -489,6 +466,12 @@ title: Account Management - Eagle Eyes
             }
         }
     }
+
+    function toggleSignIn() {
+        const overlay = document.getElementById('signin-overlay');
+        overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+        document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
+    }
 </script>
 
 <!-- Begin License Section -->
@@ -524,6 +507,14 @@ title: Account Management - Eagle Eyes
     </div>
 </section>
 <!-- End License Section -->
+
+<!-- Keep this sign-in overlay in account.html -->
+<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+    <div style="position: relative; width: 100%; height: 100%;">
+        {% include signinwidget-main.html %}
+        <button onclick="toggleSignIn()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+    </div>
+</div>
 
 </body>
 

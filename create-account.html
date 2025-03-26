@@ -1,0 +1,424 @@
+---
+layout: main
+title: Create an Account - Eagle Eyes
+---
+
+<div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
+    <div class="row">
+        <div class="column width-12">
+            <div class="centered">
+                <h2 class="mb-10">Create an Account</h2>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                    <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                    <div id="signOutContainer" style="display: none;">
+                        <a href="#" id="signOutButton" class="button small rounded" style="padding: 8px 15px; font-size: 14px;">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section-block" style="padding-top: 20px;">
+    <div class="row">
+        <div class="column width-8 offset-2">
+            <!-- Include form styling -->
+            {% include form_styling.html %}
+            
+            <!-- Sign in button (will trigger overlay) -->
+            <div id="signinButtonSection" style="display: none; text-align: center; margin-bottom: 40px;">
+                <p style="margin-bottom: 20px;">Sign in to create your account and start your free trial.</p>
+                <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
+            </div>
+
+            <!-- Sign in overlay -->
+            <div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+                <div style="position: relative; width: 100%; height: 100%;">
+                    {% include signinwidget-main.html %}
+                    <button onclick="toggleSignIn()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+            </div>
+
+            <!-- Trial form content section -->
+            <div id="form-container" class="box rounded xlarge bkg-white shadow" style="display: none;">
+                <div class="box-content">
+                    <div class="row">
+                        <div class="column width-12">
+                            <h3 class="mb-30">Register for a 30-day trial</h3>
+                            <p>Please complete this form to receive a 30-day trial for the Eagle Eyes Scan SAR license. Although it may take up to 3 business days, new requests are usually processed within 24 hours.</p>
+                            
+                            {% include account-questions.html form_type="trial" %}
+                            
+                            <div id="submit-container" style="margin-top: 30px; text-align: center;">
+                                <button id="submitButton" onclick="submitTrialForm()" type="submit" class="button">Submit</button>
+        <div style="display: flex; justify-content: center; align-items: center;">
+                                    <div id="status" style="max-width: 550px; text-align: center; font-size: 70%; font-style: italic; color: red; display: none;">Please complete all required fields</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="hang-on-message" class="info-box" style="display: none; margin-top: 20px; text-align: center; padding: 20px;">
+                Hang on a moment while we get everything ready for you...
+            </div>
+            
+            <div id="post-form" class="info-box" style="display: none; margin-top: 20px; text-align: center; padding: 20px;">
+                <div id="checking-licenses-box">Your 30-day trial request was submitted successfully. We will contact you soon. Please reach out to info@eagleeyessearch.com if you have any questions.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Radio button styles */
+    .radio-group {
+        margin-bottom: 20px;
+    }
+    
+    .radio-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .radio-container input[type="radio"] {
+        margin-right: 10px;
+        /* Ensure visibility */
+        opacity: 1;
+        visibility: visible;
+        position: static;
+        width: auto;
+        height: auto;
+    }
+    
+    /* Fix for labels */
+    .radio-container label {
+        display: inline-block;
+        cursor: pointer;
+    }
+    
+    /* Fix for checkbox containers too */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        margin-right: 10px;
+        /* Ensure visibility */
+        opacity: 1;
+        visibility: visible;
+        position: static;
+        width: auto;
+        height: auto;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const signinButtonSection = document.getElementById('signinButtonSection');
+        const formContainer = document.getElementById('form-container');
+        const userEmail = document.getElementById('userEmailDisplay');
+        const signOutContainer = document.getElementById('signOutContainer');
+        const signOutButton = document.getElementById('signOutButton');
+        const hangOnMessage = document.getElementById('hang-on-message');
+        const postForm = document.getElementById('post-form');
+        
+        // Listen for auth state changes
+        document.addEventListener('authStateChanged', function(e) {
+            const user = e.detail.user;
+            if (user) {
+                // User is signed in
+                signinButtonSection.style.display = 'none';
+                userEmail.textContent = `Logged in as: ${user.email}`;
+                signOutContainer.style.display = 'block';
+                
+                // Check if this user has already submitted a form
+                checkExistingForm(user);
+            } else {
+                // User is signed out
+                signinButtonSection.style.display = 'block';
+                formContainer.style.display = 'none';
+                hangOnMessage.style.display = 'none';
+                postForm.style.display = 'none';
+                userEmail.textContent = '';
+                signOutContainer.style.display = 'none';
+            }
+        });
+        
+        // Initial auth state check
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+            signinButtonSection.style.display = 'none';
+            userEmail.textContent = `Logged in as: ${currentUser.email}`;
+            signOutContainer.style.display = 'block';
+            
+            // Check if this user has already submitted a form
+            checkExistingForm(currentUser);
+        } else {
+            signinButtonSection.style.display = 'block';
+        }
+        
+        // Handle the signInComplete event
+        document.addEventListener('signInComplete', function(e) {
+            const user = e.detail.user;
+            toggleSignIn(); // Hide the overlay
+        });
+        
+        // Handle sign out
+        if (signOutButton) {
+            signOutButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                firebase.auth().signOut().then(function() {
+                    // Sign-out successful
+                    console.log('User signed out successfully');
+                    window.location.reload();
+                }).catch(function(error) {
+                    console.error('Error signing out:', error);
+                });
+            });
+        }
+    });
+    
+    function toggleSignIn() {
+        const overlay = document.getElementById('signin-overlay');
+        overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+        document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
+    }
+    
+    function checkExistingForm(user) {
+        const formContainer = document.getElementById('form-container');
+        const hangOnMessage = document.getElementById('hang-on-message');
+        const postForm = document.getElementById('post-form');
+        
+        hangOnMessage.style.display = 'block';
+        
+        // Get the host URL for API calls
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        const fetch_url = hostURL + '/has_user_already_filled_in_form';
+        
+        user.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    hangOnMessage.style.display = 'none';
+                    
+                    console.log("Got reply from has_user_already_filled_in_form:", data);
+                    
+                    // Parse the response if it's a string
+                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                    const formOrNull = parsedData.form;
+                    
+                    if (formOrNull === null) {
+                        // User has not filled in the form yet
+                        console.log('User did not fill in form yet.');
+                        formContainer.style.display = 'block';
+                    } else {
+                        // User has already filled in the form
+                        console.log('User already filled in form.');
+                        
+                        // We could either show the populated form again or show a success message
+                        populateForm(formOrNull);
+                        formContainer.style.display = 'block';
+                        
+                        // Or show the success message instead
+                        // postForm.style.display = 'block';
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    hangOnMessage.style.display = 'none';
+                    console.error("Error checking form:", textStatus, errorThrown, jqXHR.responseText);
+                    
+                    // Show the form anyway on error
+                    formContainer.style.display = 'block';
+                }
+            });
+        }).catch(function(error) {
+            hangOnMessage.style.display = 'none';
+            console.error("Error getting ID token:", error);
+            
+            // Show the form anyway on error
+            formContainer.style.display = 'block';
+        });
+    }
+    
+    function populateForm(formData) {
+        // Get all form inputs
+        var formInputs = document.querySelectorAll('input[type=text], input[type=email], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
+        
+        // Iterate through each input in the form
+        for (var i = 0; i < formInputs.length; i++) {
+            var input = formInputs[i];
+            
+            // Check if the input's name exists in the formData
+            if (formData.hasOwnProperty(input.name)) {
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    // Set the checked property based on formData
+                    input.checked = formData[input.name] === 'yes';
+                } else {
+                    // Set the value property based on formData
+                    input.value = formData[input.name];
+                }
+            }
+        }
+    }
+    
+    function submitTrialForm() {
+        // Validate the form
+        if (!validateForm()) {
+            document.getElementById('status').style.display = 'block';
+            return;
+        }
+        
+        // Hide any previous status messages
+        document.getElementById('status').style.display = 'none';
+        
+        // Add "processing" class to the submit button
+        const submitButton = document.getElementById('submitButton');
+        submitButton.classList.add('processing');
+        submitButton.disabled = true;
+        
+        // Pack the form data into an object
+        const formData = {};
+        const formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+        
+        formInputs.forEach(function(input) {
+            if (input.type === 'checkbox') {
+                formData[input.name] = input.checked ? 'yes' : 'no';
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    formData[input.name] = input.value;
+                }
+            } else {
+                formData[input.name] = input.value;
+            }
+        });
+        
+        // Remove empty keys or invalid entries
+        for (var key in formData) {
+            if (formData[key] === null || formData[key] === undefined || (typeof formData[key] === 'string' && formData[key].trim() === "")) {
+                delete formData[key];
+            }
+        }
+        
+        // Add trial request flag
+        formData['trial_request'] = true;
+        
+        // Submit the form data
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.error('No user is signed in');
+            submitButton.classList.remove('processing');
+            submitButton.disabled = false;
+            return;
+        }
+        
+        // Get the host URL for API calls
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        const fetch_url = hostURL + '/submit_register_form';
+        
+        console.log("Submitting form data:", formData);
+        
+        user.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                data: JSON.stringify(formData),
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    console.log("Form submitted successfully:", data);
+                    
+                    // Remove processing state
+                    submitButton.classList.remove('processing');
+                    submitButton.disabled = false;
+                    
+                    // Hide the form and show success message
+                    document.getElementById('form-container').style.display = 'none';
+                    document.getElementById('post-form').style.display = 'block';
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error submitting form:", textStatus, errorThrown, jqXHR.responseText);
+                    
+                    // Remove processing state
+                    submitButton.classList.remove('processing');
+                    submitButton.disabled = false;
+                    
+                    // Show error message
+                    document.getElementById('status').textContent = "Error submitting form. Please try again.";
+                    document.getElementById('status').style.display = 'block';
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token:", error);
+            
+            // Remove processing state
+            submitButton.classList.remove('processing');
+            submitButton.disabled = false;
+            
+            // Show error message
+            document.getElementById('status').textContent = "Authentication error. Please try signing in again.";
+            document.getElementById('status').style.display = 'block';
+        });
+    }
+    
+    function validateForm() {
+        var isValid = true;
+        var requiredFields = document.querySelectorAll('#fields [required]');
+        var radioGroups = {};
+        
+        requiredFields.forEach(function(field) {
+            // Only process fields that have the 'required' attribute
+            if (field.hasAttribute('required')) {
+                if (field.type === 'radio') {
+                    if (!radioGroups[field.name]) {
+                        radioGroups[field.name] = [];
+                    }
+                    radioGroups[field.name].push(field);
+                } else if (field.type === 'checkbox' && !field.checked) {
+                    isValid = false;
+                    field.nextElementSibling.style.color = 'red'; // Highlight invalid checkboxes
+                } else if (field.type !== 'checkbox' && field.type !== 'radio') {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.style.borderColor = 'red'; // Highlight invalid text inputs
+                    } else {
+                        field.style.borderColor = ''; // Reset text input highlight
+                    }
+                }
+            }
+        });
+        
+        // Validate radio button groups
+        Object.keys(radioGroups).forEach(function(groupName) {
+            var group = radioGroups[groupName];
+            var groupIsValid = group.some(function(radio) {
+                return radio.checked;
+            });
+            
+            if (!groupIsValid) {
+                isValid = false;
+                group.forEach(function(radio) {
+                    radio.nextElementSibling.style.color = 'red'; // Highlight invalid radio group
+                });
+            } else {
+                group.forEach(function(radio) {
+                    radio.nextElementSibling.style.color = ''; // Reset radio group highlight
+                });
+            }
+        });
+        
+        return isValid;
+    }
+</script>

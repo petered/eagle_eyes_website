@@ -191,33 +191,6 @@
 
     class SignInWidget {
         constructor() {
-            // Configure Firebase to use emulators if requested
-            const urlParams = new URLSearchParams(window.location.search);
-            const useEmulator = urlParams.get('is_emulator') === 'true';
-            
-            if (useEmulator) {
-                console.log('Using Firebase emulators in SignInWidget');
-                // Configure all Firebase services to use emulators
-                if (firebase.auth) {
-                    firebase.auth().useEmulator('http://localhost:9099');
-                }
-                if (firebase.storage) {
-                    firebase.storage().useEmulator('http://localhost:9199');
-                }
-                if (firebase.firestore) {
-                    firebase.firestore().useEmulator('localhost', 8080);
-                }
-                if (firebase.functions) {
-                    firebase.functions().useEmulator('localhost', 5001);
-                }
-            }
-
-            // Initialize Firestore if not already initialized
-            if (!firebase.firestore) {
-                console.error('Firestore is not available');
-                return;
-            }
-
             this.googleButton = document.getElementById('googleSignIn');
             this.emailForm = document.getElementById('emailSignInForm');
             this.emailInput = document.getElementById('email');
@@ -267,6 +240,7 @@
         }
 
         handleSignInSuccess(user) {
+            console.log('SignInWidget: Authentication successful, dispatching signInComplete event');
             // Dispatch sign in complete event
             const event = new CustomEvent('signInComplete', {
                 detail: { user }
