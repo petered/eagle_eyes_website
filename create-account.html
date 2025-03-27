@@ -272,13 +272,16 @@ title: Create an Account - Eagle Eyes
         }
     }
     
-    // Get the base URL path to handle staging vs production environments
+    // Function to get the base path for redirects
     function getBasePath() {
+        // Get the current path and extract the base directory
         const path = window.location.pathname;
+        // If we're in a subdirectory like /eagle_eyes_website_staging/
         if (path.includes('/eagle_eyes_website_staging/')) {
-            return '/eagle_eyes_website_staging';
+            return '/eagle_eyes_website_staging/';
         }
-        return '';  // Root path for production
+        // Default to root if we can't determine a subdirectory
+        return '/';
     }
 
     // Function to check if user has a form and redirect if needed
@@ -309,11 +312,10 @@ title: Create an Account - Eagle Eyes
                     
                     if (hasFilledForm) {
                         console.log("User already filled in form.");
-                        console.log("Redirecting to account.html with base path:", basePath);
-                        
+                        console.log("Redirecting to: " + basePath + "account.html");
                         // Important: Add a timeout to ensure the redirect happens
                         setTimeout(function() {
-                            window.location.href = basePath + '/account.html';
+                            window.location.href = basePath + 'account.html';
                         }, 100);
                     } else {
                         console.log("User has not filled out a form, showing form");
@@ -334,7 +336,7 @@ title: Create an Account - Eagle Eyes
         });
     }
 
-    // Also update the form submission redirect
+    // Function to handle form submission
     function submitTrialForm() {
         if (!validateForm()) {
             console.log("Form validation failed");
@@ -388,10 +390,10 @@ title: Create an Account - Eagle Eyes
                     // Show success message
                     $("#status").html("Form submitted successfully! Redirecting...").css("color", "green").show();
                     
-                    // When redirecting after form submission:
+                    // Update the redirect URL here too:
                     const basePath = getBasePath();
                     setTimeout(function() {
-                        window.location.href = basePath + '/account.html';
+                        window.location.href = basePath + 'account.html';
                     }, 1500);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -456,7 +458,7 @@ title: Create an Account - Eagle Eyes
         return isValid;
     }
 
-    // Run on page load and when authentication state changes
+    // Run on page load
     $(document).ready(function() {
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
