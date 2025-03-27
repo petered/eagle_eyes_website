@@ -22,25 +22,14 @@ title: Account Management - Eagle Eyes
 <div class="section-block" style="padding-top: 20px;">
     <div class="row">
         <div class="column width-8 offset-2">
-            <!-- Sign-in section (initially shown, then hidden if user is logged in) -->
-            <div id="signin" style="display: block;">
-                <div class="box rounded xlarge bkg-white shadow">
-                    <div class="box-content">
-                        <div class="row">
-                            <div class="column width-12">
-                                <h3 class="mb-30">Access Your Account</h3>
-                                <p>Sign in to access your account, downloads, and licenses.</p>
-                                <div style="text-align: center; margin-top: 30px;">
-                                    <button id="signin-button" onclick="toggleSignIn()" class="button">Sign In or Create Account</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Sign in button (will trigger overlay) -->
+            <div id="signinButtonSection" style="display: none; text-align: center; margin-bottom: 40px;">
+                <p style="margin-bottom: 20px;">Sign in to access your account, downloads, and licenses.</p>
+                <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
             </div>
 
-            <!-- Account content (initially hidden, shown after login if user has a form) -->
-            <div id="account-content" style="display: none;">
+            <!-- Account content section -->
+            <div id="accountContent" style="display: none;">
                 <div class="box rounded xlarge bkg-white shadow">
                     <div class="box-content">
                         <div class="row">
@@ -96,12 +85,6 @@ title: Account Management - Eagle Eyes
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Loading indicator for transitions -->
-            <div id="loading-indicator" style="display: none; text-align: center; margin: 30px 0;">
-                <p>Loading your account information...</p>
-                <!-- You can add a spinner here if desired -->
             </div>
         </div>
     </div>
@@ -166,8 +149,6 @@ title: Account Management - Eagle Eyes
     .table th:nth-child(3) { width: 22%; }  /* Release Date - slightly narrower */
     .table th:nth-child(4) { width: 20%; }  /* Download - slightly narrower */
 </style>
-
-<script src="path/to/auth-navigation.js"></script>
 
 <script>
     // Wait for DOM to load
@@ -491,172 +472,6 @@ title: Account Management - Eagle Eyes
         overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
         document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
     }
-
-    // Function to get the base path for redirects
-    function getBasePath() {
-        // Get the current path and extract the base directory
-        const path = window.location.pathname;
-        // If we're in a subdirectory like /eagle_eyes_website_staging/
-        if (path.includes('/eagle_eyes_website_staging/')) {
-            return '/eagle_eyes_website_staging/';
-        }
-        // Default to root if we can't determine a subdirectory
-        return '/';
-    }
-    
-    // Flag to track if we've completed our initial auth check
-    let authCheckComplete = false;
-    
-    // Function to ensure UI is in a consistent state
-    function ensureUIState() {
-        const user = firebase.auth().currentUser;
-        
-        if (!authCheckComplete) {
-            // We're still checking auth, show loading state
-            $("#page-loading").show();
-            $("#signin").hide();
-            $("#account-content").hide();
-        } else if (!user) {
-            // User is definitely not signed in
-            $("#page-loading").hide();
-            $("#signin").show();
-            $("#account-content").hide();
-        }
-        // If user is signed in, the checkUserFormAndRedirect function will handle UI state
-    }
-    
-    // Check user form status and redirect if needed
-    function checkUserFormAndRedirect() {
-        console.log("Checking if user has a form...");
-        
-        if (!firebase.auth().currentUser) {
-            console.log("User not signed in, showing sign-in form");
-            $("#page-loading").hide();
-            $("#account-content").hide();
-            $("#signin").show();
-            authCheckComplete = true;
-            return;
-        }
-        
-        // Still checking
-        $("#page-loading").show();
-        $("#signin").hide();
-        $("#account-content").hide();
-        
-        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
-            $.ajax({
-                url: hostURL + '/has_user_already_filled_in_form',
-                type: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function(data) {
-                    console.log("Got reply from has_user_already_filled_in_form:", data);
-                    authCheckComplete = true;
-                    
-                    let response;
-                    try {
-                        response = typeof data === 'string' ? JSON.parse(data) : data;
-                    } catch (e) {
-                        console.error("Error parsing response:", e);
-                        response = { form: null };
-                    }
-                    
-                    // Check if form exists
-                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
-                    const basePath = getBasePath();
-                    
-                    if (hasFilledForm) {
-                        console.log("User has filled out a form, showing account content");
-                        // Update UI state before possibly leaving the page
-                        $("#page-loading").hide();
-                        $("#account-content").show();
-                        $("#signin").hide();
-                        
-                        // Populate account info if available
-                        if (typeof populateAccountInfo === 'function') {
-                            populateAccountInfo(response.form);
-                        }
-                    } else {
-                        console.log("User has NOT filled out a form, redirecting to create-account.html");
-                        // Set a session flag before redirecting
-                        sessionStorage.setItem('redirecting_from_account', 'true');
-                        window.location.href = basePath + 'create-account.html';
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error checking form status:", textStatus, errorThrown);
-                    authCheckComplete = true;
-                    $("#page-loading").hide();
-                    $("#account-content").hide();
-                    $("#signin").show();
-                }
-            });
-        }).catch(function(error) {
-            console.error("Error getting ID token:", error);
-            authCheckComplete = true;
-            $("#page-loading").hide();
-            $("#account-content").hide();
-            $("#signin").show();
-        });
-    }
-
-    // Function to populate account info
-    function populateAccountInfo(formData) {
-        if (formData.form_data) {
-            formData = formData.form_data;
-        }
-        
-        // Update user information on the page
-        if (formData.name) {
-            $("#user-name").text(formData.name);
-        }
-        if (formData.email) {
-            $("#user-email").text(formData.email);
-        }
-        // Add other fields as needed
-    }
-
-    // Initialize page
-    $(document).ready(function() {
-        // Start with the loading state
-        $("#page-loading").show();
-        $("#signin").hide();
-        $("#account-content").hide();
-        
-        // Add a safety timeout to ensure something is shown
-        setTimeout(function() {
-            if (!authCheckComplete) {
-                console.log("Auth check taking too long, showing sign-in form");
-                $("#page-loading").hide();
-                $("#signin").show();
-            }
-        }, 5000); // 5 second timeout as a fallback
-        
-        // Listen for auth state
-        firebase.auth().onAuthStateChanged(function(user) {
-            if (user) {
-                console.log("User is signed in");
-                globalUser = user;
-                checkUserFormAndRedirect();
-            } else {
-                console.log("User is signed out");
-                globalUser = null;
-                authCheckComplete = true;
-                $("#page-loading").hide();
-                $("#account-content").hide();
-                $("#signin").show();
-            }
-        });
-        
-        // Ensure UI is in a consistent state if we navigate back to this page
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                console.log("Page loaded from cache (back/forward navigation)");
-                ensureUIState();
-            }
-        });
-    });
 </script>
 
 <!-- Begin License Section -->
