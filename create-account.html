@@ -26,7 +26,7 @@ title: Create an Account - Eagle Eyes
             {% include form_styling.html %}
             
             <!-- Sign in button (will trigger overlay) -->
-            <div id="signinButtonSection" style="display: none; text-align: center; margin-bottom: 40px;">
+            <div id="signinButtonSection" style="display: block; text-align: center; margin-bottom: 40px;">
                 <p style="margin-bottom: 20px;">Sign in to get started. Don't have an account? No worries, you'll be able to create one.</p>
                 <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
             </div>
@@ -127,9 +127,6 @@ title: Create an Account - Eagle Eyes
         const hangOnMessage = document.getElementById('hang-on-message');
         const postForm = document.getElementById('post-form');
         
-        // Show sign-in button by default until we confirm a user is signed in
-        signinButtonSection.style.display = 'block';
-        
         // Listen for auth state changes
         document.addEventListener('authStateChanged', function(e) {
             const user = e.detail.user;
@@ -157,18 +154,6 @@ title: Create an Account - Eagle Eyes
                 signOutContainer.style.display = 'none';
             }
         });
-        
-        // Check immediately on page load as well
-        if (firebase.auth().currentUser) {
-            const user = firebase.auth().currentUser;
-            signinButtonSection.style.display = 'none';
-            userEmail.textContent = `Logged in as: ${user.email}`;
-            signOutContainer.style.display = 'block';
-            hangOnMessage.style.display = 'block';
-            setTimeout(function() {
-                checkExistingForm(user);
-            }, 200);
-        }
         
         // Handle the signInComplete event
         document.addEventListener('signInComplete', function(e) {
