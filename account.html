@@ -204,26 +204,20 @@ title: Account Management - Eagle Eyes
         document.addEventListener('authStateChanged', function(e) {
             const user = e.detail.user;
             if (user) {
-                
                 // User is signed in
                 signinButtonSection.style.display = 'none';
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 signOutContainer.style.display = 'block';
                 
-                // Don't immediately check or show form - let signinwidget handle redirects
-                // We'll only display forms if we know we need to stay on this page
-                hangOnMessage.style.display = 'block';
-                setTimeout(function() {
-                    // If we're still on this page after a short delay,
-                    // the user probably needs to fill this form
-                    checkExistingForm(user);
-                }, 200);
+                // Check if the user should be on this page
+                checkUserStatus(user);
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
                 accountContent.style.display = 'none';
+                $("#licenses").hide();
                 userEmail.textContent = '';
-                signOutContainer.style.display = 'none'; // Hide the sign-out button
+                signOutContainer.style.display = 'none';
             }
         });
 
@@ -548,11 +542,7 @@ title: Account Management - Eagle Eyes
         // Add other fields as needed
     }
 
-    function checkExistingForm(user) {
-        const hangOnMessage = document.getElementById('hang-on-message');
-        
-        hangOnMessage.style.display = 'block';
-        
+    function checkUserStatus(user) {
         // Get the host URL for API calls
         const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
         const fetch_url = hostURL + '/has_user_already_filled_in_form';
@@ -565,8 +555,6 @@ title: Account Management - Eagle Eyes
                     'Authorization': 'Bearer ' + idToken
                 },
                 success: function(data) {
-                    hangOnMessage.style.display = 'none';
-                    
                     console.log("Got reply from has_user_already_filled_in_form:", data);
                     
                     // Parse the response if it's a string
@@ -574,37 +562,28 @@ title: Account Management - Eagle Eyes
                     const formOrNull = parsedData.form;
                     
                     if (formOrNull === null) {
-                        // User has not filled in the form yet
-                        console.log('User did not fill in form yet.');
-                        formContainer.style.display = 'block';
-                        console.log("Redirecting to create-account.html");
+                        // User has not filled in the form yet - redirect
+                        console.log('User did not fill in form yet, redirecting to create-account');
                         window.location.href = 'create-account.html';
                     } else {
-                        // User has already filled in the form
-                        console.log("User already filled in form.");
-                        //display account page
+                        // User has already filled in the form - show account page
+                        console.log("User already filled in form, showing account page");
                         $("#accountContent").show();
                         $("#licenses").show();
+                        
                         // Fetch and display licenses and downloads
                         fetchLicenses(user.uid);
                         fetchAvailableDownloads();
-                        // User has already filled a form - should be on account.html
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    hangOnMessage.style.display = 'none';
-                    console.error("Error checking form:", textStatus, errorThrown, jqXHR.responseText);
-                    
-                    // Show the form anyway on error
-                    formContainer.style.display = 'block';
+                    console.error("Error checking form status:", textStatus, errorThrown);
+                    // On error, default to showing the sign-in button
+                    $("#signinButtonSection").show();
                 }
             });
         }).catch(function(error) {
-            hangOnMessage.style.display = 'none';
             console.error("Error getting ID token:", error);
-            
-            // Show the form anyway on error
-            formContainer.style.display = 'block';
         });
     }
 </script>
