@@ -63,6 +63,14 @@ title: Account Management - Eagle Eyes
 </style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
+    <!-- Add the test user banner right at the top -->
+    <div id="test-user-banner" style="display: none; position: sticky; top: 0; left: 0; width: 100%; background-color: #4CAF50; color: white; padding: 10px 0; text-align: center; z-index: 1000; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <span><strong>Development Mode</strong></span>
+            <button id="test-user-login" class="button small rounded" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer;">Sign in as Test User</button>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="column width-12">
             <div class="centered">
@@ -449,6 +457,17 @@ title: Account Management - Eagle Eyes
         // Add other fields as needed
     }
 
+    // Utility function to preserve the emulator parameter when redirecting
+    function getUrlWithEmulatorParam(url) {
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        if (!isEmulator) return url;
+        
+        // Add the parameter to the URL if it doesn't already have it
+        const separator = url.includes('?') ? '&' : '?';
+        return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
+    }
+
+    // Modify the checkUserStatus function
     function checkUserStatus(user) {
         // Hide account content until check is completed
         $("#accountContent").hide();
@@ -472,7 +491,7 @@ title: Account Management - Eagle Eyes
                     if (formOrNull === null) {
                         // User has not filled in the form yet - redirect to create-account.html
                         console.log('User did not fill in form yet, redirecting to create-account');
-                        window.location.href = 'create-account.html';
+                        window.location.href = getUrlWithEmulatorParam('create-account.html');
                     } else {
                         // User has filled in the form - show account content and fetch downloads
                         console.log("User already filled in form, showing account page");
@@ -490,6 +509,50 @@ title: Account Management - Eagle Eyes
             console.error("Error getting ID token:", error);
         });
     }
+
+    // Add the test user banner functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're in emulator mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmulator = urlParams.get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Show the test user banner
+            const banner = document.getElementById('test-user-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // Set up the test user login button
+            const testUserBtn = document.getElementById('test-user-login');
+            if (testUserBtn) {
+                testUserBtn.addEventListener('click', function() {
+                    // Test user credentials
+                    const testEmail = 'test@example.com';
+                    const testPassword = 'password123';
+                    
+                    // Try to sign in first
+                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                        .then((userCredential) => {
+                            console.log('Test user signed in successfully');
+                        })
+                        .catch((error) => {
+                            // If sign-in fails, create the user first
+                            if (error.code === 'auth/user-not-found') {
+                                console.log('Test user not found, creating account...');
+                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                    .then((userCredential) => {
+                                        console.log('Test user created and signed in successfully');
+                                    })
+                                    .catch((createError) => {
+                                        console.error('Error creating test user:', createError);
+                                    });
+                            } else {
+                                console.error('Error signing in with test user:', error);
+                            }
+                        });
+                });
+            }
+        }
+    });
 </script>
 
 </body>

@@ -4,6 +4,14 @@ title: Create an Account - Eagle Eyes
 ---
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
+    <!-- Add the test user banner right at the top -->
+    <div id="test-user-banner" style="display: none; position: sticky; top: 0; left: 0; width: 100%; background-color: #4CAF50; color: white; padding: 10px 0; text-align: center; z-index: 1000; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <span><strong>Development Mode</strong></span>
+            <button id="test-user-login" class="button small rounded" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer;">Sign in as Test User</button>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="column width-12">
             <div class="centered">
@@ -169,7 +177,10 @@ title: Create an Account - Eagle Eyes
                 firebase.auth().signOut().then(function() {
                     // Sign-out successful
                     console.log('User signed out successfully');
-                    window.location.reload();
+                    
+                    // Reload preserving the emulator parameter
+                    const currentUrl = new URL(window.location.href);
+                    window.location.href = currentUrl.toString();
                 }).catch(function(error) {
                     console.error('Error signing out:', error);
                 });
@@ -258,6 +269,17 @@ title: Create an Account - Eagle Eyes
         }
     }
     
+    // Utility function to preserve the emulator parameter when redirecting
+    function getUrlWithEmulatorParam(url) {
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        if (!isEmulator) return url;
+        
+        // Add the parameter to the URL if it doesn't already have it
+        const separator = url.includes('?') ? '&' : '?';
+        return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
+    }
+    
+    // Modify the form submission redirect
     function submitTrialForm() {
         if (!validateForm()) {
             console.log("Form validation failed");
@@ -312,8 +334,9 @@ title: Create an Account - Eagle Eyes
                     $("#status").html("Form submitted successfully! Redirecting...").css("color", "green").show();
                     
                     // Redirect to account.html after successful submission
+                    // Preserve the emulator parameter
                     setTimeout(function() {
-                        window.location.href = 'account.html';
+                        window.location.href = getUrlWithEmulatorParam('account.html');
                     }, 1500);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -378,18 +401,54 @@ title: Create an Account - Eagle Eyes
         return isValid;
     }
 
-    // // Update the document.ready function
-    // $(document).ready(function() {
-    //     firebase.auth().onAuthStateChanged(function(user) {
-    //         if (user) {
-    //             // No redirect logic here - just update the UI
-    //             $("#form-container").show();
-    //             $("#signin").hide();
-    //         } else {
-    //             // Show sign-in widget
-    //             $("#form-container").hide();
-    //             $("#signin").show();
-    //         }
-    //     });
-    // });
+    // Add the test user banner functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're in emulator mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmulator = urlParams.get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Show the test user banner
+            const banner = document.getElementById('test-user-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // Set up the test user login button
+            const testUserBtn = document.getElementById('test-user-login');
+            if (testUserBtn) {
+                testUserBtn.addEventListener('click', function() {
+                    // Test user credentials
+                    const testEmail = 'test@example.com';
+                    const testPassword = 'password123';
+                    
+                    // Store current URL with parameters before sign-in
+                    const currentUrl = window.location.href;
+                    
+                    // Try to sign in first
+                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                        .then((userCredential) => {
+                            console.log('Test user signed in successfully');
+                            // If the page reloads, ensure we come back to a URL with the emulator param
+                            window.history.replaceState(null, document.title, currentUrl);
+                        })
+                        .catch((error) => {
+                            // If sign-in fails, create the user first
+                            if (error.code === 'auth/user-not-found') {
+                                console.log('Test user not found, creating account...');
+                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                    .then((userCredential) => {
+                                        console.log('Test user created and signed in successfully');
+                                        // If the page reloads, ensure we come back to a URL with the emulator param
+                                        window.history.replaceState(null, document.title, currentUrl);
+                                    })
+                                    .catch((createError) => {
+                                        console.error('Error creating test user:', createError);
+                                    });
+                            } else {
+                                console.error('Error signing in with test user:', error);
+                            }
+                        });
+                });
+            }
+        }
+    });
 </script>
