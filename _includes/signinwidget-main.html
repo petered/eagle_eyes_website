@@ -4,8 +4,8 @@
     <button id="standard-signin-button" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
 </div>
 
-<!-- Modern Sign In Widget -->
-<div class="signin-container">
+<!-- Modern Sign In Widget Modal (hidden by default) -->
+<div class="signin-container" style="display: none; justify-content: center; align-items: center; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index:1000;">
     <div class="signin-box">
         <h2>Sign In</h2>
         <p class="subtext">Access your Eagle Eyes account</p>
@@ -40,10 +40,9 @@
 
 <style>
     .signin-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 40px 20px;
+        /* The inline style now hides it by default.
+           Setting display to flex ensures the modal is centered when shown. */
+        display: none;
     }
 
     .signin-box {
@@ -179,7 +178,7 @@
         display: block;
     }
 
-    /* Add styles for our standard sign-in button section */
+    /* Standard Sign In Section Styles */
     #standard-signin-section {
         padding: 20px;
         background-color: #fff;
@@ -245,8 +244,7 @@
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 
-                // Add these settings to force account selection
-                // This prevents auto-selection of the Chrome profile account
+                // Force account selection dialog
                 provider.setCustomParameters({
                     prompt: 'select_account'
                 });
@@ -287,6 +285,10 @@
                 detail: { user }
             });
             document.dispatchEvent(event);
+
+            // Hide the modal once signed in
+            document.querySelector('.signin-container').style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
 
         showSuccess(message) {
@@ -303,8 +305,6 @@
     // Initialize the widget and auth UI when the DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
         new SignInWidget();
-        
-        // Handle consistent auth UI visibility
         setupAuthUIConsistency();
     });
     
@@ -374,97 +374,24 @@
         }
     }
 
-    // Function to get the base path for redirects
-    function getBasePath() {
-        // Get the current path and extract the base directory
-        const path = window.location.pathname;
-        // If we're in a subdirectory like /eagle_eyes_website_staging/
-        if (path.includes('/eagle_eyes_website_staging/')) {
-            return '/eagle_eyes_website_staging/';
-        }
-        // Default to root if we can't determine a subdirectory
-        return '/';
-    }
-
-    // Function to check if user has already completed a form and redirect accordingly
-    function checkUserFormStatusAndRedirect() {
-        // Only proceed if user is signed in
-        if (firebase.auth().currentUser) {
-            firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
-                // Call the Cloud Function to check if the user has filled in a form
-                $.ajax({
-                    url: hostURL + '/has_user_already_filled_in_form',
-                    type: 'GET',
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function(data) {
-                        console.log("Got reply from has_user_already_filled_in_form:", data);
-                        
-                        let response;
-                        try {
-                            response = typeof data === 'string' ? JSON.parse(data) : data;
-                        } catch (e) {
-                            console.error("Error parsing response:", e);
-                            response = { form: null };
-                        }
-                        
-                        // Get the current page
-                        const currentPage = window.location.pathname;
-                        const basePath = getBasePath();
-                        
-                        // Check if form exists
-                        const hasFilledForm = response.form && Object.keys(response.form).length > 0;
-                        console.log("Has user filled in form?", hasFilledForm);
-                        
-                        if (hasFilledForm) {
-                            console.log("User already filled in form.");
-                            // User has already filled a form - should be on account.html
-                            if (currentPage.includes('create-account.html')) {
-                                console.log("Redirecting to account.html");
-                                window.location.href = basePath + 'account.html';
-                            }
-                        } else {
-                            console.log("User has NOT filled in form.");
-                            // User has NOT filled a form - should be on create-account.html
-                            if (currentPage.includes('account.html')) {
-                                console.log("Redirecting to create-account.html");
-                                window.location.href = basePath + 'create-account.html';
-                            }
-                        }
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        console.error("Error checking user form status:", textStatus, errorThrown);
-                    }
-                });
-            }).catch(function(error) {
-                console.error("Error getting ID token:", error);
-            });
-        }
-    }
-
-    // Function for sign-in button
+    // Revised toggleSignIn function to open/close the modal
     function toggleSignIn() {
-        if (firebase.auth().currentUser) {
-            // Sign out
+        // For signed out users, toggle the modal displaying both sign-in options.
+        if (!firebase.auth().currentUser) {
+            const modal = document.querySelector('.signin-container');
+            if (modal.style.display === 'none' || modal.style.display === '') {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            } else {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        } else {
+            // If already signed in, you might choose to sign them out.
             firebase.auth().signOut().then(function() {
                 console.log("Sign-out successful");
             }).catch(function(error) {
                 console.error("Sign-out error:", error);
-            });
-        } else {
-            // Sign in
-            const provider = new firebase.auth.GoogleAuthProvider();
-            
-            // Force account selection dialog
-            provider.setCustomParameters({
-                prompt: 'select_account'
-            });
-            
-            firebase.auth().signInWithPopup(provider).then(function(result) {
-                console.log("Sign-in successful");
-            }).catch(function(error) {
-                console.error("Sign-in error:", error);
             });
         }
     }
