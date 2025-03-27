@@ -272,6 +272,69 @@ title: Create an Account - Eagle Eyes
         }
     }
     
+    // Get the base URL path to handle staging vs production environments
+    function getBasePath() {
+        const path = window.location.pathname;
+        if (path.includes('/eagle_eyes_website_staging/')) {
+            return '/eagle_eyes_website_staging';
+        }
+        return '';  // Root path for production
+    }
+
+    // Function to check if user has a form and redirect if needed
+    function checkUserFormAndRedirect() {
+        if (!firebase.auth().currentUser) return;
+        
+        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: hostURL + '/has_user_already_filled_in_form',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    console.log("Got reply from has_user_already_filled_in_form:", data);
+                    
+                    let response;
+                    try {
+                        response = typeof data === 'string' ? JSON.parse(data) : data;
+                    } catch (e) {
+                        console.error("Error parsing response:", e);
+                        response = { form: null };
+                    }
+                    
+                    // Check if form exists
+                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
+                    const basePath = getBasePath();
+                    
+                    if (hasFilledForm) {
+                        console.log("User already filled in form.");
+                        console.log("Redirecting to account.html with base path:", basePath);
+                        
+                        // Important: Add a timeout to ensure the redirect happens
+                        setTimeout(function() {
+                            window.location.href = basePath + '/account.html';
+                        }, 100);
+                    } else {
+                        console.log("User has not filled out a form, showing form");
+                        // Show the form since user hasn't filled it out
+                        $("#form-container").show();
+                        $("#signin").hide();
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error checking form status:", textStatus, errorThrown);
+                    // Default to showing the form
+                    $("#form-container").show();
+                    $("#signin").hide();
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token:", error);
+        });
+    }
+
+    // Also update the form submission redirect
     function submitTrialForm() {
         if (!validateForm()) {
             console.log("Form validation failed");
@@ -325,9 +388,10 @@ title: Create an Account - Eagle Eyes
                     // Show success message
                     $("#status").html("Form submitted successfully! Redirecting...").css("color", "green").show();
                     
-                    // Redirect to account.html after successful submission
+                    // When redirecting after form submission:
+                    const basePath = getBasePath();
                     setTimeout(function() {
-                        window.location.href = '/account.html';
+                        window.location.href = basePath + '/account.html';
                     }, 1500);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -390,56 +454,6 @@ title: Create an Account - Eagle Eyes
         });
         
         return isValid;
-    }
-
-    // Function to check if user has a form and redirect if needed
-    function checkUserFormAndRedirect() {
-        if (!firebase.auth().currentUser) return;
-        
-        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
-            $.ajax({
-                url: hostURL + '/has_user_already_filled_in_form',
-                type: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function(data) {
-                    console.log("Got reply from has_user_already_filled_in_form:", data);
-                    
-                    let response;
-                    try {
-                        response = typeof data === 'string' ? JSON.parse(data) : data;
-                    } catch (e) {
-                        console.error("Error parsing response:", e);
-                        response = { form: null };
-                    }
-                    
-                    // Check if form exists
-                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
-                    
-                    if (hasFilledForm) {
-                        console.log("User already filled in form.");
-                        // Important: Add a timeout to ensure the redirect happens
-                        setTimeout(function() {
-                            window.location.href = '/account.html';
-                        }, 100);
-                    } else {
-                        console.log("User has not filled out a form, showing form");
-                        // Show the form since user hasn't filled it out
-                        $("#form-container").show();
-                        $("#signin").hide();
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error checking form status:", textStatus, errorThrown);
-                    // Default to showing the form
-                    $("#form-container").show();
-                    $("#signin").hide();
-                }
-            });
-        }).catch(function(error) {
-            console.error("Error getting ID token:", error);
-        });
     }
 
     // Run on page load and when authentication state changes

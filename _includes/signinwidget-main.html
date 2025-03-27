@@ -264,6 +264,15 @@
         new SignInWidget();
     });
 
+    // Get the base URL path to handle staging vs production environments
+    function getBasePath() {
+        const path = window.location.pathname;
+        if (path.includes('/eagle_eyes_website_staging/')) {
+            return '/eagle_eyes_website_staging';
+        }
+        return '';  // Root path for production
+    }
+
     // Function to check if user has already completed a form and redirect accordingly
     function checkUserFormStatusAndRedirect() {
         // Only proceed if user is signed in
@@ -289,6 +298,7 @@
                         
                         // Get the current page
                         const currentPage = window.location.pathname;
+                        const basePath = getBasePath();
                         
                         // Check if form exists
                         const hasFilledForm = response.form && Object.keys(response.form).length > 0;
@@ -298,15 +308,15 @@
                             console.log("User already filled in form.");
                             // User has already filled a form - should be on account.html
                             if (currentPage.includes('create-account.html')) {
-                                console.log("Redirecting to account.html");
-                                window.location.href = '/account.html';
+                                console.log("Redirecting to account.html with base path:", basePath);
+                                window.location.href = basePath + '/account.html';
                             }
                         } else {
                             console.log("User has NOT filled in form.");
                             // User has NOT filled a form - should be on create-account.html
                             if (currentPage.includes('account.html')) {
-                                console.log("Redirecting to create-account.html");
-                                window.location.href = '/create-account.html';
+                                console.log("Redirecting to create-account.html with base path:", basePath);
+                                window.location.href = basePath + '/create-account.html';
                             }
                         }
                     },
