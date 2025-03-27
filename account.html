@@ -502,17 +502,42 @@ title: Account Management - Eagle Eyes
         return '/';
     }
     
+    // Flag to track if we've completed our initial auth check
+    let authCheckComplete = false;
+    
+    // Function to ensure UI is in a consistent state
+    function ensureUIState() {
+        const user = firebase.auth().currentUser;
+        
+        if (!authCheckComplete) {
+            // We're still checking auth, show loading state
+            $("#page-loading").show();
+            $("#signin").hide();
+            $("#account-content").hide();
+        } else if (!user) {
+            // User is definitely not signed in
+            $("#page-loading").hide();
+            $("#signin").show();
+            $("#account-content").hide();
+        }
+        // If user is signed in, the checkUserFormAndRedirect function will handle UI state
+    }
+    
+    // Check user form status and redirect if needed
     function checkUserFormAndRedirect() {
         console.log("Checking if user has a form...");
         
         if (!firebase.auth().currentUser) {
             console.log("User not signed in, showing sign-in form");
+            $("#page-loading").hide();
             $("#account-content").hide();
             $("#signin").show();
+            authCheckComplete = true;
             return;
         }
         
-        // Show a visual indication that we're checking
+        // Still checking
+        $("#page-loading").show();
         $("#signin").hide();
         $("#account-content").hide();
         
@@ -525,6 +550,7 @@ title: Account Management - Eagle Eyes
                 },
                 success: function(data) {
                     console.log("Got reply from has_user_already_filled_in_form:", data);
+                    authCheckComplete = true;
                     
                     let response;
                     try {
@@ -540,7 +566,8 @@ title: Account Management - Eagle Eyes
                     
                     if (hasFilledForm) {
                         console.log("User has filled out a form, showing account content");
-                        // Show account content
+                        // Update UI state before possibly leaving the page
+                        $("#page-loading").hide();
                         $("#account-content").show();
                         $("#signin").hide();
                         
@@ -550,21 +577,23 @@ title: Account Management - Eagle Eyes
                         }
                     } else {
                         console.log("User has NOT filled out a form, redirecting to create-account.html");
-                        console.log("Redirecting to: " + basePath + "create-account.html");
-                        // Immediate redirect - no timeout
+                        // Set a session flag before redirecting
+                        sessionStorage.setItem('redirecting_from_account', 'true');
                         window.location.href = basePath + 'create-account.html';
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.error("Error checking form status:", textStatus, errorThrown);
-                    // On error, default to showing the signin
+                    authCheckComplete = true;
+                    $("#page-loading").hide();
                     $("#account-content").hide();
                     $("#signin").show();
                 }
             });
         }).catch(function(error) {
             console.error("Error getting ID token:", error);
-            // On error, default to showing the signin
+            authCheckComplete = true;
+            $("#page-loading").hide();
             $("#account-content").hide();
             $("#signin").show();
         });
@@ -587,29 +616,43 @@ title: Account Management - Eagle Eyes
         // Add other fields as needed
     }
 
-    // When authentication state changes
+    // Initialize page
     $(document).ready(function() {
-        // Set initial state explicitly
-        $("#signin").show();
+        // Start with the loading state
+        $("#page-loading").show();
+        $("#signin").hide();
         $("#account-content").hide();
         
+        // Add a safety timeout to ensure something is shown
+        setTimeout(function() {
+            if (!authCheckComplete) {
+                console.log("Auth check taking too long, showing sign-in form");
+                $("#page-loading").hide();
+                $("#signin").show();
+            }
+        }, 5000); // 5 second timeout as a fallback
+        
+        // Listen for auth state
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
                 console.log("User is signed in");
                 globalUser = user;
-                
-                // Immediately hide signin to prevent flashing
-                $("#signin").hide();
-                
-                // Check if user has a form and redirect if needed
                 checkUserFormAndRedirect();
             } else {
                 console.log("User is signed out");
                 globalUser = null;
-                
-                // Show sign-in widget, hide account content
+                authCheckComplete = true;
+                $("#page-loading").hide();
                 $("#account-content").hide();
                 $("#signin").show();
+            }
+        });
+        
+        // Ensure UI is in a consistent state if we navigate back to this page
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                console.log("Page loaded from cache (back/forward navigation)");
+                ensureUIState();
             }
         });
     });
