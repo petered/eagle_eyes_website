@@ -244,6 +244,13 @@
         async handleGoogleSignIn() {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
+                
+                // Add these settings to force account selection
+                // This prevents auto-selection of the Chrome profile account
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+                
                 const result = await firebase.auth().signInWithPopup(provider);
                 this.handleSignInSuccess(result.user);
             } catch (error) {
@@ -448,6 +455,12 @@
         } else {
             // Sign in
             const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // Force account selection dialog
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+            
             firebase.auth().signInWithPopup(provider).then(function(result) {
                 console.log("Sign-in successful");
             }).catch(function(error) {
