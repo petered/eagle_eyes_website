@@ -333,44 +333,64 @@
         }
     }
 
-    // Ensure this function is called when auth state changes
+    // Function to handle auth state changes and redirect as needed
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
-            // User is signed in
-            console.log("User is signed in");
+            console.log("User signed in: " + user.email);
             globalUser = user;
             
-            // Hide login button, show signed-in info
+            // Update UI
             $("#login-button").hide();
             $("#signed-in-info").show();
             $("#user-email").text(user.email);
             
-            // Check if we need to redirect the user based on form status
-            checkUserFormStatusAndRedirect();
-            
-            // If we're on specific pages that need forms
+            // Get current page path
             const currentPage = window.location.pathname;
-            if (currentPage.includes('account.html') || currentPage.includes('create-account.html')) {
-                // Show form or appropriate content, handled by page-specific JS
-                $("#form-container").show();
-                $("#signin").hide();
+            
+            // If we're on account.html, check if user should be redirected
+            if (currentPage.includes('account.html')) {
+                console.log("On account.html, checking if user has a form");
+                // This will be handled by the account.html script (checkUserFormAndRedirect)
+            } 
+            // If we're on create-account.html, check if user already has a form
+            else if (currentPage.includes('create-account.html')) {
+                console.log("On create-account.html, checking if user already has a form");
+                // This will be handled by the create-account.html script (checkUserFormAndRedirect)
             }
         } else {
-            // User is signed out
-            console.log("User is signed out");
+            console.log("User signed out");
             globalUser = null;
             
-            // Show login button, hide signed-in info
+            // Update UI for signed-out state
             $("#login-button").show();
             $("#signed-in-info").hide();
             
-            // If we're on specific pages that need authentication
+            // If on account or create-account pages, show sign-in form
             const currentPage = window.location.pathname;
             if (currentPage.includes('account.html') || currentPage.includes('create-account.html')) {
-                // Hide form, show login
-                $("#form-container").hide();
+                $("#account-content, #form-container").hide();
                 $("#signin").show();
             }
         }
     });
+    
+    // Function for sign-in button
+    function toggleSignIn() {
+        if (firebase.auth().currentUser) {
+            // Sign out
+            firebase.auth().signOut().then(function() {
+                console.log("Sign-out successful");
+            }).catch(function(error) {
+                console.error("Sign-out error:", error);
+            });
+        } else {
+            // Sign in
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider).then(function(result) {
+                console.log("Sign-in successful");
+            }).catch(function(error) {
+                console.error("Sign-in error:", error);
+            });
+        }
+    }
 </script> 

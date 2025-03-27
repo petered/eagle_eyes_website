@@ -473,69 +473,126 @@ title: Account Management - Eagle Eyes
         document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
     }
 
-    // Add this script to check if user should have access to this page
+    // Function to get the base path for redirects
+    function getBasePath() {
+        // Get the current path and extract the base directory
+        const path = window.location.pathname;
+        // If we're in a subdirectory like /eagle_eyes_website_staging/
+        if (path.includes('/eagle_eyes_website_staging/')) {
+            return '/eagle_eyes_website_staging/';
+        }
+        // Default to root if we can't determine a subdirectory
+        return '/';
+    }
+    
+    // Function to check if user has a form and redirect if needed
+    function checkUserFormAndRedirect() {
+        console.log("Checking if user has a form...");
+        
+        if (!firebase.auth().currentUser) {
+            console.log("User not signed in, showing sign-in form");
+            $("#account-content").hide();
+            $("#signin").show();
+            return;
+        }
+        
+        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: hostURL + '/has_user_already_filled_in_form',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    console.log("Got reply from has_user_already_filled_in_form:", data);
+                    
+                    let response;
+                    try {
+                        response = typeof data === 'string' ? JSON.parse(data) : data;
+                    } catch (e) {
+                        console.error("Error parsing response:", e);
+                        response = { form: null };
+                    }
+                    
+                    // Check if form exists
+                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
+                    const basePath = getBasePath();
+                    
+                    if (hasFilledForm) {
+                        console.log("User has filled out a form, showing account content");
+                        // Show account content
+                        $("#account-content").show();
+                        $("#signin").hide();
+                        
+                        // Populate account info if available
+                        if (typeof populateAccountInfo === 'function') {
+                            populateAccountInfo(response.form);
+                        }
+                    } else {
+                        console.log("User has NOT filled out a form, redirecting to create-account.html");
+                        // Important: Add a timeout to ensure the redirect happens
+                        console.log("Redirecting to: " + basePath + "create-account.html");
+                        setTimeout(function() {
+                            window.location.href = basePath + 'create-account.html';
+                        }, 100);
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error checking form status:", textStatus, errorThrown);
+                    // On error, default to showing the signin
+                    $("#account-content").hide();
+                    $("#signin").show();
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token:", error);
+            // On error, default to showing the signin
+            $("#account-content").hide();
+            $("#signin").show();
+        });
+    }
+
+    // Function to populate account info
+    function populateAccountInfo(formData) {
+        if (formData.form_data) {
+            // If the form data is nested under form_data (as shown in your example)
+            formData = formData.form_data;
+        }
+        
+        // Update user information on the page
+        if (formData.name) {
+            $("#user-name").text(formData.name);
+        }
+        if (formData.email) {
+            $("#user-email").text(formData.email);
+        }
+        // Add other fields as needed
+    }
+
+    // When authentication state changes
     $(document).ready(function() {
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
-                // User is signed in, check if they should be on this page
-                user.getIdToken(true).then(function(idToken) {
-                    $.ajax({
-                        url: hostURL + '/has_user_already_filled_in_form',
-                        type: 'GET',
-                        headers: {
-                            'Authorization': 'Bearer ' + idToken
-                        },
-                        success: function(data) {
-                            let response;
-                            try {
-                                response = typeof data === 'string' ? JSON.parse(data) : data;
-                            } catch (e) {
-                                console.error("Error parsing response:", e);
-                                response = { form: null };
-                            }
-                            
-                            if (response.form) {
-                                // User has already filled a form, show account content
-                                $("#account-content").show();
-                                $("#signin").hide();
-                                
-                                // Populate any account information from the form data
-                                if (typeof populateAccountInfo === 'function') {
-                                    populateAccountInfo(response.form);
-                                }
-                            } else {
-                                // User has not filled out a form, redirect to create-account.html
-                                console.log("User has not filled out a form, redirecting to create-account.html");
-                                window.location.href = '/create-account.html';
-                            }
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            console.error("Error checking form status:", textStatus, errorThrown);
-                            // On error, default to showing account content
-                            $("#account-content").show();
-                            $("#signin").hide();
-                        }
-                    });
-                });
+                console.log("User is signed in");
+                globalUser = user;
+                
+                // Check if user has a form and redirect if needed
+                checkUserFormAndRedirect();
             } else {
-                // User is not signed in, show sign-in widget
+                console.log("User is signed out");
+                globalUser = null;
+                
+                // Show sign-in widget, hide account content
                 $("#account-content").hide();
                 $("#signin").show();
             }
         });
+        
+        // Add a click handler for any sign-in buttons
+        $("#signin-button").on("click", function() {
+            toggleSignIn();
+        });
     });
-    
-    // Optional function to populate account info from form data
-    function populateAccountInfo(formData) {
-        // Update the page with user-specific information
-        if (formData.name) {
-            $("#user-name").text(formData.name);
-        }
-        if (formData.team) {
-            $("#user-team").text(formData.team);
-        }
-        // Add other fields as needed
-    }
 </script>
 
 <!-- Begin License Section -->
