@@ -150,14 +150,13 @@ title: Account Management - Eagle Eyes
 </div>
 
 <!-- Keep this sign-in overlay in account.html -->
-<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
-    <div style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000;">
+    <div style="position: relative; width: 100%; height: 100%;">
         {% include signinwidget-main.html %}
     </div>
 </div>
 
 <script>
-    // Wait for DOM to load
     document.addEventListener('DOMContentLoaded', function() {
         const signinButtonSection = document.getElementById('signinButtonSection');
         const accountContent = document.getElementById('accountContent');
@@ -165,6 +164,9 @@ title: Account Management - Eagle Eyes
         const signOutContainer = document.getElementById('signOutContainer');
         const signOutButton = document.getElementById('signOutButton');
 
+        // Show sign-in button by default until we confirm a user is signed in
+        signinButtonSection.style.display = 'block';
+        
         // Listen for auth state changes
         document.addEventListener('authStateChanged', function(e) {
             const user = e.detail.user;
@@ -297,202 +299,4 @@ title: Account Management - Eagle Eyes
                                 <td>${releaseDate}</td>
                                 <td><a href="${downloadUrl}" class="download-link" onclick="trackDownload('scan', '${fileName}')">Download</a></td>
                             </tr>
-                        `;
-                    } catch (error) {
-                        console.error(`Error processing scan file ${file}:`, error);
-                        scanDownloads.innerHTML = '<tr><td colspan="4" style="text-align: center;">Error loading downloads. Please try again later.</td></tr>';
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error in fetchAvailableDownloads:', error);
-            document.getElementById('pilotDownloads').innerHTML = '<tr><td colspan="4" style="text-align: center;">Error loading downloads. Please try again later.</td></tr>';
-            document.getElementById('scanDownloads').innerHTML = '<tr><td colspan="4" style="text-align: center;">Error loading downloads. Please try again later.</td></tr>';
-        }
-    }
-
-    async function listFilesInDirectory(directory) {
-        const user = firebase.auth().currentUser;
-        
-        if (!user) {
-            console.error('No user logged in when trying to list files');
-            return [];
-        }
-
-        try {
-            const idToken = await user.getIdToken(true);
-            console.log(`Fetching files from directory: ${directory}`);
-            
-            const hostURL = window.getHostUrl();
-            console.log('Using host URL:', hostURL);
-            
-            const response = await fetch(`${hostURL}/list_files?directory=${directory}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                mode: 'cors',
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Failed to list files:', response.status, response.statusText, errorText);
-                throw new Error(`Failed to list files: ${errorText}`);
-            }
-            
-            const data = await response.json();
-            console.log(`Files found in ${directory}:`, data.files);
-            return data.files || [];
-        } catch (error) {
-            console.error(`Error listing files in ${directory}:`, error);
-            return [];
-        }
-    }
-
-    async function generateDownloadLink(filePath, user) {
-        if (!user) {
-            console.error('No user logged in when trying to generate download link');
-            throw new Error('No user logged in');
-        }
-
-        try {
-            const idToken = await user.getIdToken(true);
-            console.log('Generating download link for:', filePath);
-            
-            const hostURL = window.getHostUrl();
-            const response = await fetch(`${hostURL}/generate_download_link?filePath=${filePath}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${idToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                mode: 'cors',
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    form_data: {
-                        email: user.email,
-                        name: user.displayName || '',
-                    }
-                })
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Failed to generate download link:', response.status, response.statusText, errorText);
-                throw new Error(`Failed to generate download link: ${errorText}`);
-            }
-            
-            const data = await response.json();
-            console.log('Generated download link:', data.url);
-            return data.url;
-        } catch (error) {
-            console.error('Error generating download link:', error);
-            throw error;
-        }
-    }
-
-    function trackDownload(type, filename) {
-        // Track download event
-        fathom.trackEvent(`download_${type}`, {
-            _value: 0,
-            download: filename
-        });
-        hj('event', `download_${type}`);
-    }
-
-    function getIsEmulatorFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('is_emulator') === 'true';
-    }
-
-    // Function to trigger the overlay sign-in
-    function triggerSignInOverlay() {
-        // This should use the same mechanism that the navbar sign-in button uses
-        // If there's a global function or event, call it here
-        if (typeof showSignInOverlay === 'function') {
-            showSignInOverlay();
-        } else if (typeof openSignInModal === 'function') {
-            openSignInModal();
-        } else {
-            // Fallback: dispatch a custom event that the navbar might be listening for
-            document.dispatchEvent(new CustomEvent('openSignInOverlay'));
-            
-            // If all else fails, try to click the navbar sign-in button programmatically
-            const navSignInButton = document.querySelector('.nav-signin-button, .signin-button, #navSignInButton');
-            if (navSignInButton) {
-                navSignInButton.click();
-            } else {
-                console.error('Could not find a way to trigger the sign-in overlay. Please check your implementation.');
-            }
-        }
-    }
-
-    function toggleSignIn() {
-        const overlay = document.getElementById('signin-overlay');
-        overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
-        document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
-    }
-
-    // Optional function to populate account info from form data
-    function populateAccountInfo(formData) {
-        // Update the page with user-specific information
-        if (formData.name) {
-            $("#user-name").text(formData.name);
-        }
-        if (formData.team) {
-            $("#user-team").text(formData.team);
-        }
-        // Add other fields as needed
-    }
-
-    function checkUserStatus(user) {
-        // Get the host URL for API calls
-        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        const fetch_url = hostURL + '/has_user_already_filled_in_form';
-        
-        user.getIdToken(true).then(function(idToken) {
-            $.ajax({
-                url: fetch_url,
-                type: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function(data) {
-                    console.log("Got reply from has_user_already_filled_in_form:", data);
-                    
-                    // Parse the response if it's a string
-                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-                    const formOrNull = parsedData.form;
-                    
-                    if (formOrNull === null) {
-                        // User has not filled in the form yet - redirect
-                        console.log('User did not fill in form yet, redirecting to create-account');
-                        window.location.href = 'create-account.html';
-                    } else {
-                        // User has already filled in the form - show account page
-                        console.log("User already filled in form, showing account page");
-                        $("#accountContent").show();
-                        console.log("Account content display style is now:", document.getElementById('accountContent').style.display);
-                        
-                        // Fetch and display licenses and downloads
-                        fetchAvailableDownloads();
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error checking form status:", textStatus, errorThrown);
-                    // On error, default to showing the sign-in button
-                    $("#signinButtonSection").show();
-                }
-            });
-        }).catch(function(error) {
-            console.error("Error getting ID token:", error);
-        });
-    }
-</script>
-
-</body>
-
+                        `
