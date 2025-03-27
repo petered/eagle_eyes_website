@@ -2,6 +2,65 @@
 layout: main
 title: Account Management - Eagle Eyes
 ---
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    .table th {
+        text-align: left;
+        padding: 12px;
+        font-weight: 500;
+        color: #666;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+    }
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+    }
+    .table tr:last-child td {
+        border-bottom: none;
+    }
+    .table tr:hover td {
+        background-color: #f9f9f9;
+    }
+    .loading-spinner {
+        text-align: center;
+        padding: 20px;
+    }
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    h4 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+    .download-link {
+        color: #1e90ff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .download-link:hover {
+        text-decoration: underline;
+    }
+    .table th:nth-child(1) { width: 40%; }  /* Platform - wider to fit text */
+    .table th:nth-child(2) { width: 18%; }  /* Version - slightly narrower */
+    .table th:nth-child(3) { width: 22%; }  /* Release Date - slightly narrower */
+    .table th:nth-child(4) { width: 20%; }  /* Download - slightly narrower */
+</style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
     <div class="row">
@@ -19,7 +78,7 @@ title: Account Management - Eagle Eyes
     </div>
 </div>
 
-<div class="section-block" style="padding-top: 20px;">
+<div class="section-block" id="downloads" style="padding-top: 20px;" hidden>
     <div class="row">
         <div class="column width-8 offset-2">
             <!-- Sign in button (will trigger overlay) -->
@@ -90,65 +149,47 @@ title: Account Management - Eagle Eyes
     </div>
 </div>
 
-<style>
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
-    }
-    .table th {
-        text-align: left;
-        padding: 12px;
-        font-weight: 500;
-        color: #666;
-        border-bottom: 1px solid #eee;
-        font-size: 16px;
-    }
-    .table td {
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-        font-size: 15px;
-    }
-    .table tr:last-child td {
-        border-bottom: none;
-    }
-    .table tr:hover td {
-        background-color: #f9f9f9;
-    }
-    .loading-spinner {
-        text-align: center;
-        padding: 20px;
-    }
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #000;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto;
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    h4 {
-        margin-bottom: 15px;
-        color: #333;
-    }
-    .download-link {
-        color: #1e90ff;
-        text-decoration: none;
-        font-weight: 500;
-    }
-    .download-link:hover {
-        text-decoration: underline;
-    }
-    .table th:nth-child(1) { width: 40%; }  /* Platform - wider to fit text */
-    .table th:nth-child(2) { width: 18%; }  /* Version - slightly narrower */
-    .table th:nth-child(3) { width: 22%; }  /* Release Date - slightly narrower */
-    .table th:nth-child(4) { width: 20%; }  /* Download - slightly narrower */
-</style>
+<!-- Begin License Section -->
+<section id="licenses" hidden>
+    <h2>Select an Existing License</h2>
+    <div class="container">
+        <div class="box license-box">
+            <div class="input-label">
+                Use a license already connected to your account:
+            </div>
+            <select id="license-select">
+                <!-- Options will be dynamically populated by JavaScript -->
+            </select>
+            <textarea id="license-info" class="license-info-box" placeholder="" readonly></textarea>
+            <div class="button-container">
+                <button id="selectLicenseButton" onclick="selectLicense()">Select License</button>
+            </div>
+            <div id="select-license-info" class="info-box" hidden></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="box">
+            <div class="input-label">
+                ... Or enter a License ID to connect to your account:
+                <span class="tooltip">ℹ️
+                    <span class="tooltiptext">If your organisation has a license available, you can attach it to your account by entering the license ID below.</span>
+                </span>
+            </div>
+            <input type="text" id="license-id" placeholder="(e.g. jI9Y9kg8oK3w2yf2)" style="width: 100%;">
+            <div class="button-group">
+                <button onclick="reCheckLicense()" id="re-check-button" class="non_important_button">Re-check</button>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- End License Section -->
+
+<!-- Keep this sign-in overlay in account.html -->
+<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+    <div style="position: relative; width: 100%; height: 100%;">
+        {% include signinwidget-main.html %}
+        <button onclick="toggleSignIn()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+    </div>
+</div>
 
 <script>
     // Wait for DOM to load
@@ -163,15 +204,20 @@ title: Account Management - Eagle Eyes
         document.addEventListener('authStateChanged', function(e) {
             const user = e.detail.user;
             if (user) {
+                
                 // User is signed in
                 signinButtonSection.style.display = 'none';
-                accountContent.style.display = 'block';
                 userEmail.textContent = `Logged in as: ${user.email}`;
-                signOutContainer.style.display = 'block'; // Show the sign-out button
+                signOutContainer.style.display = 'block';
                 
-                // Fetch and display licenses and downloads
-                fetchLicenses(user.uid);
-                fetchAvailableDownloads();
+                // Don't immediately check or show form - let signinwidget handle redirects
+                // We'll only display forms if we know we need to stay on this page
+                hangOnMessage.style.display = 'block';
+                setTimeout(function() {
+                    // If we're still on this page after a short delay,
+                    // the user probably needs to fill this form
+                    checkExistingForm(user);
+                }, 200);
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
@@ -499,49 +545,64 @@ title: Account Management - Eagle Eyes
         }
         // Add other fields as needed
     }
+
+    function checkExistingForm(user) {
+        const hangOnMessage = document.getElementById('hang-on-message');
+        
+        hangOnMessage.style.display = 'block';
+        
+        // Get the host URL for API calls
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        const fetch_url = hostURL + '/has_user_already_filled_in_form';
+        
+        user.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    hangOnMessage.style.display = 'none';
+                    
+                    console.log("Got reply from has_user_already_filled_in_form:", data);
+                    
+                    // Parse the response if it's a string
+                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                    const formOrNull = parsedData.form;
+                    
+                    if (formOrNull === null) {
+                        // User has not filled in the form yet
+                        console.log('User did not fill in form yet.');
+                        formContainer.style.display = 'block';
+                        console.log("Redirecting to create-account.html");
+                        window.location.href = 'create-account.html';
+                    } else {
+                        // User has already filled in the form
+                        console.log("User already filled in form.");
+                        // Fetch and display licenses and downloads
+                        fetchLicenses(user.uid);
+                        fetchAvailableDownloads();
+                        // User has already filled a form - should be on account.html
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    hangOnMessage.style.display = 'none';
+                    console.error("Error checking form:", textStatus, errorThrown, jqXHR.responseText);
+                    
+                    // Show the form anyway on error
+                    formContainer.style.display = 'block';
+                }
+            });
+        }).catch(function(error) {
+            hangOnMessage.style.display = 'none';
+            console.error("Error getting ID token:", error);
+            
+            // Show the form anyway on error
+            formContainer.style.display = 'block';
+        });
+    }
 </script>
-
-<!-- Begin License Section -->
-<section id="licenses" hidden>
-    <h2>Select an Existing License</h2>
-    <div class="container">
-        <div class="box license-box">
-            <div class="input-label">
-                Use a license already connected to your account:
-            </div>
-            <select id="license-select">
-                <!-- Options will be dynamically populated by JavaScript -->
-            </select>
-            <textarea id="license-info" class="license-info-box" placeholder="" readonly></textarea>
-            <div class="button-container">
-                <button id="selectLicenseButton" onclick="selectLicense()">Select License</button>
-            </div>
-            <div id="select-license-info" class="info-box" hidden></div>
-        </div>
-        <div class="spacer"></div>
-        <div class="box">
-            <div class="input-label">
-                ... Or enter a License ID to connect to your account:
-                <span class="tooltip">ℹ️
-                    <span class="tooltiptext">If your organisation has a license available, you can attach it to your account by entering the license ID below.</span>
-                </span>
-            </div>
-            <input type="text" id="license-id" placeholder="(e.g. jI9Y9kg8oK3w2yf2)" style="width: 100%;">
-            <div class="button-group">
-                <button onclick="reCheckLicense()" id="re-check-button" class="non_important_button">Re-check</button>
-            </div>
-        </div>
-    </div>
-</section>
-<!-- End License Section -->
-
-<!-- Keep this sign-in overlay in account.html -->
-<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
-    <div style="position: relative; width: 100%; height: 100%;">
-        {% include signinwidget-main.html %}
-        <button onclick="toggleSignIn()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
-    </div>
-</div>
 
 </body>
 
