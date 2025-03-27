@@ -44,10 +44,10 @@ title: Create an Account - Eagle Eyes
                 <div class="box-content">
                     <div class="row">
                         <div class="column width-12">
-                            <h3 class="mb-30">Register for a 30-day trial</h3>
-                            <p>Please complete this form to receive a 30-day trial for the Eagle Eyes Scan SAR license. Although it may take up to 3 business days, new requests are usually processed within 24 hours.</p>
+                            <h3 class="mb-30"></h3>
+                            <p style="text-align: center;">Please take a minute to share a few details and create your account.</p>
                             
-                            {% include account-questions.html form_type="trial" %}
+                            {% include account-questions.html %}
                             
                             <div id="submit-container" style="margin-top: 30px; text-align: center;">
                                 <button id="submitButton" onclick="submitTrialForm()" type="submit" class="button">Submit</button>
@@ -273,24 +273,18 @@ title: Create an Account - Eagle Eyes
     }
     
     function submitTrialForm() {
-        // Validate the form
         if (!validateForm()) {
-            document.getElementById('status').style.display = 'block';
-            return;
+            console.log("Form validation failed");
+            $("#status").html("Please complete all required fields").show();
+            return false;
         }
-        
-        // Hide any previous status messages
-        document.getElementById('status').style.display = 'none';
-        
+
         // Add "processing" class to the submit button
-        const submitButton = document.getElementById('submitButton');
-        submitButton.classList.add('processing');
-        submitButton.disabled = true;
+        $("#submitButton").addClass('processing');
         
-        // Pack the form data into an object
-        const formData = {};
-        const formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-        
+        // Get form data
+        var formData = {};
+        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
         formInputs.forEach(function(input) {
             if (input.type === 'checkbox') {
                 formData[input.name] = input.checked ? 'yes' : 'no';
@@ -302,35 +296,20 @@ title: Create an Account - Eagle Eyes
                 formData[input.name] = input.value;
             }
         });
-        
-        // Remove empty keys or invalid entries
+
+        // Remove empty fields
         for (var key in formData) {
-            if (formData[key] === null || formData[key] === undefined || (typeof formData[key] === 'string' && formData[key].trim() === "")) {
+            if (formData[key] === null || formData[key] === undefined || formData[key].trim === '' || formData[key] === '') {
                 delete formData[key];
             }
         }
-        
-        // Add trial request flag
-        formData['trial_request'] = true;
-        
-        // Submit the form data
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('No user is signed in');
-            submitButton.classList.remove('processing');
-            submitButton.disabled = false;
-            return;
-        }
-        
-        // Get the host URL for API calls
-        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        const fetch_url = hostURL + '/submit_register_form';
-        
+
         console.log("Submitting form data:", formData);
-        
-        user.getIdToken(true).then(function(idToken) {
+
+        // Submit the form to the server
+        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
             $.ajax({
-                url: fetch_url,
+                url: hostURL + '/submit_register_form',
                 data: JSON.stringify(formData),
                 type: 'POST',
                 contentType: 'application/json',
@@ -338,38 +317,29 @@ title: Create an Account - Eagle Eyes
                     'Authorization': 'Bearer ' + idToken
                 },
                 success: function(data) {
-                    console.log("Form submitted successfully:", data);
+                    console.log("Form submission successful:", data);
                     
-                    // Remove processing state
-                    submitButton.classList.remove('processing');
-                    submitButton.disabled = false;
+                    // Remove processing class
+                    $("#submitButton").removeClass('processing');
                     
-                    // Hide the form and show success message
-                    document.getElementById('form-container').style.display = 'none';
-                    document.getElementById('post-form').style.display = 'block';
+                    // Show success message
+                    $("#status").html("Form submitted successfully! Redirecting...").css("color", "green").show();
+                    
+                    // Redirect to account.html after successful submission
+                    setTimeout(function() {
+                        window.location.href = '/account.html';
+                    }, 1500);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error submitting form:", textStatus, errorThrown, jqXHR.responseText);
-                    
-                    // Remove processing state
-                    submitButton.classList.remove('processing');
-                    submitButton.disabled = false;
-                    
-                    // Show error message
-                    document.getElementById('status').textContent = "Error submitting form. Please try again.";
-                    document.getElementById('status').style.display = 'block';
+                    console.error("Error submitting form:", textStatus, errorThrown);
+                    $("#submitButton").removeClass('processing');
+                    $("#status").html("Error submitting form. Please try again.").css("color", "red").show();
                 }
             });
         }).catch(function(error) {
             console.error("Error getting ID token:", error);
-            
-            // Remove processing state
-            submitButton.classList.remove('processing');
-            submitButton.disabled = false;
-            
-            // Show error message
-            document.getElementById('status').textContent = "Authentication error. Please try signing in again.";
-            document.getElementById('status').style.display = 'block';
+            $("#submitButton").removeClass('processing');
+            $("#status").html("Authentication error. Please sign in again.").css("color", "red").show();
         });
     }
     
@@ -421,4 +391,68 @@ title: Create an Account - Eagle Eyes
         
         return isValid;
     }
+
+    // Function to check if user has a form and redirect if needed
+    function checkUserFormAndRedirect() {
+        if (!firebase.auth().currentUser) return;
+        
+        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: hostURL + '/has_user_already_filled_in_form',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    console.log("Got reply from has_user_already_filled_in_form:", data);
+                    
+                    let response;
+                    try {
+                        response = typeof data === 'string' ? JSON.parse(data) : data;
+                    } catch (e) {
+                        console.error("Error parsing response:", e);
+                        response = { form: null };
+                    }
+                    
+                    // Check if form exists
+                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
+                    
+                    if (hasFilledForm) {
+                        console.log("User already filled in form.");
+                        // Important: Add a timeout to ensure the redirect happens
+                        setTimeout(function() {
+                            window.location.href = '/account.html';
+                        }, 100);
+                    } else {
+                        console.log("User has not filled out a form, showing form");
+                        // Show the form since user hasn't filled it out
+                        $("#form-container").show();
+                        $("#signin").hide();
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error checking form status:", textStatus, errorThrown);
+                    // Default to showing the form
+                    $("#form-container").show();
+                    $("#signin").hide();
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token:", error);
+        });
+    }
+
+    // Run on page load and when authentication state changes
+    $(document).ready(function() {
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                // Check if user should be redirected
+                checkUserFormAndRedirect();
+            } else {
+                // Show sign-in widget
+                $("#form-container").hide();
+                $("#signin").show();
+            }
+        });
+    });
 </script>
