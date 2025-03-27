@@ -118,151 +118,82 @@ title: Create an Account - Eagle Eyes
     }
 </style>
 
+<!-- Make sure both pages include jQuery and Firebase first -->
+
+<!-- Add the common auth script -->
+<script src="path/to/auth-navigation.js"></script>
+
+<!-- Additional page-specific JavaScript -->
 <script>
-    // Flag to track if we've completed our initial auth check
-    let authCheckComplete = false;
-    
-    // Function to ensure UI is in a consistent state
-    function ensureUIState() {
-        const user = firebase.auth().currentUser;
-        
-        if (!authCheckComplete) {
-            // We're still checking auth, show loading state
-            $("#page-loading").show();
-            $("#signin").hide();
-            $("#form-container").hide();
-        } else if (!user) {
-            // User is definitely not signed in
-            $("#page-loading").hide();
-            $("#signin").show();
-            $("#form-container").hide();
+    // Form submission function
+    function submitTrialForm() {
+        if (!validateForm()) {
+            console.log("Form validation failed");
+            $("#status").html("Please complete all required fields").show();
+            return false;
         }
-        // If user is signed in, the checkUserFormAndRedirect function will handle UI state
-    }
-    
-    // Check user form status and redirect if needed
-    function checkUserFormAndRedirect() {
-        if (!firebase.auth().currentUser) {
-            $("#page-loading").hide();
-            $("#form-container").hide();
-            $("#signin").show();
-            authCheckComplete = true;
-            return;
+
+        // Add "processing" class to the submit button
+        $("#submitButton").addClass('processing');
+        
+        // Get form data
+        var formData = {};
+        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+        formInputs.forEach(function(input) {
+            if (input.type === 'checkbox') {
+                formData[input.name] = input.checked ? 'yes' : 'no';
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    formData[input.name] = input.value;
+                }
+            } else {
+                formData[input.name] = input.value;
+            }
+        });
+
+        // Clean up form data
+        for (var key in formData) {
+            if (formData[key] === null || formData[key] === undefined || 
+                (typeof formData[key] === 'string' && formData[key].trim() === '')) {
+                delete formData[key];
+            }
         }
-        
-        // Check if we just came from account.html to avoid redirect loop
-        const cameFromAccount = sessionStorage.getItem('redirecting_from_account') === 'true';
-        if (cameFromAccount) {
-            // Clear the flag
-            sessionStorage.removeItem('redirecting_from_account');
-            console.log("Coming from account.html, showing form without checking");
-            $("#page-loading").hide();
-            $("#form-container").show();
-            $("#signin").hide();
-            authCheckComplete = true;
-            return;
-        }
-        
-        // Still checking
-        $("#page-loading").show();
-        $("#form-container").hide();
-        $("#signin").hide();
-        
+
+        // Submit the form
         firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
             $.ajax({
-                url: hostURL + '/has_user_already_filled_in_form',
-                type: 'GET',
+                url: hostURL + '/submit_register_form',
+                data: JSON.stringify(formData),
+                type: 'POST',
+                contentType: 'application/json',
                 headers: {
                     'Authorization': 'Bearer ' + idToken
                 },
                 success: function(data) {
-                    console.log("Got reply from has_user_already_filled_in_form:", data);
-                    authCheckComplete = true;
+                    console.log("Form submission successful");
+                    $("#submitButton").removeClass('processing');
+                    $("#status").html("Form submitted successfully! Redirecting...").css("color", "green").show();
                     
-                    let response;
-                    try {
-                        response = typeof data === 'string' ? JSON.parse(data) : data;
-                    } catch (e) {
-                        console.error("Error parsing response:", e);
-                        response = { form: null };
-                    }
-                    
-                    // Check if form exists
-                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
-                    const basePath = getBasePath();
-                    
-                    if (hasFilledForm) {
-                        console.log("User already filled in form, redirecting to account.html");
-                        // Set a session flag before redirecting
-                        sessionStorage.setItem('redirecting_from_create_account', 'true');
-                        window.location.href = basePath + 'account.html';
-                    } else {
-                        console.log("User has not filled out a form, showing form");
-                        $("#page-loading").hide();
-                        $("#form-container").show();
-                        $("#signin").hide();
-                    }
+                    // Redirect to account page
+                    setTimeout(function() {
+                        window.location.href = getBasePath() + 'account.html';
+                    }, 1000);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error checking form status:", textStatus, errorThrown);
-                    authCheckComplete = true;
-                    $("#page-loading").hide();
-                    $("#form-container").show();
-                    $("#signin").hide();
+                    console.error("Error submitting form:", textStatus, errorThrown);
+                    $("#submitButton").removeClass('processing');
+                    $("#status").html("Error submitting form. Please try again.").css("color", "red").show();
                 }
             });
         }).catch(function(error) {
             console.error("Error getting ID token:", error);
-            authCheckComplete = true;
-            $("#page-loading").hide();
-            $("#form-container").hide();
-            $("#signin").show();
+            $("#submitButton").removeClass('processing');
+            $("#status").html("Authentication error. Please sign in again.").css("color", "red").show();
         });
     }
-
-    // Initialize page
-    $(document).ready(function() {
-        // Add a loading state to the HTML
-        if ($("#page-loading").length === 0) {
-            $(".column.width-8.offset-2").prepend('<div id="page-loading" style="text-align: center; padding: 40px;"><p>Loading...</p></div>');
-        }
-        
-        // Start with the loading state
-        $("#page-loading").show();
-        $("#signin").hide();
-        $("#form-container").hide();
-        
-        // Add a safety timeout to ensure something is shown
-        setTimeout(function() {
-            if (!authCheckComplete) {
-                console.log("Auth check taking too long, showing sign-in form");
-                $("#page-loading").hide();
-                $("#signin").show();
-            }
-        }, 5000); // 5 second timeout as a fallback
-        
-        // Listen for auth state
-        firebase.auth().onAuthStateChanged(function(user) {
-            if (user) {
-                console.log("User is signed in");
-                globalUser = user;
-                checkUserFormAndRedirect();
-            } else {
-                console.log("User is signed out");
-                globalUser = null;
-                authCheckComplete = true;
-                $("#page-loading").hide();
-                $("#form-container").hide();
-                $("#signin").show();
-            }
-        });
-        
-        // Ensure UI is in a consistent state if we navigate back to this page
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                console.log("Page loaded from cache (back/forward navigation)");
-                ensureUIState();
-            }
-        });
-    });
+    
+    // Sign-in button handler
+    function handleSignIn() {
+        toggleSignIn();
+    }
 </script>
