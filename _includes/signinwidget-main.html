@@ -396,23 +396,19 @@
         }
     }
 
-    // Function for sign-in button
+    // Simplified toggleSignIn function: just toggles the visibility of the sign-in overlay.
     function toggleSignIn() {
-        if (firebase.auth().currentUser) {
-            // Sign out
-            firebase.auth().signOut().then(function() {
-                console.log("Sign-out successful");
-            }).catch(function(error) {
-                console.error("Sign-out error:", error);
-            });
+        const overlay = document.getElementById('signin-overlay');
+        if(!overlay) {
+            console.error('Sign-in overlay element not found!');
+            return;
+        }
+        if (overlay.style.display === 'none' || overlay.style.display === '') {
+            overlay.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         } else {
-            // Sign in
-            const provider = new firebase.auth.GoogleAuthProvider();
-            firebase.auth().signInWithPopup(provider).then(function(result) {
-                console.log("Sign-in successful");
-            }).catch(function(error) {
-                console.error("Sign-in error:", error);
-            });
+            overlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
     }
 </script> 
