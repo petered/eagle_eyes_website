@@ -83,7 +83,7 @@ title: Account Management - Eagle Eyes
         <div class="column width-8 offset-2">
             <!-- Sign in button (will trigger overlay) -->
             <div id="signinButtonSection" style="display: none; text-align: center; margin-bottom: 40px;">
-                <p style="margin-bottom: 20px;">Sign in to access your account, downloads, and licenses.</p>
+                <p style="margin-bottom: 20px;">Sign in to access your downloads.</p>
                 <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
             </div>
 
@@ -181,7 +181,6 @@ title: Account Management - Eagle Eyes
                 // User is signed out
                 signinButtonSection.style.display = 'block';
                 accountContent.style.display = 'none';
-                $("#licenses").hide();
                 userEmail.textContent = '';
                 signOutContainer.style.display = 'none';
             }
@@ -194,7 +193,6 @@ title: Account Management - Eagle Eyes
             accountContent.style.display = 'block';
             userEmail.textContent = `Logged in as: ${user.email}`;
             signOutContainer.style.display = 'block'; // Show the sign-out button
-            fetchLicenses(user.uid);
             fetchAvailableDownloads();
         }
 
@@ -216,52 +214,14 @@ title: Account Management - Eagle Eyes
             });
         }
 
-        // Keep this event handler for backward compatibility
+        // Update the signInComplete event handler
         document.addEventListener('signInComplete', function(e) {
             const user = e.detail.user;
             toggleSignIn(); // Hide the overlay
+            checkUserStatus(user); // Add this line to check form status right after sign-in
         });
     });
 
-    async function fetchLicenses(userId) {
-        const licensesList = document.getElementById('licensesList');
-        const loadingSpinner = document.querySelector('.loading-spinner');
-        
-        try {
-            if (!firebase.firestore) {
-                console.error("Firestore is not available yet. Retrying fetchLicenses...");
-                setTimeout(() => fetchLicenses(userId), 100);
-                return;
-            }
-            loadingSpinner.style.display = 'block';
-            licensesList.innerHTML = '';
-
-            const licensesRef = firebase.firestore().collection('licenses');
-            const snapshot = await licensesRef.where('userId', '==', userId).get();
-
-            if (snapshot.empty) {
-                licensesList.innerHTML = '<p>No licenses found.</p>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const license = doc.data();
-                const licenseElement = document.createElement('div');
-                licenseElement.className = 'license-item';
-                licenseElement.innerHTML = `
-                    <h4>${license.name}</h4>
-                    <p>Expires: ${new Date(license.expirationDate.toDate()).toLocaleDateString()}</p>
-                    <p>Devices: ${license.devices}</p>
-                `;
-                licensesList.appendChild(licenseElement);
-            });
-        } catch (error) {
-            console.error('Error fetching licenses:', error);
-            licensesList.innerHTML = '<p>Error loading licenses. Please try again later.</p>';
-        } finally {
-            loadingSpinner.style.display = 'none';
-        }
-    }
 
     async function fetchAvailableDownloads() {
         try {
@@ -519,10 +479,8 @@ title: Account Management - Eagle Eyes
                         console.log("User already filled in form, showing account page");
                         $("#accountContent").show();
                         console.log("Account content display style is now:", document.getElementById('accountContent').style.display);
-                        $("#licenses").show();
                         
                         // Fetch and display licenses and downloads
-                        fetchLicenses(user.uid);
                         fetchAvailableDownloads();
                     }
                 },
