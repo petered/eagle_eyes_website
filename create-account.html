@@ -284,9 +284,16 @@ title: Create an Account - Eagle Eyes
         return '/';
     }
 
-    // Function to check if user has a form and redirect if needed
     function checkUserFormAndRedirect() {
-        if (!firebase.auth().currentUser) return;
+        if (!firebase.auth().currentUser) {
+            $("#form-container").hide();
+            $("#signin").show();
+            return;
+        }
+        
+        // Hide both containers while checking
+        $("#form-container").hide();
+        $("#signin").hide();
         
         firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
             $.ajax({
@@ -313,10 +320,8 @@ title: Create an Account - Eagle Eyes
                     if (hasFilledForm) {
                         console.log("User already filled in form.");
                         console.log("Redirecting to: " + basePath + "account.html");
-                        // Important: Add a timeout to ensure the redirect happens
-                        setTimeout(function() {
-                            window.location.href = basePath + 'account.html';
-                        }, 100);
+                        // Immediate redirect - no timeout
+                        window.location.href = basePath + 'account.html';
                     } else {
                         console.log("User has not filled out a form, showing form");
                         // Show the form since user hasn't filled it out
@@ -333,6 +338,9 @@ title: Create an Account - Eagle Eyes
             });
         }).catch(function(error) {
             console.error("Error getting ID token:", error);
+            // On error, show sign-in form
+            $("#form-container").hide();
+            $("#signin").show();
         });
     }
 
@@ -458,10 +466,17 @@ title: Create an Account - Eagle Eyes
         return isValid;
     }
 
-    // Run on page load
+    // Initialize page
     $(document).ready(function() {
+        // Set initial state explicitly
+        $("#form-container").hide();
+        $("#signin").show();
+        
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
+                // Immediately hide signin to prevent flashing
+                $("#signin").hide();
+                
                 // Check if user should be redirected
                 checkUserFormAndRedirect();
             } else {

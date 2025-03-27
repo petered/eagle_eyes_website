@@ -22,14 +22,25 @@ title: Account Management - Eagle Eyes
 <div class="section-block" style="padding-top: 20px;">
     <div class="row">
         <div class="column width-8 offset-2">
-            <!-- Sign in button (will trigger overlay) -->
-            <div id="signinButtonSection" style="display: none; text-align: center; margin-bottom: 40px;">
-                <p style="margin-bottom: 20px;">Sign in to access your account, downloads, and licenses.</p>
-                <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
+            <!-- Sign-in section (initially shown, then hidden if user is logged in) -->
+            <div id="signin" style="display: block;">
+                <div class="box rounded xlarge bkg-white shadow">
+                    <div class="box-content">
+                        <div class="row">
+                            <div class="column width-12">
+                                <h3 class="mb-30">Access Your Account</h3>
+                                <p>Sign in to access your account, downloads, and licenses.</p>
+                                <div style="text-align: center; margin-top: 30px;">
+                                    <button id="signin-button" onclick="toggleSignIn()" class="button">Sign In or Create Account</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Account content section -->
-            <div id="accountContent" style="display: none;">
+            <!-- Account content (initially hidden, shown after login if user has a form) -->
+            <div id="account-content" style="display: none;">
                 <div class="box rounded xlarge bkg-white shadow">
                     <div class="box-content">
                         <div class="row">
@@ -85,6 +96,12 @@ title: Account Management - Eagle Eyes
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Loading indicator for transitions -->
+            <div id="loading-indicator" style="display: none; text-align: center; margin: 30px 0;">
+                <p>Loading your account information...</p>
+                <!-- You can add a spinner here if desired -->
             </div>
         </div>
     </div>
@@ -485,7 +502,6 @@ title: Account Management - Eagle Eyes
         return '/';
     }
     
-    // Function to check if user has a form and redirect if needed
     function checkUserFormAndRedirect() {
         console.log("Checking if user has a form...");
         
@@ -495,6 +511,10 @@ title: Account Management - Eagle Eyes
             $("#signin").show();
             return;
         }
+        
+        // Show a visual indication that we're checking
+        $("#signin").hide();
+        $("#account-content").hide();
         
         firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
             $.ajax({
@@ -530,11 +550,9 @@ title: Account Management - Eagle Eyes
                         }
                     } else {
                         console.log("User has NOT filled out a form, redirecting to create-account.html");
-                        // Important: Add a timeout to ensure the redirect happens
                         console.log("Redirecting to: " + basePath + "create-account.html");
-                        setTimeout(function() {
-                            window.location.href = basePath + 'create-account.html';
-                        }, 100);
+                        // Immediate redirect - no timeout
+                        window.location.href = basePath + 'create-account.html';
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -571,10 +589,17 @@ title: Account Management - Eagle Eyes
 
     // When authentication state changes
     $(document).ready(function() {
+        // Set initial state explicitly
+        $("#signin").show();
+        $("#account-content").hide();
+        
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
                 console.log("User is signed in");
                 globalUser = user;
+                
+                // Immediately hide signin to prevent flashing
+                $("#signin").hide();
                 
                 // Check if user has a form and redirect if needed
                 checkUserFormAndRedirect();
@@ -586,11 +611,6 @@ title: Account Management - Eagle Eyes
                 $("#account-content").hide();
                 $("#signin").show();
             }
-        });
-        
-        // Add a click handler for any sign-in buttons
-        $("#signin-button").on("click", function() {
-            toggleSignIn();
         });
     });
 </script>
