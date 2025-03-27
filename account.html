@@ -450,7 +450,9 @@ title: Account Management - Eagle Eyes
     }
 
     function checkUserStatus(user) {
-        // Get the host URL for API calls
+        // Hide account content until check is completed
+        $("#accountContent").hide();
+        
         const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
         const fetch_url = hostURL + '/has_user_already_filled_in_form';
         
@@ -463,22 +465,18 @@ title: Account Management - Eagle Eyes
                 },
                 success: function(data) {
                     console.log("Got reply from has_user_already_filled_in_form:", data);
-                    
                     // Parse the response if it's a string
                     const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
                     const formOrNull = parsedData.form;
                     
                     if (formOrNull === null) {
-                        // User has not filled in the form yet - redirect
+                        // User has not filled in the form yet - redirect to create-account.html
                         console.log('User did not fill in form yet, redirecting to create-account');
                         window.location.href = 'create-account.html';
                     } else {
-                        // User has already filled in the form - show account page
+                        // User has filled in the form - show account content and fetch downloads
                         console.log("User already filled in form, showing account page");
                         $("#accountContent").show();
-                        console.log("Account content display style is now:", document.getElementById('accountContent').style.display);
-                        
-                        // Fetch and display licenses and downloads
                         fetchAvailableDownloads();
                     }
                 },

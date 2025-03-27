@@ -187,13 +187,15 @@ title: Create an Account - Eagle Eyes
         const formContainer = document.getElementById('form-container');
         const hangOnMessage = document.getElementById('hang-on-message');
         const postForm = document.getElementById('post-form');
-        
+
+        // Ensure the form is hidden until we get a result.
+        formContainer.style.display = 'none';
         hangOnMessage.style.display = 'block';
-        
+
         // Get the host URL for API calls
         const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
         const fetch_url = hostURL + '/has_user_already_filled_in_form';
-        
+
         user.getIdToken(true).then(function(idToken) {
             $.ajax({
                 url: fetch_url,
@@ -205,20 +207,17 @@ title: Create an Account - Eagle Eyes
                     hangOnMessage.style.display = 'none';
                     
                     console.log("Got reply from has_user_already_filled_in_form:", data);
-                    
                     // Parse the response if it's a string
                     const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
                     const formOrNull = parsedData.form;
                     
                     if (formOrNull === null) {
-                        // User has not filled in the form yet
+                        // User has not filled in the form yet: show the form now.
                         console.log('User did not fill in form yet.');
                         formContainer.style.display = 'block';
                     } else {
-                        // User has already filled in the form
-                        console.log("User already filled in form.");
-                        // User has already filled a form - should be on account.html
-                        console.log("Redirecting to account.html");
+                        // User has already filled in the form: redirect to account.html.
+                        console.log("User already filled in form. Redirecting to account.html");
                         window.location.href = 'account.html';
                     }
                 },
@@ -226,15 +225,14 @@ title: Create an Account - Eagle Eyes
                     hangOnMessage.style.display = 'none';
                     console.error("Error checking form:", textStatus, errorThrown, jqXHR.responseText);
                     
-                    // Show the form anyway on error
+                    // On error, show the form anyway.
                     formContainer.style.display = 'block';
                 }
             });
         }).catch(function(error) {
             hangOnMessage.style.display = 'none';
             console.error("Error getting ID token:", error);
-            
-            // Show the form anyway on error
+            // On error, show the form anyway.
             formContainer.style.display = 'block';
         });
     }
