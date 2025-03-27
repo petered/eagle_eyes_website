@@ -26,7 +26,7 @@ title: Create an Account - Eagle Eyes
             {% include form_styling.html %}
             
             <!-- Sign in button (will trigger overlay) -->
-            <div id="signinButtonSection" style="display: block; text-align: center; margin-bottom: 40px;">
+            <div id="signinButtonSection" style="text-align: center; margin-bottom: 40px;">
                 <p style="margin-bottom: 20px;">Sign in to create your account and start your free trial.</p>
                 <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
             </div>
@@ -125,6 +125,32 @@ title: Create an Account - Eagle Eyes
 
 <!-- Additional page-specific JavaScript -->
 <script>
+    // Simple function to check auth state when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Always check auth state on page load, regardless of navigation history
+        const user = firebase.auth().currentUser;
+        if (user) {
+            // User is signed in - hide sign in, show form
+            document.getElementById('signinButtonSection').style.display = 'none';
+            document.getElementById('form-container').style.display = 'block';
+        } else {
+            // User is NOT signed in - show sign in, hide form
+            document.getElementById('signinButtonSection').style.display = 'block';
+            document.getElementById('form-container').style.display = 'none';
+        }
+        
+        // Also set up listener for auth state changes
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                document.getElementById('signinButtonSection').style.display = 'none';
+                document.getElementById('form-container').style.display = 'block';
+            } else {
+                document.getElementById('signinButtonSection').style.display = 'block';
+                document.getElementById('form-container').style.display = 'none';
+            }
+        });
+    });
+    
     // Form submission function
     function submitTrialForm() {
         if (!validateForm()) {
