@@ -137,8 +137,14 @@ title: Create an Account - Eagle Eyes
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 signOutContainer.style.display = 'block';
                 
-                // Check if this user has already submitted a form
-                checkExistingForm(user);
+                // Don't immediately check or show form - let signinwidget handle redirects
+                // We'll only display forms if we know we need to stay on this page
+                hangOnMessage.style.display = 'block';
+                setTimeout(function() {
+                    // If we're still on this page after a short delay,
+                    // the user probably needs to fill this form
+                    checkExistingForm(user);
+                }, 200);
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
@@ -149,19 +155,6 @@ title: Create an Account - Eagle Eyes
                 signOutContainer.style.display = 'none';
             }
         });
-        
-        // Initial auth state check
-        const currentUser = firebase.auth().currentUser;
-        if (currentUser) {
-            signinButtonSection.style.display = 'none';
-            userEmail.textContent = `Logged in as: ${currentUser.email}`;
-            signOutContainer.style.display = 'block';
-            
-            // Check if this user has already submitted a form
-            checkExistingForm(currentUser);
-        } else {
-            signinButtonSection.style.display = 'block';
-        }
         
         // Handle the signInComplete event
         document.addEventListener('signInComplete', function(e) {
@@ -392,18 +385,18 @@ title: Create an Account - Eagle Eyes
         return isValid;
     }
 
-    // Update the document.ready function
-    $(document).ready(function() {
-        firebase.auth().onAuthStateChanged(function(user) {
-            if (user) {
-                // No redirect logic here - just update the UI
-                $("#form-container").show();
-                $("#signin").hide();
-            } else {
-                // Show sign-in widget
-                $("#form-container").hide();
-                $("#signin").show();
-            }
-        });
-    });
+    // // Update the document.ready function
+    // $(document).ready(function() {
+    //     firebase.auth().onAuthStateChanged(function(user) {
+    //         if (user) {
+    //             // No redirect logic here - just update the UI
+    //             $("#form-container").show();
+    //             $("#signin").hide();
+    //         } else {
+    //             // Show sign-in widget
+    //             $("#form-container").hide();
+    //             $("#signin").show();
+    //         }
+    //     });
+    // });
 </script>
