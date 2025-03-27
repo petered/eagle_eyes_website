@@ -477,48 +477,11 @@ title: Account Management - Eagle Eyes
     $(document).ready(function() {
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
-                // User is signed in, check if they should be on this page
-                user.getIdToken(true).then(function(idToken) {
-                    $.ajax({
-                        url: hostURL + '/has_user_already_filled_in_form',
-                        type: 'GET',
-                        headers: {
-                            'Authorization': 'Bearer ' + idToken
-                        },
-                        success: function(data) {
-                            let response;
-                            try {
-                                response = typeof data === 'string' ? JSON.parse(data) : data;
-                            } catch (e) {
-                                console.error("Error parsing response:", e);
-                                response = { form: null };
-                            }
-                            
-                            if (response.form) {
-                                // User has already filled a form, show account content
-                                $("#account-content").show();
-                                $("#signin").hide();
-                                
-                                // Populate any account information from the form data
-                                if (typeof populateAccountInfo === 'function') {
-                                    populateAccountInfo(response.form);
-                                }
-                            } else {
-                                // User has not filled out a form, redirect to create-account.html
-                                console.log("User has not filled out a form, redirecting to create-account.html");
-                                window.location.href = '/create-account.html';
-                            }
-                        },
-                        error: function(jqXHR, textStatus, errorThrown) {
-                            console.error("Error checking form status:", textStatus, errorThrown);
-                            // On error, default to showing account content
-                            $("#account-content").show();
-                            $("#signin").hide();
-                        }
-                    });
-                });
+                // No redirect logic here - just update the UI
+                $("#account-content").show();
+                $("#signin").hide();
             } else {
-                // User is not signed in, show sign-in widget
+                // Show sign-in widget
                 $("#account-content").hide();
                 $("#signin").show();
             }

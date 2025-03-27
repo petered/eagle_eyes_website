@@ -392,62 +392,13 @@ title: Create an Account - Eagle Eyes
         return isValid;
     }
 
-    // Function to check if user has a form and redirect if needed
-    function checkUserFormAndRedirect() {
-        if (!firebase.auth().currentUser) return;
-        
-        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
-            $.ajax({
-                url: hostURL + '/has_user_already_filled_in_form',
-                type: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function(data) {
-                    console.log("Got reply from has_user_already_filled_in_form:", data);
-                    
-                    let response;
-                    try {
-                        response = typeof data === 'string' ? JSON.parse(data) : data;
-                    } catch (e) {
-                        console.error("Error parsing response:", e);
-                        response = { form: null };
-                    }
-                    
-                    // Check if form exists
-                    const hasFilledForm = response.form && Object.keys(response.form).length > 0;
-                    
-                    if (hasFilledForm) {
-                        console.log("User already filled in form.");
-                        // Important: Add a timeout to ensure the redirect happens
-                        setTimeout(function() {
-                            window.location.href = 'account.html';
-                        }, 100);
-                    } else {
-                        console.log("User has not filled out a form, showing form");
-                        // Show the form since user hasn't filled it out
-                        $("#form-container").show();
-                        $("#signin").hide();
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error checking form status:", textStatus, errorThrown);
-                    // Default to showing the form
-                    $("#form-container").show();
-                    $("#signin").hide();
-                }
-            });
-        }).catch(function(error) {
-            console.error("Error getting ID token:", error);
-        });
-    }
-
-    // Run on page load and when authentication state changes
+    // Update the document.ready function
     $(document).ready(function() {
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
-                // Check if user should be redirected
-                checkUserFormAndRedirect();
+                // No redirect logic here - just update the UI
+                $("#form-container").show();
+                $("#signin").hide();
             } else {
                 // Show sign-in widget
                 $("#form-container").hide();
