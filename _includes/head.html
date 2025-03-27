@@ -64,9 +64,6 @@
 	<!-- Enable Fathom -->
 	<script src="https://cdn.usefathom.com/script.js" data-site="QAODRYUQ" defer></script>
 	
-	<!-- Enable Google API -->
-	<script src="https://maps.googleapis.com/maps/api/js?key={{ site.google_maps_api_key }}&libraries=places&callback=initGoogleMaps" async defer></script>
-
 	<!-- Hotjar Tracking Code for Site 5045439 (name missing) -->
 	<script>
 		(function(h,o,t,j,a,r){
@@ -181,80 +178,3 @@
 	</script>
 
 </head>
-
-<!-- Google Maps Initialization -->
-<script>
-    // Set up a global initialization flag
-    window.googleMapsInitialized = false;
-    
-    function initGoogleMaps() {
-        console.log('Google Maps callback triggered');
-        window.googleMapsInitialized = true;
-        
-        // Dispatch a custom event that other scripts can listen for
-        document.dispatchEvent(new CustomEvent('googleMapsLoaded'));
-        
-        // Initialize autocomplete if the page has already loaded
-        initializeAutocomplete();
-    }
-    
-    function initializeAutocomplete() {
-        // Only initialize if Maps has loaded and we're on a page with the location input
-        if (!window.googleMapsInitialized) {
-            console.log('Google Maps not yet initialized');
-            return;
-        }
-        
-        const locationInput = document.getElementById('location');
-        if (!locationInput) {
-            console.log('Location input not found on this page');
-            return;
-        }
-        
-        console.log('Initializing autocomplete for location input');
-        
-        const autocomplete = new google.maps.places.Autocomplete(locationInput, {
-            types: ['(cities)'],
-            fields: ['address_components', 'formatted_address', 'geometry']
-        });
-        
-        autocomplete.addListener('place_changed', function() {
-            const place = autocomplete.getPlace();
-            if (!place.address_components) {
-                console.log("No details available for input: '" + place.name + "'");
-                return;
-            }
-
-            let city = '', state = '', country = '';
-            place.address_components.forEach(component => {
-                const type = component.types[0];
-                if (type === 'locality' || type === 'postal_town') {
-                    city = component.long_name;
-                } else if (type === 'administrative_area_level_1') {
-                    state = component.long_name;
-                } else if (type === 'administrative_area_level_2' && !city) {
-                    // Use county if city isn't available
-                    city = component.long_name;
-                } else if (type === 'country') {
-                    country = component.long_name;
-                }
-            });
-
-            const formattedLocation = [city, state, country]
-                .filter(part => part)
-                .join(', ');
-            
-            locationInput.value = formattedLocation;
-        });
-        
-        console.log('Autocomplete initialization complete');
-    }
-    
-    // Listen for DOM content loaded to initialize if Maps is already loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM content loaded, checking if Google Maps is initialized');
-        if (window.googleMapsInitialized) {
-            initializeAutocomplete();
-        }
-    });
-</script>
