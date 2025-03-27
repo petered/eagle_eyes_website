@@ -226,50 +226,47 @@
 
         setupEventListeners() {
             // Google Sign In
-            this.googleButton.addEventListener('click', () => this.handleGoogleSignIn());
+            this.googleButton.addEventListener('click', () => this.signInWithGoogle());
             
             // Email Sign In
-            this.emailForm.addEventListener('submit', (e) => this.handleEmailSignIn(e));
+            this.emailForm.addEventListener('submit', (e) => this.signInWithEmail(e));
         }
 
-        async handleGoogleSignIn() {
+        async signInWithGoogle() {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 const result = await firebase.auth().signInWithPopup(provider);
                 this.handleSignInSuccess(result.user);
             } catch (error) {
-                this.showError('Failed to sign in with Google. Please try again.');
+                this.showError("Google sign-in failed. Please try again.");
             }
         }
 
-        async handleEmailSignIn(e) {
+        async signInWithEmail(e) {
             e.preventDefault();
             const email = this.emailInput.value.trim();
-            
             if (!email) {
-                this.showError('Please enter your email address.');
+                this.showError("Please enter your email address.");
                 return;
             }
-
+            const returnURL = window.location.href;
+            const actionCodeSettings = {
+                url: returnURL,
+                handleCodeInApp: true
+            };
             try {
-                const actionCodeSettings = {
-                    url: window.location.href,
-                    handleCodeInApp: true
-                };
-
+                window.localStorage.setItem('emailForSignIn', email);
                 await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
-                this.showSuccess('Check your email for the sign-in link!');
+                this.showSuccess('Sign-in link sent to ' + email + '. Check your inbox.');
             } catch (error) {
-                this.showError('Failed to send sign-in link. Please try again.');
+                this.showError("Failed to send sign-in link. Please try again.");
             }
         }
 
         handleSignInSuccess(user) {
-            console.log('SignInWidget: Authentication successful, dispatching signInComplete event');
-            // Dispatch sign in complete event
-            const event = new CustomEvent('signInComplete', {
-                detail: { user }
-            });
+            console.log("Sign-in successful:", user);
+            // Fire a custom event to indicate sign-in is complete.
+            const event = new CustomEvent('signInComplete', { detail: { user } });
             document.dispatchEvent(event);
         }
 
@@ -282,11 +279,32 @@
             this.statusMessage.textContent = message;
             this.statusMessage.className = 'status-message error';
         }
+
+        completeEmailLinkSigninIfApplicable() {
+            if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+                console.log("Email link detected for sign-in.");
+                let email = window.localStorage.getItem('emailForSignIn');
+                if (!email) {
+                    email = window.prompt("Please provide your email for confirmation");
+                }
+                firebase.auth().signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        window.localStorage.removeItem('emailForSignIn');
+                        this.handleSignInSuccess(result.user);
+                    })
+                    .catch((error) => {
+                        console.error("Error during email link sign-in:", error);
+                        this.showError("Error during email link sign-in. Please try again.");
+                    });
+            }
+        }
     }
 
     // Initialize the widget when the DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
         new SignInWidget();
+        // Check and complete email link sign-in if applicable
+        new SignInWidget().completeEmailLinkSigninIfApplicable();
     });
 
     // Function to check if user has already completed a form and redirect accordingly
