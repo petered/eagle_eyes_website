@@ -195,7 +195,7 @@
                     <label for="receive_newsletter" style="display: inline-block; cursor: pointer; vertical-align: middle !important;"><span class="checkbox-label">Keep me informed about product updates and new feature releases. (Recommended)</span></label>
                 </div>
                 <div id="submit-container" style="margin-top: 30px; text-align: center;">
-                    <button id="submitButton" onclick="submitForm()" type="submit" class="button">Submit</button>
+                    <button id="submitButton" type="submit" class="button">Submit</button>
                     <div style="display: flex; justify-content: center; align-items: center;">
                         <div id="status" style="max-width: 550px; text-align: center; font-size: 70%; font-style: italic; color: red; display: none;">Please complete all required fields</div>
                     </div>
@@ -441,14 +441,8 @@
         var radioGroups = {};
         var validationErrors = [];
 
-        console.log("Starting validation, form type:", currentFormType);
-        console.log("Required fields:", requiredFields.length);
-        requiredFields.forEach(field => {
-            console.log("Field:", field.name, "Type:", field.type, 
-                        "Required:", field.required,
-                        "Visible:", isElementVisible(field),
-                        "Value:", field.value || field.checked);
-        });
+        // Only log once at the start
+        console.log(`Validating form (type: ${currentFormType})`);
 
         requiredFields.forEach(function(field) {
             // Skip fields that are not visible
@@ -463,17 +457,13 @@
                 } else if (field.type === 'checkbox' && !field.checked) {
                     isValid = false;
                     field.nextElementSibling.style.color = 'red';
-                    const errorMsg = `Checkbox not checked: ${field.name} (${field.id})`;
-                    validationErrors.push(errorMsg);
-                    console.log(errorMsg);
+                    validationErrors.push(`Checkbox not checked: ${field.name}`);
                 } else if (field.type !== 'checkbox' && field.type !== 'radio') {
                     if (!field.value.trim()) {
                         isValid = false;
                         field.style.borderColor = 'red';
                         const fieldLabel = field.previousElementSibling ? field.previousElementSibling.textContent : field.name;
-                        const errorMsg = `Empty required field: ${field.name} (${fieldLabel.trim()})`;
-                        validationErrors.push(errorMsg);
-                        console.log(errorMsg);
+                        validationErrors.push(`Empty field: ${fieldLabel.trim()}`);
                     } else {
                         field.style.borderColor = '';
                     }
@@ -481,7 +471,7 @@
             }
         });
 
-        // Validate radio button groups (they might be visible anyway)
+        // Validate radio button groups
         Object.keys(radioGroups).forEach(function(groupName) {
             var group = radioGroups[groupName];
             var groupIsValid = group.some(function(radio) {
@@ -493,9 +483,7 @@
                 group.forEach(function(radio) {
                     radio.nextElementSibling.style.color = 'red';
                 });
-                const errorMsg = `No option selected for radio group: ${groupName}`;
-                validationErrors.push(errorMsg);
-                console.log(errorMsg);
+                validationErrors.push(`No selection made for: ${groupName}`);
             } else {
                 group.forEach(function(radio) {
                     radio.nextElementSibling.style.color = '';
@@ -503,17 +491,13 @@
             }
         });
 
+        // Only log errors if validation failed
         if (!isValid) {
             console.group('Form Validation Failed');
-            console.log(`Found ${validationErrors.length} validation errors:`);
-            validationErrors.forEach((error, index) => {
-                console.log(`${index + 1}. ${error}`);
-            });
-            console.log(`Current form type: ${currentFormType}`);
+            console.log(`${validationErrors.length} error(s):`);
+            validationErrors.forEach(error => console.log('- ' + error));
             console.groupEnd();
         }
-
-        console.log("Validation result:", isValid);
 
         return isValid;
     }
@@ -539,6 +523,10 @@
 
         console.log(formData);
 
+        // Add combined name field
+        if (formData['first_name'] && formData['last_name']) {
+            formData['name'] = formData['first_name'].trim() + ' ' + formData['last_name'].trim();
+        }
 
         // Remove empty keys or invalid entries
         for (var key in formData) {
@@ -601,75 +589,7 @@
         }
     });
     
-    function processSignupForm() {
-        // Add "processing" class to the submit button
-        $("#submitButton").addClass('processing');
-        var formData = {};  // Initialize formData
-        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-        formInputs.forEach(function(input) {
-            if (input.type === 'checkbox') {
-                formData[input.name] = input.checked ? 'yes' : 'no';
-            } else if (input.type === 'radio') {
-                if (input.checked) {
-                    formData[input.name] = input.value;
-                }
-            } else {
-                formData[input.name] = input.value;
-            }
-        });
-        // Remove empty keys or invalid entries
-        for (var key in formData) {
-            if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
-                delete formData[key];
-            }
-        }
 
-        if (currentFormType == 'trial') {
-            // Add the trial type to the form data
-            formData['trial_request'] = true;
-        } else {
-            formData['trial_request'] = false;
-        }
-
-        console.log(formData);
-
-        var fetch_url = hostURL + '/submit_register_form';
-
-        console.log("Fetch URL: " + fetch_url);
-
-        globalUser.getIdToken(true).then(function (idToken) {
-
-            $.ajax({
-                url: fetch_url,
-                data: JSON.stringify(formData),
-                type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-                contentType: 'application/json', // This sets the Content-Type header to application/json
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function (data) {
-                    console.log("Success" + data);
-
-                    // Remove "processing" class to the submit button
-                    $("#submitButton").removeClass('processing');
-
-                    // Show user message with link and ask them if they want to download
-                    // If yes, then redirect to the link
-                    // If no, then do nothing
-
-                    // Hide the download button/div after submitting form
-                    $("#form-container").hide();
-                    $("#signin").hide();
-                    $("#post-form").show();
-                },
-                error: function() {
-                    // Remove "processing" class to the submit button
-                    $("#submitButton").removeClass('processing');
-                    requestErrorHandler();
-                }
-            });
-        });
-    }
 
     // Collect form data into a standardized object
     function collectFormData() {
@@ -695,6 +615,11 @@
                 (typeof formData[key] === 'string' && formData[key].trim() === "")) {
                 delete formData[key];
             }
+        }
+
+        // Add combined name field
+        if (formData['first_name'] && formData['last_name']) {
+            formData['name'] = formData['first_name'].trim() + ' ' + formData['last_name'].trim();
         }
 
         if (currentFormType == 'trial') {
