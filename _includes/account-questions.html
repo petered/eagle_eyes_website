@@ -98,27 +98,38 @@
     }
     */
 
-    button {
-        background-color: #007BFF;
-        color: white;
-        border: none;
-        padding: 10px 20px; /* Adjust padding to control the width indirectly */
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-        display: block;
-        width: auto; /* Auto width based on content and padding */
-        margin: 0 auto 0 auto; /* Center the button */
-    }
-
-    button:hover {
-        background-color: #0056b3;
-    }
-
     #submit-container {
         display: flex;
         justify-content: center; /* Aligns horizontally */
         width: 100%; /* Ensures the section takes full width */
+    }
+
+     /* Processing button styles */
+     button.processing {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+        cursor: wait !important;
+    }
+    
+    button.processing::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        right: 15px;
+        margin-top: -8px;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: button-spinner 0.8s linear infinite;
+    }
+    
+    @keyframes button-spinner {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     /* Responsive adjustment for smaller screens */
@@ -152,7 +163,7 @@
             </div>
             <div class="radio-container" style="display: flex; align-items: center; margin-bottom: 12px; position: relative;">
                 <input type="radio" id="purchase" name="signup_type" value="purchase" required style="display: inline-block !important; visibility: visible !important; opacity: 1 !important; position: static !important; width: 20px !important; height: 20px !important; margin-right: 10px !important; cursor: pointer !important; -webkit-appearance: radio !important; -moz-appearance: radio !important; appearance: radio !important; border: 1px solid #333 !important; border-radius: 50% !important; box-shadow: none !important; outline: none !important; z-index: 999 !important; vertical-align: middle !important; margin-top: 0 !important; margin-bottom: 0 !important;" onchange="handleSignupTypeChange(this)">
-                <label for="purchase">I would like to buy a new license.</label>
+                <label for="purchase">I would like to buy a (new) license.</label>
             </div>
         </div>
 
@@ -195,9 +206,11 @@
                     <label for="receive_newsletter" style="display: inline-block; cursor: pointer; vertical-align: middle !important;"><span class="checkbox-label">Keep me informed about product updates and new feature releases. (Recommended)</span></label>
                 </div>
                 <div id="submit-container" style="margin-top: 30px; text-align: center;">
-                    <button id="submitButton" type="submit" class="button">Submit</button>
+                    {% include button-black.html button_text="Submit" button_type="submit" button_id="submitButton" button_onclick="submitForm()" %}
                     <div style="display: flex; justify-content: center; align-items: center;">
-                        <div id="status" style="max-width: 550px; text-align: center; font-size: 70%; font-style: italic; color: red; display: none;">Please complete all required fields</div>
+                        <div id="status" style="max-width: 550px; text-align: center; font-size: 70%; font-style: italic; color: red; display: none;">
+                            Please complete all required fields
+                        </div>
                     </div>
                 </div>
             </div>
@@ -205,431 +218,4 @@
     </form>
 </section>
 
-<style>
- 
-</style>
 
-<script>
-    // COMPONENT API - Public methods for parent pages to use
-    
-    // Initialize the component - called by parent page
-    function initFormComponent(options = {}) {
-        // Set default form type if provided
-        if (options.defaultFormType) {
-            setFormType(options.defaultFormType);
-            showFormSection(currentFormType);
-        }
-        
-        // Setup event listeners
-        document.addEventListener('DOMContentLoaded', setupFormComponent);
-        
-        console.log("Form component initialized with options:", options);
-    }
-    
-    // Method to validate form and return result
-    function validateFormAndGetData() {
-        const isValid = validateForm();
-        
-        if (!isValid) {
-            console.log("Form validation failed");
-            $("#status").html("Please complete all required fields").show();
-            return { valid: false, data: null };
-        }
-        
-        // If valid, collect the form data
-        const formData = collectFormData();
-        return { valid: true, data: formData };
-    }
-    
-    // INTERNAL COMPONENT LOGIC - Not meant to be called directly from parent
-    
-    // Setup function - binds internal events
-    function setupFormComponent() {
-        // Check if include.form_type is provided and valid
-        const includedType = '{{ include.form_type }}';
-        if (includedType && ['download', 'purchase', 'trial'].includes(includedType)) {
-            setFormType(includedType);
-            console.log("Initial form type set from include parameter: " + currentFormType);
-        } else {
-            // Check if a radio button is already selected
-            const selectedRadio = document.querySelector('input[name="signup_type"]:checked');
-            if (selectedRadio) {
-                setFormType(selectedRadio.value);
-                console.log("Initial form type set from selected radio: " + currentFormType);
-                showFormSection(currentFormType);
-            } else {
-                console.log("No initial form type. Waiting for user selection.");
-            }
-        }
-    }
-    
-    // Initialize form type variables
-    var currentFormType = "";  // Current form type
-    var prevFormType = "";     // Previous form type for detecting changes
-    
-    // Function to set and validate form type
-    function setFormType(type) {
-        // Store previous value before changing
-        prevFormType = currentFormType;
-        
-        // Validate type is one of the allowed values
-        if (['download', 'purchase', 'trial'].includes(type)) {
-            currentFormType = type;
-        } else {
-            console.error("Invalid form type: " + type + ". Must be download, purchase, or trial.");
-            currentFormType = ""; // Reset to empty if invalid
-        }
-        
-        // Log form type change to console
-        if (prevFormType !== currentFormType) {
-            console.log("Form type changed from: " + (prevFormType || "none") + " to: " + currentFormType);
-        }
-        
-        return currentFormType;
-    }
-    
-    // Handle signup type change
-    function handleSignupTypeChange(radio) {
-        // Set and validate the form type
-        const formType = setFormType(radio.value);
-        
-        // Show the appropriate form section
-        showFormSection(formType);
-    }
-    
-    // Function to show/hide appropriate form sections
-    function showFormSection(formType) {
-        const additionalFields = document.getElementById('additional-fields');
-        const downloadQuestions = document.getElementById('download-questions');
-        const trialQuestions = document.getElementById('trial-questions');
-        const purchaseQuestions = document.getElementById('purchase-questions');
-        
-        // First, show the additional fields
-        additionalFields.style.display = 'block';
-        
-        // Hide all question sections first
-        downloadQuestions.style.display = 'none';
-        trialQuestions.style.display = 'none';
-        purchaseQuestions.style.display = 'none';
-        
-        // Show the appropriate question section based on form type
-        switch(formType) {
-            case 'trial':
-                trialQuestions.style.display = 'block';
-                break;
-            case 'download':
-                downloadQuestions.style.display = 'block';
-                break;
-            case 'purchase':
-                purchaseQuestions.style.display = 'block';
-                break;
-            default:
-                // If no valid form type, hide additional fields
-                additionalFields.style.display = 'none';
-                return;
-        }
-        
-        // Smooth scroll to the additional fields
-        additionalFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    
-    var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
-    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-    
-    function getIsEmulatorFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        // return urlParams.get('is_emulator') === 'true';
-        // Case insensitive
-        return urlParams.get('is_emulator')?.toLowerCase() === 'true';
-    }
-
-    function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-        $("#hang-on-message").hide();
-        console.log("Error: " + errorThrown);
-        console.log("Status: " + textStatus);
-        console.log("Response: " + jqXHR.responseText);
-        showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + jqXHR.responseText);
-    }
-
-    function showError(message) {
-        // Show an error message to the user
-        var errorBox = document.createElement('div');
-        errorBox.classList.add('error-box');
-        // Width 80% of the screen
-        errorBox.style.width = '80%';
-        // Center horizontally
-        errorBox.style.margin = '0 auto';
-
-        errorBox.textContent = message;
-        document.body.appendChild(errorBox);
-
-        // Scroll to the bottom of the page
-        window.scrollTo(0, document.body.scrollHeight);
-    }
-
-    function populateForm(formData) {
-        // Get all form inputs
-        var formInputs = document.querySelectorAll('input[type=text], input[type=email], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-        
-        // Iterate through each input in the form
-        for (var i = 0; i < formInputs.length; i++) {
-            var input = formInputs[i];
-
-            // Check if the input's name exists in the formData
-            if (formData.hasOwnProperty(input.name)) {
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    // Set the checked property based on formData
-                    input.checked = formData[input.name];
-                } else {
-                    // Set the value property based on formData
-                    input.value = formData[input.name];
-                }
-            }
-        }
-        
-        // If form data includes signup_type, set the form type accordingly
-        if (formData.signup_type) {
-            setFormType(formData.signup_type);
-            showFormSection(currentFormType);
-        }
-    }
-    
-    function submitForm() {
-        // Get the current form type for determining logic
-        console.log('Form type when submitting: ' + currentFormType);
-        
-        hasFormBeenShown = $("#form").is(":visible");
-        console.log("Form has been shown?: " + hasFormBeenShown);
-
-        if (!validateForm()) {
-            console.log("Form validation failed");
-            $("#status").html("Please complete all required fields").show();
-            return false; // Prevent form submission if validation fails
-        }
-        if (currentFormType == 'purchase' || currentFormType == 'trial') {
-            console.log('launching processRegisterForm');
-            processRegisterForm();
-        } else if (currentFormType == 'download' && hasFormBeenShown) {
-            console.log('launching processSignupForm');
-            processSignupForm();
-        } else {
-            console.log("Unknown form type: " + currentFormType);
-        }
-        
-    }
-
-    function isElementVisible(element) {
-        // Check if element is hidden with display:none
-        if (element.offsetParent === null) return false;
-        
-        // Also check parent containers
-        let parent = element.parentElement;
-        while (parent) {
-            const style = window.getComputedStyle(parent);
-            if (style.display === 'none' || style.visibility === 'hidden') {
-                return false;
-            }
-            parent = parent.parentElement;
-        }
-        
-        return true;
-    }
-
-    function validateForm() {
-        var isValid = true;
-        var requiredFields = document.querySelectorAll('#fields [required]');
-        var radioGroups = {};
-        var validationErrors = [];
-
-        // Only log once at the start
-        console.log(`Validating form (type: ${currentFormType})`);
-
-        requiredFields.forEach(function(field) {
-            // Skip fields that are not visible
-            if (!isElementVisible(field)) return;
-
-            if (field.hasAttribute('required')) {
-                if (field.type === 'radio') {
-                    if (!radioGroups[field.name]) {
-                        radioGroups[field.name] = [];
-                    }
-                    radioGroups[field.name].push(field);
-                } else if (field.type === 'checkbox' && !field.checked) {
-                    isValid = false;
-                    field.nextElementSibling.style.color = 'red';
-                    validationErrors.push(`Checkbox not checked: ${field.name}`);
-                } else if (field.type !== 'checkbox' && field.type !== 'radio') {
-                    if (!field.value.trim()) {
-                        isValid = false;
-                        field.style.borderColor = 'red';
-                        const fieldLabel = field.previousElementSibling ? field.previousElementSibling.textContent : field.name;
-                        validationErrors.push(`Empty field: ${fieldLabel.trim()}`);
-                    } else {
-                        field.style.borderColor = '';
-                    }
-                }
-            }
-        });
-
-        // Validate radio button groups
-        Object.keys(radioGroups).forEach(function(groupName) {
-            var group = radioGroups[groupName];
-            var groupIsValid = group.some(function(radio) {
-                return radio.checked;
-            });
-
-            if (!groupIsValid) {
-                isValid = false;
-                group.forEach(function(radio) {
-                    radio.nextElementSibling.style.color = 'red';
-                });
-                validationErrors.push(`No selection made for: ${groupName}`);
-            } else {
-                group.forEach(function(radio) {
-                    radio.nextElementSibling.style.color = '';
-                });
-            }
-        });
-
-        // Only log errors if validation failed
-        if (!isValid) {
-            console.group('Form Validation Failed');
-            console.log(`${validationErrors.length} error(s):`);
-            validationErrors.forEach(error => console.log('- ' + error));
-            console.groupEnd();
-        }
-
-        return isValid;
-    }
-
-    function processRegisterForm() {
-        var formData = {}; // Initialize the object
-        // Add "processing" class to the submit button
-        $("#submitButton").addClass('processing');
-
-        // Pack the form data into an object
-        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-        formInputs.forEach(function(input) {
-            if (input.type === 'checkbox') {
-                formData[input.name] = input.checked ? 'yes' : 'no';
-            } else if (input.type === 'radio') {
-                if (input.checked) {
-                    formData[input.name] = input.value;
-                }
-            } else {
-                formData[input.name] = input.value;
-            }
-        });
-
-        console.log(formData);
-
-        // Add combined name field
-        if (formData['first_name'] && formData['last_name']) {
-            formData['name'] = formData['first_name'].trim() + ' ' + formData['last_name'].trim();
-        }
-
-        // Remove empty keys or invalid entries
-        for (var key in formData) {
-            if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
-                delete formData[key];
-            }
-        }
-
-        if (currentFormType == 'trial') {
-            // Add the trial type to the form data
-            formData['trial_request'] = true;
-        } else {
-            formData['trial_request'] = false;
-        }
-
-        console.log(formData);
-
-        var fetch_url = hostURL + '/submit_register_form';
-
-        console.log("Fetch URL: " + fetch_url);
-
-        globalUser.getIdToken(true).then(function (idToken) {
-
-            $.ajax({
-                url: fetch_url,
-                data: JSON.stringify(formData),
-                type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-                contentType: 'application/json', // This sets the Content-Type header to application/json
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function (data) {
-                    console.log("Success" + data);
-
-                    // Remove "processing" class to the submit button
-                    $("#submitButton").removeClass('processing');
-
-                    // Show user message with link and ask them if they want to download
-                    // If yes, then redirect to the link
-                    // If no, then do nothing
-
-                    // Hide the download button/div after submitting form
-                    $("#form-container").hide();
-                    $("#signin").hide();
-                    $("#post-form").show();
-                },
-                error: function() {
-                    // Remove "processing" class to the submit button
-                    $("#submitButton").removeClass('processing');
-                    requestErrorHandler();
-                }
-            });
-        });
-    }
-
-    // On load - check whether to show the emulator info box
-    $(document).ready(function () {
-        if (useLocalFirebaseEmulator) {
-            $('#using-emulator-info').show();
-        }
-    });
-    
-
-
-    // Collect form data into a standardized object
-    function collectFormData() {
-        var formData = {}; // Initialize the object
-        
-        // Pack the form data into an object
-        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-        formInputs.forEach(function(input) {
-            if (input.type === 'checkbox') {
-                formData[input.name] = input.checked ? 'yes' : 'no';
-            } else if (input.type === 'radio') {
-                if (input.checked) {
-                    formData[input.name] = input.value;
-                }
-            } else {
-                formData[input.name] = input.value;
-            }
-        });
-
-        // Remove empty keys or invalid entries
-        for (var key in formData) {
-            if (formData[key] === null || formData[key] === undefined || 
-                (typeof formData[key] === 'string' && formData[key].trim() === "")) {
-                delete formData[key];
-            }
-        }
-
-        // Add combined name field
-        if (formData['first_name'] && formData['last_name']) {
-            formData['name'] = formData['first_name'].trim() + ' ' + formData['last_name'].trim();
-        }
-
-        if (currentFormType == 'trial') {
-            // Add the trial type to the form data
-            formData['trial_request'] = true;
-        } else {
-            formData['trial_request'] = false;
-        }
-        
-        return formData;
-    }
-
-</script>

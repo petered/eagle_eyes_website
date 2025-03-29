@@ -3,6 +3,54 @@ layout: main
 title: Create an Account - Eagle Eyes
 ---
 
+<style>
+    /* Radio button styles */
+    .radio-group {
+        margin-bottom: 20px;
+    }
+    
+    .radio-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .radio-container input[type="radio"] {
+        margin-right: 10px;
+        /* Ensure visibility */
+        opacity: 1;
+        visibility: visible;
+        position: static;
+        width: auto;
+        height: auto;
+    }
+    
+    /* Fix for labels */
+    .radio-container label {
+        display: inline-block;
+        cursor: pointer;
+    }
+    
+    /* Fix for checkbox containers too */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        margin-right: 10px;
+        /* Ensure visibility */
+        opacity: 1;
+        visibility: visible;
+        position: static;
+        width: auto;
+        height: auto;
+    }
+    
+   
+</style>
+
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
     <!-- Add the test user banner right at the top -->
     <div id="test-user-banner" style="display: none; position: sticky; top: 0; left: 0; width: 100%; background-color: #4CAF50; color: white; padding: 10px 0; text-align: center; z-index: 1000; margin-bottom: 20px;">
@@ -58,7 +106,7 @@ title: Create an Account - Eagle Eyes
             </div>
             
             <div id="post-form" class="info-box" style="display: none; margin-top: 20px; text-align: center; padding: 20px;">
-                <div id="checking-licenses-box">Your 30-day trial request was submitted successfully. We will contact you soon. Please reach out to info@eagleeyessearch.com if you have any questions.</div>
+                <div id="checking-licenses-box"></div>
             </div>
         </div>
     </div>
@@ -71,51 +119,7 @@ title: Create an Account - Eagle Eyes
     </div>
 </div>
 
-<style>
-    /* Radio button styles */
-    .radio-group {
-        margin-bottom: 20px;
-    }
-    
-    .radio-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    
-    .radio-container input[type="radio"] {
-        margin-right: 10px;
-        /* Ensure visibility */
-        opacity: 1;
-        visibility: visible;
-        position: static;
-        width: auto;
-        height: auto;
-    }
-    
-    /* Fix for labels */
-    .radio-container label {
-        display: inline-block;
-        cursor: pointer;
-    }
-    
-    /* Fix for checkbox containers too */
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    
-    .checkbox-container input[type="checkbox"] {
-        margin-right: 10px;
-        /* Ensure visibility */
-        opacity: 1;
-        visibility: visible;
-        position: static;
-        width: auto;
-        height: auto;
-    }
-</style>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -144,6 +148,16 @@ title: Create an Account - Eagle Eyes
         // Listen for auth state changes
         document.addEventListener('authStateChanged', function(e) {
             const user = e.detail.user;
+            handleAuthStateChange(user);
+        });
+        
+        // Check current auth state immediately on page load
+        firebase.auth().onAuthStateChanged(function(user) {
+            handleAuthStateChange(user);
+        });
+        
+        // Centralized function to handle auth state changes
+        function handleAuthStateChange(user) {
             if (user) {
                 // User is signed in
                 signinButtonSection.style.display = 'none';
@@ -167,7 +181,7 @@ title: Create an Account - Eagle Eyes
                 userEmail.textContent = '';
                 signOutContainer.style.display = 'none';
             }
-        });
+        }
         
         // Handle the signInComplete event
         document.addEventListener('signInComplete', function(e) {
@@ -197,7 +211,7 @@ title: Create an Account - Eagle Eyes
         setupTestUserBanner();
     });
     
-    // Form submission handler
+    // Consolidated form submission handler
     function submitForm() {
         // Get form validation result and data
         const result = validateFormAndGetData();
@@ -248,19 +262,39 @@ title: Create an Account - Eagle Eyes
                     console.log("Success", data);
                     $("#submitButton").removeClass('processing');
                     
-                    // Show success UI and redirect to account page with emulator parameter
+                    // Hide form and sign-in elements
                     $("#form-container").hide();
                     $("#signin").hide();
+                    
+                    // Display a different success message based on the form type
+                    if (currentFormType === 'purchase') {
+                        $("#post-form").html(
+                          "<div style='text-align: center; padding: 20px;'>" +
+                          "<strong>Thank you for your request.</strong><br>" +
+                          "Your account creation request is pending review and will typically be processed within 24 hours.<br>" +
+                          "Once approved, you will be able to purchase a license using a credit card.<br>" +
+                          "If you have any questions, please contact <a href='mailto:info@eagleeyessearch.com'>info@eagleeyessearch.com</a>." +
+                          "</div>"
+                        );
+                    } else {
+                        $("#post-form").html(
+                          "<div style='text-align: center; padding: 20px;'>" +
+                          "Your 30-day trial request was submitted successfully. We will contact you soon. " +
+                          "Please reach out to <a href='mailto:info@eagleeyessearch.com'>info@eagleeyessearch.com</a> if you have any questions." +
+                          "</div>"
+                        );
+                    }
+                    
                     $("#post-form").show();
                     
-                    // After a short delay to show the success message, redirect to account page
-                    setTimeout(() => {
-                        window.location.href = getUrlWithEmulatorParam('account.html');
-                    }, 2000);
+                    // // Redirect after a short delay
+                    // setTimeout(() => {
+                    //     window.location.href = getUrlWithEmulatorParam('account.html');
+                    // }, 2000);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     $("#submitButton").removeClass('processing');
-                    console.error("Server error:", jqXHR.responseText);  // Log the error response
+                    console.error("Server error:", jqXHR.responseText);
                     requestErrorHandler(jqXHR, textStatus, errorThrown);
                 }
             });
@@ -297,7 +331,6 @@ title: Create an Account - Eagle Eyes
                     // Show success UI and redirect to account page with emulator parameter
                     $("#form-container").hide();
                     $("#signin").hide();
-                    $("#post-form").show();
                     
                     // After a short delay to show the success message, redirect to account page
                     setTimeout(() => {
@@ -388,6 +421,12 @@ title: Create an Account - Eagle Eyes
         return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
     }
     
+    // Get emulator status from URL
+    function getIsEmulatorFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('is_emulator')?.toLowerCase() === 'true';
+    }
+    
     // Setup test user banner
     function setupTestUserBanner() {
         // Check if we're in emulator mode
@@ -430,7 +469,7 @@ title: Create an Account - Eagle Eyes
                                     .catch((createError) => {
                                         console.error('Error creating test user:', createError);
                                     });
-                            } else {
+                } else {
                                 console.error('Error signing in with test user:', error);
                             }
                         });
@@ -441,22 +480,34 @@ title: Create an Account - Eagle Eyes
     
     // Error handler function
     function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-        // ... existing code ...
+        $("#hang-on-message").hide();
+        console.log("Error: " + errorThrown);
+        console.log("Status: " + textStatus);
+        console.log("Response: " + (jqXHR && jqXHR.responseText ? jqXHR.responseText : "No response"));
+        showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + (jqXHR && jqXHR.responseText ? jqXHR.responseText : "No response"));
     }
 
+    function showError(message) {
+        // Show an error message to the user
+        var errorBox = document.createElement('div');
+        errorBox.classList.add('error-box');
+        // Width 80% of the screen
+        errorBox.style.width = '80%';
+        // Center horizontally
+        errorBox.style.margin = '0 auto';
+
+        errorBox.textContent = message;
+        document.body.appendChild(errorBox);
+
+        // Scroll to the bottom of the page
+        window.scrollTo(0, document.body.scrollHeight);
+    }
     
     // Initialize the component - called by parent page
     function initFormComponent(options = {}) {
-        // Set default form type if provided
-        if (options.defaultFormType) {
-            setFormType(options.defaultFormType);
-            showFormSection(currentFormType);
-        }
-        
         // Setup event listeners
         document.addEventListener('DOMContentLoaded', setupFormComponent);
-        
-        console.log("Form component initialized with options:", options);
+        console.log("Form component initialized");
     }
     
     // Method to validate form and return result
@@ -474,31 +525,24 @@ title: Create an Account - Eagle Eyes
         return { valid: true, data: formData };
     }
     
-    // INTERNAL COMPONENT LOGIC - Not meant to be called directly from parent
-    
     // Setup function - binds internal events
     function setupFormComponent() {
-        // Check if include.form_type is provided and valid
-        const includedType = '{{ include.form_type }}';
-        if (includedType && ['download', 'purchase', 'trial'].includes(includedType)) {
-            setFormType(includedType);
-            console.log("Initial form type set from include parameter: " + currentFormType);
+        // Check if a radio button is already selected
+        const selectedRadio = document.querySelector('input[name="signup_type"]:checked');
+        if (selectedRadio) {
+            setFormType(selectedRadio.value);
+            console.log("Initial form type set from selected radio: " + currentFormType);
+            showFormSection(currentFormType);
         } else {
-            // Check if a radio button is already selected
-            const selectedRadio = document.querySelector('input[name="signup_type"]:checked');
-            if (selectedRadio) {
-                setFormType(selectedRadio.value);
-                console.log("Initial form type set from selected radio: " + currentFormType);
-                showFormSection(currentFormType);
-            } else {
-                console.log("No initial form type. Waiting for user selection.");
-            }
+            console.log("No initial form type. Waiting for user selection.");
         }
     }
     
     // Initialize form type variables
     var currentFormType = "";  // Current form type
     var prevFormType = "";     // Previous form type for detecting changes
+    var useLocalFirebaseEmulator = getIsEmulatorFromURL();
+    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
     
     // Function to set and validate form type
     function setFormType(type) {
@@ -508,7 +552,7 @@ title: Create an Account - Eagle Eyes
         // Validate type is one of the allowed values
         if (['download', 'purchase', 'trial'].includes(type)) {
             currentFormType = type;
-        } else {
+            } else {
             console.error("Invalid form type: " + type + ". Must be download, purchase, or trial.");
             currentFormType = ""; // Reset to empty if invalid
         }
@@ -565,91 +609,6 @@ title: Create an Account - Eagle Eyes
         // Smooth scroll to the additional fields
         additionalFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    
-    var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
-    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-    
-    function getIsEmulatorFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        // return urlParams.get('is_emulator') === 'true';
-        // Case insensitive
-        return urlParams.get('is_emulator')?.toLowerCase() === 'true';
-    }
-
-    function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-        $("#hang-on-message").hide();
-        console.log("Error: " + errorThrown);
-        console.log("Status: " + textStatus);
-        console.log("Response: " + jqXHR.responseText);
-        showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + jqXHR.responseText);
-    }
-
-    function showError(message) {
-        // Show an error message to the user
-        var errorBox = document.createElement('div');
-        errorBox.classList.add('error-box');
-        // Width 80% of the screen
-        errorBox.style.width = '80%';
-        // Center horizontally
-        errorBox.style.margin = '0 auto';
-
-        errorBox.textContent = message;
-        document.body.appendChild(errorBox);
-
-        // Scroll to the bottom of the page
-        window.scrollTo(0, document.body.scrollHeight);
-    }
-
-    function populateForm(formData) {
-        // Get all form inputs
-        var formInputs = document.querySelectorAll('input[type=text], input[type=email], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-        
-        // Iterate through each input in the form
-        for (var i = 0; i < formInputs.length; i++) {
-            var input = formInputs[i];
-
-            // Check if the input's name exists in the formData
-            if (formData.hasOwnProperty(input.name)) {
-                if (input.type === 'checkbox' || input.type === 'radio') {
-                    // Set the checked property based on formData
-                    input.checked = formData[input.name];
-                } else {
-                    // Set the value property based on formData
-                    input.value = formData[input.name];
-                }
-            }
-        }
-        
-        // If form data includes signup_type, set the form type accordingly
-        if (formData.signup_type) {
-            setFormType(formData.signup_type);
-            showFormSection(currentFormType);
-        }
-    }
-    
-    function submitForm() {
-        // Get the current form type for determining logic
-        console.log('Form type when submitting: ' + currentFormType);
-        
-        hasFormBeenShown = $("#form").is(":visible");
-        console.log("Form has been shown?: " + hasFormBeenShown);
-
-        if (!validateForm()) {
-            console.log("Form validation failed");
-            $("#status").html("Please complete all required fields").show();
-            return false; // Prevent form submission if validation fails
-        }
-        if (currentFormType == 'purchase' || currentFormType == 'trial') {
-            console.log('launching processRegisterForm');
-            processRegisterForm();
-        } else if (currentFormType == 'download' && hasFormBeenShown) {
-            console.log('launching processSignupForm');
-            processSignupForm();
-        } else {
-            console.log("Unknown form type: " + currentFormType);
-        }
-        
-    }
 
     function isElementVisible(element) {
         // Check if element is hidden with display:none
@@ -667,7 +626,7 @@ title: Create an Account - Eagle Eyes
         
         return true;
     }
-
+    
     function validateForm() {
         var isValid = true;
         var requiredFields = document.querySelectorAll('#fields [required]');
@@ -676,7 +635,7 @@ title: Create an Account - Eagle Eyes
 
         // Only log once at the start
         console.log(`Validating form (type: ${currentFormType})`);
-
+        
         requiredFields.forEach(function(field) {
             // Skip fields that are not visible
             if (!isElementVisible(field)) return;
@@ -703,14 +662,14 @@ title: Create an Account - Eagle Eyes
                 }
             }
         });
-
+        
         // Validate radio button groups
         Object.keys(radioGroups).forEach(function(groupName) {
             var group = radioGroups[groupName];
             var groupIsValid = group.some(function(radio) {
                 return radio.checked;
             });
-
+            
             if (!groupIsValid) {
                 isValid = false;
                 group.forEach(function(radio) {
@@ -731,118 +690,8 @@ title: Create an Account - Eagle Eyes
             validationErrors.forEach(error => console.log('- ' + error));
             console.groupEnd();
         }
-
+        
         return isValid;
-    }
-
-    function processRegisterForm() {
-        var formData = {}; // Initialize the object
-        // Add "processing" class to the submit button
-        $("#submitButton").addClass('processing');
-
-        // Pack the form data into an object
-        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-        formInputs.forEach(function(input) {
-            if (input.type === 'checkbox') {
-                formData[input.name] = input.checked ? 'yes' : 'no';
-            } else if (input.type === 'radio') {
-                if (input.checked) {
-                    formData[input.name] = input.value;
-                }
-            } else {
-                formData[input.name] = input.value;
-            }
-        });
-
-        console.log(formData);
-
-        // Add combined name field
-        if (formData['first_name'] && formData['last_name']) {
-            formData['name'] = formData['first_name'].trim() + ' ' + formData['last_name'].trim();
-        }
-
-        // Remove empty keys or invalid entries
-        for (var key in formData) {
-            if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
-                delete formData[key];
-            }
-        }
-
-        if (currentFormType == 'trial') {
-            // Add the trial type to the form data
-            formData['trial_request'] = true;
-        } else {
-            formData['trial_request'] = false;
-        }
-
-        console.log(formData);
-
-        var fetch_url = hostURL + '/submit_register_form';
-
-        console.log("Fetch URL: " + fetch_url);
-
-        globalUser.getIdToken(true).then(function (idToken) {
-
-            $.ajax({
-                url: fetch_url,
-                data: JSON.stringify(formData),
-                type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-                contentType: 'application/json', // This sets the Content-Type header to application/json
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function (data) {
-                    console.log("Success" + data);
-
-                    // Remove "processing" class to the submit button
-                    $("#submitButton").removeClass('processing');
-
-                    // Show user message with link and ask them if they want to download
-                    // If yes, then redirect to the link
-                    // If no, then do nothing
-
-                    // Hide the download button/div after submitting form
-                    $("#form-container").hide();
-                    $("#signin").hide();
-                    $("#post-form").show();
-                },
-                error: function() {
-                    // Remove "processing" class to the submit button
-                    $("#submitButton").removeClass('processing');
-                    requestErrorHandler();
-                }
-            });
-        });
-    }
-
-    // On load - check whether to show the emulator info box
-    $(document).ready(function () {
-        if (useLocalFirebaseEmulator) {
-            $('#using-emulator-info').show();
-        }
-    });
-    
-    function processSignupForm() {
-        // Add "processing" class to the submit button
-        $("#submitButton").addClass('processing');
-        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
-        formInputs.forEach(function(input) {
-            if (input.type === 'checkbox') {
-                formData[input.name] = input.checked ? 'yes' : 'no';
-            } else if (input.type === 'radio') {
-                if (input.checked) {
-                    formData[input.name] = input.value;
-                }
-            } else {
-                formData[input.name] = input.value;
-            }
-        });
-        // Remove empty keys or invalid entries
-        for (var key in formData) {
-            if (formData[key] === null || formData[key] === undefined || formData[key].trim() === "") {
-                delete formData[key];
-            }
-        }
     }
 
     // Collect form data into a standardized object
@@ -853,7 +702,7 @@ title: Create an Account - Eagle Eyes
         var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
         formInputs.forEach(function(input) {
             if (input.type === 'checkbox') {
-                formData[input.name] = input.checked ? 'yes' : 'no';
+                formData[input.name] = input.checked;
             } else if (input.type === 'radio') {
                 if (input.checked) {
                     formData[input.name] = input.value;
@@ -885,5 +734,4 @@ title: Create an Account - Eagle Eyes
         
         return formData;
     }
-
 </script>

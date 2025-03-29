@@ -1,0 +1,106 @@
+<div id="licenseTableContainer">
+    <h3>Your Licenses</h3>
+    <div id="licenseSpinner" class="loading-spinner">
+        <div class="spinner"></div>
+    </div>
+    <table class="table" id="licenseTable">
+      <thead>
+        <tr>
+          <th>License ID</th>
+          <th>Name</th>
+          <th>Expiry Date</th>
+          <th>Keys Used By</th>
+          <th>Total Keys</th>
+          <th>Keys Left</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="6" style="text-align: center;">Loading licenses...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <script>
+    async function fetchLicenseOverview() {
+      try {
+        // Get the authenticated user from Firebase Auth.
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          console.error('User is not logged in.');
+          return;
+        }
+        const idToken = await user.getIdToken(true);
+        // Assume you have a helper to get your function host URL.
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
+        // Call your get_license_overview endpoint.
+        const response = await fetch(`${hostURL}/get_license_overview`, {
+          headers: {
+            'Authorization': 'Bearer ' + idToken,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          console.error('Error fetching license overview:', response.statusText);
+          return;
+        }
+        const data = await response.json();
+        renderLicenseTable(data.overview);
+      } catch (error) {
+        console.error('Error in fetchLicenseOverview:', error);
+      }
+    }
+  
+    function renderLicenseTable(overview) {
+      const tableBody = document.querySelector('#licenseTable tbody');
+      tableBody.innerHTML = ''; // Clear any placeholder rows
+  
+      if (!overview || overview.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No licenses found.</td></tr>';
+        return;
+      }
+      
+      overview.forEach(license => {
+        const row = document.createElement('tr');
+  
+        // License ID
+        const tdLicenseId = document.createElement('td');
+        tdLicenseId.textContent = license.license_id;
+        row.appendChild(tdLicenseId);
+  
+        // License Name
+        const tdLicenseName = document.createElement('td');
+        tdLicenseName.textContent = license.license_name;
+        row.appendChild(tdLicenseName);
+  
+        // Expiry Date
+        const tdExpiry = document.createElement('td');
+        tdExpiry.textContent = license.expiry_date;
+        row.appendChild(tdExpiry);
+  
+        // Keys Used By (if available; for public licenses, this may be omitted)
+        const tdKeysUsed = document.createElement('td');
+        tdKeysUsed.textContent = license.keys_used_by ? license.keys_used_by.join(', ') : '-';
+        row.appendChild(tdKeysUsed);
+  
+        // Total Keys
+        const tdTotalKeys = document.createElement('td');
+        tdTotalKeys.textContent = license.total_keys;
+        row.appendChild(tdTotalKeys);
+  
+        // Keys Left
+        const tdKeysLeft = document.createElement('td');
+        tdKeysLeft.textContent = license.keys_left;
+        row.appendChild(tdKeysLeft);
+  
+        tableBody.appendChild(row);
+      });
+    }
+  
+    // Fetch the license overview once the DOM is ready.
+    document.addEventListener('DOMContentLoaded', function() {
+      fetchLicenseOverview();
+    });
+  </script>
