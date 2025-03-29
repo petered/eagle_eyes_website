@@ -162,13 +162,16 @@ title: Account Management - Eagle Eyes
 </div>
 
 <script>
-    // Wait for DOM to load
+    // Wait for DOM to load - ONE unified listener
     document.addEventListener('DOMContentLoaded', function() {
         const signinButtonSection = document.getElementById('signinButtonSection');
         const accountContent = document.getElementById('accountContent');
         const userEmail = document.getElementById('userEmailDisplay');
         const signOutContainer = document.getElementById('signOutContainer');
         const signOutButton = document.getElementById('signOutButton');
+
+        // Set up the test user banner if in emulator mode
+        setupTestUserBanner();
 
         // Listen for auth state changes
         document.addEventListener('authStateChanged', function(e) {
@@ -225,6 +228,49 @@ title: Account Management - Eagle Eyes
         });
     });
 
+    // Function to set up test user banner
+    function setupTestUserBanner() {
+        console.log('Checking if we are in emulator mode');
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmulator = urlParams.get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Show the test user banner
+            const banner = document.getElementById('test-user-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // Set up the test user login button
+            const testUserBtn = document.getElementById('test-user-login');
+            if (testUserBtn) {
+                testUserBtn.addEventListener('click', function() {
+                    // Test user credentials
+                    const testEmail = 'test@example.com';
+                    const testPassword = 'password123';
+                    
+                    // Try to sign in first
+                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                        .then((userCredential) => {
+                            console.log('Test user signed in successfully');
+                        })
+                        .catch((error) => {
+                            // If sign-in fails, create the user first
+                            if (error.code === 'auth/user-not-found') {
+                                console.log('Test user not found, creating account...');
+                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                    .then((userCredential) => {
+                                        console.log('Test user created and signed in successfully');
+                                    })
+                                    .catch((createError) => {
+                                        console.error('Error creating test user:', createError);
+                                    });
+                            } else {
+                                console.error('Error signing in with test user:', error);
+                            }
+                        });
+                });
+            }
+        }
+    }
 
     async function fetchAvailableDownloads() {
         try {
@@ -494,6 +540,8 @@ title: Account Management - Eagle Eyes
                         console.log("User already filled in form, showing account page");
                         $("#accountContent").show();
                         fetchAvailableDownloads();
+                        console.log("Fetching license overview");
+                        fetchLicenseOverview();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -506,50 +554,6 @@ title: Account Management - Eagle Eyes
             console.error("Error getting ID token:", error);
         });
     }
-
-    // Add the test user banner functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if we're in emulator mode
-        const urlParams = new URLSearchParams(window.location.search);
-        const isEmulator = urlParams.get('is_emulator') === 'true';
-        
-        if (isEmulator) {
-            // Show the test user banner
-            const banner = document.getElementById('test-user-banner');
-            if (banner) banner.style.display = 'block';
-            
-            // Set up the test user login button
-            const testUserBtn = document.getElementById('test-user-login');
-            if (testUserBtn) {
-                testUserBtn.addEventListener('click', function() {
-                    // Test user credentials
-                    const testEmail = 'test@example.com';
-                    const testPassword = 'password123';
-                    
-                    // Try to sign in first
-                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
-                        .then((userCredential) => {
-                            console.log('Test user signed in successfully');
-                        })
-                        .catch((error) => {
-                            // If sign-in fails, create the user first
-                            if (error.code === 'auth/user-not-found') {
-                                console.log('Test user not found, creating account...');
-                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
-                                    .then((userCredential) => {
-                                        console.log('Test user created and signed in successfully');
-                                    })
-                                    .catch((createError) => {
-                                        console.error('Error creating test user:', createError);
-                                    });
-                            } else {
-                                console.error('Error signing in with test user:', error);
-                            }
-                        });
-                });
-            }
-        }
-    });
 </script>
 
 </body>
