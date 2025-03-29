@@ -101,11 +101,16 @@ title: Account Management - Eagle Eyes
                     <div class="box-content">
                         <div class="row">
                             <div class="column width-12">
-                                <h3 class="mb-30">Downloads</h3>
+                                <h3 class="mb-30">Available Downloads</h3>
                                 
                                 <div class="mb-50">
                                     <h4>Eagle Eyes Pilot</h4>
-                                    <table class="table">
+                                    <!-- Add spinner container -->
+                                    <div id="pilotSpinner" class="loading-spinner">
+                                        <div class="spinner"></div>
+                                    </div>
+                                    <!-- Initially hide the table -->
+                                    <table class="table" id="pilotTable" style="display: none;">
                                         <thead>
                                             <tr>
                                                 <th>Platform</th>
@@ -115,16 +120,18 @@ title: Account Management - Eagle Eyes
                                             </tr>
                                         </thead>
                                         <tbody id="pilotDownloads">
-                                            <tr>
-                                                <td colspan="4" style="text-align: center;">Loading available downloads...</td>
-                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
 
                                 <div class="mb-50">
                                     <h4>Eagle Eyes Scan</h4>
-                                    <table class="table">
+                                    <!-- Add spinner container -->
+                                    <div id="scanSpinner" class="loading-spinner">
+                                        <div class="spinner"></div>
+                                    </div>
+                                    <!-- Initially hide the table -->
+                                    <table class="table" id="scanTable" style="display: none;">
                                         <thead>
                                             <tr>
                                                 <th>Platform</th>
@@ -134,14 +141,10 @@ title: Account Management - Eagle Eyes
                                             </tr>
                                         </thead>
                                         <tbody id="scanDownloads">
-                                            <tr>
-                                                <td colspan="4" style="text-align: center;">Loading available downloads...</td>
-                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
 
-                                <h3 class="mb-30">Licenses</h3>
                                 <div id="licensesContent" class="mb-30">
                                 {% include license-table.html %}
                                 </div>
@@ -283,6 +286,12 @@ title: Account Management - Eagle Eyes
             console.log('Fetching available downloads...');
             console.log('User email:', user.email);
 
+            // Show spinners and hide tables initially
+            document.getElementById('pilotSpinner').style.display = 'block';
+            document.getElementById('pilotTable').style.display = 'none';
+            document.getElementById('scanSpinner').style.display = 'block';
+            document.getElementById('scanTable').style.display = 'none';
+
             // First, get the list of available files from Firebase Storage
             const pilotFiles = await listFilesInDirectory('pilot-releases/current');
             const scanFiles = await listFilesInDirectory('scan_releases/current');
@@ -323,6 +332,10 @@ title: Account Management - Eagle Eyes
                 }
             }
 
+            // Hide spinner and show table for pilot files
+            document.getElementById('pilotSpinner').style.display = 'none';
+            document.getElementById('pilotTable').style.display = 'table';
+
             // Get Scan downloads
             const scanDownloads = document.getElementById('scanDownloads');
             scanDownloads.innerHTML = '';
@@ -355,10 +368,22 @@ title: Account Management - Eagle Eyes
                     }
                 }
             }
+
+            // Hide spinner and show table for scan files
+            document.getElementById('scanSpinner').style.display = 'none';
+            document.getElementById('scanTable').style.display = 'table';
+            
         } catch (error) {
             console.error('Error in fetchAvailableDownloads:', error);
+            
+            // Show error messages and hide spinners
             document.getElementById('pilotDownloads').innerHTML = '<tr><td colspan="4" style="text-align: center;">Error loading downloads. Please try again later.</td></tr>';
             document.getElementById('scanDownloads').innerHTML = '<tr><td colspan="4" style="text-align: center;">Error loading downloads. Please try again later.</td></tr>';
+            
+            document.getElementById('pilotSpinner').style.display = 'none';
+            document.getElementById('pilotTable').style.display = 'table';
+            document.getElementById('scanSpinner').style.display = 'none';
+            document.getElementById('scanTable').style.display = 'table';
         }
     }
 

@@ -3,54 +3,68 @@
     <div id="licenseSpinner" class="loading-spinner">
         <div class="spinner"></div>
     </div>
-    <table class="table" id="licenseTable">
+    <table class="table" id="licenseTable" style="display: none;">
       <thead>
         <tr>
           <th>License ID</th>
           <th>Name</th>
           <th>Expiry Date</th>
-          <th>Keys Used By</th>
-          <th>Total Keys</th>
-          <th>Keys Left</th>
+          <th>Devices (remaining/total)</th>
+          <th>Device users</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td colspan="6" style="text-align: center;">Loading licenses...</td>
-        </tr>
       </tbody>
     </table>
   </div>
   
   <script>
     async function fetchLicenseOverview() {
-      try {
-        // Get the authenticated user from Firebase Auth.
-        const user = firebase.auth().currentUser;
-        if (!user) {
-          console.error('User is not logged in.');
-          return;
+        try {
+            // Show spinner, hide table initially
+            document.getElementById('licenseSpinner').style.display = 'block';
+            document.getElementById('licenseTable').style.display = 'none';
+            
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                console.error('User is not logged in.');
+                return;
+            }
+            const idToken = await user.getIdToken(true);
+            const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+            
+            const response = await fetch(`${hostURL}/get_license_overview`, {
+                method: 'GET',           // explicitly specify GET
+                mode: 'cors',            // ensure CORS mode is enabled
+                credentials: 'same-origin',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                console.error('Error fetching license overview:', response.statusText);
+                return;
+            }
+            const data = await response.json();
+            renderLicenseTable(data.overview);
+            
+            // Hide spinner, show table after data is processed
+            document.getElementById('licenseSpinner').style.display = 'none';
+            document.getElementById('licenseTable').style.display = 'table';
+        } catch (error) {
+            console.error('Error in fetchLicenseOverview:', error);
+            
+            // Show error message in table
+            const tableBody = document.querySelector('#licenseTable tbody');
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Error loading license data. Please try again later.</td></tr>';
+            
+            // Hide spinner, show table with error
+            document.getElementById('licenseSpinner').style.display = 'none';
+            document.getElementById('licenseTable').style.display = 'table';
         }
-        const idToken = await user.getIdToken(true);
-        // Assume you have a helper to get your function host URL.
-        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        
-        // Call your get_license_overview endpoint.
-        const response = await fetch(`${hostURL}/get_license_overview`, {
-          headers: {
-            'Authorization': 'Bearer ' + idToken,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) {
-          console.error('Error fetching license overview:', response.statusText);
-          return;
-        }
-        const data = await response.json();
-        renderLicenseTable(data.overview);
-      } catch (error) {
-        console.error('Error in fetchLicenseOverview:', error);
-      }
     }
   
     function renderLicenseTable(overview) {
@@ -58,7 +72,7 @@
       tableBody.innerHTML = ''; // Clear any placeholder rows
   
       if (!overview || overview.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No licenses found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No licenses found.</td></tr>';
         return;
       }
       
@@ -80,23 +94,21 @@
         tdExpiry.textContent = license.expiry_date;
         row.appendChild(tdExpiry);
   
-        // Keys Used By (if available; for public licenses, this may be omitted)
-        const tdKeysUsed = document.createElement('td');
-        tdKeysUsed.textContent = license.keys_used_by ? license.keys_used_by.join(', ') : '-';
-        row.appendChild(tdKeysUsed);
+        // Devices (remaining/total)
+        const tdDevices = document.createElement('td');
+        const keysLeft = license.keys_left || 0;
+        const totalKeys = license.total_keys || 'Unlimited';
+        tdDevices.textContent = totalKeys === 'Unlimited' 
+          ? `${keysLeft}/${totalKeys}` 
+          : `${keysLeft}/${totalKeys}`;
+        row.appendChild(tdDevices);
   
-        // Total Keys
-        const tdTotalKeys = document.createElement('td');
-        tdTotalKeys.textContent = license.total_keys;
-        row.appendChild(tdTotalKeys);
-  
-        // Keys Left
-        const tdKeysLeft = document.createElement('td');
-        tdKeysLeft.textContent = license.keys_left;
-        row.appendChild(tdKeysLeft);
+        // Device users
+        const tdDeviceUsers = document.createElement('td');
+        tdDeviceUsers.textContent = license.keys_used_by ? license.keys_used_by.join(', ') : '-';
+        row.appendChild(tdDeviceUsers);
   
         tableBody.appendChild(row);
       });
     }
-  
   </script>
