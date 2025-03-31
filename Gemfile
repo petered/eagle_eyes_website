@@ -6,3 +6,6 @@ gem 'sass-embedded', '~> 1.77.1'
 
 # GitHub Pages uses a whitelist of plugins; jekyll-redirect-from is supported.
 gem "jekyll-redirect-from", "~> 0.16.0"
+gem 'csv'
+gem 'logger'
+gem 'base64'
