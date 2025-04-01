@@ -10,7 +10,7 @@
     .pricing-box {
       flex: 0 0 calc(20% - 2rem);
       box-sizing: border-box;
-      min-width: 220px;
+      min-width: 200px;
       max-width: 320px;
       text-align: center;
       transition: transform 0.3s ease;
@@ -242,7 +242,7 @@
     </div>
     
     <!-- <div id="fetchingDiv" style="text-align: center; margin-bottom: 2rem;">⏳ Fetching pricing data...</div> -->
-    <section class="section-container" style="padding: 0 0 4rem 0; margin-top: 8rem;">
+    <section class="section-container" style="padding: 0 0 4rem 0; margin-top: 8rem; max-width: 1400px; margin-left: auto; margin-right: auto;">
       <div class="pricing-wrapper">
         <!-- Trial Box -->
         <div class="pricing-box">
@@ -390,51 +390,87 @@
     }
 
     function updatePricingDisplay(pricingData) {
-        // Find the one-year licenses for each tier
-        const oneYearLicenses = Object.values(pricingData).filter(item => 
-            item.duration_days > 93 && // 1 year license
-            (item.n_keys === 1 || item.n_keys === 4 || item.n_keys === 10) // Only the three categories we need
-        );
+        // Find the one-year licenses and keep their IDs
+        const oneYearLicenses = Object.entries(pricingData)
+            .filter(([id, item]) => 
+                item.duration_days > 93 && 
+                (item.n_keys === 1 || item.n_keys === 4 || item.n_keys === 10)
+            )
+            .map(([id, item]) => ({...item, id: id}));
         
         // Update individual price (1 key) - Box 2
         const individualPrice = oneYearLicenses.find(item => item.n_keys === 1);
         if (individualPrice) {
-            document.querySelector('.pricing-box:nth-child(2) .dollars').textContent = 
-                `USD $${individualPrice.price_usd}`;
-            document.querySelector('.pricing-box:nth-child(2) .section-button button').setAttribute('data-product-id', individualPrice.id);
+            const priceElement = document.querySelector('.pricing-box:nth-child(2) .dollars');
+            const buttonElement = document.querySelector('.pricing-box:nth-child(2) .section-button button');
+            priceElement.textContent = `USD $${individualPrice.price_usd}`;
+            buttonElement.setAttribute('data-product-id', individualPrice.id);
+            buttonElement.setAttribute('data-product-name', individualPrice.name);
+            buttonElement.setAttribute('data-price', individualPrice.price_usd);
         }
         
         // Update small team price (4 keys) - Box 3
         const smallTeamPrice = oneYearLicenses.find(item => item.n_keys === 4);
         if (smallTeamPrice) {
-            document.querySelector('.pricing-box:nth-child(3) .dollars').textContent = 
-                `USD $${smallTeamPrice.price_usd}`;
-            document.querySelector('.pricing-box:nth-child(3) .section-button button').setAttribute('data-product-id', smallTeamPrice.id);
+            const priceElement = document.querySelector('.pricing-box:nth-child(3) .dollars');
+            const buttonElement = document.querySelector('.pricing-box:nth-child(3) .section-button button');
+            priceElement.textContent = `USD $${smallTeamPrice.price_usd}`;
+            buttonElement.setAttribute('data-product-id', smallTeamPrice.id);
+            buttonElement.setAttribute('data-product-name', smallTeamPrice.name);
+            buttonElement.setAttribute('data-price', smallTeamPrice.price_usd);
         }
         
         // Update large team price (10 keys) - Box 4
         const largeTeamPrice = oneYearLicenses.find(item => item.n_keys === 10);
         if (largeTeamPrice) {
-            document.querySelector('.pricing-box:nth-child(4) .dollars').textContent = 
-                `USD $${largeTeamPrice.price_usd}`;
-            document.querySelector('.pricing-box:nth-child(4) .section-button button').setAttribute('data-product-id', largeTeamPrice.id);
+            const priceElement = document.querySelector('.pricing-box:nth-child(4) .dollars');
+            const buttonElement = document.querySelector('.pricing-box:nth-child(4) .section-button button');
+            priceElement.textContent = `USD $${largeTeamPrice.price_usd}`;
+            buttonElement.setAttribute('data-product-id', largeTeamPrice.id);
+            buttonElement.setAttribute('data-product-name', largeTeamPrice.name);
+            buttonElement.setAttribute('data-price', largeTeamPrice.price_usd);
         }
 
-        // Add click handlers to buttons
-        document.querySelectorAll('.section-button button').forEach(button => {
-            button.addEventListener('click', function() {
-                const productId = this.getAttribute('data-product-id');
-                if (productId) {
-                    document.dispatchEvent(new CustomEvent('priceSelected', { 
-                        detail: { 
-                            product_id: productId,
-                            price: this.closest('.pricing-box').querySelector('.dollars').textContent,
-                            name: this.closest('.pricing-box').querySelector('h2').textContent
+        // Add click handlers to all buttons
+        document.querySelectorAll('.pricing-box').forEach((box, index) => {
+            const button = box.querySelector('.section-button button');
+            
+            switch(index) {
+                case 0: // First box (Trial)
+                    button.addEventListener('click', function() {
+                        window.location.href = getUrlWithEmulatorParam('account.html?reason=trial');
+                    });
+                    break;
+                    
+                case 1: // Individual Use
+                case 2: // Small Teams
+                case 3: // Larger Teams
+                    button.addEventListener('click', function() {
+                        const productId = this.getAttribute('data-product-id');
+                        if (productId) {
+                            window.location.href = getUrlWithEmulatorParam(`account.html?reason=purchase&product=${productId}`);
                         }
-                    }));
-                    console.log(`Dispatched priceSelected event for product_id: ${productId}`);
-                }
-            });
+                    });
+                    break;
+                    
+                case 4: // Organizations (last box)
+                    button.addEventListener('click', function() {
+                        window.scrollTo({
+                            top: document.documentElement.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    });
+                    break;
+            }
         });
+    }
+
+    // Helper function to preserve emulator parameter
+    function getUrlWithEmulatorParam(url) {
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        if (!isEmulator) return url;
+        
+        const separator = url.includes('?') ? '&' : '?';
+        return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
     }
   </script>

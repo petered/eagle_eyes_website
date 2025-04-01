@@ -379,17 +379,6 @@ title: Account Management - Eagle Eyes
     </div>
 </div>
 
-<!-- Add the license purchase suggestion here -->
-<div class="section-block" style="padding-top: 0; padding-bottom: 0;">
-    <div class="row">
-        <div class="column width-8 offset-2 center">
-            <p style="color: #666; font-size: 16px; margin-bottom: 20px;">
-                Looking to buy a new license? <a href="pricing.html" style="color: #1e90ff; text-decoration: none; font-weight: 500;">See our pricing</a>.
-            </p>
-        </div>
-    </div>
-</div>
-
 <div class="section-block" style="padding-top: 20px;">
     <div class="row">
         <div class="column width-8 offset-2">
@@ -405,7 +394,13 @@ title: Account Management - Eagle Eyes
                     <div class="box-content">
                         <div class="row">
                             <div class="column width-12">
-                                <h3 class="mb-30">Available Downloads</h3>
+                                <!-- Add the license purchase suggestion here -->
+                                <p style="color: #666; font-size: 16px; margin-bottom: 30px; text-align: center;">
+                                    Looking to buy a new license? <a href="pricing.html" style="color: #1e90ff; text-decoration: none; font-weight: 500;">See our pricing</a>.
+                                </p>
+                                
+                                <h3 class="mb-10" style="text-align: center;">Available Downloads</h3>
+                                <p style="color: #666; font-size: 14px; margin-bottom: 20px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
                                 
                                 <div class="mb-50">
                                     <h4>Eagle Eyes Pilot</h4>
@@ -437,7 +432,7 @@ title: Account Management - Eagle Eyes
                                     </div>
                                 </div>
 
-                                <h3 class="mb-30">My Licenses</h3>
+                                <h3 class="mb-30" style="text-align: center;">My Licenses</h3>
                                 
                                 <div id="licensesContent">
                                     <div class="license-sections">
@@ -583,6 +578,40 @@ title: Account Management - Eagle Eyes
         document.addEventListener('signInComplete', function(e) {
             const user = e.detail.user;
             toggleSignIn(); // Hide the overlay
+        });
+
+        // Check if we're in emulator mode
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Get all navigation links
+            const navLinks = document.querySelectorAll('nav a, .nav a, .footer a');
+            
+            navLinks.forEach(link => {
+                // Skip external links and anchor links
+                if (link.href.startsWith(window.location.origin) && !link.href.includes('#')) {
+                    const url = new URL(link.href);
+                    // Only add the parameter if it's not already present
+                    if (!url.searchParams.has('is_emulator')) {
+                        url.searchParams.set('is_emulator', 'true');
+                        link.href = url.toString();
+                    }
+                }
+            });
+        }
+
+        // Update "Get Eagle Eyes" links using jQuery for better text matching
+        $('a[href="pricing.html"], a:contains("Get Eagle Eyes")').each(function() {
+            // Set the base URL to account.html
+            const newUrl = new URL('account.html', window.location.origin);
+            
+            // Check if we're in emulator mode
+            const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+            if (isEmulator) {
+                newUrl.searchParams.set('is_emulator', 'true');
+            }
+            
+            $(this).attr('href', newUrl.toString());
         });
     });
 
@@ -737,6 +766,9 @@ title: Account Management - Eagle Eyes
 
     // Helper function to handle purchase redirects/notifications
     function handlePurchaseRedirect(status) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('product');
+
         switch(status) {
             case 'pending':
                 showNotification(
@@ -750,11 +782,54 @@ title: Account Management - Eagle Eyes
                 break;
             
             case 'approved':
-                showNotification(
-                    'To do: forward to purchase site',
-                    'info',
-                    true
-                );
+                if (productId) {
+                    // Get the current user
+                    const user = firebase.auth().currentUser;
+                    if (user) {
+                        user.getIdToken(true).then(function(idToken) {
+                            const hostURL = window.getHostUrl();
+                            // Make request to create purchase link
+                            fetch(`${hostURL}/create_purchase_link`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${idToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    product_id: productId,
+                                    email: user.email
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.url) {
+                                    // Redirect to the purchase URL
+                                    window.location.href = data.url;
+                                } else {
+                                    showNotification(
+                                        'There was an error creating your purchase link. Please try again or contact support.',
+                                        'error',
+                                        true
+                                    );
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error creating purchase link:', error);
+                                showNotification(
+                                    'There was an error processing your request. Please try again or contact support.',
+                                    'error',
+                                    true
+                                );
+                            });
+                        });
+                    }
+                } else {
+                    showNotification(
+                        'Invalid product selection. Please try again from the pricing page.',
+                        'error',
+                        true
+                    );
+                }
                 break;
             
             default:
@@ -1203,7 +1278,7 @@ title: Account Management - Eagle Eyes
         document.getElementById('licenseSpinner').style.display = 'none';
         if (!data.overview || data.overview.length === 0) {
           document.getElementById('licenseEmpty').style.display = 'block';
-            } else {
+        } else {
           document.getElementById('licenseGrid').style.display = 'grid';
         }
       } catch (error) {
@@ -1290,7 +1365,7 @@ title: Account Management - Eagle Eyes
           
           body.appendChild(usersLabel);
           body.appendChild(usersList);
-        } else {
+            } else {
           // Show empty state message
           body.innerHTML = '<div class="license-empty">No devices are currently using this license</div>';
         }
@@ -1561,31 +1636,31 @@ title: Account Management - Eagle Eyes
             }
 
             user.getIdToken(true).then(function(idToken) {
-                const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
                 const fetch_url = hostURL + '/get_user_account_info';
-                
+        
                 console.log("Checking user account status at:", fetch_url);
                 
-                $.ajax({
-                    url: fetch_url,
-                    type: 'GET',
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function(data) {
+            $.ajax({
+                url: fetch_url,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
                         console.log("User account status response:", data);
                         // If data comes as a string, parse it; otherwise, assume it's already JSON.
-                        const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
                         resolve(parsedData);
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
                         console.error("Error getting account status:", textStatus, errorThrown);
                         console.error("Response:", jqXHR.responseText);
                         reject(errorThrown);
-                    }
-                });
-            }).catch(function(error) {
-                console.error("Error getting ID token:", error);
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token:", error);
                 reject(error);
             });
         });
@@ -1641,6 +1716,28 @@ title: Account Management - Eagle Eyes
         const banner = document.getElementById('notification-banner');
         banner.style.display = 'none';
     }
+
+    // Add this to your utility functions section
+    function updateLinksWithEmulator() {
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            const navLinks = document.querySelectorAll('nav a, .nav a, .footer a');
+            
+            navLinks.forEach(link => {
+                if (link.href.startsWith(window.location.origin) && !link.href.includes('#')) {
+                    const url = new URL(link.href);
+                    if (!url.searchParams.has('is_emulator')) {
+                        url.searchParams.set('is_emulator', 'true');
+                        link.href = url.toString();
+                    }
+                }
+            });
+        }
+    }
+
+    // Call this function when the page loads
+    document.addEventListener('DOMContentLoaded', updateLinksWithEmulator);
 </script>
 
 </body>
