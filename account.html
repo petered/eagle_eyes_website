@@ -555,14 +555,24 @@ title: Account Management - Eagle Eyes
             }
         });
 
-        // Initial auth state check
+        // Initial auth state check - make this more robust
         if (firebase.auth().currentUser) {
             const user = firebase.auth().currentUser;
+            // Hide the sign-in button section
             signinButtonSection.style.display = 'none';
+            // Show user info and sign-out button
             userEmail.textContent = `Logged in as: ${user.email}`;
-            signOutContainer.style.display = 'block'; // Show the sign-out button
+            signOutContainer.style.display = 'block';
+            // Hide the sign-in overlay
+            signinOverlay.style.display = 'none';
             // Instead of directly showing the account content, check if the user filled the form
-            redirectOrNot(user);
+            try {
+                redirectOrNot(user);
+            } catch (error) {
+                console.error("Error in redirectOrNot:", error);
+                // Fall back to showing account content if there's an error
+                $("#accountContent").show();
+            }
         }
 
         // Handle sign out
@@ -712,33 +722,41 @@ title: Account Management - Eagle Eyes
             const status = result.userStatus;
             console.log("User account status:", status);
 
-            // Handle different scenarios based on reason parameter
-            switch(reason) {
-                case 'trial':
-                    handleTrialRedirect(status);
-                    break;
-                
-                case 'purchase':
-                    handlePurchaseRedirect(status);
-                    break;
-                
-                default:
-                    handleDefaultRedirect(status);
-                    break;
-            }
+            try {
+                // Handle different scenarios based on reason parameter
+                switch(reason) {
+                    case 'trial':
+                        handleTrialRedirect(status);
+                        break;
+                    
+                    case 'purchase':
+                        handlePurchaseRedirect(status);
+                        break;
+                    
+                    default:
+                        handleDefaultRedirect(status);
+                        break;
+                }
 
-            // If we haven't redirected, show the account content
-            if (!document.hidden) {
+                // If we haven't redirected, show the account content
+                if (!document.hidden) {
+                    $("#accountContent").show();
+                    fetchAvailableDownloads();
+                    console.log("Fetching license overview");
+                    fetchLicenseOverview();
+                    fetchLicenseTokensOverview();
+                }
+            } catch (error) {
+                console.error("Error handling redirect:", error);
+                // Show account content even if redirect logic fails
                 $("#accountContent").show();
-                fetchAvailableDownloads();
-                console.log("Fetching license overview");
-                fetchLicenseOverview();
-                fetchLicenseTokensOverview();
             }
         })
         .catch(function(error) {
             console.error("Error checking user account status:", error);
+            // Clear any confusing UI state
             $("#signinButtonSection").show();
+            $("#accountContent").hide();
         });
     }
 
@@ -833,14 +851,7 @@ title: Account Management - Eagle Eyes
             return;
         }
 
-        // Get the base path from the current URL
-        function getBasePath() {
-            const path = window.location.pathname;
-            const stagingMatch = path.match(/^\/[^/]+\//);
-            return stagingMatch ? stagingMatch[0] : '/';
-        }
-
-        const basePath = getBasePath(); // Get the base path including /eagle_eyes_website_staging/
+        const basePath = getBasePath(); // Use the global function instead of local one
         
         // Construct the URL with query parameters similar to buy-license.html
         const hostURL = window.getHostUrl();
@@ -1817,6 +1828,14 @@ title: Account Management - Eagle Eyes
 
     // Call this function when the page loads
     document.addEventListener('DOMContentLoaded', updateLinksWithEmulator);
+
+    // 1. First, add this function at the global scope in the UTILITY FUNCTIONS section
+    // Move getBasePath out of createStripePaymentLink to make it globally available
+    function getBasePath() {
+        const path = window.location.pathname;
+        const stagingMatch = path.match(/^\/[^/]+\//);
+        return stagingMatch ? stagingMatch[0] : '/';
+    }
 </script>
 
 </body>
