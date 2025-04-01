@@ -136,11 +136,17 @@ title: Create an Account - Eagle Eyes
         const hangOnMessage = document.getElementById('hang-on-message');
         const postForm = document.getElementById('post-form');
         const submitButton = document.getElementById('submitButton');
+        const form = document.getElementById('emailSignInForm'); // or whatever your form ID is
         
         // If we have a submit button, attach the handler
         if (submitButton) {
-            submitButton.addEventListener('click', function(e) {
+            // Remove the click handler and handle form submit instead
+            form.addEventListener('submit', function(e) {
                 e.preventDefault();
+                // Prevent double submission
+                if (submitButton.classList.contains('processing')) {
+                    return;
+                }
                 submitForm();
             });
         }
@@ -213,6 +219,12 @@ title: Create an Account - Eagle Eyes
     
     // Consolidated form submission handler
     function submitForm() {
+        const submitButton = document.getElementById('submitButton');
+        if (submitButton.classList.contains('processing')) {
+            console.log('Form already being processed');
+            return;
+        }
+        
         // Get form validation result and data
         const result = validateFormAndGetData();
         
@@ -221,7 +233,7 @@ title: Create an Account - Eagle Eyes
         }
         
         // Show processing state
-        $("#submitButton").addClass('processing');
+        submitButton.classList.add('processing');
         
         // Get form type from the component
         const formType = currentFormType;
@@ -234,7 +246,7 @@ title: Create an Account - Eagle Eyes
             submitSignupForm(result.data);
         } else {
             console.log("Unknown form type:", formType);
-            $("#submitButton").removeClass('processing');
+            submitButton.classList.remove('processing');
         }
     }
     
@@ -260,7 +272,7 @@ title: Create an Account - Eagle Eyes
                 },
                 success: function(data) {
                     console.log("Success", data);
-                    $("#submitButton").removeClass('processing');
+                    submitButton.classList.remove('processing');
                     
                     // Hide form and sign-in elements
                     $("#form-container").hide();
@@ -293,14 +305,14 @@ title: Create an Account - Eagle Eyes
                     // }, 2000);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    $("#submitButton").removeClass('processing');
+                    submitButton.classList.remove('processing');
                     console.error("Server error:", jqXHR.responseText);
                     requestErrorHandler(jqXHR, textStatus, errorThrown);
                 }
             });
         }).catch(function(error) {
             console.error("Error getting auth token:", error);
-            $("#submitButton").removeClass('processing');
+            submitButton.classList.remove('processing');
         });
     }
     
@@ -326,7 +338,7 @@ title: Create an Account - Eagle Eyes
                 },
                 success: function(data) {
                     console.log("Signup Success", data);
-                    $("#submitButton").removeClass('processing');
+                    submitButton.classList.remove('processing');
                     
                     // Show success UI and redirect to account page with emulator parameter
                     $("#form-container").hide();
@@ -338,14 +350,14 @@ title: Create an Account - Eagle Eyes
                     }, 2000);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    $("#submitButton").removeClass('processing');
+                    submitButton.classList.remove('processing');
                     console.error("Server error:", jqXHR.responseText);  // Log the error response
                     requestErrorHandler(jqXHR, textStatus, errorThrown);
                 }
             });
         }).catch(function(error) {
             console.error("Error getting auth token:", error);
-            $("#submitButton").removeClass('processing');
+            submitButton.classList.remove('processing');
         });
     }
     
