@@ -824,6 +824,15 @@ title: Account Management - Eagle Eyes
             return;
         }
 
+        // Get the base path from the current URL
+        function getBasePath() {
+            const path = window.location.pathname;
+            const stagingMatch = path.match(/^\/[^/]+\//);
+            return stagingMatch ? stagingMatch[0] : '/';
+        }
+
+        const basePath = getBasePath(); // Get the base path including /eagle_eyes_website_staging/
+        
         // Construct the URL with query parameters similar to buy-license.html
         const hostURL = window.getHostUrl();
         let queryString = `?product_id=${productId}`;
@@ -891,7 +900,8 @@ title: Account Management - Eagle Eyes
 
     // Helper function to handle redirects to user-form.html
     function redirectToUserForm(reason = '') {
-        let url = 'user-form.html';
+        const basePath = getBasePath();
+        let url = basePath + 'user-form.html';
         
         // Add reason parameter if provided
         if (reason) {
