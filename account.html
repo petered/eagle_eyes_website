@@ -783,46 +783,8 @@ title: Account Management - Eagle Eyes
             
             case 'approved':
                 if (productId) {
-                    // Get the current user
-                    const user = firebase.auth().currentUser;
-                    if (user) {
-                        user.getIdToken(true).then(function(idToken) {
-                            const hostURL = window.getHostUrl();
-                            // Make request to create purchase link
-                            fetch(`${hostURL}/create_purchase_link`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${idToken}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    product_id: productId,
-                                    email: user.email
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.url) {
-                                    // Redirect to the purchase URL
-                                    window.location.href = data.url;
-                                } else {
-                                    showNotification(
-                                        'There was an error creating your purchase link. Please try again or contact support.',
-                                        'error',
-                                        true
-                                    );
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error creating purchase link:', error);
-                                showNotification(
-                                    'There was an error processing your request. Please try again or contact support.',
-                                    'error',
-                                    true
-                                );
-                            });
-                        });
-                    }
+                    // Create Stripe payment link and redirect user
+                    createStripePaymentLink(productId);
                 } else {
                     showNotification(
                         'Invalid product selection. Please try again from the pricing page.',
@@ -837,6 +799,86 @@ title: Account Management - Eagle Eyes
                 redirectToUserForm('purchase');
                 break;
         }
+    }
+
+    /**
+     * Creates a Stripe payment link and redirects the user to the Stripe checkout page
+     * @param {string} productId - The product ID to purchase
+     */
+    function createStripePaymentLink(productId) {
+        // Show loading notification
+        showNotification(
+            'Preparing your payment page. Please wait...',
+            'info',
+            false
+        );
+        
+        // Get the current user
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showNotification(
+                'You must be signed in to make a purchase. Please sign in and try again.',
+                'error',
+                true
+            );
+            return;
+        }
+
+        // Construct the URL with query parameters similar to buy-license.html
+        const hostURL = window.getHostUrl();
+        let queryString = `?product_id=${productId}`;
+        
+        // Include all url arguments passed in to this url (preserving emulator status, etc)
+        if (window.location.search.length > 1) {
+            queryString += `&${window.location.search.slice(1)}`;
+        }
+        
+        const url = `${hostURL}/get_stripe_payment_link${queryString}`;
+        console.log('Fetching payment link from:', url);
+        
+        // Get user token and make request using jQuery AJAX
+        user.getIdToken(true)
+            .then(function(idToken) {
+                $.ajax({
+                    headers: {'Authorization': 'Bearer ' + idToken},
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                        console.log('Received data:', data);
+                        var decodedData = typeof data === 'string' ? JSON.parse(data) : data;
+                        var paymentUrl = decodedData.url;
+                        
+                        if (paymentUrl) {
+                            console.log('Redirecting to payment URL:', paymentUrl);
+                            // Redirect to the payment URL
+                            window.location.href = paymentUrl;
+                        } else {
+                            showNotification(
+                                'There was an error creating your payment link. Please try again or contact support.',
+                                'error',
+                                true
+                            );
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error getting payment link:', textStatus, errorThrown);
+                        console.error('Response:', jqXHR.responseText);
+                        showNotification(
+                            'There was an error processing your request. Please try again or contact support.',
+                            'error',
+                            true
+                        );
+                    }
+                });
+            })
+            .catch(function(error) {
+                console.error('Error getting auth token:', error);
+                showNotification(
+                    'Authentication error. Please try signing in again.',
+                    'error',
+                    true
+                );
+            });
     }
 
     // Helper function to handle default redirects (no reason parameter)
@@ -1741,4 +1783,5 @@ title: Account Management - Eagle Eyes
 </script>
 
 </body>
+
 
