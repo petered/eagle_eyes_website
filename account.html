@@ -509,6 +509,12 @@ title: Account Management - Eagle Eyes
         const userEmail = document.getElementById('userEmailDisplay');
         const signOutContainer = document.getElementById('signOutContainer');
         const signOutButton = document.getElementById('signOutButton');
+        const signinOverlay = document.getElementById('signin-overlay');
+
+        // Add this to hide the overlay immediately if user is already signed in
+        if (firebase.auth().currentUser) {
+            signinOverlay.style.display = 'none';
+        }
 
         // Set up the test user banner if in emulator mode
         setupTestUserBanner();
@@ -534,6 +540,9 @@ title: Account Management - Eagle Eyes
                 signinButtonSection.style.display = 'none';
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 signOutContainer.style.display = 'block';
+                
+                // Ensure the sign-in overlay is hidden when user is authenticated
+                signinOverlay.style.display = 'none';
                 
                 // Check if the user should be on this page
                 redirectOrNot(user);
@@ -892,10 +901,28 @@ title: Account Management - Eagle Eyes
 
     // Helper function to handle default redirects (no reason parameter)
     function handleDefaultRedirect(status) {
-        if (status !== 'pending' && status !== 'approved' && status !== 'unverified') {
-            redirectToUserForm();
+        switch(status) {
+            case 'pending':
+                showNotification(
+                    'Your account is awaiting verification.' +
+                    'This usually doesn\'t take longer than a business day. If you have any questions or feel something might\'ve gone off track, just reach out to us at ' +
+                    '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>. ' +
+                    'We\'re happy to help!',
+                    'info',
+                    true
+                );
+                break;
+            
+            case 'approved':
+            case 'unverified':
+                // Do nothing and let the account page load
+                break;
+            
+            default:
+                // Redirect to user-form.html when status is not pending, approved, or unverified
+                redirectToUserForm();
+                break;
         }
-        // Otherwise do nothing and let the account page load
     }
 
     // Helper function to handle redirects to user-form.html
