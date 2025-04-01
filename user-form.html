@@ -527,14 +527,29 @@ title: Create an Account - Eagle Eyes
     
     // Setup function - binds internal events
     function setupFormComponent() {
-        // Check if a radio button is already selected
-        const selectedRadio = document.querySelector('input[name="signup_type"]:checked');
-        if (selectedRadio) {
-            setFormType(selectedRadio.value);
-            console.log("Initial form type set from selected radio: " + currentFormType);
-            showFormSection(currentFormType);
+        // Check URL parameters first for pre-selection
+        const urlParams = new URLSearchParams(window.location.search);
+        const reason = urlParams.get('reason');
+        
+        if (reason === 'trial' || reason === 'purchase') {
+            // Find and select the corresponding radio button
+            const radioButton = document.querySelector(`input[name="signup_type"][value="${reason}"]`);
+            if (radioButton) {
+                radioButton.checked = true;
+                setFormType(reason);
+                showFormSection(reason);
+                console.log(`Form type pre-selected from URL parameter: ${reason}`);
+            }
         } else {
-            console.log("No initial form type. Waiting for user selection.");
+            // Original behavior - check if a radio button is already selected
+            const selectedRadio = document.querySelector('input[name="signup_type"]:checked');
+            if (selectedRadio) {
+                setFormType(selectedRadio.value);
+                console.log("Initial form type set from selected radio: " + currentFormType);
+                showFormSection(currentFormType);
+            } else {
+                console.log("No initial form type. Waiting for user selection.");
+            }
         }
     }
     

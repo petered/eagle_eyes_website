@@ -367,6 +367,18 @@ title: Account Management - Eagle Eyes
     </div>
 </div>
 
+<!-- Notification banner moved outside and below the grey section -->
+<div class="row">
+    <div class="column width-12">
+        <div id="notification-banner" style="display: none; width: 100%; background-color: #3498db; color: white; padding: 12px 20px; text-align: center; border-radius: 4px; margin: 10px auto 20px; position: relative; max-width: 1140px;">
+            <div style="max-width: 90%; margin: 0 auto; font-size: 16px;" id="notification-text">
+                Important message for Eagle Eyes users will appear here.
+            </div>
+            <button id="close-notification" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px;">×</button>
+        </div>
+    </div>
+</div>
+
 <!-- Add the license purchase suggestion here -->
 <div class="section-block" style="padding-top: 0; padding-bottom: 0;">
     <div class="row">
@@ -505,6 +517,19 @@ title: Account Management - Eagle Eyes
 
         // Set up the test user banner if in emulator mode
         setupTestUserBanner();
+        
+        // Add notification banner examples
+        // Add event listener for close button
+        document.getElementById('close-notification').addEventListener('click', hideNotification);
+        
+        // Show a sample notification (uncomment any of these to test)
+        // showNotification('Welcome to your Eagle Eyes account! Check out our new features.', 'info', true);
+        
+        // Other examples you can uncomment to test:
+        // showNotification('Your license has been successfully activated!', 'success', true);
+        // showNotification('Your license will expire in 15 days. <a href="pricing.html" style="color: white; text-decoration: underline;">Renew now</a> to avoid interruption.', 'warning', true);
+        // showNotification('There was a problem processing your recent request. Please try again later.', 'error', true);
+        // showNotification('System maintenance scheduled for Sunday, 2AM-4AM EST.', 'info', false);
 
         // Listen for auth state changes
         document.addEventListener('authStateChanged', function(e) {
@@ -516,7 +541,7 @@ title: Account Management - Eagle Eyes
                 signOutContainer.style.display = 'block';
                 
                 // Check if the user should be on this page
-                checkUserStatus(user);
+                redirectOrNot(user);
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
@@ -533,7 +558,7 @@ title: Account Management - Eagle Eyes
             userEmail.textContent = `Logged in as: ${user.email}`;
             signOutContainer.style.display = 'block'; // Show the sign-out button
             // Instead of directly showing the account content, check if the user filled the form
-            checkUserStatus(user);
+            redirectOrNot(user);
         }
 
         // Handle sign out
@@ -639,50 +664,125 @@ title: Account Management - Eagle Eyes
     }
     
     // Check if user has filled out the required forms
-    function checkUserStatus(user) {
-        // Hide account content until check is completed
-        $("#accountContent").hide();
+    function redirectOrNot(user) {
+        // Get URL parameters first
+        const urlParams = new URLSearchParams(window.location.search);
+        const reason = urlParams.get('reason');
         
-        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        const fetch_url = hostURL + '/has_user_already_filled_in_form';
-        
-        user.getIdToken(true).then(function(idToken) {
-            $.ajax({
-                url: fetch_url,
-                type: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + idToken
-                },
-                success: function(data) {
-                    console.log("Got reply from has_user_already_filled_in_form:", data);
-                    // Parse the response if it's a string
-                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-                    const formOrNull = parsedData.form;
-                    
-                    if (formOrNull === null) {
-                        // User has not filled in the form yet - redirect to create-account.html
-                        console.log('User did not fill in form yet, redirecting to create-account');
-                        window.location.href = getUrlWithEmulatorParam('create-account.html');
-                    } else {
-                        // User has filled in the form - show account content and fetch downloads
-                        console.log("User already filled in form, showing account page");
-                        $("#accountContent").show();
-                        // Load all account data
-                        fetchAvailableDownloads();
-                        console.log("Fetching license overview");
-                        fetchLicenseOverview();
-                        fetchLicenseTokensOverview();
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error checking form status:", textStatus, errorThrown);
-                    // On error, default to showing the sign-in button
-                    $("#signinButtonSection").show();
-                }
-            });
-        }).catch(function(error) {
-            console.error("Error getting ID token:", error);
+        checkUserAccountStatus(user)
+        .then(function(result) {
+            const status = result.userStatus;
+            console.log("User account status:", status);
+
+            // Handle different scenarios based on reason parameter
+            switch(reason) {
+                case 'trial':
+                    handleTrialRedirect(status);
+                    break;
+                
+                case 'purchase':
+                    handlePurchaseRedirect(status);
+                    break;
+                
+                default:
+                    handleDefaultRedirect(status);
+                    break;
+            }
+
+            // If we haven't redirected, show the account content
+            if (!document.hidden) {
+                $("#accountContent").show();
+                fetchAvailableDownloads();
+                console.log("Fetching license overview");
+                fetchLicenseOverview();
+                fetchLicenseTokensOverview();
+            }
+        })
+        .catch(function(error) {
+            console.error("Error checking user account status:", error);
+            $("#signinButtonSection").show();
         });
+    }
+
+    // Helper function to handle trial redirects/notifications
+    function handleTrialRedirect(status) {
+        switch(status) {
+            case 'pending':
+                showNotification(
+                    'We weren\'t able to process your trial request automatically, as your account is still awaiting approval from an earlier request. ' +
+                    'If you have any questions or feel something might\'ve gone off track, just reach out to us at ' +
+                    '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>. ' +
+                    'We\'re happy to help!',
+                    'warning',
+                    true
+                );
+                break;
+            
+            case 'approved':
+                showNotification(
+                    'We weren\'t able to process your trial request automatically, as it looks like you already have an account with us. ' +
+                    'Just send us a quick note at <a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">' +
+                    'info@eagleeyessearch.com</a> to request your trial, and we\'ll get back to you shortly.',
+                    'warning',
+                    true
+                );
+                break;
+            
+            default:
+                // Redirect to user-form.html with reason parameter preserved
+                redirectToUserForm('trial');
+                break;
+        }
+    }
+
+    // Helper function to handle purchase redirects/notifications
+    function handlePurchaseRedirect(status) {
+        switch(status) {
+            case 'pending':
+                showNotification(
+                    'Your account is still awaiting approval from an earlier request. ' +
+                    'If you have any questions or feel something might\'ve gone off track, just reach out to us at ' +
+                    '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>. ' +
+                    'We\'re happy to help!',
+                    'warning',
+                    true
+                );
+                break;
+            
+            case 'approved':
+                showNotification(
+                    'To do: forward to purchase site',
+                    'info',
+                    true
+                );
+                break;
+            
+            default:
+                // Redirect to user-form.html with reason parameter preserved
+                redirectToUserForm('purchase');
+                break;
+        }
+    }
+
+    // Helper function to handle default redirects (no reason parameter)
+    function handleDefaultRedirect(status) {
+        if (status !== 'pending' && status !== 'approved' && status !== 'unverified') {
+            redirectToUserForm();
+        }
+        // Otherwise do nothing and let the account page load
+    }
+
+    // Helper function to handle redirects to user-form.html
+    function redirectToUserForm(reason = '') {
+        let url = 'user-form.html';
+        
+        // Add reason parameter if provided
+        if (reason) {
+            url += `?reason=${reason}`;
+        }
+        
+        // Preserve emulator parameter if present
+        window.location.href = getUrlWithEmulatorParam(url);
     }
 
     /***********************************************
@@ -1443,6 +1543,103 @@ title: Account Management - Eagle Eyes
             $("#user-team").text(formData.team);
         }
         // Add other fields as needed
+    }
+
+    /**
+     * Check the user's account status by calling the backend get_user_account_info function.
+     * The backend response includes:
+     *   - userStatus: one of "approved", "pending", "unverified", or "no_account"
+     *   - form_data: the form data attached to the account record (or null if not found)
+     *
+     * Returns a Promise that resolves with the parsed response.
+     */
+    function checkUserAccountStatus(user) {
+        return new Promise((resolve, reject) => {
+            if (!user) {
+                reject(new Error("No user provided"));
+                return;
+            }
+
+            user.getIdToken(true).then(function(idToken) {
+                const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                const fetch_url = hostURL + '/get_user_account_info';
+                
+                console.log("Checking user account status at:", fetch_url);
+                
+                $.ajax({
+                    url: fetch_url,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    success: function(data) {
+                        console.log("User account status response:", data);
+                        // If data comes as a string, parse it; otherwise, assume it's already JSON.
+                        const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                        resolve(parsedData);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("Error getting account status:", textStatus, errorThrown);
+                        console.error("Response:", jqXHR.responseText);
+                        reject(errorThrown);
+                    }
+                });
+            }).catch(function(error) {
+                console.error("Error getting ID token:", error);
+                reject(error);
+            });
+        });
+    }
+
+    /**
+     * Show notification banner with a message
+     * @param {string} message - The message to display
+     * @param {string} type - The type of notification: 'info' (blue), 'success' (green), 'warning' (orange), or 'error' (red)
+     * @param {boolean} dismissible - Whether the notification can be dismissed by the user
+     */
+    function showNotification(message, type = 'info', dismissible = true) {
+        const banner = document.getElementById('notification-banner');
+        const textContainer = document.getElementById('notification-text');
+        const closeButton = document.getElementById('close-notification');
+        
+        // Set the message
+        textContainer.innerHTML = message;
+        
+        // Set the color based on type
+        let bgColor = '#3498db'; // Default blue for 'info'
+        switch(type) {
+            case 'success':
+                bgColor = '#2ecc71';
+                break;
+            case 'warning':
+                bgColor = '#f39c12';
+                break;
+            case 'error':
+                bgColor = '#e74c3c';
+                break;
+        }
+        banner.style.backgroundColor = bgColor;
+        
+        // Show/hide close button based on dismissible option
+        closeButton.style.display = dismissible ? 'block' : 'none';
+        
+        // Show the banner
+        banner.style.display = 'block';
+        
+        // Add event listener to close button if dismissible
+        if (dismissible) {
+            closeButton.onclick = function() {
+                hideNotification();
+            };
+        }
+    }
+
+    /**
+     * Hide the notification banner
+     */
+    function hideNotification() {
+        const banner = document.getElementById('notification-banner');
+        banner.style.display = 'none';
     }
 </script>
 
