@@ -173,11 +173,11 @@ title: Create an Account - Eagle Eyes
                 // Don't immediately check or show form - let signinwidget handle redirects
                 // We'll only display forms if we know we need to stay on this page
                 hangOnMessage.style.display = 'block';
-                // setTimeout(function() {
-                //     // If we're still on this page after a short delay,
-                //     // the user probably needs to fill this form
-                //     checkExistingForm(user);
-                // }, 200);
+                setTimeout(function() {
+                    // If we're still on this page after a short delay,
+                    // the user probably needs to fill this form
+                    redirectOrNot(user);
+                }, 200);
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
@@ -516,11 +516,7 @@ title: Create an Account - Eagle Eyes
     }
     
     // Initialize the component - called by parent page
-    function initFormComponent(options = {}) {
-        // Setup event listeners
-        document.addEventListener('DOMContentLoaded', setupFormComponent);
-        console.log("Form component initialized");
-    }
+
     
     // Method to validate form and return result
     function validateFormAndGetData() {
@@ -538,12 +534,20 @@ title: Create an Account - Eagle Eyes
     }
     
     // Setup function - binds internal events
-    function setupFormComponent() {
-        // Check URL parameters first for pre-selection
+ 
+
+    function redirectOrNot(user) {
+        // Get URL parameters first
         const urlParams = new URLSearchParams(window.location.search);
         const reason = urlParams.get('reason');
+        const hangOnMessage = document.getElementById('hang-on-message');
+        const formContainer = document.getElementById('form-container');
         
+        // First check URL parameters to see if we should show a specific form
         if (reason === 'trial' || reason === 'purchase') {
+            // Hide the loading message
+            hangOnMessage.style.display = 'none';
+            
             // Find and select the corresponding radio button
             const radioButton = document.querySelector(`input[name="signup_type"][value="${reason}"]`);
             if (radioButton) {
@@ -551,17 +555,22 @@ title: Create an Account - Eagle Eyes
                 setFormType(reason);
                 showFormSection(reason);
                 console.log(`Form type pre-selected from URL parameter: ${reason}`);
+                
+                // Show the form since we know which type to display
+                formContainer.style.display = 'block';
+            } else {
+                // Fallback - just show the form with the radio buttons
+                // Hide the loading message
+                hangOnMessage.style.display = 'none';
+                
+                // Show the form container without pre-selecting any option
+                formContainer.style.display = 'block';
+                
+                console.log('Invalid reason parameter. Showing default form options.');
             }
         } else {
-            // Original behavior - check if a radio button is already selected
-            const selectedRadio = document.querySelector('input[name="signup_type"]:checked');
-            if (selectedRadio) {
-                setFormType(selectedRadio.value);
-                console.log("Initial form type set from selected radio: " + currentFormType);
-                showFormSection(currentFormType);
-            } else {
-                console.log("No initial form type. Waiting for user selection.");
-            }
+            // No reason parameter, check if user has already filled the form
+            checkExistingForm(user);
         }
     }
     
