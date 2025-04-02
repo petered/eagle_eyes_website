@@ -89,8 +89,6 @@ title: Update your profile
                 <div class="box-content">
                     <div class="row">
                         <div class="column width-12">
-                            <h3 class="mb-30"></h3>
-                            <p style="text-align: center;">Please take a minute to share a few details.</p>
                             
                             {% include account-questions.html %}
                             
@@ -553,6 +551,7 @@ title: Update your profile
             if (radioButton) {
                 radioButton.checked = true;
                 setFormType(reason);
+                hideSignupTypeSection();
                 showFormSection(reason);
                 console.log(`Form type pre-selected from URL parameter: ${reason}`);
                 
@@ -616,6 +615,8 @@ title: Update your profile
         const downloadQuestions = document.getElementById('download-questions');
         const trialQuestions = document.getElementById('trial-questions');
         const purchaseQuestions = document.getElementById('purchase-questions');
+        const titleElement = document.getElementById('formTypeTitle');
+        const descriptionElement = document.getElementById('formTypeDescription');
         
         // First, show the additional fields
         additionalFields.style.display = 'block';
@@ -625,17 +626,33 @@ title: Update your profile
         trialQuestions.style.display = 'none';
         purchaseQuestions.style.display = 'none';
         
-        // Show the appropriate question section based on form type
+        // Set default empty values for title and description
+        titleElement.innerHTML = '';
+        descriptionElement.innerHTML = '';
+        
+        // Show the appropriate question section and update title/description based on form type
         switch(formType) {
             case 'trial':
                 trialQuestions.style.display = 'block';
+                titleElement.innerHTML = 'Register for a 30-day trial';
+                descriptionElement.innerHTML = 'To access a trial license, your account needs to be verified first. Please complete this form to submit your verification request. ' +
+                    'Verification can take up to 3 business days, though most requests are processed within 24 hours. Once verified, we will set you up with a trial license and you\'ll be able to activate Eagle Eyes Pilot and/or Eagle Eyes Scan on up to 5 devices using your trial license.';
                 break;
+            
             case 'download':
                 downloadQuestions.style.display = 'block';
+                titleElement.innerHTML = 'Create an account to download Eagle Eyes';
+                descriptionElement.innerHTML = 'Already have an active license for yourself or your team? Complete this form to create an account and you\'ll get immediate access to the downloads section.<br><br>' +
+                    '<i>Note: An active license is required to activate Eagle Eyes on your device.</i>';
                 break;
+            
             case 'purchase':
                 purchaseQuestions.style.display = 'block';
+                titleElement.innerHTML = 'Get verified to purchase a license';
+                descriptionElement.innerHTML = 'To purchase a license, your account needs to be verified first. Please complete this form to submit your verification request. ' + 
+                    'Verification can take up to 3 business days, though most requests are processed within 24 hours. We\'ll send you a confirmation by email as soon as your account is verified.';
                 break;
+            
             default:
                 // If no valid form type, hide additional fields
                 additionalFields.style.display = 'none';
@@ -769,5 +786,24 @@ title: Update your profile
         }
         
         return formData;
+    }
+
+    // Function to hide the signup type question section
+    function hideSignupTypeSection() {
+        // Find the container that holds the radio buttons
+        const radioGroupContainer = document.querySelector('.radio-group');
+        
+        if (radioGroupContainer) {
+            // If there's a heading or label before the radio group, hide it too
+            const previousElement = radioGroupContainer.previousElementSibling;
+            if (previousElement && (previousElement.tagName === 'H3' || 
+                                   previousElement.tagName === 'H4' || 
+                                   previousElement.tagName === 'LABEL')) {
+                previousElement.style.display = 'none';
+            }
+            
+            // Hide the radio group itself
+            radioGroupContainer.style.display = 'none';
+        }
     }
 </script>

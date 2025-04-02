@@ -395,12 +395,12 @@ title: Account Management - Eagle Eyes
                         <div class="row">
                             <div class="column width-12">
                                 <!-- Add the license purchase suggestion here -->
-                                <p style="color: #666; font-size: 16px; margin-bottom: 30px; text-align: center;">
-                                    Looking to buy a new license? <a href="pricing.html" style="color: #1e90ff; text-decoration: none; font-weight: 500;">See our pricing</a>.
-                                </p>
+                                <div style="color: #666; font-size: 16px; margin-bottom: 30px; text-align: center;" id="verification-status">
+                                    Looking to buy a new license? <a href="user-form.html?reason=purchase" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                                </div>
                                 
                                 <h3 class="mb-10" style="text-align: center;">Available Downloads</h3>
-                                <p style="color: #666; font-size: 14px; margin-bottom: 20px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
+                                <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
                                 
                                 <div class="mb-50">
                                     <h4>Eagle Eyes Pilot</h4>
@@ -432,7 +432,8 @@ title: Account Management - Eagle Eyes
                                     </div>
                                 </div>
 
-                                <h3 class="mb-30" style="text-align: center;">My Licenses</h3>
+                                <h3 class="mb-10" style="text-align: center;">My Licenses</h3>
+                                <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Using an existing (team) license? Download and start the desktop/mobile app and follow the directions.</p>
                                 
                                 <div id="licensesContent">
                                     <div class="license-sections">
@@ -734,7 +735,7 @@ title: Account Management - Eagle Eyes
                         break;
                     
                     default:
-                        handleDefaultRedirect(status);
+                        handleDefaultRedirect(user, status);
                         break;
                 }
 
@@ -772,6 +773,8 @@ title: Account Management - Eagle Eyes
                     'warning',
                     true
                 );
+                document.getElementById('verification-status').innerHTML = ``;
+
                 break;
             
             case 'approved':
@@ -782,6 +785,12 @@ title: Account Management - Eagle Eyes
                     'warning',
                     true
                 );
+                document.getElementById('verification-status').innerHTML = `
+                            You have a verified account. Looking to buy a new license? 
+                            <a href="pricing.html" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
+                                Start here
+                            </a>.
+                `;
                 break;
             
             default:
@@ -806,6 +815,7 @@ title: Account Management - Eagle Eyes
                     'warning',
                     true
                 );
+                document.getElementById('verification-status').innerHTML = ``;
                 break;
             
             case 'approved':
@@ -814,7 +824,7 @@ title: Account Management - Eagle Eyes
                     createStripePaymentLink(productId);
                 } else {
                     showNotification(
-                        'Invalid product selection. Please try again from the pricing page.',
+                        'Invalid product selection. Please try again from the pricing page. If this error persists, please contact us at info@eagleeyessearch.com.',
                         'error',
                         true
                     );
@@ -911,7 +921,7 @@ title: Account Management - Eagle Eyes
     }
 
     // Helper function to handle default redirects (no reason parameter)
-    function handleDefaultRedirect(status) {
+    function handleDefaultRedirect(user, status) {
         switch(status) {
             case 'pending':
                 showNotification(
@@ -922,11 +932,27 @@ title: Account Management - Eagle Eyes
                     'info',
                     true
                 );
+                document.getElementById('verification-status').innerHTML = ``;
                 break;
             
             case 'approved':
+                document.getElementById('verification-status').innerHTML = `
+                            You have a verified account. Looking to buy a new license? 
+                            <a href="pricing.html" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
+                                Start here
+                            </a>.
+                `;
+                
+                break;
+
             case 'unverified':
-                // Do nothing and let the account page load
+                // Construct the URL dynamically, preserving the emulator parameter
+                const verificationUrl = getUrlWithEmulatorParam('user-form.html?reason=purchase');
+                // Add a link to the verification form using the dynamic URL
+                document.getElementById('verification-status').innerHTML = `
+                    Looking to buy a new license? <a href="${verificationUrl}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                `;
+                // Allow page content to load
                 break;
             
             default:
@@ -1693,7 +1719,6 @@ title: Account Management - Eagle Eyes
         const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
         if (!isEmulator) return url;
         
-        // Add the parameter to the URL if it doesn't already have it
         const separator = url.includes('?') ? '&' : '?';
         return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
     }
