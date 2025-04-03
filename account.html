@@ -354,6 +354,66 @@ title: Account Management - Eagle Eyes
             padding: 0 !important;
         }
     }
+
+    /* Tab Navigation Styles */
+    .tab-navigation {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .tab-button {
+        background: none;
+        border: none;
+        padding: 12px 24px;
+        margin: 0 5px;
+        font-size: 16px;
+        font-weight: 500;
+        color: #666;
+        cursor: pointer;
+        position: relative;
+        transition: color 0.3s;
+    }
+    
+    .tab-button:hover {
+        color: #333;
+    }
+    
+    .tab-button.active {
+        color: #1e90ff;
+    }
+    
+    .tab-button.active:after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #1e90ff;
+    }
+    
+    /* Tab Content Styles */
+    .tab-content {
+        margin-top: 20px;
+    }
+    
+    .tab-pane {
+        display: none;
+    }
+    
+    .tab-pane.active {
+        display: block;
+    }
+    
+    /* Mobile Enhancements */
+    @media (max-width: 767px) {
+        .tab-button {
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+    }
 </style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
@@ -408,88 +468,97 @@ title: Account Management - Eagle Eyes
                         <div class="row">
                             <div class="column width-12">
                                 <!-- Add the license purchase suggestion here -->
-                                <div style="color: #666; font-size: 16px; margin-bottom: 30px; text-align: center;" id="verification-status">
+                                <div style="color: #666; font-size: 16px; margin-bottom: 20px; text-align: center;" id="verification-status">
                                     Looking to buy a new license? <a href="user-form.html?reason=purchase" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
                                 </div>
                                 
-                                <h3 class="mb-10" style="text-align: center;">Available Downloads</h3>
-                                <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
-                                
-                                <div class="mb-50">
-                                    <h4>Eagle Eyes Pilot</h4>
-                                    <!-- Add spinner container -->
-                                    <div id="pilotSpinner" class="loading-spinner">
-                                        <div class="spinner"></div>
-                                    </div>
-                                    <!-- Use a grid for cards instead of a table -->
-                                    <div id="pilotGrid" style="display: none;"></div>
-                                    <div id="pilotEmpty" style="display: none;">
-                                        <div class="empty-card">
-                                            No Pilot downloads available.
-                                        </div>
-                                    </div>
+                                <!-- Tab Navigation -->
+                                <div class="tab-navigation">
+                                    <button class="tab-button active" data-tab="downloads-tab">Downloads</button>
+                                    <button class="tab-button" data-tab="licenses-tab">My Licenses</button>
                                 </div>
 
-                                <div class="mb-50">
-                                    <h4>Eagle Eyes Scan</h4>
-                                    <!-- Add spinner container -->
-                                    <div id="scanSpinner" class="loading-spinner">
-                                        <div class="spinner"></div>
-                                    </div>
-                                    <!-- Use a grid for cards instead of a table -->
-                                    <div id="scanGrid" style="display: none;"></div>
-                                    <div id="scanEmpty" style="display: none;">
-                                        <div class="empty-card">
-                                            No Scan downloads available.
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <h3 class="mb-10" style="text-align: center;">My Licenses</h3>
-                                <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Using an existing (team) license? Download and start the desktop/mobile app and follow the directions.</p>
-                                
-                                <div id="licensesContent">
-                                    <div class="license-sections">
-                                        <!-- SECTION 1: MY PURCHASED LICENSES -->
-                                        <div id="purchasedLicenseContainer" class="mb-50">
-                                            <h4>My Purchased Licenses</h4>
-                                            <div id="licenseSpinner" class="loading-spinner">
-                                        <div class="spinner"></div>
-                                    </div>
-                                            
-                                            <!-- Card-based grid layout for licenses -->
-                                            <div id="licenseGrid" style="display: none;"></div>
-                                            
-                                            <div id="licenseError" style="display: none;">
-                                                <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
-                                                    Error loading license data. Please try again later.
-                                </div>
-                            </div>
-                                            <div id="licenseEmpty" style="display: none;">
-                                                <div class="empty-card">
-                                                    No licenses found.
-                        </div>
-                    </div>
-                </div>
-
-                                        <!-- SECTION 2: MY DEVICES -->
-                                        <div id="deviceTokensContainer">
-                                            <h4>My Devices</h4>
-                                            <div id="tokensSpinner" class="loading-spinner">
+                                <!-- Tab Contents -->
+                                <div class="tab-content">
+                                    <!-- DOWNLOADS TAB -->
+                                    <div id="downloads-tab" class="tab-pane active">
+                                        <h3 class="mb-10" style="text-align: center;">Available Downloads</h3>
+                                        <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
+                                        
+                                        <div class="mb-50">
+                                            <h4>Eagle Eyes Pilot</h4>
+                                            <!-- Add spinner container -->
+                                            <div id="pilotSpinner" class="loading-spinner">
                                                 <div class="spinner"></div>
-            </div>
-                                            
-                                            <!-- Card-based grid layout for device tokens -->
-                                            <div id="tokensGrid" style="display: none;"></div>
-                                            
-                                            <div id="tokensError" style="display: none;">
-                                                <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
-                                                    Error loading device data. Please try again later.
+                                            </div>
+                                            <!-- Use a grid for cards instead of a table -->
+                                            <div id="pilotGrid" style="display: none;"></div>
+                                            <div id="pilotEmpty" style="display: none;">
+                                                <div class="empty-card">
+                                                    No Pilot downloads available.
                                                 </div>
                                             </div>
-                                            <div id="tokensEmpty" style="display: none;">
+                                        </div>
+
+                                        <div class="mb-50">
+                                            <h4>Eagle Eyes Scan</h4>
+                                            <!-- Add spinner container -->
+                                            <div id="scanSpinner" class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                            <!-- Use a grid for cards instead of a table -->
+                                            <div id="scanGrid" style="display: none;"></div>
+                                            <div id="scanEmpty" style="display: none;">
                                                 <div class="empty-card">
-                                                    No devices found.
+                                                    No Scan downloads available.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- LICENSES TAB -->
+                                    <div id="licenses-tab" class="tab-pane">
+                                        <h3 class="mb-10" style="text-align: center;">My Licenses</h3>
+                                        <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Using an existing (team) license? Download and start the desktop/mobile app and follow the directions.</p>
+                                        
+                                        <div id="licensesContent">
+                                            <div class="license-sections">
+                                                <!-- SECTION 1: MY PURCHASED LICENSES -->
+                                                <div id="purchasedLicenseContainer" class="mb-50">
+                                                    <h4>My Purchased Licenses</h4>
+                                                    <div id="licenseSpinner" class="loading-spinner">
+                                                        <div class="spinner"></div>
+                                                    </div>
+                                                    <div id="licenseGrid" style="display: none;"></div>
+                                                    <div id="licenseError" style="display: none;">
+                                                        <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                                                            Error loading license data. Please try again later.
+                                                        </div>
+                                                    </div>
+                                                    <div id="licenseEmpty" style="display: none;">
+                                                        <div class="empty-card">
+                                                            No licenses found.
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- SECTION 2: MY DEVICES -->
+                                                <div id="deviceTokensContainer">
+                                                    <h4>My Devices</h4>
+                                                    <div id="tokensSpinner" class="loading-spinner">
+                                                        <div class="spinner"></div>
+                                                    </div>
+                                                    <div id="tokensGrid" style="display: none;"></div>
+                                                    <div id="tokensError" style="display: none;">
+                                                        <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                                                            Error loading device data. Please try again later.
+                                                        </div>
+                                                    </div>
+                                                    <div id="tokensEmpty" style="display: none;">
+                                                        <div class="empty-card">
+                                                            No devices found.
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -633,6 +702,38 @@ title: Account Management - Eagle Eyes
             
             $(this).attr('href', newUrl.toString());
         });
+
+        // Tab switching functionality
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons and panes
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanes.forEach(pane => pane.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Show corresponding tab pane
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+                
+                // Save the active tab in localStorage to persist through page refreshes
+                localStorage.setItem('activeAccountTab', tabId);
+            });
+        });
+        
+        // Check if there's a saved tab preference
+        const savedTab = localStorage.getItem('activeAccountTab');
+        if (savedTab) {
+            // Trigger click on the saved tab button
+            const savedTabButton = document.querySelector(`.tab-button[data-tab="${savedTab}"]`);
+            if (savedTabButton) {
+                savedTabButton.click();
+            }
+        }
     });
 
     /***********************************************
@@ -980,6 +1081,20 @@ title: Account Management - Eagle Eyes
      * SOFTWARE DOWNLOADS MANAGEMENT
      ***********************************************/
 
+    // Add this new function to parse version information from filenames
+    function parseVersionFromFilename(fileName, defaultVersion) {
+        // Check if the file has sdk4 or sdk5 in the name
+        if (fileName.includes('-sdk4') || fileName.includes('-sdk5')) {
+            // Extract the version including the SDK part (assuming format like EagleEyesPilot-1.2.0rc1-sdk5.apk)
+            const match = fileName.match(/-([\d\.]+[^-]*-sdk[45])\.(?:apk|exe|dmg|zip)/i);
+            if (match && match[1]) {
+                return match[1]; // return the version with sdk part
+            }
+        }
+        // Return the provided defaultVersion if no SDK version pattern is found
+        return defaultVersion;
+    }
+
     // Fetch available software downloads for both Pilot and Scan
     async function fetchAvailableDownloads() {
         try {
@@ -1018,7 +1133,9 @@ title: Account Management - Eagle Eyes
                     try {
                         // Use the structured data directly
                         const fileName = file.name;
-                        const version = file.version || 'Unknown';
+                        // Use the new function to get version including SDK info if applicable
+                        const defaultVersion = file.version || 'Unknown';
+                        const version = parseVersionFromFilename(fileName, defaultVersion);
                         const platform = file.platform || 'Unknown';
                         const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
                         
@@ -1121,7 +1238,9 @@ title: Account Management - Eagle Eyes
                     try {
                         // Use the structured data directly
                         const fileName = file.name;
-                        const version = file.version || 'Unknown';
+                        // Use the new function to get version including SDK info if applicable
+                        const defaultVersion = file.version || 'Unknown';
+                        const version = parseVersionFromFilename(fileName, defaultVersion);
                         const platform = file.platform || 'Unknown';
                         const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
                         
