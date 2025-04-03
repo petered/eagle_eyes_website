@@ -5,6 +5,10 @@
       justify-content: center;
       flex-wrap: wrap;
       margin-top: 3rem;
+      width: 95%; /* Increased from default to ensure content fits on mobile */
+      max-width: 1400px; /* Set a max-width for larger screens */
+      margin-left: auto;
+      margin-right: auto;
     }
     
     .pricing-box {
@@ -194,12 +198,17 @@
       .pricing-wrapper {
         flex-direction: row;
         justify-content: center;
+        width: 98%; /* Take up more width on smaller screens */
+        gap: 1.5rem; /* Reduce the gap for better fit */
       }
       .pricing-box {
-        flex: 0 0 calc(100% - 2rem);
-        width: calc(100% - 2rem);
-        max-width: 320px;
-        margin-bottom: 2rem;
+        flex: 0 0 calc(100% - 1.5rem);
+        width: calc(100% - 1.5rem);
+        max-width: 100%; /* Allow cards to expand to container width */
+        margin-bottom: 1.5rem;
+      }
+      .inner-pricing-box {
+        padding: 2rem 1.5rem; /* Slightly reduce padding */
       }
     }
 
@@ -207,11 +216,21 @@
       .pricing-wrapper {
         flex-direction: column;
         align-items: center;
+        width: 95%; /* Slightly narrower than parent */
       }
       .pricing-box {
         flex: 0 0 100%;
         width: 100%;
-        max-width: 320px;
+        max-width: 100%;
+      }
+      .inner-pricing-box {
+        padding: 1.8rem 1.2rem; /* Further reduce padding */
+      }
+      .section-title h2 {
+        font-size: 1.5rem; /* Slightly reduce font size */
+      }
+      .lead {
+        font-size: 1.3rem; /* Slightly reduce font size */
       }
     }
 
@@ -348,7 +367,6 @@
     </section>
   </div>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize each price box with loading text
@@ -375,23 +393,37 @@
     function fetchPricingData() {
         var fetch_url = hostURL + '/get_product_line';
         console.log("Fetch URL: " + fetch_url);
-    
+
         $.ajax({
             url: fetch_url,
             method: 'GET',
             success: function(data) {
                 console.log('Fetched pricing data:', data);
-                updatePricingDisplay(JSON.parse(data));
+                // Assuming the cloud function returns a JSON string
+                try {
+                    updatePricingDisplay(JSON.parse(data)); 
+                } catch (e) {
+                    // If it's already an object (e.g., emulator behaves differently)
+                    if (typeof data === 'object' && data !== null) {
+                        updatePricingDisplay(data);
+                    } else {
+                        console.error('Error parsing pricing data:', e);
+                        handlePricingError(); // Call centralized error handler
+                    }
+                }
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 console.error('Error fetching pricing data:', textStatus, errorThrown);
-                $('#fetchingDiv').show().text('❌ Error fetching pricing data from server');
-                
-                // Also update the individual pricing areas with error message
-                document.querySelectorAll('.pricing-box:nth-child(2) .dollars, .pricing-box:nth-child(3) .dollars, .pricing-box:nth-child(4) .dollars').forEach(element => {
-                    element.innerHTML = '<span class="fetching-price" style="color: #cc0000;">Price data unavailable</span>';
-                });
+                handlePricingError(); // Call centralized error handler
             }
+        });
+    }
+
+    function handlePricingError() {
+        $('#fetchingDiv').show().text('❌ Error fetching pricing data from server');
+        // Also update the individual pricing areas with error message
+        document.querySelectorAll('.pricing-box:nth-child(n+2):nth-child(-n+4) .dollars').forEach(element => {
+            element.innerHTML = '<span class="fetching-price" style="color: #cc0000;">Price data unavailable</span>';
         });
     }
 
