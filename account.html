@@ -341,6 +341,19 @@ title: Account Management - Eagle Eyes
       box-sizing: border-box;
       margin-bottom: 20px;
     }
+
+    /* Add this at the end of your style section */
+    @media (max-width: 767px) {
+        #accountContent .box {
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
+        
+        #accountContent .box-content {
+            padding: 0 !important;
+        }
+    }
 </style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
@@ -533,20 +546,25 @@ title: Account Management - Eagle Eyes
         // showNotification('There was a problem processing your recent request. Please try again later.', 'error', true);
         // showNotification('System maintenance scheduled for Sunday, 2AM-4AM EST.', 'info', false);
 
-        // Listen for auth state changes
-        document.addEventListener('authStateChanged', function(e) {
-            const user = e.detail.user;
+        // Use Firebase's built-in auth state observer instead of our custom events
+        firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
-                // User is signed in
+                // User is signed in - always hide the overlay and signin button
+                signinOverlay.style.display = 'none';
                 signinButtonSection.style.display = 'none';
+                
+                // Show user info
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 signOutContainer.style.display = 'block';
                 
-                // Ensure the sign-in overlay is hidden when user is authenticated
-                signinOverlay.style.display = 'none';
-                
                 // Check if the user should be on this page
-                redirectOrNot(user);
+                try {
+                    redirectOrNot(user);
+                } catch (error) {
+                    console.error("Error in redirectOrNot:", error);
+                    // Still show content on error, but don't show sign-in again
+                    $("#accountContent").show();
+                }
             } else {
                 // User is signed out
                 signinButtonSection.style.display = 'block';
@@ -555,26 +573,6 @@ title: Account Management - Eagle Eyes
                 signOutContainer.style.display = 'none';
             }
         });
-
-        // Initial auth state check - make this more robust
-        if (firebase.auth().currentUser) {
-            const user = firebase.auth().currentUser;
-            // Hide the sign-in button section
-            signinButtonSection.style.display = 'none';
-            // Show user info and sign-out button
-            userEmail.textContent = `Logged in as: ${user.email}`;
-            signOutContainer.style.display = 'block';
-            // Hide the sign-in overlay
-            signinOverlay.style.display = 'none';
-            // Instead of directly showing the account content, check if the user filled the form
-            try {
-                redirectOrNot(user);
-            } catch (error) {
-                console.error("Error in redirectOrNot:", error);
-                // Fall back to showing account content if there's an error
-                $("#accountContent").show();
-            }
-        }
 
         // Handle sign out
         if (signOutButton) {
@@ -594,10 +592,12 @@ title: Account Management - Eagle Eyes
             });
         }
 
-        // Keep this event handler for backward compatibility
+        // Replace the signInComplete listener to explicitly hide the overlay
         document.addEventListener('signInComplete', function(e) {
-            const user = e.detail.user;
-            toggleSignIn(); // Hide the overlay
+            // Instead of toggling the overlay, simply force it to hide:
+            var overlay = document.getElementById('signin-overlay');
+            overlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
         });
 
         // Check if we're in emulator mode
@@ -755,9 +755,9 @@ title: Account Management - Eagle Eyes
         })
         .catch(function(error) {
             console.error("Error checking user account status:", error);
-            // Clear any confusing UI state
-            $("#signinButtonSection").show();
-            $("#accountContent").hide();
+            // ⚠️ Fix: Don't show the sign-in button again on error
+            // $("#signinButtonSection").show(); <- Remove or comment this line
+            $("#accountContent").show();
         });
     }
 
