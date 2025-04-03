@@ -215,18 +215,20 @@ layout: default
                     <br>
                     <div style="width: 390px; margin: 0 auto; display: flex; justify-content: space-between;">
                         {% include button-blue.html button_text='Get Eagle Eyes' button_onclick="window.location.href='./account.html';" button_style="padding: 5px 12px !important; font-size: 11px !important; width: 180px !important; overflow: hidden; white-space: nowrap; margin: 0 !important;" %}
-                        {% include button-transparent.html button_text='Show Demo' button_onclick="window.location.href='./faq.html';" button_style="padding: 5px 12px !important; font-size: 11px !important; width: 180px !important; overflow: hidden; white-space: nowrap; margin: 0 !important;" %}
+                        {% include button-transparent.html button_text='Show Demo' button_onclick="showVideo();" button_style="padding: 5px 12px !important; font-size: 11px !important; width: 180px !important; overflow: hidden; white-space: nowrap; margin: 0 !important;" %}
                     </div>
                 </div>
             </div>
         </div>
 
         
-        <div id="videoModal" style="display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display:none; align-items:center; justify-content:center;" onclick="hideVideo()">
-            <div style="width:80%;max-height:80vh;position:relative;padding-bottom:56.250%; overflow: auto;" onclick="event.stopPropagation()">
-                <iframe id="videoFrame" src="" frameborder="0" width="100%" height="100%" allowfullscreen allow="autoplay" style="position:absolute;left:0px;top:0px;overflow:hidden;"></iframe>
+        <div id="videoModal" style="display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; align-items:center; justify-content:center;" onclick="hideVideo()">
+            <div style="width:80%; max-height:80vh; position:relative; padding-bottom:56.250%; overflow: auto;" onclick="event.stopPropagation()">
+                <iframe id="videoFrame" src="" frameborder="0" width="100%" height="100%" allowfullscreen allow="autoplay" style="position:absolute; left:0px; top:0px; overflow:hidden;"></iframe>
             </div>
-            
+            <div id="modalHelpText" style="position: absolute; bottom: 30px; left: 0; right: 0; text-align: center; color: rgba(255,255,255,0.7); font-size: 14px; opacity: 1; transition: opacity 0.5s ease 2s;">
+                Press ESC or click outside to close
+            </div>
         </div>
 
         {% include explainer.html %}
@@ -245,5 +247,126 @@ layout: default
 	<script src="js/jquery.tm.avalanche.js"></script>
 	<!-- <script src="js/timber.js"></script> -->
 	<script src="js/timber.master.min.js"></script>
+
+    <script>
+    function showVideo() {
+        const modal = document.getElementById('videoModal');
+        const helpText = document.getElementById('modalHelpText');
+        
+        // Remove any existing close button first (cleanup)
+        const existingBtn = document.getElementById('buttonCloseVideo');
+        if (existingBtn) {
+            existingBtn.parentNode.removeChild(existingBtn);
+        }
+        
+        // Create close button and add it to body
+        const closeBtn = document.createElement('button');
+        closeBtn.id = 'buttonCloseVideo';
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.cssText = 'position: fixed; top: 20px; right: 20px; background-color: transparent; color: white; font-size: 32px; font-weight: 900; cursor: pointer; z-index: 1000000; border: none; padding: 10px; text-shadow: 0px 0px 3px #000, 0px 0px 5px rgba(0,0,0,0.8); transition: all 0.3s ease;';
+        closeBtn.onclick = function(e) {
+            e.stopPropagation();
+            hideVideo();
+        };
+        
+        document.body.appendChild(closeBtn);
+        
+        // Darken the navbar
+        const navbar = document.querySelector('.header');
+        if (navbar) {
+            // Create overlay for navbar if it doesn't exist
+            let navbarOverlay = document.getElementById('navbar-overlay');
+            if (!navbarOverlay) {
+                navbarOverlay = document.createElement('div');
+                navbarOverlay.id = 'navbar-overlay';
+                navbarOverlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 70px; background-color: rgba(0,0,0,0.8); z-index: 999999;';
+                document.body.appendChild(navbarOverlay);
+            } else {
+                navbarOverlay.style.display = 'block';
+            }
+        }
+        
+        document.getElementById('videoFrame').src = "https://streamable.com/e/5lpxmy?autoplay=1&loop=0";
+        
+        modal.style.display = "flex";
+        
+        document.body.style.overflow = "hidden";
+        
+        if (helpText) {
+            helpText.style.opacity = "1";
+            setTimeout(() => {
+                helpText.style.opacity = "0";
+            }, 3000);
+        }
+        
+        if (closeBtn) {
+            closeBtn.style.transform = "scale(1.2)";
+            setTimeout(() => {
+                closeBtn.style.transform = "scale(1)";
+            }, 300);
+        }
+    }
+
+    function hideVideo() {
+        const modal = document.getElementById('videoModal');
+        
+        // More robust button removal
+        try {
+            const closeBtn = document.getElementById('buttonCloseVideo');
+            if (closeBtn && closeBtn.parentNode) {
+                closeBtn.parentNode.removeChild(closeBtn);
+            }
+        } catch (err) {
+            console.error("Error removing close button:", err);
+        }
+        
+        // Remove navbar overlay
+        const navbarOverlay = document.getElementById('navbar-overlay');
+        if (navbarOverlay) {
+            navbarOverlay.style.display = 'none';
+        }
+        
+        // Immediately create and execute a timeout to ensure button removal
+        setTimeout(() => {
+            const remainingBtn = document.getElementById('buttonCloseVideo');
+            if (remainingBtn && remainingBtn.parentNode) {
+                remainingBtn.parentNode.removeChild(remainingBtn);
+            }
+        }, 0);
+        
+        modal.style.opacity = "0";
+        modal.style.transition = "opacity 0.3s ease";
+        
+        setTimeout(() => {
+            modal.style.display = "none";
+            modal.style.opacity = "1";
+            document.getElementById('videoFrame').src = "";
+            document.body.style.overflow = "auto";
+        }, 300);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('videoModal');
+        
+        modal.style.transition = "opacity 0.3s ease";
+        
+        // Clean up any stray close buttons and navbar overlays on page load
+        const strayBtn = document.getElementById('buttonCloseVideo');
+        if (strayBtn) {
+            strayBtn.parentNode.removeChild(strayBtn);
+        }
+        
+        const navbarOverlay = document.getElementById('navbar-overlay');
+        if (navbarOverlay) {
+            navbarOverlay.style.display = 'none';
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                hideVideo();
+            }
+        });
+    });
+    </script>
 
 
