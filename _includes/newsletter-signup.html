@@ -40,22 +40,71 @@
             width: 100%;
         }
     }
+    
+    /* Control button width on larger screens */
+    @media (min-width: 769px) {
+        .newsletter-form .button.black {
+            width: auto !important;
+            min-width: 120px !important;
+            max-width: 160px !important;
+        }
+    }
 </style>
 
 
 <div style="margin-top: 20rem; margin-bottom: 20rem;">
     <h3 class="pb-40" style="text-align: center; margin-bottom: 0px;">Subscribe to our newsletter</h3>
     <div class="centered-feature bkg-grey-ultralight">
-        <div id="newsletter-container" style="max-width:600px; margin:0 auto; text-align:center;">
+        <div id="main-newsletter-container" style="max-width:600px; margin:0 auto; text-align:center;">
             <h4 style="margin-bottom:10px; text-align:center;">Get the latest news and product releases sent to your inbox.</h4>
             <br>
-            <form id="newsletter-signup" onsubmit="submitNewsletter(event)" class="newsletter-form">
+            <form id="main-newsletter-signup" onsubmit="submitMainNewsletter(event)" class="newsletter-form">
                 <input class="subscribe-input" type="email" name="email" placeholder="Your email" required>
                 <!-- Honeypot field (hidden from users) -->
                 <input type="text" name="honeypot" value="" style="display: none;">
                 
-                {% include button-black.html button_type='submit' button_text='Subscribe' button_style="font-size: 14px; padding: 10px 20px; margin: 0; height: 44px; box-sizing: border-box; transform: translateY(-7px);" %}
+                {% include button-black.html button_type='submit' button_text='Subscribe' button_style="width: auto; max-width: 160px; font-size: 14px; padding: 10px 20px; margin: 0; height: 44px; box-sizing: border-box; transform: translateY(-7px);" %}
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    function submitMainNewsletter(event) {
+      event.preventDefault();
+      
+      // Gather form data
+      const form = document.getElementById('main-newsletter-signup');
+      const email = form.email.value.trim();
+      const honeypot = form.honeypot.value.trim();
+      
+      // Create the data payload
+      const data = { email, honeypot };
+      var fetch_url = getHostUrl();
+      fetch_url += "/newsletter_signup";
+
+      // Send the POST request to the Cloud Function endpoint
+      fetch((fetch_url), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.text();
+      })
+      .then(result => {
+        console.log("Newsletter signup response:", result);
+        // Replace the form with a thank you message
+        document.getElementById('main-newsletter-container').innerHTML = 
+          "<p style='color:#000; text-align:center;'>Thank you for subscribing!</p>";
+      })
+      .catch(error => {
+        console.error("Error during newsletter signup:", error);
+      });
+    }
+</script>
