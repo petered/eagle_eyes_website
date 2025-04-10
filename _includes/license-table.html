@@ -1,0 +1,540 @@
+<div class="license-sections">
+  <!-- SECTION 1: MY PURCHASED LICENSES -->
+  <div id="purchasedLicenseContainer">
+    <h4>My Purchased Licenses</h4>
+    <div id="licenseSpinner" class="loading-spinner">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Card-based grid layout for licenses -->
+    <div id="licenseGrid" style="display: none;"></div>
+    
+    <div id="licenseError" style="display: none; text-align: center; padding: 20px; color: #666;">
+      Error loading license data. Please try again later.
+    </div>
+    <div id="licenseEmpty" style="display: none; text-align: center; padding: 20px; color: #666;">
+      No licenses found.
+    </div>
+  </div>
+
+  <!-- SECTION 2: MY DEVICES -->
+  <div id="deviceTokensContainer" class="mt-50">
+    <h4>My Devices</h4>
+    <div id="tokensSpinner" class="loading-spinner">
+      <div class="spinner"></div>
+    </div>
+    
+    <!-- Card-based grid layout for device tokens -->
+    <div id="tokensGrid" style="display: none;"></div>
+    
+    <div id="tokensError" style="display: none; text-align: center; padding: 20px; color: #666;">
+      Error loading device data. Please try again later.
+    </div>
+    <div id="tokensEmpty" style="display: none; text-align: center; padding: 20px; color: #666;">
+      No devices found.
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Common styles for both sections */
+  .license-sections h4 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .mt-50 {
+    margin-top: 50px;
+  }
+  
+  /* Grid layouts */
+  #licenseGrid, #tokensGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    width: 100%;
+  }
+  
+  /* Card styles - shared across both sections */
+  .license-card, .token-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .license-card:hover, .token-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .license-header, .token-header {
+    background-color: #f8f8f8;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .license-header-left, .token-header-left {
+    flex: 1;
+  }
+  
+  .license-header-right, .token-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    text-align: right;
+  }
+  
+  .license-title, .token-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+    color: #333;
+  }
+  
+  .license-subtitle, .token-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0 0 0;
+  }
+  
+  .license-meta, .token-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  
+  .license-meta:last-child, .token-meta:last-child {
+    margin-bottom: 0;
+  }
+  
+  .license-meta-highlight, .token-meta-highlight {
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .license-body, .token-body {
+    padding: 15px;
+  }
+  
+  /* Token-specific styles */
+  .token-license-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  
+  .token-license-item:last-child {
+    border-bottom: none;
+  }
+  
+  .token-license-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .token-license-id {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .token-license-expiry {
+    font-size: 13px;
+    color: #666;
+    margin-top: 3px;
+  }
+  
+  .copy-button {
+    padding: 6px 12px;
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .copy-button:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .copy-button.copied {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+  }
+  
+  /* License-specific styles */
+  .license-users-label {
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .license-users-list {
+    font-size: 14px;
+    color: #333;
+    max-height: 80px;
+    overflow-y: auto;
+    padding-right: 5px;
+    line-height: 1.5;
+  }
+  
+  .license-empty, .token-empty {
+    padding: 15px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+  }
+  
+  /* For mobile */
+  @media (max-width: 480px) {
+    #licenseGrid, #tokensGrid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .license-card, .token-card {
+      border-radius: 6px;
+    }
+    
+    .license-header, .token-header {
+      padding: 12px;
+      flex-direction: column;
+    }
+    
+    .license-header-right, .token-header-right {
+      margin-top: 10px;
+      align-items: flex-start;
+      text-align: left;
+    }
+    
+    .license-body, .token-body {
+      padding: 12px;
+    }
+  }
+</style>
+  
+  <script>
+  // Helper function to copy text to clipboard
+  function copyToClipboard(text, button) {
+    navigator.clipboard.writeText(text).then(
+      function() {
+        // Success - show visual feedback
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        
+        // Reset button after 2 seconds
+        setTimeout(function() {
+          button.textContent = 'Copy Key';
+          button.classList.remove('copied');
+        }, 2000);
+      },
+      function(err) {
+        console.error('Could not copy text: ', err);
+        button.textContent = 'Error';
+        
+        // Reset button after 2 seconds
+        setTimeout(function() {
+          button.textContent = 'Copy Key';
+        }, 2000);
+      }
+    );
+  }
+
+  // SECTION 1: Fetch and render purchased licenses
+    async function fetchLicenseOverview() {
+      try {
+      // Show spinner, hide cards initially
+      document.getElementById('licenseSpinner').style.display = 'block';
+      document.getElementById('licenseGrid').style.display = 'none';
+      document.getElementById('licenseError').style.display = 'none';
+      document.getElementById('licenseEmpty').style.display = 'none';
+      
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          console.error('User is not logged in.');
+          return;
+        }
+        const idToken = await user.getIdToken(true);
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
+        const response = await fetch(`${hostURL}/get_license_overview`, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'same-origin',
+          headers: {
+            'Authorization': 'Bearer ' + idToken,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+          }
+        });
+      
+        if (!response.ok) {
+          console.error('Error fetching license overview:', response.statusText);
+        document.getElementById('licenseSpinner').style.display = 'none';
+        document.getElementById('licenseError').style.display = 'block';
+          return;
+        }
+        const data = await response.json();
+      renderLicenseCards(data.overview);
+      
+      // Hide spinner, show cards after data is processed
+      document.getElementById('licenseSpinner').style.display = 'none';
+      if (!data.overview || data.overview.length === 0) {
+        document.getElementById('licenseEmpty').style.display = 'block';
+      } else {
+        document.getElementById('licenseGrid').style.display = 'grid';
+      }
+      } catch (error) {
+        console.error('Error in fetchLicenseOverview:', error);
+      
+      // Show error message
+      document.getElementById('licenseSpinner').style.display = 'none';
+      document.getElementById('licenseError').style.display = 'block';
+    }
+  }
+
+  function renderLicenseCards(overview) {
+    const licenseGrid = document.getElementById('licenseGrid');
+    licenseGrid.innerHTML = ''; // Clear existing cards
+  
+      if (!overview || overview.length === 0) {
+      document.getElementById('licenseEmpty').style.display = 'block';
+      document.getElementById('licenseGrid').style.display = 'none';
+        return;
+      }
+      
+      overview.forEach(license => {
+      // Create license card container
+      const card = document.createElement('div');
+      card.className = 'license-card';
+      
+      // Create header with left and right sections
+      const header = document.createElement('div');
+      header.className = 'license-header';
+      
+      // Left section - Name and ID
+      const headerLeft = document.createElement('div');
+      headerLeft.className = 'license-header-left';
+      
+      const title = document.createElement('h4');
+      title.className = 'license-title';
+      title.textContent = license.license_name;
+      
+      const subtitle = document.createElement('p');
+      subtitle.className = 'license-subtitle';
+      subtitle.textContent = `ID: ${license.license_id}`;
+      
+      headerLeft.appendChild(title);
+      headerLeft.appendChild(subtitle);
+      
+      // Right section - Expiry date and Devices
+      const headerRight = document.createElement('div');
+      headerRight.className = 'license-header-right';
+  
+        // Expiry Date
+      const expiryMeta = document.createElement('div');
+      expiryMeta.className = 'license-meta';
+      expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
+      
+      // Devices info
+      const devicesMeta = document.createElement('div');
+      devicesMeta.className = 'license-meta';
+      const keysLeft = license.keys_left || 0;
+      const totalKeys = license.total_keys || 'Unlimited';
+      devicesMeta.innerHTML = `Devices: <span class="license-meta-highlight">${keysLeft}/${totalKeys}</span>`;
+      
+      headerRight.appendChild(expiryMeta);
+      headerRight.appendChild(devicesMeta);
+      
+      // Assemble the header
+      header.appendChild(headerLeft);
+      header.appendChild(headerRight);
+      card.appendChild(header);
+      
+      // Card body - only for device users
+      const body = document.createElement('div');
+      body.className = 'license-body';
+      
+      // Display device users if available
+      if (license.keys_used_by && license.keys_used_by.length > 0) {
+        const usersLabel = document.createElement('div');
+        usersLabel.className = 'license-users-label';
+        usersLabel.textContent = 'Device users:';
+        
+        const usersList = document.createElement('div');
+        usersList.className = 'license-users-list';
+        usersList.textContent = license.keys_used_by.join(', ');
+        
+        body.appendChild(usersLabel);
+        body.appendChild(usersList);
+      } else {
+        // Show empty state message
+        body.innerHTML = '<div class="license-empty">No devices are currently using this license</div>';
+      }
+      
+      card.appendChild(body);
+      licenseGrid.appendChild(card);
+    });
+  }
+  
+  // SECTION 2: Fetch and render device tokens
+  async function fetchLicenseTokensOverview() {
+    try {
+      // Show spinner, hide cards initially
+      document.getElementById('tokensSpinner').style.display = 'block';
+      document.getElementById('tokensGrid').style.display = 'none';
+      document.getElementById('tokensError').style.display = 'none';
+      document.getElementById('tokensEmpty').style.display = 'none';
+      
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        console.error('User is not logged in.');
+        return;
+      }
+      const idToken = await user.getIdToken(true);
+      const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+      
+      const response = await fetch(`${hostURL}/get_license_tokens_overview`, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'same-origin',
+        headers: {
+          'Authorization': 'Bearer ' + idToken,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error('Error fetching tokens overview:', response.statusText);
+        document.getElementById('tokensSpinner').style.display = 'none';
+        document.getElementById('tokensError').style.display = 'block';
+        return;
+      }
+      const data = await response.json();
+      renderTokenCards(data.tokens_overview);
+      
+      // Hide spinner, show cards after data is processed
+      document.getElementById('tokensSpinner').style.display = 'none';
+      if (!data.tokens_overview || data.tokens_overview.length === 0) {
+        document.getElementById('tokensEmpty').style.display = 'block';
+      } else {
+        document.getElementById('tokensGrid').style.display = 'grid';
+      }
+    } catch (error) {
+      console.error('Error in fetchLicenseTokensOverview:', error);
+      
+      // Show error message
+      document.getElementById('tokensSpinner').style.display = 'none';
+      document.getElementById('tokensError').style.display = 'block';
+    }
+  }
+  
+  function renderTokenCards(tokensOverview) {
+    const tokensGrid = document.getElementById('tokensGrid');
+    tokensGrid.innerHTML = ''; // Clear existing cards
+    
+    if (!tokensOverview || tokensOverview.length === 0) {
+      document.getElementById('tokensEmpty').style.display = 'block';
+      document.getElementById('tokensGrid').style.display = 'none';
+      return;
+    }
+    
+    // Group tokens by machine_id
+    const tokensByMachine = {};
+    tokensOverview.forEach(token => {
+      if (!tokensByMachine[token.machine_id]) {
+        tokensByMachine[token.machine_id] = [];
+      }
+      tokensByMachine[token.machine_id].push(token);
+    });
+    
+    // Create a card for each machine_id
+    Object.entries(tokensByMachine).forEach(([machineId, tokens]) => {
+      // Create token card container
+      const card = document.createElement('div');
+      card.className = 'token-card';
+      
+      // Create header
+      const header = document.createElement('div');
+      header.className = 'token-header';
+      
+      // Left section - Device name and Machine ID
+      const headerLeft = document.createElement('div');
+      headerLeft.className = 'token-header-left';
+      
+      const title = document.createElement('h4');
+      title.className = 'token-title';
+      title.textContent = `Device`; // We could use a more descriptive name if available
+      
+      const subtitle = document.createElement('p');
+      subtitle.className = 'token-subtitle';
+      subtitle.textContent = `Machine ID: ${machineId}`;
+      
+      headerLeft.appendChild(title);
+      headerLeft.appendChild(subtitle);
+      
+      // Assemble the header
+      header.appendChild(headerLeft);
+      card.appendChild(header);
+      
+      // Card body - list each license with its token
+      const body = document.createElement('div');
+      body.className = 'token-body';
+      
+      if (tokens.length > 0) {
+        tokens.forEach(token => {
+          const licenseItem = document.createElement('div');
+          licenseItem.className = 'token-license-item';
+          
+          // License info
+          const licenseInfo = document.createElement('div');
+          licenseInfo.className = 'token-license-info';
+          
+          const licenseId = document.createElement('div');
+          licenseId.className = 'token-license-id';
+          licenseId.textContent = `License: ${token.license_id}`;
+          
+          const licenseExpiry = document.createElement('div');
+          licenseExpiry.className = 'token-license-expiry';
+          licenseExpiry.textContent = `Expires: ${token.expiry_date}`;
+          
+          licenseInfo.appendChild(licenseId);
+          licenseInfo.appendChild(licenseExpiry);
+          
+          // Copy button
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-button';
+          copyButton.textContent = 'Copy Key';
+          copyButton.onclick = function() {
+            copyToClipboard(token.token_key, copyButton);
+          };
+          
+          licenseItem.appendChild(licenseInfo);
+          licenseItem.appendChild(copyButton);
+          
+          body.appendChild(licenseItem);
+        });
+      } else {
+        // Show empty state message
+        body.innerHTML = '<div class="token-empty">No license tokens found for this device</div>';
+      }
+      
+      card.appendChild(body);
+      tokensGrid.appendChild(card);
+    });
+  }
+  
+
+  </script>
