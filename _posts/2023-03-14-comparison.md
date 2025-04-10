@@ -35,7 +35,7 @@ As one SAR-drone operator put it:
 Take this image for example, taken from a drone east of Albuquerque, New Mexico. 
 This image contains a person.  Give yourself 10 seconds to find them.
 
-<img src="/images/demos/image_1.jpg" alt="Missing Person" width="100%"/>
+<img src="{{ site.baseurl }}/images/demos/image_1.jpg" alt="Missing Person" width="100%"/>
 
 If you found them, congratulations, you're better than most!  If not, don't worry, you're in good company, and 
 you will find the answer at the end of this article.
@@ -62,10 +62,10 @@ correct them._
 Let's introduce the contenders. 
 
 |-----------------------------------------------------------------------------|-------------|
-| <img src="/images/blog/loc8logo.png" alt="Loc8" width="100"/>               | **<a href="https://www.usri.ca/" target="_blank">Loc8</a>** is a software tool that scans through drone images for small objects of particular colours.  It is probably the most widely used computer vision tool by SAR teams today. |
-| <img src="/images/blog/searchlightlogo.png" alt="SearchLight" width="100"/> | **<a href="https://www.sartechnology.ca/sartechnology/searchlight/Searchlight.html" target="_blank">SearchLight</a>** is an online tool to which you can submit images for scanning.  It uses an object-detection model that looks for people, crashed aircraft, vehicles, etc. in images. |
-| <img src="/images/blog/saruavlogo.png" alt="SARUAV" width="100"/>           | **<a href="https://www.saruav.pl/" target="_blank">SARUAV</a>** is a startup that emerged from a 7 year industry-university co-op in Poland.  The tool has been used by a few SAR teams in Poland and Germany, and may be behind the <a href="https://www.mdpi.com/2072-4292/13/23/4903" target="_blank">first successful rescue</a> of a person using a computer vision system.  It uses a deep "object-detection" based approach similar to Searchlight. |
-| <img src="/images/blog/eaglelogo.png" alt="EagleEyes" width="100"/>         | **<a href="https://www.eagleeyessearch.com/" target="_blank">Eagle Eyes</a>** is a new tool on the market.  It finds small "unusual" objects in both live streaming video from the drone, and recordings after the fact, using colour and motion.  It consists of _Eagle Eyes Pilot_ - a drone-piloting app with live detection, and _Eagle Eyes Scan_ - a tool for detection on video/images. |
+| <img src="{{ site.baseurl }}/images/blog/loc8logo.png" alt="Loc8" width="100"/>               | **<a href="https://www.usri.ca/" target="_blank">Loc8</a>** is a software tool that scans through drone images for small objects of particular colours.  It is probably the most widely used computer vision tool by SAR teams today. |
+| <img src="{{ site.baseurl }}/images/blog/searchlightlogo.png" alt="SearchLight" width="100"/> | **<a href="https://www.sartechnology.ca/sartechnology/searchlight/Searchlight.html" target="_blank">SearchLight</a>** is an online tool to which you can submit images for scanning.  It uses an object-detection model that looks for people, crashed aircraft, vehicles, etc. in images. |
+| <img src="{{ site.baseurl }}/images/blog/saruavlogo.png" alt="SARUAV" width="100"/>           | **<a href="https://www.saruav.pl/" target="_blank">SARUAV</a>** is a startup that emerged from a 7 year industry-university co-op in Poland.  The tool has been used by a few SAR teams in Poland and Germany, and may be behind the <a href="https://www.mdpi.com/2072-4292/13/23/4903" target="_blank">first successful rescue</a> of a person using a computer vision system.  It uses a deep "object-detection" based approach similar to Searchlight. |
+| <img src="{{ site.baseurl }}/images/blog/eaglelogo.png" alt="EagleEyes" width="100"/>         | **<a href="https://www.eagleeyessearch.com/" target="_blank">Eagle Eyes</a>** is a new tool on the market.  It finds small "unusual" objects in both live streaming video from the drone, and recordings after the fact, using colour and motion.  It consists of _Eagle Eyes Pilot_ - a drone-piloting app with live detection, and _Eagle Eyes Scan_ - a tool for detection on video/images. |
 
 
 ## The Basics
@@ -110,7 +110,7 @@ using the **Eagle Eyes Pilot** app on your mobile device.  The app displays the 
 boxes around any objects deemed sufficiently "unusual" by the computer vision system.
 
 <p align="center">
-  <img src="/images/blog/eagle-eyes-pilot-screenshot.jpg" alt="Eagle Eyes Pilot" width="60%">
+  <img src="{{ site.baseurl }}/images/blog/eagle-eyes-pilot-screenshot.jpg" alt="Eagle Eyes Pilot" width="60%">
   <br/>
   The Eagle Eyes Pilot app shows a detection box over the live video feed.
     <br/>
@@ -138,7 +138,7 @@ automatic detection from thermal imagery, but it is in the pipeline.
 
 | Loc8 (RDT Kit)                                                                                    | Eagle Eyes                                                                                                                              |
 |---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| <img src="/images/blog/usr-rdt-screenshot.png" alt="Loc8" width="500px"/>                         | <img src="/images/blog/eagle-eyes-pilot-thermal.png" alt="Eagle Eyes Pilot" width="500px"/>                                             |
+| <img src="{{ site.baseurl }}/images/blog/usr-rdt-screenshot.png" alt="Loc8" width="500px"/>                         | <img src="{{ site.baseurl }}/images/blog/eagle-eyes-pilot-thermal.png" alt="Eagle Eyes Pilot" width="500px"/>                                             |
 | A screenshot from Loc8's Radiometric Data Toolset, showing the detection of a hand-warmer packet. | Eagle Eyes Pilot showing displays thermal imagery from a DJI ME2 Thermal Drone.  The heat-blob near the edge of the forest is a person. |
 
 
@@ -295,4 +295,4 @@ to request a free trial of the Eagle Eyes software.
 
 In case you did not find the person in that picture at the top of this article - no problem, Eagle Eyes has your back:
 
-<img src="/images/demos/image_1_boxed.jpg" alt="Missing Person" width="100%"/>
+<img src="{{ site.baseurl }}/images/demos/image_1_boxed.jpg" alt="Missing Person" width="100%"/>
