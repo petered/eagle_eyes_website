@@ -22,20 +22,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libxml2-dev libxslt1-dev
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1'
-          bundler-cache: true
+          bundler-cache: false # Temporarily disabled to troubleshoot
 
+      - name: Install dependencies with verbose logging
+        run: |
+          gem install bundler -v 2.5.10
+          bundle config set --local path 'vendor/bundle'
+          bundle install --jobs 4 --retry 3 --verbose
+        
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
 
       - name: Build Jekyll site
         run: |
-          bundle install
-          bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
+          bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}" --verbose
         env:
           JEKYLL_ENV: production
 
