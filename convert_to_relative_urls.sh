@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Find all HTML, markdown, and included files with site.baseurl references
+echo "Files with 'site.baseurl' references:"
+grep -r "site\.baseurl" --include="*.html" --include="*.md" --include="*.liquid" . | sort
+
+echo ""
+echo "===================================="
+echo "To convert these to relative_url, replace patterns like:"
+echo ""
+echo "{{ site.baseurl }}/path/to/resource"
+echo ""
+echo "with:"
+echo ""
+echo "{{ '/path/to/resource' | relative_url }}"
+echo ""
+echo "For URLs with dynamic parts, use:"
+echo ""
+echo "{{ site.baseurl }}/path/to/{{ variable }}"
+echo ""
+echo "replace with:"
+echo ""
+echo "{{ '/path/to/' | relative_url }}{{ variable }}"
+echo ""
+echo "Or for concatenated paths:"
+echo ""
+echo "{{ '/path/to/' | append: variable | relative_url }}"
+echo ""
+echo "===================================="
+echo ""
+echo "Remember to test your site thoroughly after making these changes."
+echo "The new relative_url filter will handle both empty and non-empty baseurl configurations." 
