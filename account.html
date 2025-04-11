@@ -579,21 +579,6 @@ permalink: /account/
                                         <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
                                         
                                         <div class="mb-50">
-                                            <h4>Eagle Eyes Pilot</h4>
-                                            <!-- Add spinner container -->
-                                            <div id="pilotSpinner" class="loading-spinner">
-                                                <div class="spinner"></div>
-                                            </div>
-                                            <!-- Use a grid for cards instead of a table -->
-                                            <div id="pilotGrid" style="display: none;"></div>
-                                            <div id="pilotEmpty" style="display: none;">
-                                                <div class="empty-card">
-                                                    No Pilot downloads available.
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mb-50">
                                             <h4>Eagle Eyes Scan</h4>
                                             <!-- Add spinner container -->
                                             <div id="scanSpinner" class="loading-spinner">
@@ -604,6 +589,21 @@ permalink: /account/
                                             <div id="scanEmpty" style="display: none;">
                                                 <div class="empty-card">
                                                     No Scan downloads available.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-50">
+                                            <h4>Eagle Eyes Pilot</h4>
+                                            <!-- Add spinner container -->
+                                            <div id="pilotSpinner" class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                            <!-- Use a grid for cards instead of a table -->
+                                            <div id="pilotGrid" style="display: none;"></div>
+                                            <div id="pilotEmpty" style="display: none;">
+                                                <div class="empty-card">
+                                                    No Pilot downloads available.
                                                 </div>
                                             </div>
                                         </div>
@@ -1226,111 +1226,8 @@ permalink: /account/
             console.log('Available Pilot files:', pilotFiles);
             console.log('Available Scan files:', scanFiles);
 
-            // Render Pilot downloads as cards
-            const pilotGrid = document.getElementById('pilotGrid');
-            pilotGrid.innerHTML = '';
-
-            if (pilotFiles.length === 0) {
-                document.getElementById('pilotEmpty').style.display = 'block';
-            } else {
-                for (const file of pilotFiles) {
-                    try {
-                        // Use the structured data directly
-                        const fileName = file.name;
-                        // Use the new function to get version including SDK info if applicable
-                        const defaultVersion = file.version || 'Unknown';
-                        const version = parseVersionFromFilename(fileName, defaultVersion);
-                        const platform = file.platform || 'Unknown';
-                        const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
-                        
-                        const filePath = `pilot-releases/current/${fileName}`;
-                        const downloadUrl = await generateDownloadLink(filePath, user);
-                        
-                        // Create a card for each download
-                        const card = document.createElement('div');
-                        card.className = 'download-card';
-                        
-                        // Card header with platform as clickable title
-                        const header = document.createElement('div');
-                        header.className = 'download-header';
-                        
-                        const title = document.createElement('h4');
-                        title.className = 'download-title';
-                        title.textContent = `Eagle Eyes Pilot - ${platform}`;
-                        header.appendChild(title);
-                        card.appendChild(header);
-                        
-                        // Card body with details
-                        const body = document.createElement('div');
-                        body.className = 'download-body';
-                        
-                        // Version
-                        const versionRow = document.createElement('div');
-                        versionRow.className = 'download-meta';
-                        
-                        const versionLabel = document.createElement('span');
-                        versionLabel.className = 'download-meta-label';
-                        versionLabel.textContent = 'Version:';
-                        
-                        const versionValue = document.createElement('span');
-                        versionValue.className = 'download-meta-value';
-                        versionValue.textContent = version;
-                        
-                        versionRow.appendChild(versionLabel);
-                        versionRow.appendChild(versionValue);
-                        body.appendChild(versionRow);
-                        
-                        // Release date
-                        const dateRow = document.createElement('div');
-                        dateRow.className = 'download-meta';
-                        
-                        const dateLabel = document.createElement('span');
-                        dateLabel.className = 'download-meta-label';
-                        dateLabel.textContent = 'Release Date:';
-                        
-                        const dateValue = document.createElement('span');
-                        dateValue.className = 'download-meta-value';
-                        dateValue.textContent = releaseDate;
-                        
-                        dateRow.appendChild(dateLabel);
-                        dateRow.appendChild(dateValue);
-                        body.appendChild(dateRow);
-                        
-                        // Add download link row showing the filename
-                        const downloadRow = document.createElement('div');
-                        downloadRow.className = 'download-meta';
-                        downloadRow.style.marginTop = '15px';
-                        downloadRow.style.display = 'flex';
-                        downloadRow.style.justifyContent = 'space-between';
-                        downloadRow.style.alignItems = 'center';
-                        
-                        const downloadLabel = document.createElement('span');
-                        downloadLabel.className = 'download-meta-label';
-                        downloadLabel.textContent = 'Download link:';
-                        
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = downloadUrl;
-                        downloadLink.textContent = fileName;
-                        downloadLink.className = 'download-link';
-                        downloadLink.onclick = function() {
-                            trackDownload('pilot', fileName);
-                        };
-                        
-                        downloadRow.appendChild(downloadLabel);
-                        downloadRow.appendChild(downloadLink);
-                        body.appendChild(downloadRow);
-                        
-                        card.appendChild(body);
-                        
-                        pilotGrid.appendChild(card);
-                        
-                    } catch (error) {
-                        console.error(`Error processing pilot file ${file}:`, error);
-                    }
-                }
-                document.getElementById('pilotGrid').style.display = 'grid';
-            }
-
+            // Reordering: Show Scan first, then Pilot
+            
             // Render Scan downloads as cards
             const scanGrid = document.getElementById('scanGrid');
             scanGrid.innerHTML = '';
@@ -1368,6 +1265,19 @@ permalink: /account/
                         // Card body with details
                         const body = document.createElement('div');
                         body.className = 'download-body';
+                        
+                        // Add macOS x86_64 warning if applicable
+                        if (platform.toLowerCase().includes('macos') && (
+                            platform.toLowerCase().includes('x86') || 
+                            platform.toLowerCase().includes('intel')
+                        )) {
+                            const warningRow = document.createElement('div');
+                            warningRow.style.color = 'red';
+                            warningRow.style.marginBottom = '15px';
+                            warningRow.style.fontSize = '14px';
+                            warningRow.innerHTML = 'When using an Apple machine, we recommend devices with Apple silicon (ARM64 architecture, such as M1, M2, M3, and M4 chipsets). The performance of this Intel-based (x86) distribution may vary.';
+                            body.appendChild(warningRow);
+                        }
                         
                         // Version
                         const versionRow = document.createElement('div');
@@ -1434,6 +1344,121 @@ permalink: /account/
                     }
                 }
                 document.getElementById('scanGrid').style.display = 'grid';
+            }
+
+            // Render Pilot downloads as cards
+            const pilotGrid = document.getElementById('pilotGrid');
+            pilotGrid.innerHTML = '';
+
+            if (pilotFiles.length === 0) {
+                document.getElementById('pilotEmpty').style.display = 'block';
+            } else {
+                for (const file of pilotFiles) {
+                    try {
+                        // Use the structured data directly
+                        const fileName = file.name;
+                        // Use the new function to get version including SDK info if applicable
+                        const defaultVersion = file.version || 'Unknown';
+                        const version = parseVersionFromFilename(fileName, defaultVersion);
+                        const platform = file.platform || 'Unknown';
+                        const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
+                        
+                        const filePath = `pilot-releases/current/${fileName}`;
+                        const downloadUrl = await generateDownloadLink(filePath, user);
+                        
+                        // Create a card for each download
+                        const card = document.createElement('div');
+                        card.className = 'download-card';
+                        
+                        // Card header with platform as clickable title
+                        const header = document.createElement('div');
+                        header.className = 'download-header';
+                        
+                        const title = document.createElement('h4');
+                        title.className = 'download-title';
+                        title.textContent = `Eagle Eyes Pilot - ${platform}`;
+                        header.appendChild(title);
+                        card.appendChild(header);
+                        
+                        // Card body with details
+                        const body = document.createElement('div');
+                        body.className = 'download-body';
+                        
+                        // Add warning about Pilot being experimental
+                        const pilotWarning = document.createElement('div');
+                        pilotWarning.style.color = 'red';
+                        pilotWarning.style.marginBottom = '15px';
+                        pilotWarning.style.fontSize = '14px';
+                        pilotWarning.innerHTML = 'Eagle Eyes Pilot is currently still in an experimental phase, and you may encounter errors. Please complete <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdMWp4Tn4w8-RwYMf1-jQwXyzxlD7xXtoWPia0DAIbqhn0LA/viewform?usp=sf_link" target="_blank" style="color: red; text-decoration: underline;">this form</a> for a free trial license to try out Eagle Eyes Pilot. Read about drone and controller compatibility <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.16dyxpfxra6k" target="_blank" style="color: red; text-decoration: underline;">here</a>.';
+                        body.appendChild(pilotWarning);
+                        
+                        // Remove macOS x86_64 warning for Pilot since it's an Android app
+                        
+                        // Version
+                        const versionRow = document.createElement('div');
+                        versionRow.className = 'download-meta';
+                        
+                        const versionLabel = document.createElement('span');
+                        versionLabel.className = 'download-meta-label';
+                        versionLabel.textContent = 'Version:';
+                        
+                        const versionValue = document.createElement('span');
+                        versionValue.className = 'download-meta-value';
+                        versionValue.textContent = version;
+                        
+                        versionRow.appendChild(versionLabel);
+                        versionRow.appendChild(versionValue);
+                        body.appendChild(versionRow);
+                        
+                        // Release date
+                        const dateRow = document.createElement('div');
+                        dateRow.className = 'download-meta';
+                        
+                        const dateLabel = document.createElement('span');
+                        dateLabel.className = 'download-meta-label';
+                        dateLabel.textContent = 'Release Date:';
+                        
+                        const dateValue = document.createElement('span');
+                        dateValue.className = 'download-meta-value';
+                        dateValue.textContent = releaseDate;
+                        
+                        dateRow.appendChild(dateLabel);
+                        dateRow.appendChild(dateValue);
+                        body.appendChild(dateRow);
+                        
+                        // Add download link row showing the filename
+                        const downloadRow = document.createElement('div');
+                        downloadRow.className = 'download-meta';
+                        downloadRow.style.marginTop = '15px';
+                        downloadRow.style.display = 'flex';
+                        downloadRow.style.justifyContent = 'space-between';
+                        downloadRow.style.alignItems = 'center';
+                        
+                        const downloadLabel = document.createElement('span');
+                        downloadLabel.className = 'download-meta-label';
+                        downloadLabel.textContent = 'Download link:';
+                        
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = downloadUrl;
+                        downloadLink.textContent = fileName;
+                        downloadLink.className = 'download-link';
+                        downloadLink.onclick = function() {
+                            trackDownload('pilot', fileName);
+                        };
+                        
+                        downloadRow.appendChild(downloadLabel);
+                        downloadRow.appendChild(downloadLink);
+                        body.appendChild(downloadRow);
+                        
+                        card.appendChild(body);
+                        
+                        pilotGrid.appendChild(card);
+                        
+                    } catch (error) {
+                        console.error(`Error processing pilot file ${file}:`, error);
+                    }
+                }
+                document.getElementById('pilotGrid').style.display = 'grid';
             }
 
             // Hide spinners
