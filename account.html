@@ -1272,6 +1272,8 @@ permalink: /account/
                         pilotWarning.innerHTML = 'Eagle Eyes Pilot is currently still in an experimental phase, and you may encounter errors. Contact <a href="mailto:info@eagleeyessearch.com" style="color: red; text-decoration: underline;">info@eagleeyessearch.com</a> for a free trial license to try out Eagle Eyes Pilot.';
                         body.appendChild(pilotWarning);
                         
+                        // Remove macOS x86_64 warning for Pilot since it's an Android app
+                        
                         // Version
                         const versionRow = document.createElement('div');
                         versionRow.className = 'download-meta';
@@ -1377,6 +1379,19 @@ permalink: /account/
                         const body = document.createElement('div');
                         body.className = 'download-body';
                         
+                        // Add macOS x86_64 warning if applicable
+                        if (platform.toLowerCase().includes('macos') && (
+                            platform.toLowerCase().includes('x86') || 
+                            platform.toLowerCase().includes('intel')
+                        )) {
+                            const warningRow = document.createElement('div');
+                            warningRow.style.color = 'red';
+                            warningRow.style.marginBottom = '15px';
+                            warningRow.style.fontSize = '14px';
+                            warningRow.innerHTML = 'We strongly recommend installing on a device with ARM64 architecture (M1, M2, M3, or M4 chipsets). The performance of this Intel-based (x86) distribution may vary.';
+                            body.appendChild(warningRow);
+                        }
+                        
                         // Version
                         const versionRow = document.createElement('div');
                         versionRow.className = 'download-meta';
@@ -1408,19 +1423,6 @@ permalink: /account/
                         dateRow.appendChild(dateLabel);
                         dateRow.appendChild(dateValue);
                         body.appendChild(dateRow);
-                        
-                        // Add macOS x86_64 warning if applicable
-                        if (platform.toLowerCase().includes('macos') && (
-                            platform.toLowerCase().includes('x86') || 
-                            platform.toLowerCase().includes('intel')
-                        )) {
-                            const warningRow = document.createElement('div');
-                            warningRow.style.color = 'red';
-                            warningRow.style.marginTop = '10px';
-                            warningRow.style.fontSize = '14px';
-                            warningRow.innerHTML = 'We strongly recommend installing on a device with ARM64 architecture (M1, M2, M3, or M4 chipsets). We do offer a distribution for Intel-based (x86) Apple computers, but performance may vary.';
-                            body.appendChild(warningRow);
-                        }
                         
                         // Add download link row showing the filename
                         const downloadRow = document.createElement('div');
