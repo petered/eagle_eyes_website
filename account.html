@@ -1082,8 +1082,8 @@ permalink: /account/
                         
                         if (paymentUrl) {
                             console.log('Redirecting to payment URL:', paymentUrl);
-                            // Redirect to the payment URL
-                            window.location.href = paymentUrl;
+                            // Redirect to the payment URL - don't use replaceState for external URLs
+                            safeRedirect(paymentUrl, false);
                         } else {
                             showNotification(
                                 'There was an error creating your payment link. Please try again or contact support.',
@@ -1163,7 +1163,10 @@ permalink: /account/
         }
         
         // Preserve emulator parameter if present
-        window.location.href = getUrlWithEmulatorParam(url);
+        const redirectUrl = getUrlWithEmulatorParam(url);
+        
+        // Use our utility function to replace the state and redirect
+        safeRedirect(redirectUrl, true); // true = replace state
     }
 
     /***********************************************
@@ -2095,16 +2098,31 @@ permalink: /account/
         return stagingMatch ? stagingMatch[0] : '/';
     }
 
-    function safeRedirect(url) {
-        // Try to redirect
-        window.location.href = url;
-        
-        // Fallback in case the redirect doesn't happen immediately
-        setTimeout(() => {
-            if (document.location.href !== url) {
-                document.location.href = url;
+    /**
+     * Safely redirect to a URL with optional history state replacement
+     * @param {string} url - The URL to redirect to
+     * @param {boolean} replaceState - Whether to replace the current history state (true) or add a new one (false)
+     */
+    function safeRedirect(url, replaceState = false) {
+        try {
+            if (replaceState) {
+                // First replace the current history entry
+                history.replaceState(null, document.title, url);
             }
-        }, 100);
+            
+            // Then navigate to the new URL
+            window.location.href = url;
+            
+            // Fallback in case the redirect doesn't happen immediately
+            setTimeout(() => {
+                if (document.location.href !== url) {
+                    replaceState ? window.location.replace(url) : window.location.href = url;
+                }
+            }, 100);
+        } catch (e) {
+            console.error('Redirect failed, using fallback method', e);
+            window.location.href = url;
+        }
     }
 </script>
 
