@@ -677,6 +677,14 @@ permalink: /account/
     </div>
 </div>
 
+<!-- Add this loading overlay right after the signin-overlay -->
+<div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+        <div class="spinner" style="width: 60px; height: 60px; border: 6px solid #f3f3f3; border-top: 6px solid #1e90ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <p style="margin-top: 20px; font-size: 18px; color: #333;">Loading your account...</p>
+    </div>
+</div>
+
 <script>
     /***********************************************
      * INITIALIZATION AND EVENT LISTENERS
@@ -690,6 +698,7 @@ permalink: /account/
         const signOutContainer = document.getElementById('signOutContainer');
         const signOutButton = document.getElementById('signOutButton');
         const signinOverlay = document.getElementById('signin-overlay');
+        const loadingOverlay = document.getElementById('loading-overlay');
 
         // Add this to hide the overlay immediately if user is already signed in
         if (firebase.auth().currentUser) {
@@ -703,21 +712,15 @@ permalink: /account/
         // Add event listener for close button
         document.getElementById('close-notification').addEventListener('click', hideNotification);
         
-        // Show a sample notification (uncomment any of these to test)
-        // showNotification('Welcome to your Eagle Eyes account! Check out our new features.', 'info', true);
-        
-        // Other examples you can uncomment to test:
-        // showNotification('Your license has been successfully activated!', 'success', true);
-        // showNotification('Your license will expire in 15 days. <a href="{{ '/pricing/' | relative_url }}" style="color: white; text-decoration: underline;">Renew now</a> to avoid interruption.', 'warning', true);
-        // showNotification('There was a problem processing your recent request. Please try again later.', 'error', true);
-        // showNotification('System maintenance scheduled for Sunday, 2AM-4AM EST.', 'info', false);
-
         // Use Firebase's built-in auth state observer instead of our custom events
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
-                // User is signed in - always hide the overlay and signin button
+                // User is signed in - always hide the signin overlay
                 signinOverlay.style.display = 'none';
                 signinButtonSection.style.display = 'none';
+                
+                // Show loading overlay during redirect check
+                loadingOverlay.style.display = 'block';
                 
                 // Show user info
                 userEmail.textContent = `Logged in as: ${user.email}`;
@@ -728,6 +731,8 @@ permalink: /account/
                     redirectOrNot(user);
                 } catch (error) {
                     console.error("Error in redirectOrNot:", error);
+                    // Hide loading overlay on error
+                    loadingOverlay.style.display = 'none';
                     // Still show content on error, but don't show sign-in again
                     $("#accountContent").show();
                 }
@@ -737,6 +742,8 @@ permalink: /account/
                 accountContent.style.display = 'none';
                 userEmail.textContent = '';
                 signOutContainer.style.display = 'none';
+                // Make sure loading overlay is hidden when logged out
+                loadingOverlay.style.display = 'none';
             }
         });
 
@@ -942,6 +949,8 @@ permalink: /account/
                 
                 // Only reached if no redirect occurred
                 if (!document.hidden) {
+                    // Hide loading overlay before showing content
+                    document.getElementById('loading-overlay').style.display = 'none';
                     $("#accountContent").show();
                     fetchAvailableDownloads();
                     console.log("Fetching license overview");
@@ -950,6 +959,8 @@ permalink: /account/
                 }
             } catch (error) {
                 // Error handling...
+                // Hide loading overlay on error
+                document.getElementById('loading-overlay').style.display = 'none';
             }
         });
     }
@@ -1167,6 +1178,8 @@ permalink: /account/
         
         // Use our utility function to replace the state and redirect
         safeRedirect(redirectUrl, true); // true = replace state
+        
+        // The loading overlay will be hidden by the new page load
     }
 
     /***********************************************
@@ -2144,6 +2157,9 @@ permalink: /account/
             
             // Then navigate to the new URL
             window.location.href = url;
+            
+            // Keep loading overlay visible during redirect
+            // It will be hidden by the page load of the new page
             
             // Fallback in case the redirect doesn't happen immediately
             setTimeout(() => {
