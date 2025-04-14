@@ -1731,6 +1731,7 @@ permalink: /account/
      * DEVICE TOKENS MANAGEMENT
      ***********************************************/
     
+    
     // Fetch device tokens overview
     async function fetchLicenseTokensOverview() {
       try {
@@ -2068,27 +2069,55 @@ permalink: /account/
         banner.style.display = 'none';
     }
 
-    // Add this to your utility functions section
-    function updateLinksWithEmulator() {
+    // Replace with a global event listener approach
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're in emulator mode
         const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
         
         if (isEmulator) {
-            const navLinks = document.querySelectorAll('nav a, .nav a, .footer a');
-            
-            navLinks.forEach(link => {
-                if (link.href.startsWith(window.location.origin) && !link.href.includes('#')) {
-                    const url = new URL(link.href);
-                    if (!url.searchParams.has('is_emulator')) {
-                        url.searchParams.set('is_emulator', 'true');
-                        link.href = url.toString();
+            // Add a single global event listener for all link clicks
+            document.addEventListener('click', function(e) {
+                // Find if the click was on a link or inside a link
+                let target = e.target;
+                while (target && target.tagName !== 'A') {
+                    target = target.parentElement;
+                }
+                
+                // If we found a link
+                if (target && target.tagName === 'A') {
+                    const href = target.getAttribute('href');
+                    
+                    // Skip if it's a hash link, javascript: link or external link
+                    if (href && 
+                        !href.startsWith('#') && 
+                        !href.startsWith('javascript:') && 
+                        !href.startsWith('tel:') && 
+                        !href.startsWith('mailto:') &&
+                        (href.startsWith('/') || href.startsWith(window.location.origin) || !href.includes('://'))) {
+                        
+                        try {
+                            // Parse the URL (handle both absolute and relative URLs)
+                            const url = new URL(href, window.location.origin);
+                            
+                            // Don't modify if it already has the parameter
+                            if (!url.searchParams.has('is_emulator')) {
+                                // Prevent the default navigation
+                                e.preventDefault();
+                                
+                                // Add the emulator parameter
+                                url.searchParams.set('is_emulator', 'true');
+                                
+                                // Navigate programmatically
+                                window.location.href = url.toString();
+                            }
+                        } catch (error) {
+                            console.error('Error handling link click:', error);
+                        }
                     }
                 }
-            });
+            }, false);
         }
-    }
-
-    // Call this function when the page loads
-    document.addEventListener('DOMContentLoaded', updateLinksWithEmulator);
+    });
 
     // 1. First, add this function at the global scope in the UTILITY FUNCTIONS section
     // Move getBasePath out of createStripePaymentLink to make it globally available
@@ -2105,6 +2134,9 @@ permalink: /account/
      */
     function safeRedirect(url, replaceState = false) {
         try {
+            // Let our global click handler handle the emulator parameter
+            // We don't need to add it here since all navigation will go through the click handler
+            
             if (replaceState) {
                 // First replace the current history entry
                 history.replaceState(null, document.title, url);
