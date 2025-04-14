@@ -929,23 +929,26 @@ permalink: /account/
             console.log("User account status:", status);
 
             try {
+                // Variable to track if a redirect occurred
+                let redirectOccurred = false;
+                
                 // Handle different scenarios based on reason parameter
                 switch(reason) {
                     case 'trial':
-                        handleTrialRedirect(status);
+                        redirectOccurred = handleTrialRedirect(status);
                         break;
                     
                     case 'purchase':
-                        handlePurchaseRedirect(status);
+                        redirectOccurred = handlePurchaseRedirect(status);
                         break;
                     
                     default:
-                        handleDefaultRedirect(user, status);
+                        redirectOccurred = handleDefaultRedirect(user, status);
                         break;
                 }
 
                 // If we haven't redirected, show the account content
-                if (!document.hidden) {
+                if (!redirectOccurred && !document.hidden) {
                     $("#accountContent").show();
                     fetchAvailableDownloads();
                     console.log("Fetching license overview");
@@ -979,8 +982,7 @@ permalink: /account/
                     true
                 );
                 document.getElementById('verification-status').innerHTML = ``;
-
-                break;
+                return false; // No redirect
             
             case 'approved':
                 showNotification(
@@ -996,12 +998,12 @@ permalink: /account/
                                 Start here
                             </a>.
                 `;
-                break;
+                return false; // No redirect
             
             default:
                 // Redirect to user-form.html with reason parameter preserved
                 redirectToUserForm('trial');
-                break;
+                return true; // Redirect happened
         }
     }
 
@@ -1021,25 +1023,26 @@ permalink: /account/
                     true
                 );
                 document.getElementById('verification-status').innerHTML = ``;
-                break;
+                return false; // No redirect
             
             case 'approved':
                 if (productId) {
                     // Create Stripe payment link and redirect user
                     createStripePaymentLink(productId);
+                    return true; // Redirect happened
                 } else {
                     showNotification(
                         'Invalid product selection. Please try again from the pricing page. If this error persists, please contact us at info@eagleeyessearch.com.',
                         'error',
                         true
                     );
+                    return false; // No redirect
                 }
-                break;
             
             default:
                 // Redirect to user-form.html with reason parameter preserved
                 redirectToUserForm('purchase');
-                break;
+                return true; // Redirect happened
         }
     }
 
@@ -1138,7 +1141,7 @@ permalink: /account/
                     true
                 );
                 document.getElementById('verification-status').innerHTML = ``;
-                break;
+                return false; // No redirect
             
             case 'approved':
                 document.getElementById('verification-status').innerHTML = `
@@ -1147,9 +1150,8 @@ permalink: /account/
                                 Start here
                             </a>.
                 `;
+                return false; // No redirect
                 
-                break;
-
             case 'unverified':
                 // Construct the URL dynamically, preserving the emulator parameter
                 const verificationUrl = getUrlWithEmulatorParam('{{ '/user-form/' | relative_url }}?reason=purchase');
@@ -1157,13 +1159,12 @@ permalink: /account/
                 document.getElementById('verification-status').innerHTML = `
                     Looking to buy a new license? <a href="${verificationUrl}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
                 `;
-                // Allow page content to load
-                break;
+                return false; // No redirect
             
             default:
                 // Redirect to user-form.html when status is not pending, approved, or unverified
                 redirectToUserForm();
-                break;
+                return true; // Redirect happened
         }
     }
 
