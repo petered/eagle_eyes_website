@@ -634,7 +634,7 @@ function selectLicense() {
     var code = isThereAlreadyAKey(selectedLicenseId);
     console.log("logging code :" + code);
     if (!code) {
-        $('#issueKeyButton').removeClass('non_important_button').show();
+        $('#issueKeyButton').removeClass('non_important_button invisible-button').show();
         console.log("there is no key yet");
         $('#license-key').val("");
         issueKeyInfoBox.textContent = "Important: Before proceeding, please be aware that issued keys are specific to a device. The process of issuing a key is irreversible; once a key is issued, it cannot be revoked or transferred to another device.";
@@ -643,7 +643,7 @@ function selectLicense() {
         issueKeyInfoBox.textContent = "A key has already been issued for this license and this device.";
         $('#license-key').val(code);
         $('#key-view').show();
-        $('#issueKeyButton').removeClass('non_important_button').hide();
+        $('#issueKeyButton').removeClass('non_important_button invisible-button').hide();
         // $('html, body').animate({
         //     scrollTop: $("#key-view").offset().top
         // }, 1000); // 1000 milliseconds = 1 second
