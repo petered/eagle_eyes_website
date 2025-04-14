@@ -929,26 +929,19 @@ permalink: /account/
             console.log("User account status:", status);
 
             try {
-                // Variable to track if a redirect occurred
-                let redirectOccurred = false;
-                
                 // Handle different scenarios based on reason parameter
-                switch(reason) {
-                    case 'trial':
-                        redirectOccurred = handleTrialRedirect(status);
-                        break;
-                    
-                    case 'purchase':
-                        redirectOccurred = handlePurchaseRedirect(status);
-                        break;
-                    
-                    default:
-                        redirectOccurred = handleDefaultRedirect(user, status);
-                        break;
+                let redirectOccurred;
+                
+                if (reason === 'trial') {
+                    if (handleTrialRedirect(status)) return;
+                } else if (reason === 'purchase') {
+                    if (handlePurchaseRedirect(status)) return;
+                } else {
+                    if (handleDefaultRedirect(user, status)) return;
                 }
-
-                // If we haven't redirected, show the account content
-                if (!redirectOccurred && !document.hidden) {
+                
+                // Only reached if no redirect occurred
+                if (!document.hidden) {
                     $("#accountContent").show();
                     fetchAvailableDownloads();
                     console.log("Fetching license overview");
@@ -956,16 +949,8 @@ permalink: /account/
                     fetchLicenseTokensOverview();
                 }
             } catch (error) {
-                console.error("Error handling redirect:", error);
-                // Show account content even if redirect logic fails
-                $("#accountContent").show();
+                // Error handling...
             }
-        })
-        .catch(function(error) {
-            console.error("Error checking user account status:", error);
-            // ⚠️ Fix: Don't show the sign-in button again on error
-            // $("#signinButtonSection").show(); <- Remove or comment this line
-            $("#accountContent").show();
         });
     }
 
@@ -2108,6 +2093,18 @@ permalink: /account/
         const path = window.location.pathname;
         const stagingMatch = path.match(/^\/[^/]+\//);
         return stagingMatch ? stagingMatch[0] : '/';
+    }
+
+    function safeRedirect(url) {
+        // Try to redirect
+        window.location.href = url;
+        
+        // Fallback in case the redirect doesn't happen immediately
+        setTimeout(() => {
+            if (document.location.href !== url) {
+                document.location.href = url;
+            }
+        }, 100);
     }
 </script>
 
