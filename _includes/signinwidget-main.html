@@ -259,11 +259,54 @@
   
         async signInWithMicrosoft() {
             try {
+                console.log("Starting Microsoft sign-in process...");
                 const provider = new firebase.auth.OAuthProvider('microsoft.com');
+                
+                // Set minimal required scopes for Microsoft auth
+                provider.addScope('openid');
+                provider.addScope('profile');
+                provider.addScope('email');
+                
+                // Set tenant ID if available (may be needed for organizational accounts)
+                // provider.setCustomParameters({
+                //     tenant: 'TENANT_ID' // Replace with your Microsoft tenant ID if using organizational accounts
+                // });
+                
+                // Use simple parameters for standard accounts
+                provider.setCustomParameters({
+                    prompt: 'login',
+                    login_hint: ''
+                });
+                
+                console.log("Microsoft provider configured with basic scopes, attempting sign-in...");
+                
+                // Use popup for immediate feedback
                 const result = await firebase.auth().signInWithPopup(provider);
+                console.log("Microsoft sign-in successful:", result.user);
                 this.handleSignInSuccess(result.user);
             } catch (error) {
-                this.showError("Microsoft sign-in failed. Please try again.");
+                console.error("Microsoft sign-in error:", error);
+                
+                // Show more helpful error messages based on the error code
+                switch(error.code) {
+                    case 'auth/popup-blocked':
+                        this.showError("Pop-up was blocked. Please allow pop-ups for this site.");
+                        break;
+                    case 'auth/popup-closed-by-user':
+                        this.showError("Sign-in was cancelled. Please try again.");
+                        break;
+                    case 'auth/account-exists-with-different-credential':
+                        this.showError("An account already exists with the same email address but different sign-in credentials.");
+                        break;
+                    case 'auth/unauthorized-domain':
+                        this.showError("This domain is not authorized for OAuth operations. Please contact support.");
+                        break;
+                    case 'auth/operation-not-allowed':
+                        this.showError("Microsoft authentication is not enabled. Please contact support.");
+                        break;
+                    default:
+                        this.showError("Microsoft sign-in failed: " + (error.message || "Please try again."));
+                }
             }
         }
   
@@ -324,7 +367,26 @@
     }
   
     document.addEventListener('DOMContentLoaded', () => {
-        const signInWidget = new SignInWidget();
-        signInWidget.completeEmailLinkSigninIfApplicable();
+        // Try to get redirect result first, before initializing widget
+        firebase.auth().getRedirectResult().then((result) => {
+            if (result && result.user) {
+                console.log("Redirect sign-in successful", result.user);
+                // Create widget and handle sign-in
+                const signInWidget = new SignInWidget();
+                signInWidget.handleSignInSuccess(result.user);
+            } else {
+                // Normal initialization if not from redirect
+                const signInWidget = new SignInWidget();
+                signInWidget.completeEmailLinkSigninIfApplicable();
+            }
+        }).catch((error) => {
+            console.error("Error with redirect sign-in:", error);
+            // Initialize widget even if there was an error
+            const signInWidget = new SignInWidget();
+            signInWidget.completeEmailLinkSigninIfApplicable();
+            if (error.code) {
+                signInWidget.showError("Sign-in failed. Please try again.");
+            }
+        });
     });
 </script> 
