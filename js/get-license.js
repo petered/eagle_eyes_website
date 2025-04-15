@@ -449,7 +449,7 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     var checkingBox = $('#licenses-found-info'); // blue info-box field
     checkingBox.show()
     selectLicenseButton = $('#selectLicenseButton');
-    select.innerHTML = '';
+    select.empty();
 
     const arrayOfLicenseIds = Object.keys(licenseData.licenses_and_dispensed);
     var numberOfLicenses = arrayOfLicenseIds.length;
@@ -517,7 +517,9 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
             option.text = `${licenseId.substring(0, 3)}: ${license.tier} (${issuedStatus}), Expires: ${expiryDateStr}`;
             select.append(option);
         });
+        // Ensure the select element is visible
         select.css('display', 'block');
+        select.show();
         textarea.text('');
         selectLicenseButton.removeClass('non-clickable');
         selectLicenseButton.prop('disabled', false);
