@@ -616,22 +616,36 @@ permalink: /account/
                                         
                                         <div id="licensesContent">
                                             <div class="license-sections">
-                                                <!-- SECTION 1: MY PURCHASED LICENSES -->
-                                                <div id="purchasedLicenseContainer" class="mb-50">
-                                                    <h4>My Purchased Licenses</h4>
-                                                    <div id="licenseSpinner" class="loading-spinner">
-                                                        <div class="spinner"></div>
-                                                    </div>
-                                                    <div id="licenseGrid" style="display: none;"></div>
-                                                    <div id="licenseError" style="display: none;">
-                                                        <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
-                                                            Error loading license data. Please try again later.
-                                                        </div>
-                                                    </div>
-                                                    <div id="licenseEmpty" style="display: none;">
+                                                <div id="licenseSpinner" class="loading-spinner">
+                                                    <div class="spinner"></div>
+                                                </div>
+                                                
+                                                <!-- SECTION 1: ACTIVE LICENSES -->
+                                                <div id="activeLicenseContainer" class="mb-30">
+                                                    <h4>Active Licenses</h4>
+                                                    <div id="activeLicenseGrid" style="display: none;"></div>
+                                                    <div id="activeLicenseEmpty" style="display: none;">
                                                         <div class="empty-card">
-                                                            No licenses found.
+                                                            No active licenses found.
                                                         </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- SECTION 2: EXPIRED LICENSES -->
+                                                <div id="expiredLicenseContainer" class="mb-30">
+                                                    <h4>Expired Licenses</h4>
+                                                    <div id="expiredLicenseGrid" style="display: none;"></div>
+                                                    <div id="expiredLicenseEmpty" style="display: none;">
+                                                        <div class="empty-card">
+                                                            No expired licenses found.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Shared error state -->
+                                                <div id="licenseError" style="display: none;">
+                                                    <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                                                        Error loading license data. Please try again later.
                                                     </div>
                                                 </div>
                                             </div>
@@ -1598,11 +1612,13 @@ permalink: /account/
     // Fetch license overview data
     async function fetchLicenseOverview() {
       try {
-        // Show spinner, hide cards initially
+        // Show spinner, hide all license sections initially
         document.getElementById('licenseSpinner').style.display = 'block';
-        document.getElementById('licenseGrid').style.display = 'none';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+        document.getElementById('activeLicenseEmpty').style.display = 'none';
+        document.getElementById('expiredLicenseEmpty').style.display = 'none';
         document.getElementById('licenseError').style.display = 'none';
-        document.getElementById('licenseEmpty').style.display = 'none';
         
         const user = firebase.auth().currentUser;
         if (!user) {
@@ -1637,19 +1653,15 @@ permalink: /account/
           console.log('Sample license data:', data.overview[0]);
         }
         
+        // Process and render the license data
         renderLicenseCards(data.overview);
         
-        // Hide spinner, show cards after data is processed
+        // Hide spinner after data is processed
         document.getElementById('licenseSpinner').style.display = 'none';
-        if (!data.overview || data.overview.length === 0) {
-          document.getElementById('licenseEmpty').style.display = 'block';
-        } else {
-          document.getElementById('licenseGrid').style.display = 'grid';
-        }
       } catch (error) {
         console.error('Error in fetchLicenseOverview:', error);
         
-        // Show error message
+        // Show error message and hide spinner
         document.getElementById('licenseSpinner').style.display = 'none';
         document.getElementById('licenseError').style.display = 'block';
       }
@@ -1657,16 +1669,73 @@ permalink: /account/
 
     // Render license cards from data
     function renderLicenseCards(overview) {
-      const licenseGrid = document.getElementById('licenseGrid');
-      licenseGrid.innerHTML = ''; // Clear existing cards
-      
+      // Check if we have any licenses
       if (!overview || overview.length === 0) {
-        document.getElementById('licenseEmpty').style.display = 'block';
-        document.getElementById('licenseGrid').style.display = 'none';
+        // Handle empty state
+        document.getElementById('activeLicenseEmpty').style.display = 'block';
+        document.getElementById('expiredLicenseEmpty').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
         return;
       }
       
-      overview.forEach(license => {
+      // Sort licenses by expiry date (furthest in the future first)
+      const sortedLicenses = [...overview].sort((a, b) => {
+        const dateA = new Date(a.expiry_date);
+        const dateB = new Date(b.expiry_date);
+        return dateB - dateA; // Descending order (furthest date first)
+      });
+      
+      // Clear previous license grids
+      const activeLicenseGrid = document.getElementById('activeLicenseGrid');
+      const expiredLicenseGrid = document.getElementById('expiredLicenseGrid');
+      activeLicenseGrid.innerHTML = '';
+      expiredLicenseGrid.innerHTML = '';
+      
+      // Separate licenses into active and expired
+      const activeLicenses = [];
+      const expiredLicenses = [];
+      
+      sortedLicenses.forEach(license => {
+        const expiryDate = new Date(license.expiry_date);
+        const isExpired = expiryDate < new Date();
+        
+        if (isExpired) {
+          expiredLicenses.push(license);
+        } else {
+          activeLicenses.push(license);
+        }
+      });
+      
+      // Render active licenses
+      if (activeLicenses.length === 0) {
+        document.getElementById('activeLicenseEmpty').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+      } else {
+        document.getElementById('activeLicenseEmpty').style.display = 'none';
+        document.getElementById('activeLicenseGrid').style.display = 'grid';
+        renderLicenseSection(activeLicenses, activeLicenseGrid, false);
+      }
+      
+      // Render expired licenses
+      if (expiredLicenses.length === 0) {
+        document.getElementById('expiredLicenseEmpty').style.display = 'block';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+      } else {
+        document.getElementById('expiredLicenseEmpty').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'grid';
+        renderLicenseSection(expiredLicenses, expiredLicenseGrid, true);
+      }
+    }
+    
+    // Helper function to render licenses in a section
+    function renderLicenseSection(licenses, gridElement, isExpired) {
+      licenses.forEach(license => {
+        // Check license details
+        const expiryDate = new Date(license.expiry_date);
+        const keysLeft = license.keys_left || 0;
+        const noDevicesLeft = keysLeft === 0;
+        
         // Create license card container
         const card = document.createElement('div');
         card.className = 'license-card';
@@ -1674,6 +1743,11 @@ permalink: /account/
         // Create header with left and right sections
         const header = document.createElement('div');
         header.className = 'license-header';
+        
+        // Set background color for non-expired licenses
+        if (!isExpired) {
+          header.style.backgroundColor = '#e6f2ff'; // Light blue for active licenses
+        }
         
         // Left section - Name and ID
         const headerLeft = document.createElement('div');
@@ -1697,14 +1771,22 @@ permalink: /account/
         // Expiry Date
         const expiryMeta = document.createElement('div');
         expiryMeta.className = 'license-meta';
-        expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
         
-        // Devices info
+        if (isExpired) {
+          expiryMeta.innerHTML = `<span style="color: red; font-weight: 500;">Expired on ${license.expiry_date}</span>`;
+        } else {
+          expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
+        }
+        
+        // Devices info - changed format
         const devicesMeta = document.createElement('div');
         devicesMeta.className = 'license-meta';
-        const keysLeft = license.keys_left || 0;
-        const totalKeys = license.total_keys || 'Unlimited';
-        devicesMeta.innerHTML = `Devices (remaining/total): <span class="license-meta-highlight">${keysLeft}/${totalKeys}</span>`;
+        
+        if (noDevicesLeft) {
+          devicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
+        } else {
+          devicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
+        }
         
         headerRight.appendChild(expiryMeta);
         headerRight.appendChild(devicesMeta);
@@ -1720,23 +1802,26 @@ permalink: /account/
         
         // Display device users if available
         if (license.keys_used_by && license.keys_used_by.length > 0) {
-          const usersLabel = document.createElement('div');
-          usersLabel.className = 'license-users-label';
-          usersLabel.textContent = 'Device users:';
+          const usersInfo = document.createElement('div');
+          usersInfo.className = 'license-users-label';
           
-          const usersList = document.createElement('div');
-          usersList.className = 'license-users-list';
-          usersList.textContent = license.keys_used_by.join(', ');
+          // Process the keys_used_by to replace "tokens" with "devices"
+          const processedUsers = license.keys_used_by.map(user => {
+            return user.replace(/\((\d+) tokens\)/g, '($1 devices)');
+          });
           
-          body.appendChild(usersLabel);
-          body.appendChild(usersList);
-            } else {
+          usersInfo.innerHTML = `Users with a device on this license: <span class="license-meta-highlight">${processedUsers.join(', ')}</span>`;
+          body.appendChild(usersInfo);
+        } else {
           // Show empty state message
-          body.innerHTML = '<div class="license-empty">No devices are currently using this license</div>';
+          const emptyState = document.createElement('div');
+          emptyState.className = 'license-empty';
+          emptyState.textContent = 'This license is not used by anyone';
+          body.appendChild(emptyState);
         }
         
         card.appendChild(body);
-        licenseGrid.appendChild(card);
+        gridElement.appendChild(card);
       });
     }
 
@@ -1920,7 +2005,7 @@ permalink: /account/
           });
         } else {
           // Show empty state message
-          body.innerHTML = '<div class="token-empty">No license tokens found for this device</div>';
+          body.innerHTML = '<div class="token-empty">No devices registered for this license</div>';
         }
         
         card.appendChild(body);
