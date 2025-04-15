@@ -227,20 +227,7 @@
 </style>
 
 <script>
-    // Make getHostUrl globally available
-    window.getHostUrl = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const useEmulator = urlParams.get('is_emulator') === 'true';
-        
-        // Only use emulator if explicitly requested via URL parameter
-        if (useEmulator) {
-            console.log('Using emulator URL for API calls');
-            return 'http://localhost:5001/eagleeyessearch/us-central1';
-        }
-        console.log('Using production URL for API calls');
-        return 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-    };
-
+    // SignInWidget class to handle sign in events
     class SignInWidget {
         constructor() {
             this.googleButton = document.getElementById('googleSignIn');
@@ -248,21 +235,18 @@
             this.emailForm = document.getElementById('emailSignInForm');
             this.emailInput = document.getElementById('email');
             this.statusMessage = document.getElementById('statusMessage');
-            
             this.setupEventListeners();
         }
-
+  
         setupEventListeners() {
-            // Google Sign In
+            // Google Sign-In
             this.googleButton.addEventListener('click', () => this.signInWithGoogle());
-            
-            // Microsoft Sign In
+            // Microsoft Sign-In
             this.microsoftButton.addEventListener('click', () => this.signInWithMicrosoft());
-            
-            // Email Sign In
+            // Email Sign-In
             this.emailForm.addEventListener('submit', (e) => this.signInWithEmail(e));
         }
-
+  
         async signInWithGoogle() {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
@@ -272,7 +256,7 @@
                 this.showError("Google sign-in failed. Please try again.");
             }
         }
-        
+  
         async signInWithMicrosoft() {
             try {
                 const provider = new firebase.auth.OAuthProvider('microsoft.com');
@@ -282,7 +266,7 @@
                 this.showError("Microsoft sign-in failed. Please try again.");
             }
         }
-
+  
         async signInWithEmail(e) {
             e.preventDefault();
             const email = this.emailInput.value.trim();
@@ -303,27 +287,25 @@
                 this.showError("Failed to send sign-in link. Please try again.");
             }
         }
-
+  
         handleSignInSuccess(user) {
             console.log("Sign-in successful:", user);
-            // Fire a custom event to indicate sign-in is complete.
             const event = new CustomEvent('signInComplete', { detail: { user } });
             document.dispatchEvent(event);
         }
-
+  
         showSuccess(message) {
             this.statusMessage.textContent = message;
             this.statusMessage.className = 'status-message success';
         }
-
+  
         showError(message) {
             this.statusMessage.textContent = message;
             this.statusMessage.className = 'status-message error';
         }
-
+  
         completeEmailLinkSigninIfApplicable() {
             if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
-                console.log("Email link detected for sign-in.");
                 let email = window.localStorage.getItem('emailForSignIn');
                 if (!email) {
                     email = window.prompt("Please provide your email for confirmation");
@@ -335,46 +317,14 @@
                     })
                     .catch((error) => {
                         console.error("Error during email link sign-in:", error);
-                        this.showError("Error during email link sign-in. Please try again.");
+                        this.showError("Error during email sign-in. Please try again.");
                     });
             }
         }
     }
-
-    // Initialize the widget when the DOM is loaded
+  
     document.addEventListener('DOMContentLoaded', () => {
         const signInWidget = new SignInWidget();
-        // Check and complete email link sign-in if applicable
         signInWidget.completeEmailLinkSigninIfApplicable();
-    });
-
-    // Function to check if user has already completed a form and redirect accordingly
-    
-
-    // Ensure this function is called when auth state changes
-    firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-            // User is signed in
-            console.log("User is signed in");
-            globalUser = user;
-            
-            // Hide login button, show signed-in info
-            $("#login-button").hide();
-            $("#signin").hide();
-            $("#signed-in-info").show();
-            $("#user-email").text(user.email);
-            
-            // If we're on specific pages that need forms
-            const currentPage = window.location.pathname;
-            if (currentPage.includes('account.html') || currentPage.includes('create-account.html')) {
-                // Show form or appropriate content, handled by page-specific JS
-                $("#form-container").show();
-                $("#signin").hide();
-            }
-        } else {
-            // User is signed out
-            console.log("User is signed out");
-            globalUser = null;
-        }
     });
 </script> 
