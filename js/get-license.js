@@ -343,6 +343,18 @@ function checkLicense(user) {
     // $('#checking-licenses-box').show();
 
     $('#license-info').text("⏳ Checking available licenses...")
+    
+    // Force the license selector to be visible
+    $('#license-select').css({
+        'display': 'block', 
+        'visibility': 'visible',
+        '-webkit-appearance': 'menulist', 
+        '-moz-appearance': 'menulist', 
+        'appearance': 'menulist',
+        'background': '#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 8px center',
+        'background-size': '12px',
+        'padding-right': '25px'
+    }).attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px 25px 8px 8px !important; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: menulist !important; -moz-appearance: menulist !important; appearance: menulist !important; background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 8px center !important; background-size: 12px !important;');
 
     // calls function to check for licenses, with value in manual license-id box as optional
     user.getIdToken().then(function (idToken) {
@@ -453,7 +465,7 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
     var checkingBox = $('#licenses-found-info'); // blue info-box field
     checkingBox.show()
     selectLicenseButton = $('#selectLicenseButton');
-    select.innerHTML = '';
+    select.empty();
 
     const arrayOfLicenseIds = Object.keys(licenseData.licenses_and_dispensed);
     var numberOfLicenses = arrayOfLicenseIds.length;
@@ -521,7 +533,19 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
             option.text = `${licenseId.substring(0, 3)}: ${license.tier} (${issuedStatus}), Expires: ${expiryDateStr}`;
             select.append(option);
         });
-        select.css('display', 'block');
+        // Ensure the select element is visible with multiple approaches
+        select.css({
+            'display': 'block',
+            'visibility': 'visible',
+            '-webkit-appearance': 'menulist',
+            '-moz-appearance': 'menulist',
+            'appearance': 'menulist',
+            'background': '#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 8px center',
+            'background-size': '12px',
+            'padding-right': '25px'
+        });
+        select.show();
+        select.attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px 25px 8px 8px !important; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: menulist !important; -moz-appearance: menulist !important; appearance: menulist !important; background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 8px center !important; background-size: 12px !important;');
         textarea.text('');
         selectLicenseButton.removeClass('non-clickable');
         selectLicenseButton.prop('disabled', false);
@@ -638,7 +662,7 @@ function selectLicense() {
     var code = isThereAlreadyAKey(selectedLicenseId);
     console.log("logging code :" + code);
     if (!code) {
-        $('#issueKeyButton').removeClass('non_important_button').show();
+        $('#issueKeyButton').removeClass('non_important_button invisible-button').show();
         console.log("there is no key yet");
         $('#license-key').val("");
         issueKeyInfoBox.textContent = "Important: Before proceeding, please be aware that issued keys are specific to a device. The process of issuing a key is irreversible; once a key is issued, it cannot be revoked or transferred to another device.";
@@ -647,7 +671,7 @@ function selectLicense() {
         issueKeyInfoBox.textContent = "A key has already been issued for this license and this device.";
         $('#license-key').val(code);
         $('#key-view').show();
-        $('#issueKeyButton').removeClass('non_important_button').hide();
+        $('#issueKeyButton').removeClass('non_important_button invisible-button').hide();
         // $('html, body').animate({
         //     scrollTop: $("#key-view").offset().top
         // }, 1000); // 1000 milliseconds = 1 second

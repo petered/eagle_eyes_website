@@ -1,0 +1,810 @@
+---
+layout: main
+title: Update your profile
+permalink: /user-form/
+---
+
+<style>
+    /* Radio button styles */
+    .radio-group {
+        margin-bottom: 20px;
+    }
+    
+    .radio-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .radio-container input[type="radio"] {
+        margin-right: 10px;
+        /* Ensure visibility */
+        opacity: 1;
+        visibility: visible;
+        position: static;
+        width: auto;
+        height: auto;
+    }
+    
+    /* Fix for labels */
+    .radio-container label {
+        display: inline-block;
+        cursor: pointer;
+    }
+    
+    /* Fix for checkbox containers too */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        margin-right: 10px;
+        /* Ensure visibility */
+        opacity: 1;
+        visibility: visible;
+        position: static;
+        width: auto;
+        height: auto;
+    }
+    
+   
+</style>
+
+<div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
+    <!-- Add the test user banner right at the top -->
+    <div id="test-user-banner" style="display: none; position: sticky; top: 0; left: 0; width: 100%; background-color: #4CAF50; color: white; padding: 10px 0; text-align: center; z-index: 1000; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <span><strong>Development Mode</strong></span>
+            <button id="test-user-login" class="button small rounded" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer;">Sign in as Test User</button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="column width-12">
+            <div class="centered">
+                <h2 class="mb-10">Update your profile</h2>
+                <div style="display: flex; justify-content: flex-start; align-items: center; gap: 20px;">
+                    <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                    <div id="signOutContainer" style="display: none;">
+                        <a href="#" id="signOutButton" class="button small rounded" style="padding: 8px 15px; font-size: 14px;">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section-block" style="padding-top: 20px;">
+    <div class="row">
+        <div class="column width-8 offset-2">
+            <!-- Sign in button (will trigger overlay) -->
+            <div id="signinButtonSection" style="display: block; text-align: center; margin-bottom: 40px;">
+                <p style="margin-bottom: 20px;">Sign in to get started. Don't have an account? No worries, you'll be able to create one.</p>
+                <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
+            </div>
+
+            <!-- Trial form content section -->
+            <div id="form-container" class="box rounded xlarge bkg-white shadow" style="display: none;">
+                <div class="box-content">
+                    <div class="row">
+                        <div class="column width-12">
+                            
+                            {% include account-questions.html %}
+                            
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="hang-on-message" class="info-box" style="display: none; margin-top: 20px; text-align: center; padding: 20px;">
+                Hang on a moment while we get everything ready for you...
+            </div>
+            
+            <div id="post-form" class="info-box" style="display: none; margin-top: 20px; text-align: center; padding: 20px;">
+                <div id="checking-licenses-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sign in overlay -->
+<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+    <div style="position: relative; width: 100%; height: 100%;">
+        {% include signinwidget-main.html %}
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the form component without specifying a default form type
+        if (typeof initFormComponent === 'function') {
+            initFormComponent(); // No options, no default form type
+        }
+        
+        const signinButtonSection = document.getElementById('signinButtonSection');
+        const formContainer = document.getElementById('form-container');
+        const userEmail = document.getElementById('userEmailDisplay');
+        const signOutContainer = document.getElementById('signOutContainer');
+        const signOutButton = document.getElementById('signOutButton');
+        const hangOnMessage = document.getElementById('hang-on-message');
+        const postForm = document.getElementById('post-form');
+        const submitButton = document.getElementById('submitButton');
+        const form = document.getElementById('emailSignInForm'); // or whatever your form ID is
+        
+        // If we have a submit button, attach the handler
+        if (submitButton) {
+            // Remove the click handler and handle form submit instead
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Prevent double submission
+                if (submitButton.classList.contains('processing')) {
+                    return;
+                }
+                submitForm();
+            });
+        }
+        
+        // Listen for auth state changes
+        document.addEventListener('authStateChanged', function(e) {
+            const user = e.detail.user;
+            handleAuthStateChange(user);
+        });
+        
+        // Check current auth state immediately on page load
+        firebase.auth().onAuthStateChanged(function(user) {
+            handleAuthStateChange(user);
+        });
+        
+        // Centralized function to handle auth state changes
+        function handleAuthStateChange(user) {
+            if (user) {
+                // User is signed in
+                signinButtonSection.style.display = 'none';
+                userEmail.textContent = `Logged in as: ${user.email}`;
+                signOutContainer.style.display = 'block';
+                
+                // Don't immediately check or show form - let signinwidget handle redirects
+                // We'll only display forms if we know we need to stay on this page
+                hangOnMessage.style.display = 'block';
+                setTimeout(function() {
+                    // If we're still on this page after a short delay,
+                    // the user probably needs to fill this form
+                    redirectOrNot(user);
+                }, 200);
+            } else {
+                // User is signed out
+                signinButtonSection.style.display = 'block';
+                formContainer.style.display = 'none';
+                hangOnMessage.style.display = 'none';
+                postForm.style.display = 'none';
+                userEmail.textContent = '';
+                signOutContainer.style.display = 'none';
+            }
+        }
+        
+        // Handle the signInComplete event
+        document.addEventListener('signInComplete', function(e) {
+            const user = e.detail.user;
+            toggleSignIn(); // Hide the overlay
+        });
+        
+        // Handle sign out
+        if (signOutButton) {
+            signOutButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                firebase.auth().signOut().then(function() {
+                    // Sign-out successful
+                    console.log('User signed out successfully');
+                    
+                    // Reload preserving the emulator parameter
+                    const currentUrl = new URL(window.location.href);
+                    window.location.href = currentUrl.toString();
+                }).catch(function(error) {
+                    console.error('Error signing out:', error);
+                });
+            });
+        }
+        
+        // Set up test user functionality if in emulator mode
+        setupTestUserBanner();
+    });
+    
+    // Consolidated form submission handler
+    function submitForm() {
+        const submitButton = document.getElementById('submitButton');
+        if (submitButton.classList.contains('processing')) {
+            console.log('Form already being processed');
+            return;
+        }
+        
+        // Get form validation result and data
+        const result = validateFormAndGetData();
+        
+        if (!result.valid) {
+            return false; // Form validation failed
+        }
+        
+        // Show processing state
+        submitButton.classList.add('processing');
+        
+        // Get form type from the component
+        const formType = currentFormType;
+        console.log('Form type when submitting:', formType);
+        
+        // Submit to server based on form type
+        if (formType === 'purchase' || formType === 'trial') {
+            submitRegisterForm(result.data);
+        } else if (formType === 'download') {
+            submitSignupForm(result.data);
+        } else {
+            console.log("Unknown form type:", formType);
+            submitButton.classList.remove('processing');
+        }
+    }
+    
+    // Server submission for registration
+    function submitRegisterForm(formData) {
+        // Get the host URL
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 
+                       (useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 
+                        'https://us-central1-eagleeyessearch.cloudfunctions.net');
+        
+        const fetch_url = hostURL + '/submit_register_form';
+        console.log("Fetch URL:", fetch_url);
+        
+        // Get auth token and submit
+        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                data: JSON.stringify(formData),
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    console.log("Success", data);
+                    submitButton.classList.remove('processing');
+                    
+                    // Hide form and sign-in elements
+                    $("#form-container").hide();
+                    $("#signin").hide();
+                    
+                    // Display a different success message based on the form type
+                    if (currentFormType === 'purchase') {
+                        $("#post-form").html(
+                          "<div style='text-align: center; padding: 20px;'>" +
+                          "<strong>Thank you!</strong><br>" +
+                          "Your verification request will typically be processed within 24 hours.<br>" +
+                          "Once approved, you will be able to purchase a license using a credit card.<br>" +
+                          "If you have any questions, please contact <a href='mailto:info@eagleeyessearch.com'>info@eagleeyessearch.com</a>." +
+                          "</div>"
+                        );
+                    } else {
+                        $("#post-form").html(
+                          "<div style='text-align: center; padding: 20px;'>" +
+                          "Your 30-day trial request was submitted successfully. We will contact you soon. " +
+                          "Please reach out to <a href='mailto:info@eagleeyessearch.com'>info@eagleeyessearch.com</a> if you have any questions." +
+                          "</div>"
+                        );
+                    }
+                    
+                    $("#post-form").show();
+                    
+                    // // Redirect after a short delay
+                    // setTimeout(() => {
+                    //     window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+                    // }, 2000);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    submitButton.classList.remove('processing');
+                    console.error("Server error:", jqXHR.responseText);
+                    requestErrorHandler(jqXHR, textStatus, errorThrown);
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting auth token:", error);
+            submitButton.classList.remove('processing');
+        });
+    }
+    
+    // Server submission for signup
+    function submitSignupForm(formData) {
+        // Get the host URL
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 
+                      (useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 
+                       'https://us-central1-eagleeyessearch.cloudfunctions.net');
+        
+        const fetch_url = hostURL + '/submit_signup_form';
+        console.log("Fetch URL:", fetch_url);
+        
+        // Get auth token and submit
+        firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                data: JSON.stringify(formData),
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    console.log("Signup Success", data);
+                    submitButton.classList.remove('processing');
+                    
+                    // Show success UI and redirect to account page with emulator parameter
+                    $("#form-container").hide();
+                    $("#signin").hide();
+                    
+                    // After a short delay to show the success message, redirect to account page
+                    setTimeout(() => {
+                        window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+                    }, 2000);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    submitButton.classList.remove('processing');
+                    console.error("Server error:", jqXHR.responseText);  // Log the error response
+                    requestErrorHandler(jqXHR, textStatus, errorThrown);
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting auth token:", error);
+            submitButton.classList.remove('processing');
+        });
+    }
+    
+    // Function to check if user has already filled in form
+    function checkExistingForm(user) {
+        const formContainer = document.getElementById('form-container');
+        const hangOnMessage = document.getElementById('hang-on-message');
+        const postForm = document.getElementById('post-form');
+
+        // Ensure the form is hidden until we get a result.
+        formContainer.style.display = 'none';
+        hangOnMessage.style.display = 'block';
+
+        // Get the host URL for API calls
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        const fetch_url = hostURL + '/has_user_already_filled_in_form';
+
+        user.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    hangOnMessage.style.display = 'none';
+                    
+                    console.log("Got reply from has_user_already_filled_in_form:", data);
+                    // Parse the response if it's a string
+                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                    const formOrNull = parsedData.form;
+                    
+                    if (formOrNull === null) {
+                        // User has not filled in the form yet: show the form now.
+                        console.log('User did not fill in form yet.');
+                        formContainer.style.display = 'block';
+                    } else {
+                        // User has already filled in the form: redirect to account/.
+                        console.log("User already filled in form. Redirecting to account/");
+                        window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    hangOnMessage.style.display = 'none';
+                    console.error("Error checking form:", textStatus, errorThrown, jqXHR.responseText);
+                    
+                    // On error, show the form anyway.
+                    formContainer.style.display = 'block';
+                }
+            });
+        }).catch(function(error) {
+            hangOnMessage.style.display = 'none';
+            console.error("Error getting ID token:", error);
+            // On error, show the form anyway.
+            formContainer.style.display = 'block';
+        });
+    }
+    
+    // Toggle the sign in overlay
+    function toggleSignIn() {
+        const overlay = document.getElementById('signin-overlay');
+        overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+        document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
+    }
+    
+    // Utility function to preserve the emulator parameter when redirecting
+    function getUrlWithEmulatorParam(url) {
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        if (!isEmulator) return url;
+        
+        // Add the parameter to the URL if it doesn't already have it
+        const separator = url.includes('?') ? '&' : '?';
+        return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
+    }
+    
+    // Get emulator status from URL
+    function getIsEmulatorFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('is_emulator')?.toLowerCase() === 'true';
+    }
+    
+    // Setup test user banner
+    function setupTestUserBanner() {
+        // Check if we're in emulator mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmulator = urlParams.get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Show the test user banner
+            const banner = document.getElementById('test-user-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // Set up the test user login button
+            const testUserBtn = document.getElementById('test-user-login');
+            if (testUserBtn) {
+                testUserBtn.addEventListener('click', function() {
+                    // Test user credentials
+                    const testEmail = 'test@example.com';
+                    const testPassword = 'password123';
+                    
+                    // Store current URL with parameters before sign-in
+                    const currentUrl = window.location.href;
+                    
+                    // Try to sign in first
+                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                        .then((userCredential) => {
+                            console.log('Test user signed in successfully');
+                            // If the page reloads, ensure we come back to a URL with the emulator param
+                            window.history.replaceState(null, document.title, currentUrl);
+                        })
+                        .catch((error) => {
+                            // If sign-in fails, create the user first
+                            if (error.code === 'auth/user-not-found') {
+                                console.log('Test user not found, creating account...');
+                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                    .then((userCredential) => {
+                                        console.log('Test user created and signed in successfully');
+                                        // If the page reloads, ensure we come back to a URL with the emulator param
+                                        window.history.replaceState(null, document.title, currentUrl);
+                                    })
+                                    .catch((createError) => {
+                                        console.error('Error creating test user:', createError);
+                                    });
+                } else {
+                                console.error('Error signing in with test user:', error);
+                            }
+                        });
+                });
+            }
+        }
+    }
+    
+    // Error handler function
+    function requestErrorHandler(jqXHR, textStatus, errorThrown) {
+        $("#hang-on-message").hide();
+        console.log("Error: " + errorThrown);
+        console.log("Status: " + textStatus);
+        console.log("Response: " + (jqXHR && jqXHR.responseText ? jqXHR.responseText : "No response"));
+        showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + (jqXHR && jqXHR.responseText ? jqXHR.responseText : "No response"));
+    }
+
+    function showError(message) {
+        // Show an error message to the user
+        var errorBox = document.createElement('div');
+        errorBox.classList.add('error-box');
+        // Width 80% of the screen
+        errorBox.style.width = '80%';
+        // Center horizontally
+        errorBox.style.margin = '0 auto';
+
+        errorBox.textContent = message;
+        document.body.appendChild(errorBox);
+
+        // Scroll to the bottom of the page
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+    
+    // Initialize the component - called by parent page
+
+    
+    // Method to validate form and return result
+    function validateFormAndGetData() {
+        const isValid = validateForm();
+        
+        if (!isValid) {
+            console.log("Form validation failed");
+            $("#status").html("Please complete all required fields").show();
+            return { valid: false, data: null };
+        }
+        
+        // If valid, collect the form data
+        const formData = collectFormData();
+        return { valid: true, data: formData };
+    }
+    
+    // Setup function - binds internal events
+ 
+
+    function redirectOrNot(user) {
+        // Get URL parameters first
+        const urlParams = new URLSearchParams(window.location.search);
+        const reason = urlParams.get('reason');
+        const hangOnMessage = document.getElementById('hang-on-message');
+        const formContainer = document.getElementById('form-container');
+        
+        // First check URL parameters to see if we should show a specific form
+        if (reason === 'trial' || reason === 'purchase') {
+            // Hide the loading message
+            hangOnMessage.style.display = 'none';
+            
+            // Find and select the corresponding radio button
+            const radioButton = document.querySelector(`input[name="signup_type"][value="${reason}"]`);
+            if (radioButton) {
+                radioButton.checked = true;
+                setFormType(reason);
+                hideSignupTypeSection();
+                showFormSection(reason);
+                console.log(`Form type pre-selected from URL parameter: ${reason}`);
+                
+                // Show the form since we know which type to display
+                formContainer.style.display = 'block';
+            } else {
+                // Fallback - just show the form with the radio buttons
+                // Hide the loading message
+                hangOnMessage.style.display = 'none';
+                
+                // Show the form container without pre-selecting any option
+                formContainer.style.display = 'block';
+                
+                console.log('Invalid reason parameter. Showing default form options.');
+            }
+        } else {
+            // No reason parameter, check if user has already filled the form
+            checkExistingForm(user);
+        }
+    }
+    
+    // Initialize form type variables
+    var currentFormType = "";  // Current form type
+    var prevFormType = "";     // Previous form type for detecting changes
+    var useLocalFirebaseEmulator = getIsEmulatorFromURL();
+    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+    
+    // Function to set and validate form type
+    function setFormType(type) {
+        // Store previous value before changing
+        prevFormType = currentFormType;
+        
+        // Validate type is one of the allowed values
+        if (['download', 'purchase', 'trial'].includes(type)) {
+            currentFormType = type;
+            } else {
+            console.error("Invalid form type: " + type + ". Must be download, purchase, or trial.");
+            currentFormType = ""; // Reset to empty if invalid
+        }
+        
+        // Log form type change to console
+        if (prevFormType !== currentFormType) {
+            console.log("Form type changed from: " + (prevFormType || "none") + " to: " + currentFormType);
+        }
+        
+        return currentFormType;
+    }
+    
+    // Handle signup type change
+    function handleSignupTypeChange(radio) {
+        // Set and validate the form type
+        const formType = setFormType(radio.value);
+        
+        // Show the appropriate form section
+        showFormSection(formType);
+    }
+    
+    // Function to show/hide appropriate form sections
+    function showFormSection(formType) {
+        const additionalFields = document.getElementById('additional-fields');
+        const downloadQuestions = document.getElementById('download-questions');
+        const trialQuestions = document.getElementById('trial-questions');
+        const purchaseQuestions = document.getElementById('purchase-questions');
+        const titleElement = document.getElementById('formTypeTitle');
+        const descriptionElement = document.getElementById('formTypeDescription');
+        
+        // First, show the additional fields
+        additionalFields.style.display = 'block';
+        
+        // Hide all question sections first
+        downloadQuestions.style.display = 'none';
+        trialQuestions.style.display = 'none';
+        purchaseQuestions.style.display = 'none';
+        
+        // Set default empty values for title and description
+        titleElement.innerHTML = '';
+        descriptionElement.innerHTML = '';
+        
+        // Show the appropriate question section and update title/description based on form type
+        switch(formType) {
+            case 'trial':
+                trialQuestions.style.display = 'block';
+                titleElement.innerHTML = 'Register for a 30-day trial';
+                descriptionElement.innerHTML = 'To access a trial license, your account needs to be verified first. Please complete this form to submit your verification request. ' +
+                    'Verification can take up to 3 business days, though most requests are processed within 24 hours. Once verified, we will set you up with a trial license and you\'ll be able to activate Eagle Eyes Pilot and/or Eagle Eyes Scan on up to 5 devices using your trial license.';
+                break;
+            
+            case 'download':
+                downloadQuestions.style.display = 'block';
+                titleElement.innerHTML = 'Create an account to download Eagle Eyes';
+                descriptionElement.innerHTML = 'Already have an active license for yourself or your team? Complete this form to create an account and you\'ll get immediate access to the downloads section.<br><br>' +
+                    '<i>Note: An active license is required to activate Eagle Eyes on your device.</i>';
+                break;
+            
+            case 'purchase':
+                purchaseQuestions.style.display = 'block';
+                titleElement.innerHTML = 'Get verified to purchase a license';
+                descriptionElement.innerHTML = 'To purchase a license, your account needs to be verified first. Please complete this form to submit your verification request. ' + 
+                    'Verification can take up to 3 business days, though most requests are processed within 24 hours. We\'ll send you a confirmation by email as soon as your account is verified.';
+                break;
+            
+            default:
+                // If no valid form type, hide additional fields
+                additionalFields.style.display = 'none';
+                return;
+        }
+        
+        // Smooth scroll to the additional fields
+        additionalFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function isElementVisible(element) {
+        // Check if element is hidden with display:none
+        if (element.offsetParent === null) return false;
+        
+        // Also check parent containers
+        let parent = element.parentElement;
+        while (parent) {
+            const style = window.getComputedStyle(parent);
+            if (style.display === 'none' || style.visibility === 'hidden') {
+                return false;
+            }
+            parent = parent.parentElement;
+        }
+        
+        return true;
+    }
+    
+    function validateForm() {
+        var isValid = true;
+        var requiredFields = document.querySelectorAll('#fields [required]');
+        var radioGroups = {};
+        var validationErrors = [];
+
+        // Only log once at the start
+        console.log(`Validating form (type: ${currentFormType})`);
+        
+        requiredFields.forEach(function(field) {
+            // Skip fields that are not visible
+            if (!isElementVisible(field)) return;
+
+            if (field.hasAttribute('required')) {
+                if (field.type === 'radio') {
+                    if (!radioGroups[field.name]) {
+                        radioGroups[field.name] = [];
+                    }
+                    radioGroups[field.name].push(field);
+                } else if (field.type === 'checkbox' && !field.checked) {
+                    isValid = false;
+                    field.nextElementSibling.style.color = 'red';
+                    validationErrors.push(`Checkbox not checked: ${field.name}`);
+                } else if (field.type !== 'checkbox' && field.type !== 'radio') {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.style.borderColor = 'red';
+                        const fieldLabel = field.previousElementSibling ? field.previousElementSibling.textContent : field.name;
+                        validationErrors.push(`Empty field: ${fieldLabel.trim()}`);
+                    } else {
+                        field.style.borderColor = '';
+                    }
+                }
+            }
+        });
+        
+        // Validate radio button groups
+        Object.keys(radioGroups).forEach(function(groupName) {
+            var group = radioGroups[groupName];
+            var groupIsValid = group.some(function(radio) {
+                return radio.checked;
+            });
+            
+            if (!groupIsValid) {
+                isValid = false;
+                group.forEach(function(radio) {
+                    radio.nextElementSibling.style.color = 'red';
+                });
+                validationErrors.push(`No selection made for: ${groupName}`);
+            } else {
+                group.forEach(function(radio) {
+                    radio.nextElementSibling.style.color = '';
+                });
+            }
+        });
+
+        // Only log errors if validation failed
+        if (!isValid) {
+            console.group('Form Validation Failed');
+            console.log(`${validationErrors.length} error(s):`);
+            validationErrors.forEach(error => console.log('- ' + error));
+            console.groupEnd();
+        }
+        
+        return isValid;
+    }
+
+    // Collect form data into a standardized object
+    function collectFormData() {
+        var formData = {}; // Initialize the object
+        
+        // Pack the form data into an object
+        var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
+        formInputs.forEach(function(input) {
+            if (input.type === 'checkbox') {
+                formData[input.name] = input.checked;
+            } else if (input.type === 'radio') {
+                if (input.checked) {
+                    formData[input.name] = input.value;
+                }
+            } else {
+                formData[input.name] = input.value;
+            }
+        });
+
+        // Remove empty keys or invalid entries
+        for (var key in formData) {
+            if (formData[key] === null || formData[key] === undefined || 
+                (typeof formData[key] === 'string' && formData[key].trim() === "")) {
+                delete formData[key];
+            }
+        }
+
+        // Add combined name field
+        if (formData['first_name'] && formData['last_name']) {
+            formData['name'] = formData['first_name'].trim() + ' ' + formData['last_name'].trim();
+        }
+
+        if (currentFormType == 'trial') {
+            // Add the trial type to the form data
+            formData['trial_request'] = true;
+        } else {
+            formData['trial_request'] = false;
+        }
+        
+        return formData;
+    }
+
+    // Function to hide the signup type question section
+    function hideSignupTypeSection() {
+        // Find the container that holds the radio buttons
+        const radioGroupContainer = document.querySelector('.radio-group');
+        
+        if (radioGroupContainer) {
+            // If there's a heading or label before the radio group, hide it too
+            const previousElement = radioGroupContainer.previousElementSibling;
+            if (previousElement && (previousElement.tagName === 'H3' || 
+                                   previousElement.tagName === 'H4' || 
+                                   previousElement.tagName === 'LABEL')) {
+                previousElement.style.display = 'none';
+            }
+            
+            // Hide the radio group itself
+            radioGroupContainer.style.display = 'none';
+        }
+    }
+</script>

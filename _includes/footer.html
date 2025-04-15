@@ -1,11 +1,134 @@
-	<!-- Footer -->
-    <footer class="page-footer" id="contact-us">
-        
-    	<!-- Contact Us -->
-        <div class="contact" style="text-align: center">
-<!--            <h2 class="section-heading">Contact Us</h2>-->
-            <p><span class="glyphicon glyphicon-envelope"> </span> <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a></p>
-            
-            <a href="https://twitter.com/EagleEyesSearch?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @EagleEyesSearch</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<footer class="footer" id="footer">
+    <div class="footer-top">
+    <div class="row flex">
+        <div class="column width-3">
+        <div class="widget">
+            <div class="footer-logo">
+            <a href="{{ '/' | relative_url }}"><img src="{{ '/images/eagle_eyes_icon_rounded_filtered.png' | relative_url }}" alt="Eagle Eyes Footer Logo"/></a>
+            </div>
         </div>
-    </footer>
+        </div>
+        <div class="column width-9">
+        <!-- Change the inner row to hold three columns -->
+        <div class="row three-columns-on-tablet">
+            <div class="column width-3">
+            <div class="widget">
+                <h3 class="widget-title mb-30">Contact</h3>
+                <ul>
+                <li><a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a></li>
+                <li><a href="https://maps.app.goo.gl/21GrbCjoRWssGoi29" target="_blank">Squamish, BC, Canada</a></li>
+                </ul>
+            </div>
+            </div>
+            <div class="column width-3">
+            <div class="widget">
+                <h3 class="widget-title mb-30">Social</h3>
+                <ul class="social-list list-horizontal">
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <a href="https://www.linkedin.com/company/eagle-eyes-search/posts/?feedView=all" target="_blank" style="text-decoration: none; display: flex; align-items: center;">
+                        <span style="width: 25px; display: inline-block; text-align: center; margin-right: 8px;">
+                            <i class="fab fa-linkedin" style="color: #ffffff; font-size: 1.7em;"></i>
+                        </span>
+                        <span style="font-size: 1.1em; display: inline-block;">LinkedIn</span>
+                    </a>
+                </div>
+                <!-- <br/>
+                <a href="https://twitter.com/EagleEyesSearch" target="_blank" style="text-decoration: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle; margin-right: 0px;">
+                        <path fill="#ffffff" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    X
+                </a> -->
+                <div style="display: flex; align-items: center;">
+                    <a href="https://www.youtube.com/channel/UCtafGEeqiatnOdNOYxu24-Q" target="_blank" style="text-decoration: none; display: flex; align-items: center;">
+                        <span style="width: 25px; display: inline-block; text-align: center; margin-right: 8px; transform: translateY(1px);">
+                            <i class="fab fa-youtube" style="color: #ffffff; font-size: 1.7em;"></i>
+                        </span>
+                        <span style="font-size: 1.1em;">YouTube</span>
+                    </a>
+                </div>
+                </ul>
+            </div>
+            </div>
+            <!-- Newsletter column now twice as wide -->
+          
+              
+            <div class="column width-4">
+                <div class="widget">
+                    <h3 class="widget-title mb-30">Subscribe to our newsletter</h3>
+                    <div id="newsletter-container" style="max-width:320px; margin:0 auto;">
+                        <form id="newsletter-signup" onsubmit="submitNewsletter(event)">
+                          <input type="email" name="email" placeholder="Your email" required style="width:100%; padding:8px; margin-bottom:10px;">
+                          <!-- Honeypot field (hidden from users) -->
+                          <input type="text" name="honeypot" value="" style="display:none;">
+                          <button type="submit" style="width:100%; padding:8px; background-color: transparent; color: #fff; border: 1px solid #fff;"
+                            onmouseover="this.style.backgroundColor='#1e90ff';"
+                            onmouseout="this.style.backgroundColor='transparent';">
+                            Register
+                          </button>
+                        </form>
+                      </div>
+                  </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+    <div class="footer-bottom">
+    <div class="row">
+        <div class="column width-12">
+        <div class="footer-bottom-inner">
+            <p class="copyright pull-left clear-float-on-mobile">
+            &copy; Eagle Eyes Search. All Rights Reserved.
+            </p>
+            <a href="#" class="scroll-to-top pull-right clear-on-mobile" data-no-hide>Back Top</a>
+        </div>
+        </div>
+    </div>
+    </div>
+</footer>
+
+
+<script>
+
+    function submitNewsletter(event) {
+      event.preventDefault();
+      
+      // Gather form data
+      const form = document.getElementById('newsletter-signup');
+      const email = form.email.value.trim();
+      const honeypot = form.honeypot.value.trim();
+      
+      // Create the data payload
+      const data = { email, honeypot };
+      var fetch_url = getHostUrl();
+      fetch_url += "/newsletter_signup";
+
+      // Send the POST request to the Cloud Function endpoint
+      fetch((fetch_url), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.text();
+      })
+      .then(result => {
+        console.log("Newsletter signup response:", result);
+        // Replace the form with a thank you message
+        document.getElementById('newsletter-container').innerHTML = 
+          "<p style='color:#000; text-align:left;'>Thank you for subscribing!</p>";
+      })
+      .catch(error => {
+        console.error("Error during newsletter signup:", error);
+      });
+    }
+
+
+</script>
+

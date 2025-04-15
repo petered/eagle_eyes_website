@@ -1,13 +1,13 @@
 <!-- Don't forget to include form_styling in document head -->
 
 <section id="form">
-    <p style="text-align: center;"><i>* required information</i></p>
+    <p style="text-align: center;"><i><span style="color: red;">*</span> required information</i></p>
     <form id="fields">
         <!-- {% if include.form_type == 'trial' %}
             <label for="email" class="required"><b>Email:</b></label>
             <input type="email" id="email" name="email" placeholder="Your email address" style="margin-bottom: 15px; margin-top: 0px;" required>
         {% endif %} -->
-        <label for="name" class="required"><b>Name:</b> Your full name</label>
+        <label for="name" class="required"><b>Full Name:</b></label>
         <input type="text" id="name" name="name" placeholder="Firstname Lastname" style="margin-bottom: 15px; margin-top: 0px;" required>
 
         <label for="team" class="required"><b>Organization Name:</b> Your team/company/agency, or enter "Individual" if you are not part of an organization</label>
@@ -16,10 +16,22 @@
         <label for="website" class="required"><b>Organization Website:</b></label>
         <input type="text" id="website" name="website" placeholder="http://www.example.com" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-        <label for="location" class="required"><b>Location:</b> City, State/Province, Country</label>
-        <input type="text" id="location" name="location" placeholder="Example Springs, Examplebama, USA" style="margin-bottom: 15px; margin-top: 0px;" required>
+        <div id="location-fields">
+            <label for="country" class="required"><b>Country:</b></label>
+            <input type="text" id="country" name="country" placeholder="Enter your country" style="margin-bottom: 15px; margin-top: 0px;" required>
 
-        <label for="use-case" class="required">What are you interested in using Eagle Eyes for?</label>
+            <div id="state-field" style="display: none;">
+                <label for="state" class="required"><b>State/Province:</b></label>
+                <input type="text" id="state" name="state" placeholder="Enter your state/province" style="margin-bottom: 15px; margin-top: 0px;" required>
+            </div>
+
+            <div id="city-field" style="display: none;">
+                <label for="city" class="required"><b>City/Town:</b></label>
+                <input type="text" id="city" name="city" placeholder="Enter your city/town" style="margin-bottom: 15px; margin-top: 0px;" required>
+            </div>
+        </div>
+
+        <label for="use-case" class="required"><b>What are you interested in using Eagle Eyes for?</b></label>
         <textarea id="use-case" name="use_case" placeholder="To locate ... so I can ..." rows="4" required></textarea>
 
         {% if include.form_type == 'trial' %}
@@ -29,24 +41,24 @@
         <label for="questions"><b>Questions or remarks:</b> (optional)</label>
         <textarea id="questions" name="questions" placeholder="" rows="4" style="margin-bottom: 15px; margin-top: 0px;"></textarea>
 
-        <div id="terms-of-use" class="info-box">
-
-            <p style="text-align: center;"><b>Terms of Use</b></p>
-            <ul style="font-size: 80%; font-style: italic;">
-                <li>The Eagle Eyes system does not replace human oversight. It may miss details that a human operator could catch. Operators should always review the raw footage personally.</li>
-                <li>Any licenses purchased in the future will be for internal use only and shall not be transferred, sold, or distributed to other organizations.</li>
-                <li>This software is intended to be used for search and rescue purposes only.</li>
-            </ul>
-        </div>
-
         <div class="checkboxes">
             <div class="checkbox-container">
                 <input type="checkbox" id="agree_terms" name="agree_terms" required>
-                <label for="agree_terms"><span class="checkbox-label required">I have read and agree to the Eagle Eyes Scan Terms of Use above.</span></label>
+                <label for="agree_terms">
+                    <span class="checkbox-label required">I have read and agree to the <a href="https://docs.google.com/document/d/1-8v4klW0DhZjkuYcEChX0frsQ8AcRqEumssS0wI7lSg/edit?usp=sharing" target="_blank">Eagle Eyes Search Terms of Use</a>.</span>
+                </label>
+            </div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="agree_privacy" name="agree_privacy" required>
+                <label for="agree_privacy">
+                    <span class="checkbox-label required">I have read and agree to the <a href="https://docs.google.com/document/d/1iRn_idL4gx7XhqIi5FhQy8Er_k9qxHjEBUwWCgJUI6M/edit?usp=sharing" target="_blank">Eagle Eyes Search Privacy Policy</a>.</span>
+                </label>
             </div>
             <div class="checkbox-container">
                 <input type="checkbox" id="receive_newsletter" name="receive_newsletter">
-                <label for="receive_newsletter"><span class="checkbox-label">I want to receive updates about Eagle Eyes Search.</span></label>
+                <label for="receive_newsletter">
+                    <span class="checkbox-label">I want to receive updates about Eagle Eyes Search.</span>
+                </label>
             </div>
         </div>
     </form>
@@ -301,5 +313,33 @@
         }
     }
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const countryInput = document.getElementById('country');
+        const stateField = document.getElementById('state-field');
+        const stateInput = document.getElementById('state');
+        const cityField = document.getElementById('city-field');
+        
+        countryInput.addEventListener('change', function() {
+            if (this.value.trim() !== '') {
+                stateField.style.display = 'block';
+            } else {
+                stateField.style.display = 'none';
+                cityField.style.display = 'none';
+            }
+        });
+
+        stateInput.addEventListener('change', function() {
+            if (this.value.trim() !== '') {
+                cityField.style.display = 'block';
+            } else {
+                cityField.style.display = 'none';
+            }
+        });
+
+        // Update the formData collection to include all location fields
+        function updateFormData() {
+            formData.location = `${document.getElementById('city').value}, ${document.getElementById('state').value}, ${document.getElementById('country').value}`;
+        }
+    });
 
 </script>
