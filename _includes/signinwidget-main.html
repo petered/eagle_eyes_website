@@ -266,42 +266,49 @@
                 provider.addScope('openid');
                 provider.addScope('profile');
                 provider.addScope('email');
-                provider.addScope('User.Read');
                 
-                // Add custom parameters for better flow control
+                // Remove problematic scope
+                // provider.addScope('User.Read');
+                
+                // Add custom parameters for better flow control - simplify parameters
                 provider.setCustomParameters({
-                    prompt: 'consent',
-                    response_mode: 'query'
+                    prompt: 'select_account'
                 });
                 
                 console.log("Microsoft provider configured with scopes, attempting sign-in...");
                 
-                // Sign in with a pop-up window
-                const result = await firebase.auth().signInWithPopup(provider);
-                
-                console.log("Microsoft sign-in successful:", {
-                    uid: result.user.uid,
-                    email: result.user.email,
-                    displayName: result.user.displayName,
-                    token: result.credential ? result.credential.accessToken : 'No token available'
-                });
-                
-                this.handleSignInSuccess(result.user);
-            } catch (error) {
-                console.error("Microsoft sign-in detailed error:", {
-                    code: error.code,
-                    message: error.message,
-                    email: error.email,
-                    credential: error.credential,
-                    stack: error.stack
-                });
-                
-                // Log any additional error data that might be available
-                if (error.customData) {
-                    console.error("Additional error data:", error.customData);
+                try {
+                    // Try redirect auth first - more reliable than popup
+                    await firebase.auth().signInWithRedirect(provider);
+                } catch (redirectError) {
+                    console.log("Redirect auth failed, trying popup:", redirectError);
+                    
+                    // Fallback to popup if redirect fails
+                    const result = await firebase.auth().signInWithPopup(provider);
+                    console.log("Microsoft sign-in successful:", {
+                        uid: result.user.uid,
+                        email: result.user.email,
+                        displayName: result.user.displayName
+                    });
+                    
+                    this.handleSignInSuccess(result.user);
                 }
+            } catch (error) {
+                console.error("Microsoft sign-in error:", {
+                    code: error.code,
+                    message: error.message
+                });
                 
-                this.showError("Microsoft sign-in failed. Please try again.");
+                // Show a more detailed error message to the user
+                if (error.code === 'auth/popup-blocked') {
+                    this.showError("Pop-up was blocked. Please allow pop-ups for this site.");
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    this.showError("Sign-in was cancelled. Please try again.");
+                } else if (error.code === 'auth/account-exists-with-different-credential') {
+                    this.showError("An account already exists with the same email address but different sign-in credentials.");
+                } else {
+                    this.showError("Microsoft sign-in failed. Please try again.");
+                }
             }
         }
   
@@ -364,5 +371,18 @@
     document.addEventListener('DOMContentLoaded', () => {
         const signInWidget = new SignInWidget();
         signInWidget.completeEmailLinkSigninIfApplicable();
+        
+        // Check for redirect result from Microsoft auth
+        firebase.auth().getRedirectResult().then((result) => {
+            if (result.user) {
+                console.log("Redirect sign-in successful");
+                signInWidget.handleSignInSuccess(result.user);
+            }
+        }).catch((error) => {
+            console.error("Error with redirect sign-in:", error);
+            if (error.code) {
+                signInWidget.showError("Sign-in failed. Please try again.");
+            }
+        });
     });
 </script> 
