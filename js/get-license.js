@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", function ()
     var copyKeyButton = document.getElementById('license-key-copy-button');
     copyKeyButton.addEventListener('click', function() {
         copyTextToClipboard();
+        var licenseKey = document.getElementById("license-key").value;
+        licenseKeyAcquired(licenseKey);
     });
 });
 
@@ -185,6 +187,8 @@ function copyTextToClipboard() {
         .catch(err => {
             console.error('Failed to copy text: ', err);
         });
+
+    // $('#close-page-button').show();
 }
 
 function licenseTokenToString(token) {
@@ -790,4 +794,19 @@ function onClickBuy() {
     url = `${window.location.origin}/buy_license?${window.location.search.slice(1)}`;
     console.log('Redirecting to: ', url);
     window.open(url);
+}
+
+function licenseKeyAcquired(licenseKey) {
+    // Used to relay back to Eagle Eyes Pilot that the license key has been acquired and 
+    // the web page can be closed
+    if (window.AndroidBridge && typeof AndroidBridge.onLicenseKeyAcquired === "function") {
+        AndroidBridge.onLicenseKeyAcquired(licenseKey);
+        // Add text to the bottom of the pages saying - "License key acquired.  You can now close this page."
+        // $('#debug-status-box').text('License key acquired.  This page should auto-close.').addClass('info-box').show();
+        // $('#close-page-button').show();
+    } else {
+        console.log("AndroidBridge is not available.");
+        // Add text to the bottom of the pages saying - "License key acquired.  You can now close this page."
+        // $('#close-page-button').show();
+    }
 }
