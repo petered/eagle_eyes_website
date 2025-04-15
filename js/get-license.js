@@ -345,7 +345,13 @@ function checkLicense(user) {
     $('#license-info').text("⏳ Checking available licenses...")
     
     // Force the license selector to be visible
-    $('#license-select').css({'display': 'block', 'visibility': 'visible'}).attr('style', 'display: block !important; visibility: visible !important');
+    $('#license-select').css({
+        'display': 'block', 
+        'visibility': 'visible',
+        '-webkit-appearance': 'menulist', 
+        '-moz-appearance': 'menulist', 
+        'appearance': 'menulist'
+    }).attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: menulist !important; -moz-appearance: menulist !important; appearance: menulist !important;');
 
     // calls function to check for licenses, with value in manual license-id box as optional
     user.getIdToken().then(function (idToken) {
@@ -525,9 +531,15 @@ function onReceivingLicenseData(data, licenseIDusedInRequest) {
             select.append(option);
         });
         // Ensure the select element is visible with multiple approaches
-        select.css('display', 'block');
+        select.css({
+            'display': 'block',
+            'visibility': 'visible',
+            '-webkit-appearance': 'menulist',
+            '-moz-appearance': 'menulist',
+            'appearance': 'menulist'
+        });
         select.show();
-        select.attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; font-size: 14px;');
+        select.attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: menulist !important; -moz-appearance: menulist !important; appearance: menulist !important;');
         textarea.text('');
         selectLicenseButton.removeClass('non-clickable');
         selectLicenseButton.prop('disabled', false);
