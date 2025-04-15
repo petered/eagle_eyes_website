@@ -632,7 +632,7 @@ permalink: /account/
                                                 </div>
                                                 
                                                 <!-- SECTION 2: EXPIRED LICENSES -->
-                                                <div id="expiredLicenseContainer" class="mb-30">
+                                                <div id="expiredLicenseContainer" class="mb-30" style="margin-top: 5em;">
                                                     <h4>Expired Licenses</h4>
                                                     <div id="expiredLicenseGrid" style="display: none;"></div>
                                                     <div id="expiredLicenseEmpty" style="display: none;">
@@ -1714,6 +1714,7 @@ permalink: /account/
       } else {
         document.getElementById('activeLicenseEmpty').style.display = 'none';
         document.getElementById('activeLicenseGrid').style.display = 'grid';
+        document.getElementById('activeLicenseGrid').style.gap = '40px';
         renderLicenseSection(activeLicenses, activeLicenseGrid, false);
       }
       
@@ -1724,6 +1725,7 @@ permalink: /account/
       } else {
         document.getElementById('expiredLicenseEmpty').style.display = 'none';
         document.getElementById('expiredLicenseGrid').style.display = 'grid';
+        document.getElementById('expiredLicenseGrid').style.gap = '40px';
         renderLicenseSection(expiredLicenses, expiredLicenseGrid, true);
       }
     }
@@ -1734,6 +1736,7 @@ permalink: /account/
         // Check license details
         const expiryDate = new Date(license.expiry_date);
         const keysLeft = license.keys_left || 0;
+        const totalKeys = license.total_keys || 0; // Use total_keys directly from license
         const noDevicesLeft = keysLeft === 0;
         
         // Create license card container
@@ -1761,8 +1764,53 @@ permalink: /account/
         subtitle.className = 'license-subtitle';
         subtitle.textContent = `ID: ${license.license_id}`;
         
-        headerLeft.appendChild(title);
-        headerLeft.appendChild(subtitle);
+        // Add copy button for active licenses with remaining devices
+        if (!isExpired && keysLeft > 0) {
+          const idRow = document.createElement('div');
+          idRow.style.display = 'flex';
+          idRow.style.alignItems = 'center';
+          idRow.style.marginTop = '5px';
+          
+          idRow.appendChild(subtitle);
+          
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-button';
+          copyButton.textContent = 'Copy License ID';
+          copyButton.style.marginLeft = '10px';
+          copyButton.style.padding = '3px 8px';
+          copyButton.style.fontSize = '12px';
+          copyButton.onclick = function() {
+            navigator.clipboard.writeText(license.license_id).then(
+              function() {
+                // Success feedback
+                copyButton.textContent = 'Copied!';
+                copyButton.classList.add('copied');
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy License ID';
+                  copyButton.classList.remove('copied');
+                }, 2000);
+              },
+              function(err) {
+                console.error('Could not copy text: ', err);
+                copyButton.textContent = 'Error';
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy License ID';
+                }, 2000);
+              }
+            );
+          };
+          
+          idRow.appendChild(copyButton);
+          headerLeft.appendChild(title);
+          headerLeft.appendChild(idRow);
+        } else {
+          headerLeft.appendChild(title);
+          headerLeft.appendChild(subtitle);
+        }
         
         // Right section - Expiry date and Devices
         const headerRight = document.createElement('div');
@@ -1778,18 +1826,24 @@ permalink: /account/
           expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
         }
         
-        // Devices info - changed format
-        const devicesMeta = document.createElement('div');
-        devicesMeta.className = 'license-meta';
+        // Add total devices information based on total_keys
+        const totalDevicesMeta = document.createElement('div');
+        totalDevicesMeta.className = 'license-meta';
+        totalDevicesMeta.innerHTML = `License for <span class="license-meta-highlight">${totalKeys} ${totalKeys === 1 ? 'device' : 'devices'}</span>`;
+        
+        // Devices remaining info based on keys_left
+        const remainingDevicesMeta = document.createElement('div');
+        remainingDevicesMeta.className = 'license-meta';
         
         if (noDevicesLeft) {
-          devicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
+          remainingDevicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
         } else {
-          devicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
+          remainingDevicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
         }
         
         headerRight.appendChild(expiryMeta);
-        headerRight.appendChild(devicesMeta);
+        headerRight.appendChild(totalDevicesMeta);
+        headerRight.appendChild(remainingDevicesMeta);
         
         // Assemble the header
         header.appendChild(headerLeft);
