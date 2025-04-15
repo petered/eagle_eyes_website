@@ -1770,14 +1770,12 @@ $( document ).ready( function(){
 		fixedFooter: function(){
 
 			if ( $( 'body' ).hasClass( 'mobile' ) ) return false;
-			if ( !$( content ).length ) return false; // Add check if content element exists
 
 			// Startup
 			var footerHeight = $( fixedFooter ).outerHeight();
 			var footerClass = fixedFooter.split('.').join('');
 			var footerThreshold;
-			var contentEl = $( content );
-			var contentTop = contentEl.length ? contentEl.offset().top : 0; // Add safety check for offset
+			var contentTop = $( content ).offset().top;
 			if( $( footer ).hasClass( footerClass ) ) $( content ).addClass( 'reveal-footer' );
 
 			// On window events
@@ -1791,8 +1789,6 @@ $( document ).ready( function(){
 
 			// Update content status
 			function updateContent(){
-				// Skip if content element doesn't exist
-				if (!$( content ).length) return;
 
 				// Update footer margin
 				if( $( footer ).hasClass( footerClass ) && $( window ).width() > 960 ) $( content ).css({ marginBottom: footerHeight + 'px' });
