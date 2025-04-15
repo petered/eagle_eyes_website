@@ -267,32 +267,22 @@
                 provider.addScope('profile');
                 provider.addScope('email');
                 
-                // Remove problematic scope
-                // provider.addScope('User.Read');
-                
-                // Add custom parameters for better flow control - simplify parameters
+                // Simplify parameters
                 provider.setCustomParameters({
                     prompt: 'select_account'
                 });
                 
                 console.log("Microsoft provider configured with scopes, attempting sign-in...");
                 
-                try {
-                    // Try redirect auth first - more reliable than popup
-                    await firebase.auth().signInWithRedirect(provider);
-                } catch (redirectError) {
-                    console.log("Redirect auth failed, trying popup:", redirectError);
-                    
-                    // Fallback to popup if redirect fails
-                    const result = await firebase.auth().signInWithPopup(provider);
-                    console.log("Microsoft sign-in successful:", {
-                        uid: result.user.uid,
-                        email: result.user.email,
-                        displayName: result.user.displayName
-                    });
-                    
-                    this.handleSignInSuccess(result.user);
-                }
+                // Use popup method as it's more reliable in most cases
+                const result = await firebase.auth().signInWithPopup(provider);
+                console.log("Microsoft sign-in successful:", {
+                    uid: result.user.uid,
+                    email: result.user.email,
+                    displayName: result.user.displayName
+                });
+                
+                this.handleSignInSuccess(result.user);
             } catch (error) {
                 console.error("Microsoft sign-in error:", {
                     code: error.code,
@@ -369,17 +359,23 @@
     }
   
     document.addEventListener('DOMContentLoaded', () => {
-        const signInWidget = new SignInWidget();
-        signInWidget.completeEmailLinkSigninIfApplicable();
-        
-        // Check for redirect result from Microsoft auth
+        // Try to get redirect result first, before initializing widget
         firebase.auth().getRedirectResult().then((result) => {
-            if (result.user) {
-                console.log("Redirect sign-in successful");
+            if (result && result.user) {
+                console.log("Redirect sign-in successful", result.user);
+                // Create widget and handle sign-in
+                const signInWidget = new SignInWidget();
                 signInWidget.handleSignInSuccess(result.user);
+            } else {
+                // Normal initialization if not from redirect
+                const signInWidget = new SignInWidget();
+                signInWidget.completeEmailLinkSigninIfApplicable();
             }
         }).catch((error) => {
             console.error("Error with redirect sign-in:", error);
+            // Initialize widget even if there was an error
+            const signInWidget = new SignInWidget();
+            signInWidget.completeEmailLinkSigninIfApplicable();
             if (error.code) {
                 signInWidget.showError("Sign-in failed. Please try again.");
             }
