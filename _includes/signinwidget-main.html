@@ -259,10 +259,48 @@
   
         async signInWithMicrosoft() {
             try {
+                console.log("Starting Microsoft sign-in process...");
                 const provider = new firebase.auth.OAuthProvider('microsoft.com');
+                
+                // Add necessary scopes to include additional user info in the token
+                provider.addScope('openid');
+                provider.addScope('profile');
+                provider.addScope('email');
+                provider.addScope('User.Read');
+                
+                // Add custom parameters for better flow control
+                provider.setCustomParameters({
+                    prompt: 'consent',
+                    response_mode: 'query'
+                });
+                
+                console.log("Microsoft provider configured with scopes, attempting sign-in...");
+                
+                // Sign in with a pop-up window
                 const result = await firebase.auth().signInWithPopup(provider);
+                
+                console.log("Microsoft sign-in successful:", {
+                    uid: result.user.uid,
+                    email: result.user.email,
+                    displayName: result.user.displayName,
+                    token: result.credential ? result.credential.accessToken : 'No token available'
+                });
+                
                 this.handleSignInSuccess(result.user);
             } catch (error) {
+                console.error("Microsoft sign-in detailed error:", {
+                    code: error.code,
+                    message: error.message,
+                    email: error.email,
+                    credential: error.credential,
+                    stack: error.stack
+                });
+                
+                // Log any additional error data that might be available
+                if (error.customData) {
+                    console.error("Additional error data:", error.customData);
+                }
+                
                 this.showError("Microsoft sign-in failed. Please try again.");
             }
         }
