@@ -118,7 +118,7 @@ permalink: /account/
     .license-title, .token-title {
       font-size: 16px;
       font-weight: 500;
-      margin: 0;
+      margin: 0 0 2px 0;
       color: #333;
     }
     
@@ -179,16 +179,17 @@ permalink: /account/
     
     .copy-button {
       padding: 6px 12px;
-      background-color: #f1f1f1;
-      border: 1px solid #ddd;
+      background-color: #222;
+      border: 1px solid #222;
       border-radius: 4px;
       font-size: 13px;
+      color: white;
       cursor: pointer;
       transition: background-color 0.2s;
     }
     
     .copy-button:hover {
-      background-color: #e5e5e5;
+      background-color: #000;
     }
     
     .copy-button.copied {
@@ -1843,6 +1844,28 @@ permalink: /account/
         const subtitle = document.createElement('p');
         subtitle.className = 'license-subtitle';
         subtitle.textContent = `ID: ${license.license_id}`;
+
+        // Add owner information in the header section
+        const ownerInfo = document.createElement('p');
+        ownerInfo.className = 'license-subtitle';
+        ownerInfo.style.marginTop = '3px';
+        
+        // Add license owner information if available
+        if (license.license_owner) {
+          // Check if the owner is the current user
+          const currentUserEmail = firebase.auth().currentUser.email;
+          if (license.license_owner === currentUserEmail) {
+            // Show "You are the owner" message in dark blue
+            ownerInfo.style.color = '#1e3a8a';
+            ownerInfo.style.fontWeight = '600';
+            ownerInfo.textContent = "You are the owner of this license";
+          } else {
+            // Show regular owner information
+            ownerInfo.innerHTML = `Owner: <span style="font-weight: 500;">${license.license_owner}</span>`;
+          }
+        } else {
+          ownerInfo.style.display = 'none'; // Hide if no owner info
+        }
         
         // Add copy button for active licenses with remaining devices
         if (!isExpired && keysLeft > 0) {
@@ -1887,9 +1910,11 @@ permalink: /account/
           idRow.appendChild(copyButton);
           headerLeft.appendChild(title);
           headerLeft.appendChild(idRow);
+          headerLeft.appendChild(ownerInfo);
         } else {
           headerLeft.appendChild(title);
           headerLeft.appendChild(subtitle);
+          headerLeft.appendChild(ownerInfo);
         }
         
         // Right section - Expiry date and Devices
