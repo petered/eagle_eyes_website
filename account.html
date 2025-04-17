@@ -1,432 +1,2423 @@
 ---
-layout: ee_page_layout
-title: Account
+layout: main
+title: Account Management - Eagle Eyes
 permalink: /account/
 ---
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Import JQuery libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
-    <!-- Include Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-
-    <!-- Include form_buttons_and_boxes.scss (it's in scss/form_buttons_and_boxes.scss) but we need to get it in liquid -->
-    <style src="/css/form_buttons_and_boxes.css"></style>
-    <link rel="stylesheet" href="/css/form_buttons_and_boxes.css">   
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    .table th {
+        text-align: left;
+        padding: 12px;
+        font-weight: 500;
+        color: #666;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+    }
+    .table td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+    }
+    .table tr:last-child td {
+        border-bottom: none;
+    }
+    .table tr:hover td {
+        background-color: #f9f9f9;
+    }
+    .loading-spinner {
+        text-align: center;
+        padding: 20px;
+    }
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    h4 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+    .download-link {
+        color: #1e90ff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .download-link:hover {
+        text-decoration: underline;
+    }
+    .table th:nth-child(1) { width: 40%; }  /* Platform - wider to fit text */
+    .table th:nth-child(2) { width: 18%; }  /* Version - slightly narrower */
+    .table th:nth-child(3) { width: 22%; }  /* Release Date - slightly narrower */
+    .table th:nth-child(4) { width: 20%; }  /* Download - slightly narrower */
     
+    /* License sections styles from license-table.html */
+    .license-sections h4 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #333;
+    }
     
+    .mt-50 {
+      margin-top: 50px;
+    }
     
+    /* Grid layouts */
+    #licenseGrid, #tokensGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+      width: 100%;
+    }
+    
+    /* Card styles - shared across both sections */
+    .license-card, .token-card {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .license-card:hover, .token-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .license-header, .token-header {
+      background-color: #f8f8f8;
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .license-header-left, .token-header-left {
+      flex: 1;
+    }
+    
+    .license-header-right, .token-header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      text-align: right;
+    }
+    
+    .license-title, .token-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 0 0 2px 0;
+      color: #333;
+    }
+    
+    .license-subtitle, .token-subtitle {
+      font-size: 14px;
+      color: #666;
+      margin: 5px 0 0 0;
+    }
+    
+    .license-meta, .token-meta {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .license-meta:last-child, .token-meta:last-child {
+      margin-bottom: 0;
+    }
+    
+    .license-meta-highlight, .token-meta-highlight {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .license-body, .token-body {
+      padding: 15px;
+    }
+    
+    /* Token-specific styles */
+    .token-license-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .token-license-item:last-child {
+      border-bottom: none;
+    }
+    
+    .token-license-info {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .token-license-id {
+      font-weight: 500;
+      font-size: 14px;
+      color: #333;
+    }
+    
+    .token-license-expiry {
+      font-size: 13px;
+      color: #666;
+      margin-top: 3px;
+    }
+    
+    .copy-button {
+      padding: 6px 12px;
+      background-color: #222;
+      border: 1px solid #222;
+      border-radius: 4px;
+      font-size: 13px;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .copy-button:hover {
+      background-color: #000;
+    }
+    
+    .copy-button.copied {
+      background-color: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
+    
+    /* License-specific styles */
+    .license-users-label {
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .license-users-list {
+      font-size: 14px;
+      color: #333;
+      max-height: 80px;
+      overflow-y: auto;
+      padding-right: 5px;
+      line-height: 1.5;
+    }
+    
+    .license-empty, .token-empty {
+      padding: 15px;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+    
+    /* For mobile */
+    @media (max-width: 480px) {
+      #licenseGrid, #tokensGrid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .license-card, .token-card {
+        border-radius: 6px;
+      }
+      
+      .license-header, .token-header {
+        padding: 12px;
+        flex-direction: column;
+      }
+      
+      .license-header-right, .token-header-right {
+        margin-top: 10px;
+        align-items: flex-start;
+        text-align: left;
+      }
+      
+      .license-body, .token-body {
+        padding: 12px;
+      }
+    }
 
-    <style>
-        #accountpage {
-            font-size: 14px;
+    /* Download card styles */
+    #pilotGrid, #scanGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+      width: 100%;
+    }
 
-        }
+    .download-card {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
 
-        .account_text {
-            line-height: 1;
-            margin-bottom: 35px;
-        }
+    .download-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
 
-        .pricing_table table {
-            border-collapse: collapse;
-            border-spacing: 0;
-            margin-bottom: 20px;
+    .download-header {
+      background-color: #f8f8f8;
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .download-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 0;
+      color: #333;
+    }
+
+    .download-body {
+      padding: 15px;
+    }
+
+    .download-meta {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .download-meta-label {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .download-meta-value {
+      font-weight: 500;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .download-button {
+      display: block;
+      text-align: center;
+      padding: 10px;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      color: #1e90ff;
+      text-decoration: none;
+      font-weight: 500;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+
+    .download-button:hover {
+      background-color: #e5e5e5;
+      text-decoration: none;
+    }
+
+    .no-downloads {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-style: italic;
+    }
+
+    .empty-card {
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      padding: 30px 20px;
+      text-align: center;
+      color: #888;
+      font-size: 15px;
+      font-style: italic;
+      background-color: #f9f9f9;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+    }
+
+    /* Add this at the end of your style section */
+    @media (max-width: 840px) {
+        /* Make main content column full width */
+        .column.width-8.offset-2 {
             width: 100%;
+            margin-left: 0;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        #accountContent .box {
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 10px; /* Add slight horizontal padding */
+        }
+        
+        #accountContent .box-content {
+            padding: 0 !important;
+        }
+        
+        /* Reduce padding and font sizes in cards */
+        .download-card, .license-card, .token-card {
             max-width: 100%;
-        } 
-
-        .pricing_table th,
-        .pricing_table td {
-            font-size: 14px;
-            padding: 10px;
-            text-align: left;
-            vertical-align: top;
         }
-
-        .pricing_table th {
-            color: #000000; 
-            font-size: 16px; 
+        
+        .download-header, .license-header, .token-header {
+            padding: 12px;
         }
-
-        .pricing_table tr.selected {
-            background: #ddd;
+        
+        .download-body, .license-body, .token-body {
+            padding: 12px;
         }
-
-        .border_table {
-            overflow: auto;
-            width: 70%;
+        
+        .download-title, .license-title, .token-title {
+            font-size: 15px;
         }
+        
+        .download-meta-label, .download-meta-value,
+        .license-subtitle, .token-subtitle,
+        .license-meta, .token-meta,
+        .license-users-list, .token-license-id, .token-license-expiry {
+            font-size: 13px;
+        }
+        
+        .download-button, .copy-button {
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+        
+        .token-license-item {
+            padding: 8px;
+        }
+    }
+    
+    /* For screens 841px and up - keeping consistent width */
+    @media (min-width: 841px) {
+        /* Target the main column */
+        .column.width-8.offset-2 {
+            width: 960px !important;
+            max-width: 960px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            float: none !important;
+            padding: 0 10px !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Container styles */
+        #accountContent {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Box styles */
+        #accountContent .box {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* The section that contains everything */
+        .section-block .row {
+            max-width: 960px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+        
+        /* Force single column layout for cards */
+        #activeLicenseGrid, #expiredLicenseGrid, #tokensGrid, #pilotGrid, #scanGrid {
+            grid-template-columns: 1fr !important;
+            width: 100% !important;
+        }
+        
+        /* Override any responsive container classes */
+        .width-12, .width-10, .width-8, .width-6 {
+            max-width: 960px !important;
+        }
+    }
 
-        .border_table table {
-            border: 1px solid #dededf;
-            height: 100%;
+
+    /* Tab Navigation Styles */
+    .tab-navigation {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .tab-button {
+        background: none;
+        border: none;
+        padding: 12px 24px;
+        margin: 0 5px;
+        font-size: 16px;
+        font-weight: 500;
+        color: #666;
+        cursor: pointer;
+        position: relative;
+        transition: color 0.3s;
+    }
+    
+    .tab-button:hover {
+        color: #333;
+    }
+    
+    .tab-button.active {
+        color: #1e90ff;
+    }
+    
+    .tab-button.active:after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #1e90ff;
+    }
+    
+    /* Tab Content Styles */
+    .tab-content {
+        margin-top: 20px;
+    }
+    
+    .tab-pane {
+        display: none;
+    }
+    
+    .tab-pane.active {
+        display: block;
+    }
+    
+    /* Mobile Enhancements */
+    @media (max-width: 480px) {
+        .tab-navigation {
+            justify-content: space-between; /* Distribute buttons evenly */
+            width: 100%; /* Ensure full width */
+            margin-bottom: 15px;
+        }
+        
+        .tab-button {
+            padding: 6px 5px; /* Significantly reduce padding */
+            font-size: 12px; /* Smaller font size */
+            margin: 0; /* Remove side margins completely */
+            flex: 1; /* Allow buttons to grow and fill space */
+            text-align: center; /* Center text */
+            white-space: nowrap; /* Ensure text doesn't wrap */
+        }
+        
+        #pilotGrid, #scanGrid, #licenseGrid, #tokensGrid, #activeLicenseGrid, #expiredLicenseGrid {
+            grid-template-columns: 1fr;
+            gap: 15px;
             width: 100%;
-            table-layout: fixed;
-            border-collapse: collapse;
-            border-spacing: 1px;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        
+        .license-card, .token-card {
+            border-radius: 6px;
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        
+        .license-header, .token-header {
+            padding: 12px;
+            flex-direction: column;
+        }
+        
+        .license-header-right, .token-header-right {
+            margin-top: 10px;
+            align-items: flex-start;
             text-align: left;
         }
-
-        .border_table th {
-            border: 1px solid #dededf;
-            background-color: #eceff1;
-            color: #000000;
-            padding: 5px;
-        }
-
-        .border_table td {
-            border: 1px solid #dededf;
-            background-color: #ffffff;
-            color: #000000;
-            padding: 5px;
-        }
-
-        #licenseTable th.expires_col, #licenseTable td.expires_col {
-            width: 20%; /* Adjust width as necessary */
-            max-width: 120px; /* Set a max-width if needed */
-        }
-
-        #licenseTable th.keys_col, #licenseTable td.keys_col {
-            width: 20%; /* Adjust width as necessary */
-            max-width: 120px; /* Set a max-width if needed */
+        
+        .download-title, .license-title, .token-title {
+            font-size: 14px; /* Further reduce for very small screens */
         }
         
-        #licenseTable th.license_col, #licenseTable td.license_col {
-            width: 40%; /* Adjust the remaining width for the first column */
+        /* Fix container margins */
+        .section-block .row {
+            margin-left: 0;
+            margin-right: 0;
+            max-width: 100%;
+            width: 100%;
         }
-
-    </style>
-</head>
-
-<body>
-    <section id="signin">
-        <div class="sign_in_text">
-
-            <div class="info-box" id="using-emulator-info" style="display: none;">Using local Firebase emulator</div>
-
-            <h1>Sign in or create a new account</h1>
-
-            Enter your email address to sign in. If you're new, we'll automatically create an account for you.
-        </div>
-    </br>
-
-    {% include signinWidget.html %}
-    <span class="sign_in_text" style="font-size: 0.8em;color:lightgray;">
-        </br>
-        Problems with signin or download? Contact us at info@eagleeyessearch.com
-    </span>
-        <script>
-
-            var globalUser = null;
-
-            document.addEventListener('signInComplete', function (e) {
-                /* Handle the event:
-                CustomEvent('signInComplete', { detail: { user: user } })
-                Generated by the signinWidget.html inclusion
-                */
-                globalUser = e.detail.user;
-                console.log('signInComplete event received: ' + globalUser);
-
-                // store email of user
-                // var userEmail = globalUser.email;
-
-                // Hide the temporary "checking licenses" box
-                // $("#checking-licenses-box").hide();
-                // Show the licenses section
-
-                $(".sign_in_text").hide();
-                $("#account_details").show();
-                $("#purchases").show();
-                $("#instructions").show();
-                $("#downloads").show();
-                $("#download-button-div").show(); 
-                $("#licenses").show();
-                }
-            );
-        </script>
-
-    </section>
-
-    <section id="accountpage">
-
-        <div id="account_details" hidden>
-            <p>Your account type: <span id="accountType">[account_type]</span></p>
-        </div>
-
-        <div class="account_text" id="purchases" hidden>
-            <h2>Your purchases</h2>
-            <p>Display purchase history here.</p>
-        </div>
-
-        <div class="account_text" id="instructions" hidden>
-            <h2>Installation instructions</h2>
-            <ul>
-                <li>
-                  <h3>Step 1: Download Eagle Eyes Scan</h3>
-                  <p>Download the software below.</p>
-                </li>
-                <li>
-                  <h3>Step 2: Activate license on your device</h3>
-                  <p>Instructions on how to activate your device.</p>
-                </li>
-              </ul>
-        </div>
-
-        <div class="account_text" id="downloads" hidden>
-            <h2>Your available downloads</h2>
-            <p>Eagle Eyes Scan comes standard with a BASIC license.</p>
-            <div id="download-button-div" hidden>
-
-                <!-- Software version list-selection (list-selection that we populate in javascript) -->
-                <label for="software_version"><b>Software version: </b></label>
-                <select id="software_version" name="software_version" required>
-                    <option value="" disabled selected>Select software version</option>
-                </select>
-                <br/>
-                <button onclick="getDownloadLink()">Download</button>
-                <br/>
-                <span id="downloadStatus" style="font-size: 0.8em;color:lightgray;"></span>        
-            </div>
-        </div>
-
-        <div class="account_text" id="licenses" hidden>
-            <h2>Your licenses</h2>
-            <div id="licenseTableContainer" class="border_table" tabindex="0">
-                <table id="licenseTable">
-                    <thead>
-                        <tr>
-                            <th class="license_col">License</th>
-                            <th class="expires_col">Valid until</th>
-                            <th class="keys_col">Available keys</th>
-                        </tr>
-                    </thead>
-                    <tbody class="license_options">
-                        <!-- Rows will be added here dynamically -->
-                    </tbody>
-                </table>
-            </div>
-        </br>
-        <button id="activateButton" onclick="activateLicense()">Use a key of selected license on this device</button>
-
-        </div>
-    </section>
-
-    <script>
-
-        // function to add a row to the table for each license
-        function populateTable() {
-            const tableBody = document.getElementById('licenseTable').getElementsByTagName('tbody')[0];
-            const activateButton = document.getElementById('activateButton');
-
-            licenses.forEach((license, index) => {
-                const row = document.createElement('tr');
-
-                // create a cell for the tier and the radio button
-                const tierCell = document.createElement('td');
-
-                // create and configure the radio button
-                const radioButton = document.createElement('input');
-                radioButton.type = 'radio';
-                radioButton.name = 'license_option';
-                radioButton.value = license.available_tokens;  // Store available tokens as the value
-
-                // Check and disable logic for button when radio is clicked
-                radioButton.addEventListener('click', function() {
-                    activateButton.disabled = this.value == 0;  // Disable button if 0 tokens available
-                    activateButton.style.backgroundColor = this.value == 0 ? 'grey' : '';  // Change color if disabled
-                });
-
-                // Optionally, check the first radio button by default and set button state
-                if (index === 0) {
-                    radioButton.checked = true;
-                    activateButton.disabled = license.available_tokens === 0;
-                    activateButton.style.backgroundColor = license.available_tokens === 0 ? 'grey' : '';
-                }
-
-                tierCell.appendChild(radioButton);
-                tierCell.appendChild(document.createTextNode('  '));   // text node for spacing
-                const textNode = document.createTextNode(license.tier);
-                tierCell.appendChild(textNode);
-                row.appendChild(tierCell);
-
-                const expiresCell = document.createElement('td');
-                expiresCell.textContent = license.expires;
-                row.appendChild(expiresCell);
-
-                const tokensCell = document.createElement('td');
-                const tokens = `${license.available_tokens} of ${license.n_tokens} keys available`;
-                tokensCell.textContent = tokens;
-                row.appendChild(tokensCell);
-
-                tableBody.appendChild(row);
-            });
+    }
+    
+    /* Specific adjustments for iPhone 13-16 sized devices */
+    @media (min-width: 375px) and (max-width: 390px) {
+        .tab-button {
+            padding: 6px 4px; /* Fine-tune padding for this specific range */
+            font-size: 11px; /* Slightly smaller font for iPhone */
+        }
+    }
+    
+    /* For extra small screens */
+    @media (max-width: 360px) {
+        .tab-button {
+            padding: 5px 3px; /* Minimum possible padding */
+            font-size: 11px; /* Even smaller font */
+            letter-spacing: -0.2px; /* Slightly condense text */
         }
         
-       
+        /* Eliminate any remaining horizontal margins or paddings */
+        .row {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        .column {
+            padding: 0 !important;
+        }
+        
+        #accountContent {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+    }
+</style>
 
-        // Make the available licenses clickable
-        $('.license_options tr').click(function() {
-            $(this).children('td').children('input').prop('checked', true);
-            
-            $('.license_options tr').removeClass('selected');
-            $(this).toggleClass('selected');
+<div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
+    <!-- Add the test user banner right at the top -->
+    <div id="test-user-banner" style="display: none; position: sticky; top: 0; left: 0; width: 100%; background-color: #4CAF50; color: white; padding: 10px 0; text-align: center; z-index: 1000; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <span><strong>Development Mode</strong></span>
+            <button id="test-user-login" class="button small rounded" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer;">Sign in as Test User</button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="column width-12">
+            <div class="centered">
+                <h2 class="mb-10">Account</h2>
+                <div style="display: flex; justify-content: flex-start; align-items: center; gap: 20px;">
+                    <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                    <div id="signOutContainer" style="display: none;">
+                        <a href="#" id="signOutButton" class="button small rounded" style="padding: 8px 15px; font-size: 14px;">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Notification banner moved outside and below the grey section -->
+<div class="row">
+    <div class="column width-12">
+        <div id="notification-banner" style="display: none; width: 100%; background-color: #3498db; color: white; padding: 12px 20px; text-align: center; border-radius: 4px; margin: 10px auto 20px; position: relative; max-width: 1140px;">
+            <div style="max-width: 90%; margin: 0 auto; font-size: 16px;" id="notification-text">
+                Important message for Eagle Eyes users will appear here.
+            </div>
+            <button id="close-notification" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px;">×</button>
+        </div>
+    </div>
+</div>
+
+<div class="section-block" style="padding-top: 20px;">
+    <div class="row">
+        <div class="column width-8 offset-2">
+            <!-- Sign in button (will trigger overlay) -->
+            <div id="signinButtonSection" style="display: block; text-align: center; margin-bottom: 40px;">
+                <p style="margin-bottom: 20px;">Sign in to access your downloads.</p>
+                <button id="accountSignInButton" class="button" onclick="toggleSignIn()">Sign In or Create Account</button>
+            </div>
+
+            <!-- Account content section -->
+            <div id="accountContent" style="display: none;">
+                <div class="box rounded xlarge bkg-white shadow">
+                    <div class="box-content">
+                        <div class="row">
+                            <div class="column width-12">
+                                <!-- Add the license purchase suggestion here -->
+                                <div style="color: #666; font-size: 16px; margin-bottom: 20px; text-align: center;" id="verification-status">
+                                    Looking to buy a new license? <a href="{{ '/user-form/' | relative_url }}?reason=purchase" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                                </div>
+                                
+                                <!-- Tab Navigation -->
+                                <div class="tab-navigation">
+                                    <button class="tab-button active" data-tab="downloads-tab">Downloads</button>
+                                    <button class="tab-button" data-tab="licenses-tab">My Licenses</button>
+                                    <button class="tab-button" data-tab="devices-tab">My Devices</button>
+                                </div>
+
+                                <!-- Tab Contents -->
+                                <div class="tab-content">
+                                    <!-- DOWNLOADS TAB -->
+                                    <div id="downloads-tab" class="tab-pane active">
+                                        <h3 class="mb-10" style="text-align: center;">Available Downloads</h3>
+                                        <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
+                                        
+                                        <div class="mb-50">
+                                            <h4>Eagle Eyes Scan</h4>
+                                            <!-- Add spinner container -->
+                                            <div id="scanSpinner" class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                            <!-- Use a grid for cards instead of a table -->
+                                            <div id="scanGrid" style="display: none;"></div>
+                                            <div id="scanEmpty" style="display: none;">
+                                                <div class="empty-card">
+                                                    No Scan downloads available.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-50">
+                                            <h4>Eagle Eyes Pilot</h4>
+                                            <!-- Add spinner container -->
+                                            <div id="pilotSpinner" class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                            <!-- Use a grid for cards instead of a table -->
+                                            <div id="pilotGrid" style="display: none;"></div>
+                                            <div id="pilotEmpty" style="display: none;">
+                                                <div class="empty-card">
+                                                    No Pilot downloads available.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- LICENSES TAB -->
+                                    <div id="licenses-tab" class="tab-pane">
+                                        <h3 class="mb-10" style="text-align: center;">My Licenses</h3>
+                                        <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">To activate Eagle Eyes Scan or Eagle Eyes Pilot on your device, download the application from the Downloads tab and follow the activation instructions within the app.</p>
+                                        
+                                        <div id="licensesContent">
+                                            <div class="license-sections">
+                                                <div id="licenseSpinner" class="loading-spinner">
+                                                    <div class="spinner"></div>
+                                                </div>
+                                                
+                                                <!-- SECTION 1: ACTIVE LICENSES -->
+                                                <div id="activeLicenseContainer" class="mb-30">
+                                                    <h4>Active Licenses</h4>
+                                                    <div id="activeLicenseGrid" style="display: none;"></div>
+                                                    <div id="activeLicenseEmpty" style="display: none;">
+                                                        <div class="empty-card">
+                                                            No active licenses found.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- SECTION 2: EXPIRED LICENSES -->
+                                                <div id="expiredLicenseContainer" class="mb-30" style="margin-top: 5em;">
+                                                    <h4>Expired Licenses</h4>
+                                                    <div id="expiredLicenseGrid" style="display: none;"></div>
+                                                    <div id="expiredLicenseEmpty" style="display: none;">
+                                                        <div class="empty-card">
+                                                            No expired licenses found.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Shared error state -->
+                                                <div id="licenseError" style="display: none;">
+                                                    <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                                                        Error loading license data. Please try again later.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- DEVICES TAB (NEW) -->
+                                    <div id="devices-tab" class="tab-pane">
+                                        <h3 class="mb-10" style="text-align: center;">My Devices</h3>
+                                        <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">View your devices and the licenses currently in use. Your device-specific license keys are available here if you ever need to reinstall or reactivate the software. A key is specific to a device and cannot be used on another device. If you run into issues with (re-)activating your device, please contact us at <a href="mailto:info@eagleeyessearch.com" style="color: #1e90ff; text-decoration: none; font-weight: 500;">info@eagleeyessearch.com</a></p>
+                                        
+                                        <div id="deviceTokensContainer">
+                                            <div id="tokensSpinner" class="loading-spinner">
+                                                <div class="spinner"></div>
+                                            </div>
+                                            <div id="tokensGrid" style="display: none;"></div>
+                                            <div id="tokensError" style="display: none;">
+                                                <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                                                    Error loading device data. Please try again later.
+                                                </div>
+                                            </div>
+                                            <div id="tokensEmpty" style="display: none;">
+                                                <div class="empty-card">
+                                                    No devices found.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Keep this sign-in overlay in account.html -->
+<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+    <div style="position: relative; width: 100%; height: 100%;">
+        {% include signinwidget-main.html %}
+    </div>
+</div>
+
+<!-- Add this loading overlay right after the signin-overlay -->
+<div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+        <div class="spinner" style="width: 60px; height: 60px; border: 6px solid #f3f3f3; border-top: 6px solid #1e90ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <p style="margin-top: 20px; font-size: 18px; color: #333;">Loading your account...</p>
+    </div>
+</div>
+
+<script>
+    /***********************************************
+     * INITIALIZATION AND EVENT LISTENERS
+     ***********************************************/
+    
+    // Wait for DOM to load - ONE unified listener
+    document.addEventListener('DOMContentLoaded', function() {
+        const signinButtonSection = document.getElementById('signinButtonSection');
+        const accountContent = document.getElementById('accountContent');
+        const userEmail = document.getElementById('userEmailDisplay');
+        const signOutContainer = document.getElementById('signOutContainer');
+        const signOutButton = document.getElementById('signOutButton');
+        const signinOverlay = document.getElementById('signin-overlay');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Add this to hide the overlay immediately if user is already signed in
+        if (firebase.auth().currentUser) {
+            signinOverlay.style.display = 'none';
+        }
+
+        // Set up the test user banner if in emulator mode
+        setupTestUserBanner();
+        
+        // Add notification banner examples
+        // Add event listener for close button
+        document.getElementById('close-notification').addEventListener('click', hideNotification);
+        
+        // Use Firebase's built-in auth state observer instead of our custom events
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                // User is signed in - always hide the signin overlay
+                signinOverlay.style.display = 'none';
+                signinButtonSection.style.display = 'none';
+                
+                // Show loading overlay during redirect check
+                loadingOverlay.style.display = 'block';
+                
+                // Show user info
+                userEmail.textContent = `Logged in as: ${user.email}`;
+                signOutContainer.style.display = 'block';
+                
+                // Check if the user should be on this page
+                try {
+                    redirectOrNot(user);
+                } catch (error) {
+                    console.error("Error in redirectOrNot:", error);
+                    // Hide loading overlay on error
+                    loadingOverlay.style.display = 'none';
+                    // Still show content on error, but don't show sign-in again
+                    $("#accountContent").show();
+                }
+            } else {
+                // User is signed out
+                signinButtonSection.style.display = 'block';
+                accountContent.style.display = 'none';
+                userEmail.textContent = '';
+                signOutContainer.style.display = 'none';
+                // Make sure loading overlay is hidden when logged out
+                loadingOverlay.style.display = 'none';
+            }
         });
 
-        function requestErrorHandler(jqXHR, textStatus, errorThrown) {
-            $("#hang-on-message").hide();
-            console.log("Error: " + errorThrown);
-            console.log("Status: " + textStatus);
-            console.log("Response: " + jqXHR.responseText);
-            showError("Error: " + errorThrown + " Status: " + textStatus + " Response: " + jqXHR.responseText);
-        }
-
-        function showError(message) {
-
-
-            // Show an error message to the user
-            var errorBox = document.createElement('div');
-            errorBox.classList.add('error-box');
-            // Width 80% of the screen
-            errorBox.style.width = '80%';
-            // Center horizontally
-            errorBox.style.margin = '0 auto';
-
-            errorBox.textContent = message;
-            // Append to end of 'end-of-page' div
-            // document.getElementById('end-of-page').appendChild(errorBox);
-            document.body.appendChild(errorBox);
-
-            // Show the "try again" button (try-again-button) (just make it not hidden)
-            // $('#try-again-button').css('display', 'block');
-
-            // Scroll to the bottom of the page
-            window.scrollTo(0, document.body.scrollHeight);
-        }
-
-        function validateCheckboxes() {
-            // List of all checkbox IDs
-            var checkboxIds = [
-                "understand_prototype",
-                "evaluation_purposes",
-                "assistant_not_replacement",
-                "software_distribution"
-            ];
-
-            // Check if all checkboxes are checked
-            for (var i = 0; i < checkboxIds.length; i++) {
-                if (!document.getElementById(checkboxIds[i]).checked) {
-                    alert("Please check all the boxes before submitting.");
-                    return false; // Prevent form submission
-                }
-            }
-
-            return true; // All checkboxes are checked, allow form submission
-        }
-
-
-        function getDownloadLink() {
-
-            // filePath = "gs://eagleeyessearch.appspot.com/scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
-            // filePath = "scan_releases/EagleEyesScan_0.4.3_MacOS_arm64.zip"
-
-
-            var hostUrl = getHostUrl();
-            var selectElement = document.getElementById('software_version');
-            var filePath = "scan_releases/" + selectElement.value;
-            var fetch_url = hostURL + '/generate_download_link?filePath=' + filePath;
-
-
-            // Pack the form data into an object
-            
-            hasFormBeenShown = $("#form").is(":visible");
-            console.log("Form has been shown?: " + hasFormBeenShown);
-            var formData = null;
-            if (hasFormBeenShown) {
-                if (!validateCheckboxes()) {
-                    return; // Stop the function if validation fails
-                }
-                var formInputs = document.querySelectorAll('input[type=text], input[type=password], input[type=checkbox], input[type=radio], select, textarea');
-                formData = {};
-                for (var i = 0; i < formInputs.length; i++) {
-                    var input = formInputs[i];
-                    if (input.type === 'checkbox' || input.type === 'radio') {
-                        formData[input.name] = input.checked;
-                    } else {
-                        formData[input.name] = input.value;
-                    }
-                }
-            } 
-
-            downloadStatusSpan=$("#downloadStatus");
-            statusText = "Hang on a moment, download should start automatically...";
-            console.log("Back up link: " + backUpLinkOrNull);
-            if (backUpLinkOrNull !== null) {
-                statusText += "If it doesn't, you can click <a href='" + backUpLinkOrNull + "'>here</a> to download it manually.";
-            }
-            downloadStatusSpan.html(statusText);
-
-            console.log("Checking URL: " + fetch_url);
-            console.log("Fetch URL: " + fetch_url);
-            globalUser.getIdToken(true).then(function (idToken) {
-
-                $.ajax({
-                    url: fetch_url,
-                    data: JSON.stringify(formData),
-                    type: 'POST', // Changed from 'method' to 'type' for clarity, though both are acceptable. Use 'POST' since you're sending a body.
-                    contentType: 'application/json', // This sets the Content-Type header to application/json
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken
-                    },
-                    success: function (data) {
-                        data = JSON.parse(data);
-                        console.log("Success: " + data);
-                        var downloadLink = data.url;
-                        console.log("Download link: " + downloadLink);
-
-                        // Show user message with link and ask them if they want to download
-                        // If yes, then redirect to the link
-                        // If no, then do nothing
-
-                        // Hide the download button/div after submitting form
-                        $("#download-button-div").hide();
-
-
-                        window.location.href = downloadLink;
-                        $("#signin").hide();
-                        $("#form").hide();
-                        $("#post-download").show();
-                        $("#download-link").attr("href", downloadLink);
-
-
-                    },
-                    error: requestErrorHandler,
+        // Handle sign out
+        if (signOutButton) {
+            signOutButton.addEventListener('click', function(e) {
+                e.preventDefault(); // Prevent the default link behavior
+                
+                firebase.auth().signOut().then(function() {
+                    // Sign-out successful - the auth state listener will handle UI updates
+                    console.log('User signed out successfully');
+                    
+                    // Optionally reload the page for a clean state
+                    window.location.reload();
+                }).catch(function(error) {
+                    // An error happened
+                    console.error('Error signing out:', error);
                 });
             });
-
         }
 
-    </script>
-    <script>
-         // Example data - to be replaced with the actual data fetching logic
-         const licenses = [
-            { tier: 'Eagle Eyes Scan SAR - 1 Month', expires: '2024-04-10', available_tokens: 0, n_tokens: 1},
-            { tier: 'Eagle Eyes Scan SAR - 1 Year', expires: '2025-04-27', available_tokens: 4, n_tokens: 5},
-        ];
+        // Replace the signInComplete listener to explicitly hide the overlay
+        document.addEventListener('signInComplete', function(e) {
+            // Instead of toggling the overlay, simply force it to hide:
+            var overlay = document.getElementById('signin-overlay');
+            overlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
 
-        // Populate the table
-        populateTable();
+        // Check if we're in emulator mode
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Get all navigation links
+            const navLinks = document.querySelectorAll('nav a, .nav a, .footer a');
+            
+            navLinks.forEach(link => {
+                // Skip external links and anchor links
+                if (link.href.startsWith(window.location.origin) && !link.href.includes('#')) {
+                    const url = new URL(link.href);
+                    // Only add the parameter if it's not already present
+                    if (!url.searchParams.has('is_emulator')) {
+                        url.searchParams.set('is_emulator', 'true');
+                        link.href = url.toString();
+                    }
+                }
+            });
+        }
 
+        // Update pricing links - preserve the pricing URL but add emulator parameter if needed
+        $('#accountContent a[href="pricing/"], #accountContent a:contains("Get Eagle Eyes")').each(function() {
+            // Get current href (defaulting to pricing/ if it's a text-based selector)
+            let href = $(this).attr('href') || "pricing/";
+            
+            // Make sure href is pointing to pricing/ if it was matched by text
+            if (!href || href === "#" || !href.includes("pricing")) {
+                href = "pricing/";
+                $(this).attr('href', href);
+            }
+            
+            // Check if we're in emulator mode
+            const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+            if (isEmulator) {
+                // Add the emulator parameter
+                const separator = href.includes('?') ? '&' : '?';
+                href = href + separator + 'is_emulator=true';
+                $(this).attr('href', href);
+            }
+        });
 
-    </script>
+        // Tab switching functionality
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons and panes
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanes.forEach(pane => pane.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Show corresponding tab pane
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+                
+                // Save the active tab in localStorage to persist through page refreshes
+                localStorage.setItem('activeAccountTab', tabId);
+            });
+        });
+        
+        // Check if there's a saved tab preference
+        const savedTab = localStorage.getItem('activeAccountTab');
+        if (savedTab) {
+            // Trigger click on the saved tab button
+            const savedTabButton = document.querySelector(`.tab-button[data-tab="${savedTab}"]`);
+            if (savedTabButton) {
+                savedTabButton.click();
+            }
+        }
+    });
 
+    /***********************************************
+     * AUTHENTICATION & USER MANAGEMENT
+     ***********************************************/
+    
+    // Function to set up test user banner
+    function setupTestUserBanner() {
+        console.log('Checking if we are in emulator mode');
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmulator = urlParams.get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Show the test user banner
+            const banner = document.getElementById('test-user-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // Set up the test user login button
+            const testUserBtn = document.getElementById('test-user-login');
+            if (testUserBtn) {
+                testUserBtn.addEventListener('click', function() {
+                    // Test user credentials
+                    const testEmail = 'test@example.com';
+                    const testPassword = 'password123';
+                    
+                    // Try to sign in first
+                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                        .then((userCredential) => {
+                            console.log('Test user signed in successfully');
+                        })
+                        .catch((error) => {
+                            // If sign-in fails, create the user first
+                            if (error.code === 'auth/user-not-found') {
+                                console.log('Test user not found, creating account...');
+                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                    .then((userCredential) => {
+                                        console.log('Test user created and signed in successfully');
+                                    })
+                                    .catch((createError) => {
+                                        console.error('Error creating test user:', createError);
+                                    });
+                            } else {
+                                console.error('Error signing in with test user:', error);
+                            }
+                        });
+                });
+            }
+        }
+    }
+    
+    // Function to toggle the sign-in overlay
+    function toggleSignIn() {
+        const overlay = document.getElementById('signin-overlay');
+        overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+        document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
+    }
+
+    // Function to trigger the overlay sign-in
+    function triggerSignInOverlay() {
+        // This should use the same mechanism that the navbar sign-in button uses
+        // If there's a global function or event, call it here
+        if (typeof showSignInOverlay === 'function') {
+            showSignInOverlay();
+        } else if (typeof openSignInModal === 'function') {
+            openSignInModal();
+        } else {
+            // Fallback: dispatch a custom event that the navbar might be listening for
+            document.dispatchEvent(new CustomEvent('openSignInOverlay'));
+            
+            // If all else fails, try to click the navbar sign-in button programmatically
+            const navSignInButton = document.querySelector('.nav-signin-button, .signin-button, #navSignInButton');
+            if (navSignInButton) {
+                navSignInButton.click();
+            } else {
+                console.error('Could not find a way to trigger the sign-in overlay. Please check your implementation.');
+            }
+        }
+    }
+    
+    // Check if user has filled out the required forms
+    function redirectOrNot(user) {
+        // Get URL parameters first
+        const urlParams = new URLSearchParams(window.location.search);
+        const reason = urlParams.get('reason');
+        
+        checkUserAccountStatus(user)
+        .then(function(result) {
+            const status = result.userStatus;
+            console.log("User account status:", status);
+
+            try {
+                // Handle different scenarios based on reason parameter
+                let redirectOccurred;
+                
+                if (reason === 'trial') {
+                    if (handleTrialRedirect(status)) return;
+                } else if (reason === 'purchase') {
+                    if (handlePurchaseRedirect(status)) return;
+                } else {
+                    if (handleDefaultRedirect(user, status)) return;
+                }
+                
+                // Only reached if no redirect occurred
+                if (!document.hidden) {
+                    // Hide loading overlay before showing content
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    $("#accountContent").show();
+                    fetchAvailableDownloads();
+                    console.log("Fetching license overview");
+                    fetchLicenseOverview();
+                    fetchLicenseTokensOverview();
+                }
+            } catch (error) {
+                // Error handling...
+                // Hide loading overlay on error
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
+        });
+    }
+
+    // Helper function to handle trial redirects/notifications
+    function handleTrialRedirect(status) {
+        switch(status) {
+            case 'pending':
+                showNotification(
+                    'We weren\'t able to process your trial request automatically, as your account is still awaiting approval from an earlier request. ' +
+                    'If you have any questions or feel something might\'ve gone off track, just reach out to us at ' +
+                    '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>. ' +
+                    'We\'re happy to help!',
+                    'warning',
+                    true
+                );
+                document.getElementById('verification-status').innerHTML = ``;
+                return false; // No redirect
+            
+            case 'approved':
+                showNotification(
+                    'We weren\'t able to process your trial request automatically, as it looks like you already have an account with us. ' +
+                    'Just send us a quick note at <a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">' +
+                    'info@eagleeyessearch.com</a> to request your trial, and we\'ll get back to you shortly.',
+                    'warning',
+                    true
+                );
+                document.getElementById('verification-status').innerHTML = `
+                            You have a verified account. Looking to buy a new license? 
+                            <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
+                                Start here
+                            </a>.
+                `;
+                return false; // No redirect
+            
+            default:
+                // Redirect to user-form.html with reason parameter preserved
+                redirectToUserForm('trial');
+                return true; // Redirect happened
+        }
+    }
+
+    // Helper function to handle purchase redirects/notifications
+    function handlePurchaseRedirect(status) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('product');
+
+        switch(status) {
+            case 'pending':
+                showNotification(
+                    'Your account is still awaiting approval from an earlier request. ' +
+                    'If you have any questions or feel something might\'ve gone off track, just reach out to us at ' +
+                    '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>. ' +
+                    'We\'re happy to help!',
+                    'warning',
+                    true
+                );
+                document.getElementById('verification-status').innerHTML = ``;
+                return false; // No redirect
+            
+            case 'approved':
+                if (productId) {
+                    // Create Stripe payment link and redirect user
+                    createStripePaymentLink(productId);
+                    return true; // Redirect happened
+                } else {
+                    showNotification(
+                        'Invalid product selection. Please try again from the pricing page. If this error persists, please contact us at info@eagleeyessearch.com.',
+                        'error',
+                        true
+                    );
+                    return false; // No redirect
+                }
+            
+            default:
+                // Redirect to user-form.html with reason parameter preserved
+                redirectToUserForm('purchase');
+                return true; // Redirect happened
+        }
+    }
+
+    /**
+     * Creates a Stripe payment link and redirects the user to the Stripe checkout page
+     * @param {string} productId - The product ID to purchase
+     */
+    function createStripePaymentLink(productId) {
+        // Show loading notification
+        showNotification(
+            'Preparing your payment page. Please wait...',
+            'info',
+            false
+        );
+        
+        // Get the current user
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showNotification(
+                'You must be signed in to make a purchase. Please sign in and try again.',
+                'error',
+                true
+            );
+            return;
+        }
+
+        const basePath = getBasePath(); // Use the global function instead of local one
+        
+        // Construct the URL with query parameters similar to buy-license.html
+        const hostURL = window.getHostUrl();
+        let queryString = `?product_id=${productId}`;
+        
+        // Include all url arguments passed in to this url (preserving emulator status, etc)
+        if (window.location.search.length > 1) {
+            queryString += `&${window.location.search.slice(1)}`;
+        }
+        
+        const url = `${hostURL}/get_stripe_payment_link${queryString}`;
+        console.log('Fetching payment link from:', url);
+        
+        // Get user token and make request using jQuery AJAX
+        user.getIdToken(true)
+            .then(function(idToken) {
+                $.ajax({
+                    headers: {'Authorization': 'Bearer ' + idToken},
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                        console.log('Received data:', data);
+                        var decodedData = typeof data === 'string' ? JSON.parse(data) : data;
+                        var paymentUrl = decodedData.url;
+                        
+                        if (paymentUrl) {
+                            console.log('Redirecting to payment URL:', paymentUrl);
+                            // Redirect to the payment URL - don't use replaceState for external URLs
+                            safeRedirect(paymentUrl, false);
+                        } else {
+                            showNotification(
+                                'There was an error creating your payment link. Please try again or contact support.',
+                                'error',
+                                true
+                            );
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error getting payment link:', textStatus, errorThrown);
+                        console.error('Response:', jqXHR.responseText);
+                        showNotification(
+                            'There was an error processing your request. Please try again or contact support.',
+                            'error',
+                            true
+                        );
+                    }
+                });
+            })
+            .catch(function(error) {
+                console.error('Error getting auth token:', error);
+                showNotification(
+                    'Authentication error. Please try signing in again.',
+                    'error',
+                    true
+                );
+            });
+    }
+
+    // Helper function to handle default redirects (no reason parameter)
+    function handleDefaultRedirect(user, status) {
+        switch(status) {
+            case 'pending':
+                showNotification(
+                    'Your account is awaiting verification.' +
+                    'This usually doesn\'t take longer than a business day. If you have any questions or feel something might\'ve gone off track, just reach out to us at ' +
+                    '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>. ' +
+                    'We\'re happy to help!',
+                    'info',
+                    true
+                );
+                document.getElementById('verification-status').innerHTML = ``;
+                return false; // No redirect
+            
+            case 'approved':
+                document.getElementById('verification-status').innerHTML = `
+                            You have a verified account. Looking to buy a new license? 
+                            <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
+                                Start here
+                            </a>.
+                `;
+                return false; // No redirect
+                
+            case 'unverified':
+                // Construct the URL dynamically, preserving the emulator parameter
+                const verificationUrl = getUrlWithEmulatorParam('{{ '/user-form/' | relative_url }}?reason=purchase');
+                // Add a link to the verification form using the dynamic URL
+                document.getElementById('verification-status').innerHTML = `
+                    Looking to buy a new license? <a href="${verificationUrl}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                `;
+                return false; // No redirect
+            
+            default:
+                // Redirect to user-form.html when status is not pending, approved, or unverified
+                redirectToUserForm();
+                return true; // Redirect happened
+        }
+    }
+
+    // Helper function to handle redirects to user-form.html
+    function redirectToUserForm(reason = '') {
+        let url = '{{ '/user-form/' | relative_url }}';
+        
+        // Add reason parameter if provided
+        if (reason) {
+            url += `?reason=${reason}`;
+        }
+        
+        // Preserve emulator parameter if present
+        const redirectUrl = getUrlWithEmulatorParam(url);
+        
+        // Use our utility function to replace the state and redirect
+        safeRedirect(redirectUrl, true); // true = replace state
+        
+        // The loading overlay will be hidden by the new page load
+    }
+
+    /***********************************************
+     * SOFTWARE DOWNLOADS MANAGEMENT
+     ***********************************************/
+
+    // Add this new function to parse version information from filenames
+    function parseVersionFromFilename(fileName, defaultVersion) {
+        // Check if the file has sdk4 or sdk5 in the name
+        if (fileName.includes('-sdk4') || fileName.includes('-sdk5')) {
+            // Extract the version including the SDK part (assuming format like EagleEyesPilot-1.2.0rc1-sdk5.apk)
+            const match = fileName.match(/-([\d\.]+[^-]*-sdk[45])\.(?:apk|exe|dmg|zip)/i);
+            if (match && match[1]) {
+                return match[1]; // return the version with sdk part
+            }
+        }
+        // Return the provided defaultVersion if no SDK version pattern is found
+        return defaultVersion;
+    }
+
+    // Fetch available software downloads for both Pilot and Scan
+    async function fetchAvailableDownloads() {
+        try {
+            const user = firebase.auth().currentUser;
+            
+            if (!user) {
+                throw new Error('No user logged in');
+            }
+
+            console.log('Fetching available downloads...');
+            console.log('User email:', user.email);
+
+            // Show spinners and hide grids initially
+            document.getElementById('pilotSpinner').style.display = 'block';
+            document.getElementById('pilotGrid').style.display = 'none';
+            document.getElementById('pilotEmpty').style.display = 'none';
+            document.getElementById('scanSpinner').style.display = 'block';
+            document.getElementById('scanGrid').style.display = 'none';
+            document.getElementById('scanEmpty').style.display = 'none';
+
+            // First, get the list of available files from Firebase Storage
+            const pilotFiles = await listFilesInDirectory('pilot-releases/current');
+            const scanFiles = await listFilesInDirectory('scan_releases/current');
+
+            console.log('Available Pilot files:', pilotFiles);
+            console.log('Available Scan files:', scanFiles);
+
+            // Reordering: Show Scan first, then Pilot
+            
+            // Render Scan downloads as cards
+            const scanGrid = document.getElementById('scanGrid');
+            scanGrid.innerHTML = '';
+
+            if (scanFiles.length === 0) {
+                document.getElementById('scanEmpty').style.display = 'block';
+            } else {
+                for (const file of scanFiles) {
+                    try {
+                        // Use the structured data directly
+                        const fileName = file.name;
+                        // Use the new function to get version including SDK info if applicable
+                        const defaultVersion = file.version || 'Unknown';
+                        const version = parseVersionFromFilename(fileName, defaultVersion);
+                        const platform = file.platform || 'Unknown';
+                        const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
+                        
+                        const filePath = `scan_releases/current/${fileName}`;
+                        const downloadUrl = await generateDownloadLink(filePath, user);
+                        
+                        // Create a card for each download
+                        const card = document.createElement('div');
+                        card.className = 'download-card';
+                        
+                        // Card header with platform as clickable title
+                        const header = document.createElement('div');
+                        header.className = 'download-header';
+                        
+                        const title = document.createElement('h4');
+                        title.className = 'download-title';
+                        title.textContent = `Eagle Eyes Scan - ${platform}`;
+                        header.appendChild(title);
+                        card.appendChild(header);
+                        
+                        // Card body with details
+                        const body = document.createElement('div');
+                        body.className = 'download-body';
+                        
+                        // Add macOS x86_64 warning if applicable
+                        if (platform.toLowerCase().includes('macos') && (
+                            platform.toLowerCase().includes('x86') || 
+                            platform.toLowerCase().includes('intel')
+                        )) {
+                            const warningRow = document.createElement('div');
+                            warningRow.style.color = 'red';
+                            warningRow.style.marginBottom = '15px';
+                            warningRow.style.fontSize = '14px';
+                            warningRow.innerHTML = 'When using an Apple machine, we recommend devices with Apple silicon (ARM64 architecture, such as M1, M2, M3, and M4 chipsets). The performance of this Intel-based (x86) distribution may vary.';
+                            body.appendChild(warningRow);
+                        }
+                        
+                        // Version
+                        const versionRow = document.createElement('div');
+                        versionRow.className = 'download-meta';
+                        
+                        const versionLabel = document.createElement('span');
+                        versionLabel.className = 'download-meta-label';
+                        versionLabel.textContent = 'Version:';
+                        
+                        const versionValue = document.createElement('span');
+                        versionValue.className = 'download-meta-value';
+                        versionValue.textContent = version;
+                        
+                        versionRow.appendChild(versionLabel);
+                        versionRow.appendChild(versionValue);
+                        body.appendChild(versionRow);
+                        
+                        // Release date
+                        const dateRow = document.createElement('div');
+                        dateRow.className = 'download-meta';
+                        
+                        const dateLabel = document.createElement('span');
+                        dateLabel.className = 'download-meta-label';
+                        dateLabel.textContent = 'Release Date:';
+                        
+                        const dateValue = document.createElement('span');
+                        dateValue.className = 'download-meta-value';
+                        dateValue.textContent = releaseDate;
+                        
+                        dateRow.appendChild(dateLabel);
+                        dateRow.appendChild(dateValue);
+                        body.appendChild(dateRow);
+                        
+                        // Add download link row showing the filename
+                        const downloadRow = document.createElement('div');
+                        downloadRow.className = 'download-meta';
+                        downloadRow.style.marginTop = '15px';
+                        downloadRow.style.display = 'flex';
+                        downloadRow.style.justifyContent = 'space-between';
+                        downloadRow.style.alignItems = 'center';
+                        
+                        const downloadLabel = document.createElement('span');
+                        downloadLabel.className = 'download-meta-label';
+                        downloadLabel.textContent = 'Download link:';
+                        
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = downloadUrl;
+                        downloadLink.textContent = fileName;
+                        downloadLink.className = 'download-link';
+                        downloadLink.onclick = function() {
+                            trackDownload('scan', fileName);
+                        };
+                        
+                        downloadRow.appendChild(downloadLabel);
+                        downloadRow.appendChild(downloadLink);
+                        body.appendChild(downloadRow);
+                        
+                        card.appendChild(body);
+                        
+                        scanGrid.appendChild(card);
+                        
+                    } catch (error) {
+                        console.error(`Error processing scan file ${file}:`, error);
+                    }
+                }
+                document.getElementById('scanGrid').style.display = 'grid';
+            }
+
+            // Render Pilot downloads as cards
+            const pilotGrid = document.getElementById('pilotGrid');
+            pilotGrid.innerHTML = '';
+
+            if (pilotFiles.length === 0) {
+                document.getElementById('pilotEmpty').style.display = 'block';
+            } else {
+                for (const file of pilotFiles) {
+                    try {
+                        // Use the structured data directly
+                        const fileName = file.name;
+                        // Use the new function to get version including SDK info if applicable
+                        const defaultVersion = file.version || 'Unknown';
+                        const version = parseVersionFromFilename(fileName, defaultVersion);
+                        const platform = file.platform || 'Unknown';
+                        const releaseDate = file.releaseDate ? new Date(file.releaseDate).toLocaleDateString() : '2024-03-20';
+                        
+                        const filePath = `pilot-releases/current/${fileName}`;
+                        const downloadUrl = await generateDownloadLink(filePath, user);
+                        
+                        // Create a card for each download
+                        const card = document.createElement('div');
+                        card.className = 'download-card';
+                        
+                        // Card header with platform as clickable title
+                        const header = document.createElement('div');
+                        header.className = 'download-header';
+                        
+                        const title = document.createElement('h4');
+                        title.className = 'download-title';
+                        title.textContent = `Eagle Eyes Pilot - ${platform}`;
+                        header.appendChild(title);
+                        card.appendChild(header);
+                        
+                        // Card body with details
+                        const body = document.createElement('div');
+                        body.className = 'download-body';
+                        
+                        // Add warning about Pilot being experimental
+                        const pilotWarning = document.createElement('div');
+                        pilotWarning.style.color = 'red';
+                        pilotWarning.style.marginBottom = '15px';
+                        pilotWarning.style.fontSize = '14px';
+                        pilotWarning.innerHTML = 'Eagle Eyes Pilot is currently still in an experimental phase, and you may encounter errors. Please complete <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdMWp4Tn4w8-RwYMf1-jQwXyzxlD7xXtoWPia0DAIbqhn0LA/viewform?usp=sf_link" target="_blank" style="color: red; text-decoration: underline;">this form</a> for a free trial license to try out Eagle Eyes Pilot. Read about drone and controller compatibility <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.16dyxpfxra6k" target="_blank" style="color: red; text-decoration: underline;">here</a>.';
+                        body.appendChild(pilotWarning);
+                        
+                        // Remove macOS x86_64 warning for Pilot since it's an Android app
+                        
+                        // Version
+                        const versionRow = document.createElement('div');
+                        versionRow.className = 'download-meta';
+                        
+                        const versionLabel = document.createElement('span');
+                        versionLabel.className = 'download-meta-label';
+                        versionLabel.textContent = 'Version:';
+                        
+                        const versionValue = document.createElement('span');
+                        versionValue.className = 'download-meta-value';
+                        versionValue.textContent = version;
+                        
+                        versionRow.appendChild(versionLabel);
+                        versionRow.appendChild(versionValue);
+                        body.appendChild(versionRow);
+                        
+                        // Release date
+                        const dateRow = document.createElement('div');
+                        dateRow.className = 'download-meta';
+                        
+                        const dateLabel = document.createElement('span');
+                        dateLabel.className = 'download-meta-label';
+                        dateLabel.textContent = 'Release Date:';
+                        
+                        const dateValue = document.createElement('span');
+                        dateValue.className = 'download-meta-value';
+                        dateValue.textContent = releaseDate;
+                        
+                        dateRow.appendChild(dateLabel);
+                        dateRow.appendChild(dateValue);
+                        body.appendChild(dateRow);
+                        
+                        // Add download link row showing the filename
+                        const downloadRow = document.createElement('div');
+                        downloadRow.className = 'download-meta';
+                        downloadRow.style.marginTop = '15px';
+                        downloadRow.style.display = 'flex';
+                        downloadRow.style.justifyContent = 'space-between';
+                        downloadRow.style.alignItems = 'center';
+                        
+                        const downloadLabel = document.createElement('span');
+                        downloadLabel.className = 'download-meta-label';
+                        downloadLabel.textContent = 'Download link:';
+                        
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = downloadUrl;
+                        downloadLink.textContent = fileName;
+                        downloadLink.className = 'download-link';
+                        downloadLink.onclick = function() {
+                            trackDownload('pilot', fileName);
+                        };
+                        
+                        downloadRow.appendChild(downloadLabel);
+                        downloadRow.appendChild(downloadLink);
+                        body.appendChild(downloadRow);
+                        
+                        card.appendChild(body);
+                        
+                        pilotGrid.appendChild(card);
+                        
+                    } catch (error) {
+                        console.error(`Error processing pilot file ${file}:`, error);
+                    }
+                }
+                document.getElementById('pilotGrid').style.display = 'grid';
+            }
+
+            // Hide spinners
+            document.getElementById('pilotSpinner').style.display = 'none';
+            document.getElementById('scanSpinner').style.display = 'none';
+            
+        } catch (error) {
+            console.error('Error in fetchAvailableDownloads:', error);
+            
+            // Show error messages and hide spinners
+            document.getElementById('pilotSpinner').style.display = 'none';
+            document.getElementById('scanSpinner').style.display = 'none';
+            
+            // Create error message elements
+            const pilotError = document.createElement('div');
+            pilotError.textContent = 'Error loading downloads. Please try again later.';
+            pilotError.className = 'no-downloads';
+            
+            const scanError = document.createElement('div');
+            scanError.textContent = 'Error loading downloads. Please try again later.';
+            scanError.className = 'no-downloads';
+            
+            // Clear and show error messages
+            const pilotGrid = document.getElementById('pilotGrid');
+            pilotGrid.innerHTML = '';
+            pilotGrid.appendChild(pilotError);
+            pilotGrid.style.display = 'block';
+            
+            const scanGrid = document.getElementById('scanGrid');
+            scanGrid.innerHTML = '';
+            scanGrid.appendChild(scanError);
+            scanGrid.style.display = 'block';
+        }
+    }
+
+    // List available files in a directory
+    async function listFilesInDirectory(directory) {
+        const user = firebase.auth().currentUser;
+        
+        if (!user) {
+            console.error('No user logged in when trying to list files');
+            return [];
+        }
+
+        try {
+            const idToken = await user.getIdToken(true);
+            console.log(`Fetching files from directory: ${directory}`);
+            
+            const hostURL = window.getHostUrl();
+            console.log('Using host URL:', hostURL);
+            
+            const response = await fetch(`${hostURL}/list_files?directory=${directory}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                mode: 'cors',
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to list files:', response.status, response.statusText, errorText);
+                throw new Error(`Failed to list files: ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Files found in ${directory}:`, data.files);
+            return data.files || [];
+        } catch (error) {
+            console.error(`Error listing files in ${directory}:`, error);
+            return [];
+        }
+    }
+
+    // Generate download link for a file
+    async function generateDownloadLink(filePath, user) {
+        if (!user) {
+            console.error('No user logged in when trying to generate download link');
+            throw new Error('No user logged in');
+        }
+
+        try {
+            const idToken = await user.getIdToken(true);
+            console.log('Generating download link for:', filePath);
+            
+            const hostURL = window.getHostUrl();
+            const response = await fetch(`${hostURL}/generate_download_link?filePath=${filePath}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                mode: 'cors',
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    form_data: {
+                        email: user.email,
+                        name: user.displayName || '',
+                    }
+                })
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to generate download link:', response.status, response.statusText, errorText);
+                throw new Error(`Failed to generate download link: ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Generated download link:', data.url);
+            return data.url;
+        } catch (error) {
+            console.error('Error generating download link:', error);
+            throw error;
+        }
+    }
+
+    // Track download analytics
+    function trackDownload(type, filename) {
+        // Track download event
+        fathom.trackEvent(`download_${type}`, {
+            _value: 0,
+            download: filename
+        });
+        hj('event', `download_${type}`);
+    }
+
+    /***********************************************
+     * LICENSE MANAGEMENT
+     ***********************************************/
+    
+    // Fetch license overview data
+    async function fetchLicenseOverview() {
+      try {
+        // Show spinner, hide all license sections initially
+        document.getElementById('licenseSpinner').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+        document.getElementById('activeLicenseEmpty').style.display = 'none';
+        document.getElementById('expiredLicenseEmpty').style.display = 'none';
+        document.getElementById('licenseError').style.display = 'none';
+        
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          console.error('User is not logged in.');
+          return;
+        }
+        const idToken = await user.getIdToken(true);
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
+        const response = await fetch(`${hostURL}/get_license_overview`, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'same-origin',
+          headers: {
+            'Authorization': 'Bearer ' + idToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('Error fetching license overview:', response.statusText);
+          document.getElementById('licenseSpinner').style.display = 'none';
+          document.getElementById('licenseError').style.display = 'block';
+          return;
+        }
+        const data = await response.json();
+        
+        // Log the received license data for debugging
+        console.log('License overview received:', data.overview);
+        if (data.overview && data.overview.length > 0) {
+          console.log('Sample license data:', data.overview[0]);
+        }
+        
+        // Process and render the license data
+        renderLicenseCards(data.overview);
+        
+        // Hide spinner after data is processed
+        document.getElementById('licenseSpinner').style.display = 'none';
+      } catch (error) {
+        console.error('Error in fetchLicenseOverview:', error);
+        
+        // Show error message and hide spinner
+        document.getElementById('licenseSpinner').style.display = 'none';
+        document.getElementById('licenseError').style.display = 'block';
+      }
+    }
+
+    // Render license cards from data
+    function renderLicenseCards(overview) {
+      // Check if we have any licenses
+      if (!overview || overview.length === 0) {
+        // Handle empty state
+        document.getElementById('activeLicenseEmpty').style.display = 'block';
+        document.getElementById('expiredLicenseEmpty').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+        return;
+      }
+      
+      // Sort licenses by expiry date (furthest in the future first)
+      const sortedLicenses = [...overview].sort((a, b) => {
+        const dateA = new Date(a.expiry_date);
+        const dateB = new Date(b.expiry_date);
+        return dateB - dateA; // Descending order (furthest date first)
+      });
+      
+      // Clear previous license grids
+      const activeLicenseGrid = document.getElementById('activeLicenseGrid');
+      const expiredLicenseGrid = document.getElementById('expiredLicenseGrid');
+      activeLicenseGrid.innerHTML = '';
+      expiredLicenseGrid.innerHTML = '';
+      
+      // Separate licenses into active and expired
+      const activeLicenses = [];
+      const expiredLicenses = [];
+      
+      sortedLicenses.forEach(license => {
+        const expiryDate = new Date(license.expiry_date);
+        const isExpired = expiryDate < new Date();
+        
+        if (isExpired) {
+          expiredLicenses.push(license);
+        } else {
+          activeLicenses.push(license);
+        }
+      });
+      
+      // Render active licenses
+      if (activeLicenses.length === 0) {
+        document.getElementById('activeLicenseEmpty').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+      } else {
+        document.getElementById('activeLicenseEmpty').style.display = 'none';
+        document.getElementById('activeLicenseGrid').style.display = 'grid';
+        document.getElementById('activeLicenseGrid').style.gap = '40px';
+        renderLicenseSection(activeLicenses, activeLicenseGrid, false);
+      }
+      
+      // Render expired licenses
+      if (expiredLicenses.length === 0) {
+        document.getElementById('expiredLicenseEmpty').style.display = 'block';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+      } else {
+        document.getElementById('expiredLicenseEmpty').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'grid';
+        document.getElementById('expiredLicenseGrid').style.gap = '40px';
+        renderLicenseSection(expiredLicenses, expiredLicenseGrid, true);
+      }
+    }
+    
+    // Helper function to render licenses in a section
+    function renderLicenseSection(licenses, gridElement, isExpired) {
+      licenses.forEach(license => {
+        // Check license details
+        const expiryDate = new Date(license.expiry_date);
+        const keysLeft = license.keys_left || 0;
+        const totalKeys = license.total_keys || 0; // Use total_keys directly from license
+        const noDevicesLeft = keysLeft === 0;
+        
+        // Create license card container
+        const card = document.createElement('div');
+        card.className = 'license-card';
+        
+        // Create header with left and right sections
+        const header = document.createElement('div');
+        header.className = 'license-header';
+        
+        // Set background color for non-expired licenses
+        if (!isExpired) {
+          header.style.backgroundColor = '#e6f2ff'; // Light blue for active licenses
+        }
+        
+        // Left section - Name and ID
+        const headerLeft = document.createElement('div');
+        headerLeft.className = 'license-header-left';
+        
+        const title = document.createElement('h4');
+        title.className = 'license-title';
+        title.textContent = license.license_name;
+        
+        const subtitle = document.createElement('p');
+        subtitle.className = 'license-subtitle';
+        subtitle.textContent = `ID: ${license.license_id}`;
+
+        // Add owner information in the header section
+        const ownerInfo = document.createElement('p');
+        ownerInfo.className = 'license-subtitle';
+        ownerInfo.style.marginTop = '3px';
+        
+        // Add license owner information if available
+        if (license.license_owner) {
+          // Check if the owner is the current user
+          const currentUserEmail = firebase.auth().currentUser.email;
+          if (license.license_owner === currentUserEmail) {
+            // Show "You are the owner" message in dark blue
+            ownerInfo.style.color = '#1e3a8a';
+            ownerInfo.style.fontWeight = '600';
+            ownerInfo.textContent = "You are the owner of this license";
+          } else {
+            // Show regular owner information
+            ownerInfo.innerHTML = `Owner: <span style="font-weight: 500;">${license.license_owner}</span>`;
+          }
+        } else {
+          ownerInfo.style.display = 'none'; // Hide if no owner info
+        }
+        
+        // Add copy button for active licenses with remaining devices
+        if (!isExpired && keysLeft > 0) {
+          const idRow = document.createElement('div');
+          idRow.style.display = 'flex';
+          idRow.style.alignItems = 'center';
+          idRow.style.marginTop = '5px';
+          
+          idRow.appendChild(subtitle);
+          
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-button';
+          copyButton.textContent = 'Copy License ID';
+          copyButton.style.marginLeft = '10px';
+          copyButton.style.padding = '3px 8px';
+          copyButton.style.fontSize = '12px';
+          copyButton.onclick = function() {
+            navigator.clipboard.writeText(license.license_id).then(
+              function() {
+                // Success feedback
+                copyButton.textContent = 'Copied!';
+                copyButton.classList.add('copied');
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy License ID';
+                  copyButton.classList.remove('copied');
+                }, 2000);
+              },
+              function(err) {
+                console.error('Could not copy text: ', err);
+                copyButton.textContent = 'Error';
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy License ID';
+                }, 2000);
+              }
+            );
+          };
+          
+          idRow.appendChild(copyButton);
+          headerLeft.appendChild(title);
+          headerLeft.appendChild(idRow);
+          headerLeft.appendChild(ownerInfo);
+        } else {
+          headerLeft.appendChild(title);
+          headerLeft.appendChild(subtitle);
+          headerLeft.appendChild(ownerInfo);
+        }
+        
+        // Right section - Expiry date and Devices
+        const headerRight = document.createElement('div');
+        headerRight.className = 'license-header-right';
+        
+        // Expiry Date
+        const expiryMeta = document.createElement('div');
+        expiryMeta.className = 'license-meta';
+        
+        if (isExpired) {
+          expiryMeta.innerHTML = `<span style="color: red; font-weight: 500;">Expired on ${license.expiry_date}</span>`;
+        } else {
+          expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
+        }
+        
+        // Add total devices information based on total_keys
+        const totalDevicesMeta = document.createElement('div');
+        totalDevicesMeta.className = 'license-meta';
+        totalDevicesMeta.innerHTML = `License for <span class="license-meta-highlight">${totalKeys} ${totalKeys === 1 ? 'device' : 'devices'}</span>`;
+        
+        // Devices remaining info based on keys_left
+        const remainingDevicesMeta = document.createElement('div');
+        remainingDevicesMeta.className = 'license-meta';
+        
+        if (noDevicesLeft) {
+          remainingDevicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
+        } else {
+          remainingDevicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
+        }
+        
+        headerRight.appendChild(expiryMeta);
+        headerRight.appendChild(totalDevicesMeta);
+        headerRight.appendChild(remainingDevicesMeta);
+        
+        // Assemble the header
+        header.appendChild(headerLeft);
+        header.appendChild(headerRight);
+        card.appendChild(header);
+        
+        // Card body - only for device users
+        const body = document.createElement('div');
+        body.className = 'license-body';
+        
+        // Display device users if available
+        if (license.keys_used_by && license.keys_used_by.length > 0) {
+          const usersInfo = document.createElement('div');
+          usersInfo.className = 'license-users-label';
+          
+          // Process the keys_used_by to replace "tokens" with "devices"
+          const processedUsers = license.keys_used_by.map(user => {
+            return user.replace(/\((\d+) tokens\)/g, '($1 devices)');
+          });
+          
+          usersInfo.innerHTML = `Users with a device on this license: <span class="license-meta-highlight">${processedUsers.join(', ')}</span>`;
+          body.appendChild(usersInfo);
+        } else {
+          // Show empty state message
+          const emptyState = document.createElement('div');
+          emptyState.className = 'license-empty';
+          emptyState.textContent = 'This license is not used by anyone';
+          body.appendChild(emptyState);
+        }
+        
+        card.appendChild(body);
+        gridElement.appendChild(card);
+      });
+    }
+
+    /***********************************************
+     * DEVICE TOKENS MANAGEMENT
+     ***********************************************/
+    
+    
+    // Fetch device tokens overview
+    async function fetchLicenseTokensOverview() {
+      try {
+        // Show spinner, hide cards initially
+        document.getElementById('tokensSpinner').style.display = 'block';
+        document.getElementById('tokensGrid').style.display = 'none';
+        document.getElementById('tokensError').style.display = 'none';
+        document.getElementById('tokensEmpty').style.display = 'none';
+        
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          console.error('User is not logged in.');
+          return;
+        }
+        const idToken = await user.getIdToken(true);
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        
+        const response = await fetch(`${hostURL}/get_license_tokens_overview`, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'same-origin',
+                headers: {
+            'Authorization': 'Bearer ' + idToken,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('Error fetching tokens overview:', response.statusText);
+          document.getElementById('tokensSpinner').style.display = 'none';
+          document.getElementById('tokensError').style.display = 'block';
+          return;
+        }
+        const data = await response.json();
+        
+        // Log the received token data for debugging
+        console.log('License tokens response:', data);
+        console.log('License tokens received:', data.tokens);
+        if (data.tokens && data.tokens.length > 0) {
+          console.log('Sample token data:', data.tokens[0]);
+          
+          // Group tokens by machine_id for easier debugging
+          const tokensByMachine = {};
+          data.tokens.forEach(token => {
+            if (!tokensByMachine[token.machine_id]) {
+              tokensByMachine[token.machine_id] = [];
+            }
+            tokensByMachine[token.machine_id].push(token);
+          });
+          console.log('Tokens grouped by machine:', tokensByMachine);
+        }
+        
+        renderTokenCards(data.tokens);
+        
+        // Hide spinner, show cards after data is processed
+        document.getElementById('tokensSpinner').style.display = 'none';
+        if (!data.tokens || data.tokens.length === 0) {
+          document.getElementById('tokensEmpty').style.display = 'block';
+                    } else {
+          document.getElementById('tokensGrid').style.display = 'grid';
+        }
+      } catch (error) {
+        console.error('Error in fetchLicenseTokensOverview:', error);
+        
+        // Show error message
+        document.getElementById('tokensSpinner').style.display = 'none';
+        document.getElementById('tokensError').style.display = 'block';
+      }
+    }
+    
+    // Render device token cards from data
+    function renderTokenCards(tokensOverview) {
+      const tokensGrid = document.getElementById('tokensGrid');
+      tokensGrid.innerHTML = ''; // Clear existing cards
+      
+      if (!tokensOverview || tokensOverview.length === 0) {
+        document.getElementById('tokensEmpty').style.display = 'block';
+        document.getElementById('tokensGrid').style.display = 'none';
+        return;
+      }
+      
+      // Group tokens by machine_id
+      const tokensByMachine = {};
+      tokensOverview.forEach(token => {
+        if (!tokensByMachine[token.machine_id]) {
+          tokensByMachine[token.machine_id] = [];
+        }
+        tokensByMachine[token.machine_id].push(token);
+      });
+      
+      // Counter for unnamed devices
+      let unnamedDeviceCounter = 0;
+      
+      // Create a card for each machine_id
+      Object.entries(tokensByMachine).forEach(([machineId, tokens]) => {
+        // Increment the counter for each device without a name
+        unnamedDeviceCounter++;
+        
+        // Get device name from the first token or use default
+        const deviceName = tokens.length > 0 && tokens[0].device_name ? 
+                           tokens[0].device_name : 
+                           `Device ${unnamedDeviceCounter}`;
+        
+        // Create token card container
+        const card = document.createElement('div');
+        card.className = 'token-card';
+        
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'token-header';
+        
+        // Left section - Device name and Machine ID
+        const headerLeft = document.createElement('div');
+        headerLeft.className = 'token-header-left';
+        
+        const title = document.createElement('h4');
+        title.className = 'token-title';
+        title.textContent = deviceName;
+        
+        const subtitle = document.createElement('p');
+        subtitle.className = 'token-subtitle';
+        subtitle.textContent = `Machine ID: ${machineId}`;
+        
+        headerLeft.appendChild(title);
+        headerLeft.appendChild(subtitle);
+        
+        // Assemble the header
+        header.appendChild(headerLeft);
+        card.appendChild(header);
+        
+        // Card body - list each license with its token
+        const body = document.createElement('div');
+        body.className = 'token-body';
+        
+        if (tokens.length > 0) {
+          tokens.forEach(token => {
+            const licenseItem = document.createElement('div');
+            licenseItem.className = 'token-license-item';
+            
+            // License info
+            const licenseInfo = document.createElement('div');
+            licenseInfo.className = 'token-license-info';
+            
+            const licenseName = document.createElement('div');
+            licenseName.className = 'token-license-id';
+            licenseName.textContent = token.license_name;
+            
+            const licenseId = document.createElement('div');
+            licenseId.className = 'token-license-expiry';
+            licenseId.textContent = `License ID: ${token.license_id}`;
+            
+            const licenseExpiry = document.createElement('div');
+            licenseExpiry.className = 'token-license-expiry';
+            licenseExpiry.textContent = `Expires: ${token.expiry_date}`;
+            
+            licenseInfo.appendChild(licenseName);
+            licenseInfo.appendChild(licenseId);
+            licenseInfo.appendChild(licenseExpiry);
+            
+            // Copy button
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-button';
+            copyButton.textContent = 'Copy Key';
+            copyButton.onclick = function() {
+              copyToClipboard(token.token_key, copyButton);
+            };
+            
+            licenseItem.appendChild(licenseInfo);
+            licenseItem.appendChild(copyButton);
+            
+            body.appendChild(licenseItem);
+          });
+        } else {
+          // Show empty state message
+          body.innerHTML = '<div class="token-empty">No devices registered for this license</div>';
+        }
+        
+        card.appendChild(body);
+        tokensGrid.appendChild(card);
+      });
+    }
+    
+    // Copy text to clipboard with visual feedback
+    function copyToClipboard(text, button) {
+      navigator.clipboard.writeText(text).then(
+        function() {
+          // Success - show visual feedback
+          button.textContent = 'Copied!';
+          button.classList.add('copied');
+          
+          // Reset button after 2 seconds
+          setTimeout(function() {
+            button.textContent = 'Copy Key';
+            button.classList.remove('copied');
+          }, 2000);
+        },
+        function(err) {
+          console.error('Could not copy text: ', err);
+          button.textContent = 'Error';
+          
+          // Reset button after 2 seconds
+          setTimeout(function() {
+            button.textContent = 'Copy Key';
+          }, 2000);
+        }
+      );
+    }
+
+    /***********************************************
+     * UTILITY FUNCTIONS
+     ***********************************************/
+    
+    // Get emulator mode from URL parameters
+    function getIsEmulatorFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('is_emulator') === 'true';
+    }
+
+    // Add emulator parameter to URL if needed
+    function getUrlWithEmulatorParam(url) {
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        if (!isEmulator) return url;
+        
+        const separator = url.includes('?') ? '&' : '?';
+        return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
+    }
+
+    // Optional function to populate account info from form data
+    function populateAccountInfo(formData) {
+        // Update the page with user-specific information
+        if (formData.name) {
+            $("#user-name").text(formData.name);
+        }
+        if (formData.team) {
+            $("#user-team").text(formData.team);
+        }
+        // Add other fields as needed
+    }
+
+    /**
+     * Check the user's account status by calling the backend get_user_account_info function.
+     * The backend response includes:
+     *   - userStatus: one of "approved", "pending", "unverified", or "no_account"
+     *   - form_data: the form data attached to the account record (or null if not found)
+     *
+     * Returns a Promise that resolves with the parsed response.
+     */
+    function checkUserAccountStatus(user) {
+        return new Promise((resolve, reject) => {
+            if (!user) {
+                reject(new Error("No user provided"));
+                return;
+            }
+
+            user.getIdToken(true).then(function(idToken) {
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                const fetch_url = hostURL + '/get_user_account_info';
+        
+                console.log("Checking user account status at:", fetch_url);
+                
+            $.ajax({
+                url: fetch_url,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                        console.log("User account status response:", data);
+                        // If data comes as a string, parse it; otherwise, assume it's already JSON.
+                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                        resolve(parsedData);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("Error getting account status:", textStatus, errorThrown);
+                        console.error("Response:", jqXHR.responseText);
+                        reject(errorThrown);
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token:", error);
+                reject(error);
+            });
+        });
+    }
+
+    /**
+     * Show notification banner with a message
+     * @param {string} message - The message to display
+     * @param {string} type - The type of notification: 'info' (blue), 'success' (green), 'warning' (orange), or 'error' (red)
+     * @param {boolean} dismissible - Whether the notification can be dismissed by the user
+     */
+    function showNotification(message, type = 'info', dismissible = true) {
+        const banner = document.getElementById('notification-banner');
+        const textContainer = document.getElementById('notification-text');
+        const closeButton = document.getElementById('close-notification');
+        
+        // Set the message
+        textContainer.innerHTML = message;
+        
+        // Set the color based on type
+        let bgColor = '#3498db'; // Default blue for 'info'
+        switch(type) {
+            case 'success':
+                bgColor = '#2ecc71';
+                break;
+            case 'warning':
+                bgColor = '#f39c12';
+                break;
+            case 'error':
+                bgColor = '#e74c3c';
+                break;
+        }
+        banner.style.backgroundColor = bgColor;
+        
+        // Show/hide close button based on dismissible option
+        closeButton.style.display = dismissible ? 'block' : 'none';
+        
+        // Show the banner
+        banner.style.display = 'block';
+        
+        // Add event listener to close button if dismissible
+        if (dismissible) {
+            closeButton.onclick = function() {
+                hideNotification();
+            };
+        }
+    }
+
+    /**
+     * Hide the notification banner
+     */
+    function hideNotification() {
+        const banner = document.getElementById('notification-banner');
+        banner.style.display = 'none';
+    }
+
+    // Replace with a global event listener approach
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're in emulator mode
+        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Add a single global event listener for all link clicks
+            document.addEventListener('click', function(e) {
+                // Find if the click was on a link or inside a link
+                let target = e.target;
+                while (target && target.tagName !== 'A') {
+                    target = target.parentElement;
+                }
+                
+                // If we found a link
+                if (target && target.tagName === 'A') {
+                    const href = target.getAttribute('href');
+                    
+                    // Skip if it's a hash link, javascript: link or external link
+                    if (href && 
+                        !href.startsWith('#') && 
+                        !href.startsWith('javascript:') && 
+                        !href.startsWith('tel:') && 
+                        !href.startsWith('mailto:') &&
+                        (href.startsWith('/') || href.startsWith(window.location.origin) || !href.includes('://'))) {
+                        
+                        try {
+                            // Parse the URL (handle both absolute and relative URLs)
+                            const url = new URL(href, window.location.origin);
+                            
+                            // Don't modify if it already has the parameter
+                            if (!url.searchParams.has('is_emulator')) {
+                                // Prevent the default navigation
+                                e.preventDefault();
+                                
+                                // Add the emulator parameter
+                                url.searchParams.set('is_emulator', 'true');
+                                
+                                // Navigate programmatically
+                                window.location.href = url.toString();
+                            }
+                        } catch (error) {
+                            console.error('Error handling link click:', error);
+                        }
+                    }
+                }
+            }, false);
+        }
+    });
+
+    // 1. First, add this function at the global scope in the UTILITY FUNCTIONS section
+    // Move getBasePath out of createStripePaymentLink to make it globally available
+    function getBasePath() {
+        const path = window.location.pathname;
+        const stagingMatch = path.match(/^\/[^/]+\//);
+        return stagingMatch ? stagingMatch[0] : '/';
+    }
+
+    /**
+     * Safely redirect to a URL with optional history state replacement
+     * @param {string} url - The URL to redirect to
+     * @param {boolean} replaceState - Whether to replace the current history state (true) or add a new one (false)
+     */
+    function safeRedirect(url, replaceState = false) {
+        try {
+            // Let our global click handler handle the emulator parameter
+            // We don't need to add it here since all navigation will go through the click handler
+            
+            if (replaceState) {
+                // First replace the current history entry
+                history.replaceState(null, document.title, url);
+            }
+            
+            // Then navigate to the new URL
+            window.location.href = url;
+            
+            // Keep loading overlay visible during redirect
+            // It will be hidden by the page load of the new page
+            
+            // Fallback in case the redirect doesn't happen immediately
+            setTimeout(() => {
+                if (document.location.href !== url) {
+                    replaceState ? window.location.replace(url) : window.location.href = url;
+                }
+            }, 100);
+        } catch (e) {
+            console.error('Redirect failed, using fallback method', e);
+            window.location.href = url;
+        }
+    }
+</script>
 
 </body>
+
 
