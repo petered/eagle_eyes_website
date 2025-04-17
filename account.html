@@ -118,7 +118,7 @@ permalink: /account/
     .license-title, .token-title {
       font-size: 16px;
       font-weight: 500;
-      margin: 0;
+      margin: 0 0 2px 0;
       color: #333;
     }
     
@@ -179,16 +179,17 @@ permalink: /account/
     
     .copy-button {
       padding: 6px 12px;
-      background-color: #f1f1f1;
-      border: 1px solid #ddd;
+      background-color: #222;
+      border: 1px solid #222;
       border-radius: 4px;
       font-size: 13px;
+      color: white;
       cursor: pointer;
       transition: background-color 0.2s;
     }
     
     .copy-button:hover {
-      background-color: #e5e5e5;
+      background-color: #000;
     }
     
     .copy-button.copied {
@@ -344,11 +345,13 @@ permalink: /account/
     }
 
     /* Add this at the end of your style section */
-    @media (max-width: 767px) {
+    @media (max-width: 840px) {
         /* Make main content column full width */
         .column.width-8.offset-2 {
             width: 100%;
             margin-left: 0;
+            padding-left: 10px;
+            padding-right: 10px;
         }
         
         #accountContent .box {
@@ -395,6 +398,52 @@ permalink: /account/
             padding: 8px;
         }
     }
+    
+    /* For screens 841px and up - keeping consistent width */
+    @media (min-width: 841px) {
+        /* Target the main column */
+        .column.width-8.offset-2 {
+            width: 960px !important;
+            max-width: 960px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            float: none !important;
+            padding: 0 10px !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Container styles */
+        #accountContent {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Box styles */
+        #accountContent .box {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* The section that contains everything */
+        .section-block .row {
+            max-width: 960px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+        
+        /* Force single column layout for cards */
+        #activeLicenseGrid, #expiredLicenseGrid, #tokensGrid, #pilotGrid, #scanGrid {
+            grid-template-columns: 1fr !important;
+            width: 100% !important;
+        }
+        
+        /* Override any responsive container classes */
+        .width-12, .width-10, .width-8, .width-6 {
+            max-width: 960px !important;
+        }
+    }
+
 
     /* Tab Navigation Styles */
     .tab-navigation {
@@ -465,13 +514,21 @@ permalink: /account/
             white-space: nowrap; /* Ensure text doesn't wrap */
         }
         
-        #pilotGrid, #scanGrid, #licenseGrid, #tokensGrid {
+        #pilotGrid, #scanGrid, #licenseGrid, #tokensGrid, #activeLicenseGrid, #expiredLicenseGrid {
             grid-template-columns: 1fr;
             gap: 15px;
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
         }
         
         .license-card, .token-card {
             border-radius: 6px;
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
         }
         
         .license-header, .token-header {
@@ -487,6 +544,14 @@ permalink: /account/
         
         .download-title, .license-title, .token-title {
             font-size: 14px; /* Further reduce for very small screens */
+        }
+        
+        /* Fix container margins */
+        .section-block .row {
+            margin-left: 0;
+            margin-right: 0;
+            max-width: 100%;
+            width: 100%;
         }
     }
     
@@ -504,6 +569,22 @@ permalink: /account/
             padding: 5px 3px; /* Minimum possible padding */
             font-size: 11px; /* Even smaller font */
             letter-spacing: -0.2px; /* Slightly condense text */
+        }
+        
+        /* Eliminate any remaining horizontal margins or paddings */
+        .row {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        .column {
+            padding: 0 !important;
+        }
+        
+        #accountContent {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
         }
     }
 </style>
@@ -616,22 +697,36 @@ permalink: /account/
                                         
                                         <div id="licensesContent">
                                             <div class="license-sections">
-                                                <!-- SECTION 1: MY PURCHASED LICENSES -->
-                                                <div id="purchasedLicenseContainer" class="mb-50">
-                                                    <h4>My Purchased Licenses</h4>
-                                                    <div id="licenseSpinner" class="loading-spinner">
-                                                        <div class="spinner"></div>
-                                                    </div>
-                                                    <div id="licenseGrid" style="display: none;"></div>
-                                                    <div id="licenseError" style="display: none;">
-                                                        <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
-                                                            Error loading license data. Please try again later.
-                                                        </div>
-                                                    </div>
-                                                    <div id="licenseEmpty" style="display: none;">
+                                                <div id="licenseSpinner" class="loading-spinner">
+                                                    <div class="spinner"></div>
+                                                </div>
+                                                
+                                                <!-- SECTION 1: ACTIVE LICENSES -->
+                                                <div id="activeLicenseContainer" class="mb-30">
+                                                    <h4>Active Licenses</h4>
+                                                    <div id="activeLicenseGrid" style="display: none;"></div>
+                                                    <div id="activeLicenseEmpty" style="display: none;">
                                                         <div class="empty-card">
-                                                            No licenses found.
+                                                            No active licenses found.
                                                         </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- SECTION 2: EXPIRED LICENSES -->
+                                                <div id="expiredLicenseContainer" class="mb-30" style="margin-top: 5em;">
+                                                    <h4>Expired Licenses</h4>
+                                                    <div id="expiredLicenseGrid" style="display: none;"></div>
+                                                    <div id="expiredLicenseEmpty" style="display: none;">
+                                                        <div class="empty-card">
+                                                            No expired licenses found.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Shared error state -->
+                                                <div id="licenseError" style="display: none;">
+                                                    <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                                                        Error loading license data. Please try again later.
                                                     </div>
                                                 </div>
                                             </div>
@@ -677,6 +772,14 @@ permalink: /account/
     </div>
 </div>
 
+<!-- Add this loading overlay right after the signin-overlay -->
+<div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+        <div class="spinner" style="width: 60px; height: 60px; border: 6px solid #f3f3f3; border-top: 6px solid #1e90ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <p style="margin-top: 20px; font-size: 18px; color: #333;">Loading your account...</p>
+    </div>
+</div>
+
 <script>
     /***********************************************
      * INITIALIZATION AND EVENT LISTENERS
@@ -690,6 +793,7 @@ permalink: /account/
         const signOutContainer = document.getElementById('signOutContainer');
         const signOutButton = document.getElementById('signOutButton');
         const signinOverlay = document.getElementById('signin-overlay');
+        const loadingOverlay = document.getElementById('loading-overlay');
 
         // Add this to hide the overlay immediately if user is already signed in
         if (firebase.auth().currentUser) {
@@ -703,21 +807,15 @@ permalink: /account/
         // Add event listener for close button
         document.getElementById('close-notification').addEventListener('click', hideNotification);
         
-        // Show a sample notification (uncomment any of these to test)
-        // showNotification('Welcome to your Eagle Eyes account! Check out our new features.', 'info', true);
-        
-        // Other examples you can uncomment to test:
-        // showNotification('Your license has been successfully activated!', 'success', true);
-        // showNotification('Your license will expire in 15 days. <a href="{{ '/pricing/' | relative_url }}" style="color: white; text-decoration: underline;">Renew now</a> to avoid interruption.', 'warning', true);
-        // showNotification('There was a problem processing your recent request. Please try again later.', 'error', true);
-        // showNotification('System maintenance scheduled for Sunday, 2AM-4AM EST.', 'info', false);
-
         // Use Firebase's built-in auth state observer instead of our custom events
         firebase.auth().onAuthStateChanged(function(user) {
             if (user) {
-                // User is signed in - always hide the overlay and signin button
+                // User is signed in - always hide the signin overlay
                 signinOverlay.style.display = 'none';
                 signinButtonSection.style.display = 'none';
+                
+                // Show loading overlay during redirect check
+                loadingOverlay.style.display = 'block';
                 
                 // Show user info
                 userEmail.textContent = `Logged in as: ${user.email}`;
@@ -728,6 +826,8 @@ permalink: /account/
                     redirectOrNot(user);
                 } catch (error) {
                     console.error("Error in redirectOrNot:", error);
+                    // Hide loading overlay on error
+                    loadingOverlay.style.display = 'none';
                     // Still show content on error, but don't show sign-in again
                     $("#accountContent").show();
                 }
@@ -737,6 +837,8 @@ permalink: /account/
                 accountContent.style.display = 'none';
                 userEmail.textContent = '';
                 signOutContainer.style.display = 'none';
+                // Make sure loading overlay is hidden when logged out
+                loadingOverlay.style.display = 'none';
             }
         });
 
@@ -930,22 +1032,20 @@ permalink: /account/
 
             try {
                 // Handle different scenarios based on reason parameter
-                switch(reason) {
-                    case 'trial':
-                        handleTrialRedirect(status);
-                        break;
-                    
-                    case 'purchase':
-                        handlePurchaseRedirect(status);
-                        break;
-                    
-                    default:
-                        handleDefaultRedirect(user, status);
-                        break;
+                let redirectOccurred;
+                
+                if (reason === 'trial') {
+                    if (handleTrialRedirect(status)) return;
+                } else if (reason === 'purchase') {
+                    if (handlePurchaseRedirect(status)) return;
+                } else {
+                    if (handleDefaultRedirect(user, status)) return;
                 }
-
-                // If we haven't redirected, show the account content
+                
+                // Only reached if no redirect occurred
                 if (!document.hidden) {
+                    // Hide loading overlay before showing content
+                    document.getElementById('loading-overlay').style.display = 'none';
                     $("#accountContent").show();
                     fetchAvailableDownloads();
                     console.log("Fetching license overview");
@@ -953,16 +1053,10 @@ permalink: /account/
                     fetchLicenseTokensOverview();
                 }
             } catch (error) {
-                console.error("Error handling redirect:", error);
-                // Show account content even if redirect logic fails
-                $("#accountContent").show();
+                // Error handling...
+                // Hide loading overlay on error
+                document.getElementById('loading-overlay').style.display = 'none';
             }
-        })
-        .catch(function(error) {
-            console.error("Error checking user account status:", error);
-            // ⚠️ Fix: Don't show the sign-in button again on error
-            // $("#signinButtonSection").show(); <- Remove or comment this line
-            $("#accountContent").show();
         });
     }
 
@@ -979,8 +1073,7 @@ permalink: /account/
                     true
                 );
                 document.getElementById('verification-status').innerHTML = ``;
-
-                break;
+                return false; // No redirect
             
             case 'approved':
                 showNotification(
@@ -996,12 +1089,12 @@ permalink: /account/
                                 Start here
                             </a>.
                 `;
-                break;
+                return false; // No redirect
             
             default:
                 // Redirect to user-form.html with reason parameter preserved
                 redirectToUserForm('trial');
-                break;
+                return true; // Redirect happened
         }
     }
 
@@ -1021,25 +1114,26 @@ permalink: /account/
                     true
                 );
                 document.getElementById('verification-status').innerHTML = ``;
-                break;
+                return false; // No redirect
             
             case 'approved':
                 if (productId) {
                     // Create Stripe payment link and redirect user
                     createStripePaymentLink(productId);
+                    return true; // Redirect happened
                 } else {
                     showNotification(
                         'Invalid product selection. Please try again from the pricing page. If this error persists, please contact us at info@eagleeyessearch.com.',
                         'error',
                         true
                     );
+                    return false; // No redirect
                 }
-                break;
             
             default:
                 // Redirect to user-form.html with reason parameter preserved
                 redirectToUserForm('purchase');
-                break;
+                return true; // Redirect happened
         }
     }
 
@@ -1094,8 +1188,8 @@ permalink: /account/
                         
                         if (paymentUrl) {
                             console.log('Redirecting to payment URL:', paymentUrl);
-                            // Redirect to the payment URL
-                            window.location.href = paymentUrl;
+                            // Redirect to the payment URL - don't use replaceState for external URLs
+                            safeRedirect(paymentUrl, false);
                         } else {
                             showNotification(
                                 'There was an error creating your payment link. Please try again or contact support.',
@@ -1138,7 +1232,7 @@ permalink: /account/
                     true
                 );
                 document.getElementById('verification-status').innerHTML = ``;
-                break;
+                return false; // No redirect
             
             case 'approved':
                 document.getElementById('verification-status').innerHTML = `
@@ -1147,9 +1241,8 @@ permalink: /account/
                                 Start here
                             </a>.
                 `;
+                return false; // No redirect
                 
-                break;
-
             case 'unverified':
                 // Construct the URL dynamically, preserving the emulator parameter
                 const verificationUrl = getUrlWithEmulatorParam('{{ '/user-form/' | relative_url }}?reason=purchase');
@@ -1157,20 +1250,18 @@ permalink: /account/
                 document.getElementById('verification-status').innerHTML = `
                     Looking to buy a new license? <a href="${verificationUrl}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
                 `;
-                // Allow page content to load
-                break;
+                return false; // No redirect
             
             default:
                 // Redirect to user-form.html when status is not pending, approved, or unverified
                 redirectToUserForm();
-                break;
+                return true; // Redirect happened
         }
     }
 
     // Helper function to handle redirects to user-form.html
     function redirectToUserForm(reason = '') {
-        const basePath = getBasePath();
-        let url = basePath + '{{ '/user-form/' | relative_url }}';
+        let url = '{{ '/user-form/' | relative_url }}';
         
         // Add reason parameter if provided
         if (reason) {
@@ -1178,7 +1269,12 @@ permalink: /account/
         }
         
         // Preserve emulator parameter if present
-        window.location.href = getUrlWithEmulatorParam(url);
+        const redirectUrl = getUrlWithEmulatorParam(url);
+        
+        // Use our utility function to replace the state and redirect
+        safeRedirect(redirectUrl, true); // true = replace state
+        
+        // The loading overlay will be hidden by the new page load
     }
 
     /***********************************************
@@ -1597,11 +1693,13 @@ permalink: /account/
     // Fetch license overview data
     async function fetchLicenseOverview() {
       try {
-        // Show spinner, hide cards initially
+        // Show spinner, hide all license sections initially
         document.getElementById('licenseSpinner').style.display = 'block';
-        document.getElementById('licenseGrid').style.display = 'none';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+        document.getElementById('activeLicenseEmpty').style.display = 'none';
+        document.getElementById('expiredLicenseEmpty').style.display = 'none';
         document.getElementById('licenseError').style.display = 'none';
-        document.getElementById('licenseEmpty').style.display = 'none';
         
         const user = firebase.auth().currentUser;
         if (!user) {
@@ -1636,19 +1734,15 @@ permalink: /account/
           console.log('Sample license data:', data.overview[0]);
         }
         
+        // Process and render the license data
         renderLicenseCards(data.overview);
         
-        // Hide spinner, show cards after data is processed
+        // Hide spinner after data is processed
         document.getElementById('licenseSpinner').style.display = 'none';
-        if (!data.overview || data.overview.length === 0) {
-          document.getElementById('licenseEmpty').style.display = 'block';
-        } else {
-          document.getElementById('licenseGrid').style.display = 'grid';
-        }
       } catch (error) {
         console.error('Error in fetchLicenseOverview:', error);
         
-        // Show error message
+        // Show error message and hide spinner
         document.getElementById('licenseSpinner').style.display = 'none';
         document.getElementById('licenseError').style.display = 'block';
       }
@@ -1656,16 +1750,76 @@ permalink: /account/
 
     // Render license cards from data
     function renderLicenseCards(overview) {
-      const licenseGrid = document.getElementById('licenseGrid');
-      licenseGrid.innerHTML = ''; // Clear existing cards
-      
+      // Check if we have any licenses
       if (!overview || overview.length === 0) {
-        document.getElementById('licenseEmpty').style.display = 'block';
-        document.getElementById('licenseGrid').style.display = 'none';
+        // Handle empty state
+        document.getElementById('activeLicenseEmpty').style.display = 'block';
+        document.getElementById('expiredLicenseEmpty').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
         return;
       }
       
-      overview.forEach(license => {
+      // Sort licenses by expiry date (furthest in the future first)
+      const sortedLicenses = [...overview].sort((a, b) => {
+        const dateA = new Date(a.expiry_date);
+        const dateB = new Date(b.expiry_date);
+        return dateB - dateA; // Descending order (furthest date first)
+      });
+      
+      // Clear previous license grids
+      const activeLicenseGrid = document.getElementById('activeLicenseGrid');
+      const expiredLicenseGrid = document.getElementById('expiredLicenseGrid');
+      activeLicenseGrid.innerHTML = '';
+      expiredLicenseGrid.innerHTML = '';
+      
+      // Separate licenses into active and expired
+      const activeLicenses = [];
+      const expiredLicenses = [];
+      
+      sortedLicenses.forEach(license => {
+        const expiryDate = new Date(license.expiry_date);
+        const isExpired = expiryDate < new Date();
+        
+        if (isExpired) {
+          expiredLicenses.push(license);
+        } else {
+          activeLicenses.push(license);
+        }
+      });
+      
+      // Render active licenses
+      if (activeLicenses.length === 0) {
+        document.getElementById('activeLicenseEmpty').style.display = 'block';
+        document.getElementById('activeLicenseGrid').style.display = 'none';
+      } else {
+        document.getElementById('activeLicenseEmpty').style.display = 'none';
+        document.getElementById('activeLicenseGrid').style.display = 'grid';
+        document.getElementById('activeLicenseGrid').style.gap = '40px';
+        renderLicenseSection(activeLicenses, activeLicenseGrid, false);
+      }
+      
+      // Render expired licenses
+      if (expiredLicenses.length === 0) {
+        document.getElementById('expiredLicenseEmpty').style.display = 'block';
+        document.getElementById('expiredLicenseGrid').style.display = 'none';
+      } else {
+        document.getElementById('expiredLicenseEmpty').style.display = 'none';
+        document.getElementById('expiredLicenseGrid').style.display = 'grid';
+        document.getElementById('expiredLicenseGrid').style.gap = '40px';
+        renderLicenseSection(expiredLicenses, expiredLicenseGrid, true);
+      }
+    }
+    
+    // Helper function to render licenses in a section
+    function renderLicenseSection(licenses, gridElement, isExpired) {
+      licenses.forEach(license => {
+        // Check license details
+        const expiryDate = new Date(license.expiry_date);
+        const keysLeft = license.keys_left || 0;
+        const totalKeys = license.total_keys || 0; // Use total_keys directly from license
+        const noDevicesLeft = keysLeft === 0;
+        
         // Create license card container
         const card = document.createElement('div');
         card.className = 'license-card';
@@ -1673,6 +1827,11 @@ permalink: /account/
         // Create header with left and right sections
         const header = document.createElement('div');
         header.className = 'license-header';
+        
+        // Set background color for non-expired licenses
+        if (!isExpired) {
+          header.style.backgroundColor = '#e6f2ff'; // Light blue for active licenses
+        }
         
         // Left section - Name and ID
         const headerLeft = document.createElement('div');
@@ -1685,9 +1844,78 @@ permalink: /account/
         const subtitle = document.createElement('p');
         subtitle.className = 'license-subtitle';
         subtitle.textContent = `ID: ${license.license_id}`;
+
+        // Add owner information in the header section
+        const ownerInfo = document.createElement('p');
+        ownerInfo.className = 'license-subtitle';
+        ownerInfo.style.marginTop = '3px';
         
-        headerLeft.appendChild(title);
-        headerLeft.appendChild(subtitle);
+        // Add license owner information if available
+        if (license.license_owner) {
+          // Check if the owner is the current user
+          const currentUserEmail = firebase.auth().currentUser.email;
+          if (license.license_owner === currentUserEmail) {
+            // Show "You are the owner" message in dark blue
+            ownerInfo.style.color = '#1e3a8a';
+            ownerInfo.style.fontWeight = '600';
+            ownerInfo.textContent = "You are the owner of this license";
+          } else {
+            // Show regular owner information
+            ownerInfo.innerHTML = `Owner: <span style="font-weight: 500;">${license.license_owner}</span>`;
+          }
+        } else {
+          ownerInfo.style.display = 'none'; // Hide if no owner info
+        }
+        
+        // Add copy button for active licenses with remaining devices
+        if (!isExpired && keysLeft > 0) {
+          const idRow = document.createElement('div');
+          idRow.style.display = 'flex';
+          idRow.style.alignItems = 'center';
+          idRow.style.marginTop = '5px';
+          
+          idRow.appendChild(subtitle);
+          
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-button';
+          copyButton.textContent = 'Copy License ID';
+          copyButton.style.marginLeft = '10px';
+          copyButton.style.padding = '3px 8px';
+          copyButton.style.fontSize = '12px';
+          copyButton.onclick = function() {
+            navigator.clipboard.writeText(license.license_id).then(
+              function() {
+                // Success feedback
+                copyButton.textContent = 'Copied!';
+                copyButton.classList.add('copied');
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy License ID';
+                  copyButton.classList.remove('copied');
+                }, 2000);
+              },
+              function(err) {
+                console.error('Could not copy text: ', err);
+                copyButton.textContent = 'Error';
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy License ID';
+                }, 2000);
+              }
+            );
+          };
+          
+          idRow.appendChild(copyButton);
+          headerLeft.appendChild(title);
+          headerLeft.appendChild(idRow);
+          headerLeft.appendChild(ownerInfo);
+        } else {
+          headerLeft.appendChild(title);
+          headerLeft.appendChild(subtitle);
+          headerLeft.appendChild(ownerInfo);
+        }
         
         // Right section - Expiry date and Devices
         const headerRight = document.createElement('div');
@@ -1696,17 +1924,31 @@ permalink: /account/
         // Expiry Date
         const expiryMeta = document.createElement('div');
         expiryMeta.className = 'license-meta';
-        expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
         
-        // Devices info
-        const devicesMeta = document.createElement('div');
-        devicesMeta.className = 'license-meta';
-        const keysLeft = license.keys_left || 0;
-        const totalKeys = license.total_keys || 'Unlimited';
-        devicesMeta.innerHTML = `Devices (remaining/total): <span class="license-meta-highlight">${keysLeft}/${totalKeys}</span>`;
+        if (isExpired) {
+          expiryMeta.innerHTML = `<span style="color: red; font-weight: 500;">Expired on ${license.expiry_date}</span>`;
+        } else {
+          expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
+        }
+        
+        // Add total devices information based on total_keys
+        const totalDevicesMeta = document.createElement('div');
+        totalDevicesMeta.className = 'license-meta';
+        totalDevicesMeta.innerHTML = `License for <span class="license-meta-highlight">${totalKeys} ${totalKeys === 1 ? 'device' : 'devices'}</span>`;
+        
+        // Devices remaining info based on keys_left
+        const remainingDevicesMeta = document.createElement('div');
+        remainingDevicesMeta.className = 'license-meta';
+        
+        if (noDevicesLeft) {
+          remainingDevicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
+        } else {
+          remainingDevicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
+        }
         
         headerRight.appendChild(expiryMeta);
-        headerRight.appendChild(devicesMeta);
+        headerRight.appendChild(totalDevicesMeta);
+        headerRight.appendChild(remainingDevicesMeta);
         
         // Assemble the header
         header.appendChild(headerLeft);
@@ -1719,29 +1961,33 @@ permalink: /account/
         
         // Display device users if available
         if (license.keys_used_by && license.keys_used_by.length > 0) {
-          const usersLabel = document.createElement('div');
-          usersLabel.className = 'license-users-label';
-          usersLabel.textContent = 'Device users:';
+          const usersInfo = document.createElement('div');
+          usersInfo.className = 'license-users-label';
           
-          const usersList = document.createElement('div');
-          usersList.className = 'license-users-list';
-          usersList.textContent = license.keys_used_by.join(', ');
+          // Process the keys_used_by to replace "tokens" with "devices"
+          const processedUsers = license.keys_used_by.map(user => {
+            return user.replace(/\((\d+) tokens\)/g, '($1 devices)');
+          });
           
-          body.appendChild(usersLabel);
-          body.appendChild(usersList);
-            } else {
+          usersInfo.innerHTML = `Users with a device on this license: <span class="license-meta-highlight">${processedUsers.join(', ')}</span>`;
+          body.appendChild(usersInfo);
+        } else {
           // Show empty state message
-          body.innerHTML = '<div class="license-empty">No devices are currently using this license</div>';
+          const emptyState = document.createElement('div');
+          emptyState.className = 'license-empty';
+          emptyState.textContent = 'This license is not used by anyone';
+          body.appendChild(emptyState);
         }
         
         card.appendChild(body);
-        licenseGrid.appendChild(card);
+        gridElement.appendChild(card);
       });
     }
 
     /***********************************************
      * DEVICE TOKENS MANAGEMENT
      ***********************************************/
+    
     
     // Fetch device tokens overview
     async function fetchLicenseTokensOverview() {
@@ -1918,7 +2164,7 @@ permalink: /account/
           });
         } else {
           // Show empty state message
-          body.innerHTML = '<div class="token-empty">No license tokens found for this device</div>';
+          body.innerHTML = '<div class="token-empty">No devices registered for this license</div>';
         }
         
         card.appendChild(body);
@@ -2080,27 +2326,55 @@ permalink: /account/
         banner.style.display = 'none';
     }
 
-    // Add this to your utility functions section
-    function updateLinksWithEmulator() {
+    // Replace with a global event listener approach
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're in emulator mode
         const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
         
         if (isEmulator) {
-            const navLinks = document.querySelectorAll('nav a, .nav a, .footer a');
-            
-            navLinks.forEach(link => {
-                if (link.href.startsWith(window.location.origin) && !link.href.includes('#')) {
-                    const url = new URL(link.href);
-                    if (!url.searchParams.has('is_emulator')) {
-                        url.searchParams.set('is_emulator', 'true');
-                        link.href = url.toString();
+            // Add a single global event listener for all link clicks
+            document.addEventListener('click', function(e) {
+                // Find if the click was on a link or inside a link
+                let target = e.target;
+                while (target && target.tagName !== 'A') {
+                    target = target.parentElement;
+                }
+                
+                // If we found a link
+                if (target && target.tagName === 'A') {
+                    const href = target.getAttribute('href');
+                    
+                    // Skip if it's a hash link, javascript: link or external link
+                    if (href && 
+                        !href.startsWith('#') && 
+                        !href.startsWith('javascript:') && 
+                        !href.startsWith('tel:') && 
+                        !href.startsWith('mailto:') &&
+                        (href.startsWith('/') || href.startsWith(window.location.origin) || !href.includes('://'))) {
+                        
+                        try {
+                            // Parse the URL (handle both absolute and relative URLs)
+                            const url = new URL(href, window.location.origin);
+                            
+                            // Don't modify if it already has the parameter
+                            if (!url.searchParams.has('is_emulator')) {
+                                // Prevent the default navigation
+                                e.preventDefault();
+                                
+                                // Add the emulator parameter
+                                url.searchParams.set('is_emulator', 'true');
+                                
+                                // Navigate programmatically
+                                window.location.href = url.toString();
+                            }
+                        } catch (error) {
+                            console.error('Error handling link click:', error);
+                        }
                     }
                 }
-            });
+            }, false);
         }
-    }
-
-    // Call this function when the page loads
-    document.addEventListener('DOMContentLoaded', updateLinksWithEmulator);
+    });
 
     // 1. First, add this function at the global scope in the UTILITY FUNCTIONS section
     // Move getBasePath out of createStripePaymentLink to make it globally available
@@ -2108,6 +2382,39 @@ permalink: /account/
         const path = window.location.pathname;
         const stagingMatch = path.match(/^\/[^/]+\//);
         return stagingMatch ? stagingMatch[0] : '/';
+    }
+
+    /**
+     * Safely redirect to a URL with optional history state replacement
+     * @param {string} url - The URL to redirect to
+     * @param {boolean} replaceState - Whether to replace the current history state (true) or add a new one (false)
+     */
+    function safeRedirect(url, replaceState = false) {
+        try {
+            // Let our global click handler handle the emulator parameter
+            // We don't need to add it here since all navigation will go through the click handler
+            
+            if (replaceState) {
+                // First replace the current history entry
+                history.replaceState(null, document.title, url);
+            }
+            
+            // Then navigate to the new URL
+            window.location.href = url;
+            
+            // Keep loading overlay visible during redirect
+            // It will be hidden by the page load of the new page
+            
+            // Fallback in case the redirect doesn't happen immediately
+            setTimeout(() => {
+                if (document.location.href !== url) {
+                    replaceState ? window.location.replace(url) : window.location.href = url;
+                }
+            }, 100);
+        } catch (e) {
+            console.error('Redirect failed, using fallback method', e);
+            window.location.href = url;
+        }
     }
 </script>
 

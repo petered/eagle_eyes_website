@@ -4,226 +4,316 @@ title: Unlock Eagle Eyes Scan
 permalink: /get-license/
 ---
 
-<head>
+<!-- Include additional CSS & scripts in the front matter where they'll be added to head -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="{{ '/js/get-license.js' | relative_url }}"></script>
+<link rel="stylesheet" href="{{ '/css/form_buttons_and_boxes.css' | relative_url }}">
+<link rel="stylesheet" href="{{ '/css/custom-styling.css' | relative_url }}">
 
-    <!-- Include Firebase SDK -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="{{ '/js/get-license.js' | relative_url }}"></script>
-
-    <!-- Include form_buttons_and_boxes.scss (it's in scss/form_buttons_and_boxes.scss) but we need to get it in liquid -->
-    <style src="{{ '/css/form_buttons_and_boxes.css' | relative_url }}"></style>
-    <link rel="stylesheet" href="{{ '/css/form_buttons_and_boxes.css' | relative_url }}">
-    <style src="{{ '/css/custom-styling.css' | relative_url }}"></style>
-
-
-</head>
-
-
-<body>
-    <script>
-        $("#checking-licenses-box").hide();
-    </script>
-
-    <h1>Unlock all features Eagle Eyes Scan on your device</h1>
-    <p>
-        To unlock Eagle Eyes Scan, you need to get a <b class="tooltip">license key
-        <span class="tooltiptext">A license key is a code that unlocks all features of the software on your device.  It looks like: <br/>X2SBUDUKXA3ZWCIK2VA6QLHDLO4QG6JDGJYUP274IRBVICAW4WIDOJV3GPVBP6JP3J26OHLULFKEWSU6PNIM3BWL6I7JEPQNV2HPB4IOHA7OW7MF6X3BVQILINJBSXKVNZM5DH6OQE3WZDCYEVBYSKFYVA5TJFYFSSYXQ3MCKZVD73OPYD3NXSNPIKOB5OL7QNJWUVW7FPUUPWDJ25WG5SQKLGXPQMXYN2MDSYHI23FVST5IGCZQ7IKMUDHXPFDJVBZRBVZMLIHVC3H24HCUWJMBU4SSLNRDEQ2U4ZNSAKCMBC4E3WRQON2A26VBVJMCE2GB7MTZHIMYEOM3SHSGJTEUZXRKPDFSNOFWEIPWZKG4K3I7F4VALILISI3AWFLBY26HWIEWDZMYIVHDKZJTEETRB3DRZ2C6X3WM7I7OPBOUIZ2ZJEAOSXGFLCSS7IQGJWUXSZHSGXJ3ZTPBL5IW7LF47CWENSSFJ7PPCIFL</span></b>
-        and enter it into the app.
-    </p>
-    <p>
-        To get a license key, you first buy a <b class="tooltip">license
-        <span class="tooltiptext">A license has some number of keys, an expiry date, and is identified by a license-id like jI9Y9kg8oK3w2yf2</span></b>
-        or select an existing one, and then issue a key from that license.  If someone on your team has already purchased a license, you can find that license
-        below by searching for it by <b class="tooltip">license-ID<span class="tooltiptext">A license ID is a code like jI9Y9kg8oK3w2yf2</span></b>.
-    </p>
-    <div class="info-box" id="using-emulator-info" hidden>Using local Firebase emulator</div>
-
-    <!-- Show the machine ID -->
-    <p>
-        <!-- Machine ID: <span id="machine-id">(None provided)</span> -->
-
-        <span class="tooltip">Machine ID
-            <span class="tooltiptext">
-                The machine ID is a unique identifier for your device - it will be filled out automatically when you access this page via the "🔑" button in the Eagle Eyes Scan app
-            </span>
-        </span>: <span id="machine-id">(None provided)</span>
-
-
-        <button onclick="openMachineIdDialog()" , class="non_important_button">Change</button>
-
-        <dialog id="machine-id-dialog">
-            <h3>Enter Machine ID</h3>
-            <input type="text" id="new-machine-id" placeholder="Enter new Machine ID">
-            <button onclick="updateMachineId()"
-                style="display: inline-block; padding: 5px 10px; font-size: 12px;">Change</button>
-            <button onclick="closeMachineIdDialog()"
-                style="display: inline-block; padding: 5px 10px; font-size: 12px;">Cancel</button>
-        </dialog>
-    </p>
+<!-- Additional custom styles to ensure proper layout -->
+<style>
+    .container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 20px;
+    }
     
-    <h2>Step 1: Sign in</h2>
+    .box {
+        flex: 1 1 300px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin: 10px;
+    }
+    
+    .spacer {
+        width: 20px;
+        flex: 0 0 20px;
+    }
+    
+    .license-box {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .license-info-box {
+        width: 100%;
+        height: 8em;
+        box-sizing: border-box;
+        overflow-y: auto;
+        margin-bottom: 10px;
+    }
+    
+    #license-select {
+        display: block;
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fff;
+        font-size: 14px;
+        -webkit-appearance: menulist; /* Show dropdown arrow in Safari/Chrome */
+        -moz-appearance: menulist; /* Show dropdown arrow in Firefox */
+        appearance: menulist; /* Standard syntax */
+    }
+    
+    .button-container {
+        display: flex;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    /* Mobile responsive adjustments */
+    @media (max-width: 768px) {
+        .container {
+            flex-direction: column;
+        }
+        
+        .spacer {
+            display: none;
+        }
+    }
+    
+    /* Test user banner styling */
+    #test-user-banner {
+        background-color: #ff9800;
+        color: black;
+        padding: 10px;
+        text-align: center;
+        font-weight: bold;
+        display: none;
+        margin-bottom: 15px;
+    }
+    
+    #test-user-login {
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        margin-left: 10px;
+    }
+    
+    #test-user-login:hover {
+        background-color: #45a049;
+    }
+</style>
 
-    {% include signinWidget.html %}
+<!-- Test User Banner for Emulator Mode -->
+<div id="test-user-banner">
+    🧪 Emulator Mode: Use test account 
+    <button id="test-user-login">Sign in as test@example.com</button>
+</div>
 
-    <!-- <button onclick="checkLicense()">Check again for available licenses and tokens</button> -->
-    <script>
+<h1>Unlock all features Eagle Eyes Scan on your device</h1>
+<p>
+    To unlock Eagle Eyes Scan, you need to get a <b class="tooltip">license key
+    <span class="tooltiptext">A license key is a code that unlocks all features of the software on your device.  It looks like: <br/>X2SBUDUKXA3ZWCIK2VA6QLHDLO4QG6JDGJYUP274IRBVICAW4WIDOJV3GPVBP6JP3J26OHLULFKEWSU6PNIM3BWL6I7JEPQNV2HPB4IOHA7OW7MF6X3BVQILINJBSXKVNZM5DH6OQE3WZDCYEVBYSKFYVA5TJFYFSSYXQ3MCKZVD73OPYD3NXSNPIKOB5OL7QNJWUVW7FPUUPWDJ25WG5SQKLGXPQMXYN2MDSYHI23FVST5IGCZQ7IKMUDHXPFDJVBZRBVZMLIHVC3H24HCUWJMBU4SSLNRDEQ2U4ZNSAKCMBC4E3WRQON2A26VBVJMCE2GB7MTZHIMYEOM3SHSGJTEUZXRKPDFSNOFWEIPWZKG4K3I7F4VALILISI3AWFLBY26HWIEWDZMYIVHDKZJTEETRB3DRZ2C6X3WM7I7OPBOUIZ2ZJEAOSXGFLCSS7IQGJWUXSZHSGXJ3ZTPBL5IW7LF47CWENSSFJ7PPCIFL</span></b>
+    and enter it into the app.
+</p>
+<p>
+    To get a license key, you first buy a <b class="tooltip">license
+    <span class="tooltiptext">A license has some number of keys, an expiry date, and is identified by a license-id like jI9Y9kg8oK3w2yf2</span></b>
+    or select an existing one, and then issue a key from that license.  If someone on your team has already purchased a license, you can find that license
+    below by searching for it by <b class="tooltip">license-ID<span class="tooltiptext">A license ID is a code like jI9Y9kg8oK3w2yf2</span></b>.
+</p>
+<div class="info-box" id="using-emulator-info" hidden>Using local Firebase emulator</div>
 
-        // On document load, run fillMachineIDFromArgs();
-        document.addEventListener('DOMContentLoaded', function () {
-            fillMachineIDFromArgs();
-        });
+<!-- Show the machine ID -->
+<p>
+    <span class="tooltip">Machine ID
+        <span class="tooltiptext">
+            The machine ID is a unique identifier for your device - it will be filled out automatically when you access this page via the "🔑" button in the Eagle Eyes Scan app
+        </span>
+    </span>: <span id="machine-id">(None provided)</span>
 
-        document.addEventListener('signInComplete', function (e) {
-            /* Handle the event:
-            CustomEvent('signInComplete', { detail: { user: user } })
-            Generated by the signinWidget.html inclusion
-            */
-            console.log('signin complete triggered');
-            globalUser = e.detail.user;
-            console.log('signInComplete event received: ' + globalUser);
 
-            $("#choose-license").show();
-            checkLicenseIDFromArgsAndUpdateAvailableLicenses()
-            // checkURLParameters();
-            // checkLicense()
-            // Scroll to bottom of #choose-license div
-            $("#choose-license").get(0).scrollIntoView();
-        });
-        // document.addEventListener('signInComplete', function (e) {
-        //     /* Handle the event:
-        //     CustomEvent('signInComplete', { detail: { user: user } })
-        //     Generated by the signinWidget.html inclusion
-        //     */
-        //     console.log('signin complete triggered');
-        //     globalUser = e.detail.user;
-        //     console.log('signInComplete event received: ' + globalUser);
+    <button onclick="openMachineIdDialog()" , class="non_important_button">Change</button>
 
+    <dialog id="machine-id-dialog">
+        <h3>Enter Machine ID</h3>
+        <input type="text" id="new-machine-id" placeholder="Enter new Machine ID">
+        <button onclick="updateMachineId()"
+            style="display: inline-block; padding: 5px 10px; font-size: 12px;">Change</button>
+        <button onclick="closeMachineIdDialog()"
+            style="display: inline-block; padding: 5px 10px; font-size: 12px;">Cancel</button>
+    </dialog>
+</p>
+
+<h2>Step 1: Sign in</h2>
+
+{% include signinWidget.html %}
+
+<script>
+    $(document).ready(function() {
+        $("#checking-licenses-box").hide();
+        
+        // Setup test user functionality for emulator mode
+        setupTestUserBanner();
+    });
+
+    // On document load, run fillMachineIDFromArgs();
+    document.addEventListener('DOMContentLoaded', function () {
+        fillMachineIDFromArgs();
+    });
+
+    document.addEventListener('signInComplete', function (e) {
+        /* Handle the event:
+        CustomEvent('signInComplete', { detail: { user: user } })
+        Generated by the signinWidget.html inclusion
+        */
+        console.log('signin complete triggered');
+        globalUser = e.detail.user;
+        console.log('signInComplete event received: ' + globalUser);
+
+        $("#choose-license").show();
+        checkLicenseIDFromArgsAndUpdateAvailableLicenses()
+        $("#choose-license").get(0).scrollIntoView();
+    });
+    
+    // Function to set up test user banner
+    function setupTestUserBanner() {
+        console.log('Checking if we are in emulator mode');
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmulator = urlParams.get('is_emulator') === 'true';
+        
+        if (isEmulator) {
+            // Show emulator info box
+            $('#using-emulator-info').show();
             
-        //     checkURLParameters();
-        //     checkLicense()
-        //     // Scroll to bottom of #choose-license div
-        //     // $("#choose-license").get(0).scrollIntoView();
-        //     // Do it on a 1s timer
-        //     // $("#choose-license").show();
-        //     // requestAnimationFrame(() => {
-        //     //     requestAnimationFrame(() => {
-        //     //         $("#choose-license").get(0).scrollIntoView({ behavior: 'smooth' });
-        //     //     });
-        //     // });
-        // });
+            // Show the test user banner
+            const banner = document.getElementById('test-user-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // Set up the test user login button
+            const testUserBtn = document.getElementById('test-user-login');
+            if (testUserBtn) {
+                testUserBtn.addEventListener('click', function() {
+                    // Test user credentials
+                    const testEmail = 'test@example.com';
+                    const testPassword = 'password123';
+                    
+                    // Try to sign in first
+                    firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                        .then((userCredential) => {
+                            console.log('Test user signed in successfully');
+                        })
+                        .catch((error) => {
+                            // If sign-in fails, create the user first
+                            if (error.code === 'auth/user-not-found') {
+                                console.log('Test user not found, creating account...');
+                                firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                    .then((userCredential) => {
+                                        console.log('Test user created and signed in successfully');
+                                    })
+                                    .catch((createError) => {
+                                        console.error('Error creating test user:', createError);
+                                    });
+                            } else {
+                                console.error('Error signing in with test user:', error);
+                            }
+                        });
+                });
+            }
+        }
+    }
+</script>
+<br />
 
-    </script>
-    <br />
+<section id="choose-license" hidden>
+    <h2>Step 2: Choose where to get your license</h2>
+    <div id="licenses-found-info" class="info-box">⏳ Checking available licenses...</div>
+    <div id='step2-button-container' class="button-container">
+        <button id="btn-use-existing" onclick="$('#licenses').show(); $('#license-select').show().css('display', 'block').attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px 32px 8px 8px !important; margin-bottom: 15px; border: 2px solid #0066cc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important; background: #fff url(\'data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E\') no-repeat right 8px center !important; background-size: 16px !important;'); scrollToBottomWithDelay()">Use an existing license</button>
+        <button id='purchase' onclick="onClickBuy()">Purchase a new license</button>
+    </div>
+    <div id="payment-successful-message" class="info-box" hidden></div>
+</section>
+<br/>
 
-    <section id="choose-license" hidden>
-
-        <h2>Step 2: Choose where to get your license</h2>
-        <div id="licenses-found-info" class="info-box">⏳ Checking available licenses...</div>
-        <div id='step2-button-container' class="button-container">
-            <button id="btn-use-existing" onclick="$('#licenses').show(); scrollToBottomWithDelay()">Use an existing license</button>
-            <button id='purchase' onclick="onClickBuy()">Purchase a new license</button>
-        </div>
-        <div id="payment-successful-message" class="info-box" hidden></div>
-    </section>
-    <br/>
-
-    <!-- {% assign tiers = "Basic, $50 one time; SAR, $50/month" | split: "; " %} -->
-
-
-    <!-- Just make tiers lower case: ('basic', 'sar')-no f-->
-
-    <section id="licenses" hidden>
-        <h2>Step 3: Select an existing license</h2>
-        <div class="container">
-            <!-- Box for License Selection and Details -->
-            <div class="box license-box">
-                <div class="input-label">
-                    Use a license already connected to account:
-                </div>
-                <!-- <div id="checking-licenses-box" class="info-box" hidden>Checking available licenses...</div> -->
-                <!-- With default text "no licenses found" -->
-                <select id="license-select">
+<section id="licenses" hidden>
+    <h2>Step 3: Select an existing license</h2>
+    <div class="container">
+        <!-- Box for License Selection and Details -->
+        <div class="box license-box">
+            <div class="input-label">
+                Use a license already connected to account:
+            </div>
+            <div style="position: relative; width: 100%;">
+                <select id="license-select" style="display: block !important; visibility: visible !important; width: 100%; padding: 8px 32px 8px 8px !important; margin-bottom: 15px; border: 2px solid #0066cc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important; background: #fff url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 8px center !important; background-size: 16px !important;">
                     <!-- options will be dynamically populated -->
                 </select>
-                <textarea id="license-info" class="license-info-box" placeholder="" readonly></textarea>
-                <!-- <select id="license-select" style="width: 100%; box-sizing: border-box;"></select> -->
-                <!-- <textarea id="license-info"
-                    style="width: 100%; height: 6em; overflow-y: auto; white-space: pre-wrap;"
-                    readonly></textarea> -->
-                <div class="button-container button">
-                    <button id="selectLicenseButton" onclick="selectLicense()">Select License</button>
-                </div>
-                <div id="select-license-info" class="info-box" hidden></div>
             </div>
-            
-            <!-- Spacer between the two boxes -->
-            <div class="spacer"></div>
-    
-            <!-- Box for Entering License ID -->
-            <div class="box">
-                <div class="input-label">
-                    ... Or enter License ID to connect to your account:
-                    <!-- <span title="If your email is not associated with a license, you can enter the license ID here">ℹ️</span> -->
-                    <!-- Use the tooltop like above -->
-                    <span class="tooltip">ℹ️
-                        <span class="tooltiptext">If your organisation has a license available, you can attach it to your account by entering the license ID below</span>
-                    </span>
-                </div>
-                <input type="text" id="license-id" placeholder="(e.g. jI9Y9kg8oK3w2yf2)" style="width: 100%;">
-                <div class="button-group">
-                    <button onclick="reCheckLicense()" id="re-check-button" class="non_important_button">Re-check</button>
-                </div>
+            <textarea id="license-info" class="license-info-box" placeholder="" readonly></textarea>
+            <div class="button-container">
+                <button id="selectLicenseButton" onclick="selectLicense()" style="display: block !important; visibility: visible !important;">Select License</button>
             </div>
+            <div id="select-license-info" class="info-box" hidden></div>
         </div>
-    </section>
+        
+        <!-- Spacer between the two boxes -->
+        <div class="spacer"></div>
 
-    <section id="issue-key" hidden>
-        <h2>Step 4: Issue a key for your device</h2>
-        <div id="issue-key-info" class="info-box"></div>
-        <div class="container">
-            <!-- Box for License Selection and Details -->
-            <div class="box license-box">
-                <div class="input-label">Selected license</div>
-                <textarea id="second-license-info-box" class="license-info-box" placeholder="" readonly></textarea>
-                <div class="button-container button">
-                    <button id="issueKeyButton" class='invisible-button'>Issue Key</button>
-                </div>
-                <div id="issue-key-info" class="info-box" hidden></div>
+        <!-- Box for Entering License ID -->
+        <div class="box">
+            <div class="input-label">
+                ... Or enter License ID to connect to your account:
+                <span class="tooltip">ℹ️
+                    <span class="tooltiptext">If your organisation has a license available, you can attach it to your account by entering the license ID below</span>
+                </span>
             </div>
-            
-            <!-- Spacer between the two boxes -->
-            <div class="spacer"></div>
-        </div>
-        <div></div>
-        <div></div>
-    </section>
-
-    
-
-    <!-- <button onclick="onClickRequestKey()">Get Key</button> -->
-
-    <section id="key-view" hidden>
-
-        <h2>Step 5: Copy key into Eagle Eyes Scan</h2>
-        <!-- Box for showing key ID -->
-        <div class="box license-box">
-            <div class="input-label">Your key</div>
-            <textarea id="license-key" class="license-info-box" placeholder="" readonly></textarea>
-            <div class="button-container button">
-            </div>
+            <input type="text" id="license-id" placeholder="(e.g. jI9Y9kg8oK3w2yf2)" style="width: 100%;">
             <div class="button-group">
-                <button id='license-key-copy-button'>Copy Key</button>
+                <button onclick="reCheckLicense()" id="re-check-button" class="non_important_button">Re-check</button>
             </div>
         </div>
-        <div id="license-key-status"></div>
-    </section>
+    </div>
+</section>
 
-    <div id="final-status-box" hidden></div>
+<section id="issue-key" hidden>
+    <h2>Step 4: Issue a key for your device</h2>
+    <div id="issue-key-info" class="info-box"></div>
+    <div class="container">
+        <!-- Box for License Selection and Details -->
+        <div class="box license-box">
+            <div class="input-label">Selected license</div>
+            <textarea id="second-license-info-box" class="license-info-box" placeholder="" readonly></textarea>
+            <div class="button-container">
+                <button id="issueKeyButton" class='invisible-button' style="display: block !important; visibility: visible !important; margin: 15px auto !important;">Issue Key</button>
+            </div>
+            <div id="issue-key-info" class="info-box" hidden></div>
+        </div>
+        
+        <!-- Spacer between the two boxes -->
+        <div class="spacer"></div>
+    </div>
+</section>
 
-    <div id="end-of-page"> </div>
-    <!-- Leave a little space on the bottom -->
-    <br />
-    <br />
-</body>
+<section id="key-view" hidden>
+    <h2>Step 5: Copy key into Eagle Eyes Scan</h2>
+    <!-- Box for showing key ID -->
+    <div class="box license-box">
+        <div class="input-label">Your key</div>
+        <textarea id="license-key" class="license-info-box" placeholder="" readonly></textarea>
+        <div class="button-group">
+            <button id='license-key-copy-button'>Copy Key</button>
+        </div>
+    </div>
+    <div id="license-key-status"></div>
+</section>
+
+<div id="final-status-box" hidden></div>
+
+<div id="end-of-page"> </div>
+<!-- Leave a little space on the bottom -->
+<br />
+<br />
+
