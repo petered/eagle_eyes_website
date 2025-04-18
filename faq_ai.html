@@ -10,9 +10,8 @@ permalink: /faq/
     <div class="section-block bkg-grey-ultralight" style="padding: 100px 0 30px 0;">
         <div class="row">
             <div class="column width-10 offset-1 center">
-                <div style="position: relative; height: 90px; margin-bottom: 20px;">
-                    <div style="position: absolute; font-size: 5.5rem; line-height: 1; color: #1e90ff; transform: rotate(20deg); left: 48%; top: 0;">   🦅   </div>
-                    <div style="position: absolute; font-size: 4rem; line-height: 1; color: #1e90ff; left: 46%; top: 65px;">❓   </div>
+                <div style="position: relative; height: 240px; margin-bottom: 20px;">
+                    <img src="{{ site.baseurl }}/images/eagle_eyes_faq.png" alt="Eagle Eyes FAQ" style="height: 240px;">
                 </div>
                 <h1 class="mb-10">Frequently Asked Questions</h1>
             </div>
@@ -33,8 +32,15 @@ permalink: /faq/
                             </button>
                         </div>
                     </form>
+                    <div id="search-loading" class="search-loading" style="display: none;">
+                        <div class="eagle-loader">
+                            <div class="eagle-wing left-wing">🦅</div>
+                            <div class="eagle-wing right-wing">🦅</div>
+                        </div>
+                        <div class="loading-text">Eagle Eyes is searching...</div>
+                    </div>
                     <div id="search-error" class="search-error" style="display: none;">
-                        No matching FAQ found.
+                        <a href="{{ '/contact/' | relative_url }}" style="color: #1e90ff; text-decoration: none;">Couldn't find an exact match. Click here to ask us directly!</a>
                     </div>
                 </div>
 
@@ -415,59 +421,109 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!question) return;
 
-        try {
-            // Hide any previous error
-            searchError.style.display = 'none';
+        let retryCount = 0;
+        const maxRetries = 5;
+        let foundMatch = false;
 
-            // Call the backend proxy
-            const response = await fetch('http://localhost:3000/ask-faq', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ question }),
-            });
+        // Show initial eagle loader
+        const loadingContainer = document.getElementById('search-loading');
+        loadingContainer.innerHTML = `
+            <div class="eagle-loader">
+                <div class="eagle-wing left-wing">🦅</div>
+                <div class="eagle-wing right-wing">🦅</div>
+            </div>
+            <div class="loading-text">Eagle Eyes is searching...</div>
+        `;
+        loadingContainer.style.display = 'block';
 
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+        while (retryCount < maxRetries && !foundMatch) {
+            try {
+                // Hide any previous error
+                searchError.style.display = 'none';
 
-            const data = await response.json();
-            const faqId = data.faqId;
+                // Show transition animation between retries
+                if (retryCount > 0) {
+                    loadingContainer.innerHTML = `
+                        <div class="eagle-loader">
+                            <div class="magnifying-glass">🔍</div>
+                        </div>
+                        <div class="loading-text">Digging deeper...</div>
+                    `;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Return to eagle animation
+                    loadingContainer.innerHTML = `
+                        <div class="eagle-loader">
+                            <div class="eagle-wing left-wing">🦅</div>
+                            <div class="eagle-wing right-wing">🦅</div>
+                        </div>
+                        <div class="loading-text">Eagle Eyes is searching...</div>
+                    `;
+                }
 
-            if (faqId === '#no-match') {
-                searchError.style.display = 'block';
-                return;
-            }
-
-            // Find and open the FAQ item
-            const faqItem = document.getElementById(faqId.replace('#', ''));
-            if (faqItem) {
-                // Close all other FAQ items
-                document.querySelectorAll('.faq-item').forEach(item => {
-                    item.classList.remove('active');
+                // Call the backend proxy
+                const response = await fetch('http://localhost:3000/ask-faq', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        question,
+                        retryCount: retryCount + 1
+                    }),
                 });
 
-                // Open the found FAQ item
-                faqItem.classList.add('active');
-                
-                // Scroll to the FAQ item
-                setTimeout(() => {
-                    const rect = faqItem.getBoundingClientRect();
-                    const absoluteTop = window.pageYOffset + rect.top;
-                    const headerOffset = 100;
-                    const elementPosition = absoluteTop - headerOffset;
-                    
-                    window.scrollTo({
-                        top: elementPosition,
-                        behavior: 'smooth'
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                const faqId = data.faqId;
+
+                if (faqId === '#no-match') {
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        continue;
+                    }
+                    loadingContainer.style.display = 'none';
+                    searchError.style.display = 'block';
+                    return;
+                }
+
+                foundMatch = true;
+                loadingContainer.style.display = 'none';
+
+                // Find and open the FAQ item
+                const faqItem = document.getElementById(faqId.replace('#', ''));
+                if (faqItem) {
+                    // Close all other FAQ items
+                    document.querySelectorAll('.faq-item').forEach(item => {
+                        item.classList.remove('active');
                     });
-                }, 100);
+
+                    // Open the found FAQ item
+                    faqItem.classList.add('active');
+                    
+                    // Scroll to the FAQ item
+                    setTimeout(() => {
+                        const rect = faqItem.getBoundingClientRect();
+                        const absoluteTop = window.pageYOffset + rect.top;
+                        const headerOffset = 100;
+                        const elementPosition = absoluteTop - headerOffset;
+                        
+                        window.scrollTo({
+                            top: elementPosition,
+                            behavior: 'smooth'
+                        });
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loadingContainer.style.display = 'none';
+                searchError.textContent = 'An error occurred while searching. Please try again.';
+                searchError.style.display = 'block';
+                break;
             }
-        } catch (error) {
-            console.error('Error:', error);
-            searchError.textContent = 'An error occurred while searching. Please try again.';
-            searchError.style.display = 'block';
         }
     });
 });
@@ -576,9 +632,93 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .search-error {
-    margin-top: 10px;
-    color: #dc3545;
-    font-size: 14px;
+    margin-top: 15px;
+    margin-bottom: 20px;
+    font-size: 15px;
     text-align: center;
+    line-height: 1.5;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-error:hover {
+    background-color: #e9ecef;
+    border-color: #1e90ff;
+}
+
+.search-error a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.search-loading {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.eagle-loader {
+    display: inline-block;
+    position: relative;
+    width: 150px;
+    height: 40px;
+}
+
+.eagle-wing {
+    position: absolute;
+    font-size: 24px;
+    animation: flap 1s infinite ease-in-out;
+}
+
+.left-wing {
+    left: 30px;
+    transform-origin: right center;
+    animation-name: flapLeft;
+}
+
+.right-wing {
+    right: 30px;
+    transform-origin: left center;
+    animation-name: flapRight;
+}
+
+.magnifying-glass {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #1e90ff;
+    animation: wave 1s infinite ease-in-out;
+}
+
+.loading-text {
+    margin-top: 10px;
+    color: #1e90ff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+@keyframes wave {
+    0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+    25% { transform: translate(-50%, -50%) rotate(15deg); }
+    75% { transform: translate(-50%, -50%) rotate(-15deg); }
+}
+
+@keyframes flapLeft {
+    0%, 100% { transform: rotate(0deg) scaleX(-1); }
+    50% { transform: rotate(-20deg) scaleX(-1); }
+}
+
+@keyframes flapRight {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(20deg); }
 }
 </style> 
