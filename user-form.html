@@ -259,6 +259,23 @@ permalink: /user-form/
         const fetch_url = hostURL + '/submit_register_form';
         console.log("Fetch URL:", fetch_url);
         
+        // Final verification for trial form use_case field
+        if (currentFormType === 'trial' && !formData.hasOwnProperty('use_case')) {
+            console.error("Critical error: use_case field missing from trial form submission!");
+            
+            // Try to recover the value from the DOM
+            const useCaseElement = document.getElementById('use-case');
+            if (useCaseElement && useCaseElement.value) {
+                console.log("Recovered use_case value: " + useCaseElement.value);
+                formData.use_case = useCaseElement.value;
+            } else {
+                // If we can't recover, show an error to the user
+                submitButton.classList.remove('processing');
+                $("#status").html("Please fill in what you would use Eagle Eyes for").show();
+                return; // Abort submission
+            }
+        }
+        
         // Get auth token and submit
         firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
             $.ajax({
@@ -690,6 +707,25 @@ permalink: /user-form/
         // Only log once at the start
         console.log(`Validating form (type: ${currentFormType})`);
         
+        // Special handling for use_case field in trial form
+        if (currentFormType === 'trial') {
+            const useCaseElement = document.getElementById('use-case');
+            if (useCaseElement) {
+                console.log("Validating use-case element:", useCaseElement);
+                console.log("use-case visibility:", isElementVisible(useCaseElement));
+                console.log("use-case value:", useCaseElement.value);
+                
+                // Force validate this field separately
+                if (!useCaseElement.value || !useCaseElement.value.trim()) {
+                    isValid = false;
+                    useCaseElement.style.borderColor = 'red';
+                    validationErrors.push("Empty field: What are you interested in using Eagle Eyes for?");
+                } else {
+                    useCaseElement.style.borderColor = '';
+                }
+            }
+        }
+        
         requiredFields.forEach(function(field) {
             // Skip fields that are not visible
             if (!isElementVisible(field)) return;
@@ -766,6 +802,19 @@ permalink: /user-form/
             }
         });
 
+        // Log the use_case field explicitly for debugging purposes
+        console.log("use_case field before cleanup:", formData['use_case']);
+        
+        // Check if this is a trial form
+        if (currentFormType === 'trial') {
+            const useCaseElement = document.getElementById('use-case');
+            console.log("use-case element:", useCaseElement);
+            if (useCaseElement) {
+                console.log("use-case visibility:", isElementVisible(useCaseElement));
+                console.log("use-case value:", useCaseElement.value);
+            }
+        }
+
         // Remove empty keys or invalid entries
         for (var key in formData) {
             if (formData[key] === null || formData[key] === undefined || 
@@ -782,10 +831,24 @@ permalink: /user-form/
         if (currentFormType == 'trial') {
             // Add the trial type to the form data
             formData['trial_request'] = true;
+            
+            // Explicitly ensure use_case field is included for trial forms
+            if (!formData.hasOwnProperty('use_case')) {
+                console.warn("use_case field missing from trial form data!");
+                const useCaseElement = document.getElementById('use-case');
+                if (useCaseElement && useCaseElement.value) {
+                    console.log("Manually adding use_case from element:", useCaseElement.value);
+                    formData.use_case = useCaseElement.value;
+                } else {
+                    console.log("Could not retrieve use_case value from element");
+                }
+            }
         } else {
             formData['trial_request'] = false;
         }
         
+        // Final check of the form data before returning
+        console.log("Final form data:", formData);
         return formData;
     }
 
