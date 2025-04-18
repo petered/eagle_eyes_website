@@ -407,13 +407,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- FAQ Search Functionality -->
 <script>
-// ... existing script ...
-
-// FAQ Search Functionality
 document.addEventListener('DOMContentLoaded', function() {
     const searchForm = document.getElementById('faq-search-form');
     const searchInput = document.getElementById('faq-search');
     const searchError = document.getElementById('search-error');
+    const searchResults = document.createElement('div');
+    searchResults.className = 'search-results';
+    searchForm.parentNode.insertBefore(searchResults, searchError);
 
     searchForm.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -435,6 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="loading-text">Eagle Eyes is searching...</div>
         `;
         loadingContainer.style.display = 'block';
+        searchResults.innerHTML = ''; // Clear previous results
 
         while (retryCount < maxRetries && !foundMatch) {
             try {
@@ -494,29 +495,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 foundMatch = true;
                 loadingContainer.style.display = 'none';
 
-                // Find and open the FAQ item
+                // Find the FAQ item
                 const faqItem = document.getElementById(faqId.replace('#', ''));
                 if (faqItem) {
-                    // Close all other FAQ items
-                    document.querySelectorAll('.faq-item').forEach(item => {
-                        item.classList.remove('active');
+                    // Get the question text
+                    const questionText = faqItem.querySelector('.faq-question').textContent.trim();
+                    
+                    // Create and display the result link
+                    const resultLink = document.createElement('a');
+                    resultLink.href = `#${faqId.replace('#', '')}`;
+                    resultLink.className = 'search-result-link';
+                    resultLink.textContent = questionText;
+                    
+                    // Add click handler
+                    resultLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Close all other FAQ items
+                        document.querySelectorAll('.faq-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+
+                        // Open the found FAQ item
+                        faqItem.classList.add('active');
+                        
+                        // Update URL hash
+                        history.pushState(null, null, `#${faqId.replace('#', '')}`);
+                        
+                        // Scroll to the FAQ item
+                        setTimeout(() => {
+                            const rect = faqItem.getBoundingClientRect();
+                            const absoluteTop = window.pageYOffset + rect.top;
+                            const headerOffset = 100;
+                            const elementPosition = absoluteTop - headerOffset;
+                            
+                            window.scrollTo({
+                                top: elementPosition,
+                                behavior: 'smooth'
+                            });
+                        }, 100);
                     });
 
-                    // Open the found FAQ item
-                    faqItem.classList.add('active');
-                    
-                    // Scroll to the FAQ item
-                    setTimeout(() => {
-                        const rect = faqItem.getBoundingClientRect();
-                        const absoluteTop = window.pageYOffset + rect.top;
-                        const headerOffset = 100;
-                        const elementPosition = absoluteTop - headerOffset;
-                        
-                        window.scrollTo({
-                            top: elementPosition,
-                            behavior: 'smooth'
-                        });
-                    }, 100);
+                    searchResults.innerHTML = '';
+                    searchResults.appendChild(resultLink);
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -721,5 +742,29 @@ document.addEventListener('DOMContentLoaded', function() {
 @keyframes flapRight {
     0%, 100% { transform: rotate(0deg); }
     50% { transform: rotate(20deg); }
+}
+
+.search-results {
+    margin: 15px 0;
+    text-align: center;
+}
+
+.search-result-link {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    color: #1e90ff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.search-result-link:hover {
+    background-color: #e9ecef;
+    border-color: #1e90ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 </style> 
