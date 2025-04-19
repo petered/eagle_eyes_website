@@ -259,6 +259,23 @@ permalink: /user-form/
         const fetch_url = hostURL + '/submit_register_form';
         console.log("Fetch URL:", fetch_url);
         
+        // Final verification for trial form use_case field
+        if (currentFormType === 'trial' && !formData.hasOwnProperty('use_case')) {
+            console.error("Critical error: use_case field missing from trial form submission!");
+            
+            // Try to recover the value from the DOM
+            const useCaseElement = document.getElementById('use-case');
+            if (useCaseElement && useCaseElement.value) {
+                console.log("Recovered use_case value: " + useCaseElement.value);
+                formData.use_case = useCaseElement.value;
+            } else {
+                // If we can't recover, show an error to the user
+                submitButton.classList.remove('processing');
+                $("#status").html("Please fill in what you would use Eagle Eyes for").show();
+                return; // Abort submission
+            }
+        }
+        
         // Get auth token and submit
         firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
             $.ajax({
@@ -394,6 +411,10 @@ permalink: /user-form/
                         console.log('User did not fill in form yet.');
                         formContainer.style.display = 'block';
                     } else {
+                        // Store the form data for prefilling
+                        window.existingUserFormData = formOrNull;
+                        console.log("Retrieved existing form data:", formOrNull);
+                        
                         // User has already filled in the form: redirect to account/.
                         console.log("User already filled in form. Redirecting to account/");
                         window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
@@ -413,6 +434,137 @@ permalink: /user-form/
             // On error, show the form anyway.
             formContainer.style.display = 'block';
         });
+    }
+    
+    // Function to get existing user data for prefilling forms
+    function fetchUserDataForPrefill(user, callback) {
+        // Get the host URL for API calls
+        const hostURL = window.getHostUrl ? window.getHostUrl() : 
+                      (useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 
+                       'https://us-central1-eagleeyessearch.cloudfunctions.net');
+        
+        const fetch_url = hostURL + '/has_user_already_filled_in_form';
+
+        user.getIdToken(true).then(function(idToken) {
+            $.ajax({
+                url: fetch_url,
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(data) {
+                    // Parse the response if it's a string
+                    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+                    const formOrNull = parsedData.form;
+                    
+                    if (formOrNull !== null) {
+                        console.log("Retrieved existing form data for prefill");
+                        window.existingUserFormData = formOrNull;
+                        
+                        // Call callback with the data
+                        if (callback && typeof callback === 'function') {
+                            callback(formOrNull);
+                        }
+                    } else {
+                        console.log("No existing form data found for prefill");
+                        window.existingUserFormData = null;
+                        
+                        // Call callback with null
+                        if (callback && typeof callback === 'function') {
+                            callback(null);
+                        }
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error fetching user data for prefill:", textStatus);
+                    window.existingUserFormData = null;
+                    
+                    if (callback && typeof callback === 'function') {
+                        callback(null);
+                    }
+                }
+            });
+        }).catch(function(error) {
+            console.error("Error getting ID token for prefill");
+            window.existingUserFormData = null;
+            
+            if (callback && typeof callback === 'function') {
+                callback(null);
+            }
+        });
+    }
+    
+    // Function to prefill form fields with user data
+    function prefillFormFields(formData) {
+        if (!formData) {
+            return;
+        }
+        
+        // Simple direct field mapping for all fields
+        const fieldIds = [
+            'first_name', 
+            'last_name', 
+            'title',
+            'team',         // Organization name
+            'website',      // Organization website
+            'location',     // Location
+            'use-case'
+        ];
+        
+        // Prefill fields by their direct IDs
+        fieldIds.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            // Use different property name for "use-case" field
+            const dataKey = fieldId === 'use-case' ? 'use_case' : fieldId;
+            
+            if (element && formData[dataKey]) {
+                element.value = formData[dataKey];
+            }
+        });
+        
+        // Try direct querySelector as backup
+        if (formData.team) {
+            const teamElements = document.querySelectorAll('[name="team"]');
+            if (teamElements.length > 0) {
+                teamElements[0].value = formData.team;
+            }
+        }
+        
+        if (formData.website) {
+            const websiteElements = document.querySelectorAll('[name="website"]');
+            if (websiteElements.length > 0) {
+                websiteElements[0].value = formData.website;
+            }
+        }
+        
+        if (formData.location) {
+            const locationElements = document.querySelectorAll('[name="location"]');
+            if (locationElements.length > 0) {
+                locationElements[0].value = formData.location;
+            }
+        }
+        
+        // Handle radio buttons
+        for (const [key, value] of Object.entries(formData)) {
+            const radioButtons = document.querySelectorAll(`input[type="radio"][name="${key}"]`);
+            if (radioButtons.length > 0) {
+                radioButtons.forEach(radio => {
+                    if (radio.value === value) {
+                        radio.checked = true;
+                    }
+                });
+            }
+        }
+        
+        // Handle checkboxes
+        for (const [key, value] of Object.entries(formData)) {
+            if (typeof value === 'boolean') {
+                const checkbox = document.querySelector(`input[type="checkbox"][name="${key}"]`);
+                if (checkbox) {
+                    checkbox.checked = value;
+                }
+            }
+        }
     }
     
     // Toggle the sign in overlay
@@ -554,10 +706,24 @@ permalink: /user-form/
                 setFormType(reason);
                 hideSignupTypeSection();
                 showFormSection(reason);
-                console.log(`Form type pre-selected from URL parameter: ${reason}`);
                 
-                // Show the form since we know which type to display
-                formContainer.style.display = 'block';
+                // Make sure user is authenticated before fetching data
+                if (user) {
+                    // Show the form first to ensure all fields are in the DOM
+                    formContainer.style.display = 'block';
+                    
+                    // Fetch user data for prefill with a delay to ensure DOM is ready
+                    setTimeout(() => {
+                        fetchUserDataForPrefill(user, function(formData) {
+                            // Prefill form if we have data
+                            if (formData) {
+                                prefillFormFields(formData);
+                            }
+                        });
+                    }, 500);
+                } else {
+                    formContainer.style.display = 'block';
+                }
             } else {
                 // Fallback - just show the form with the radio buttons
                 // Hide the loading message
@@ -565,8 +731,6 @@ permalink: /user-form/
                 
                 // Show the form container without pre-selecting any option
                 formContainer.style.display = 'block';
-                
-                console.log('Invalid reason parameter. Showing default form options.');
             }
         } else {
             // No reason parameter, check if user has already filled the form
@@ -608,6 +772,15 @@ permalink: /user-form/
         
         // Show the appropriate form section
         showFormSection(formType);
+        
+        // If we have a signed-in user, fetch their form data for prefill
+        const user = firebase.auth().currentUser;
+        if (user && (formType === 'purchase' || formType === 'trial')) {
+            // Add a slight delay to ensure DOM is ready
+            setTimeout(() => {
+                fetchUserDataForPrefill(user, prefillFormFields);
+            }, 300);
+        }
     }
     
     // Function to show/hide appropriate form sections
@@ -660,6 +833,14 @@ permalink: /user-form/
                 return;
         }
         
+        // Check if we should prefill form fields
+        if (window.existingUserFormData) {
+            // Use timeout to ensure form is fully visible before prefill
+            setTimeout(() => {
+                prefillFormFields(window.existingUserFormData);
+            }, 300);
+        }
+        
         // Smooth scroll to the additional fields
         additionalFields.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -689,6 +870,25 @@ permalink: /user-form/
 
         // Only log once at the start
         console.log(`Validating form (type: ${currentFormType})`);
+        
+        // Special handling for use_case field in trial form
+        if (currentFormType === 'trial') {
+            const useCaseElement = document.getElementById('use-case');
+            if (useCaseElement) {
+                console.log("Validating use-case element:", useCaseElement);
+                console.log("use-case visibility:", isElementVisible(useCaseElement));
+                console.log("use-case value:", useCaseElement.value);
+                
+                // Force validate this field separately
+                if (!useCaseElement.value || !useCaseElement.value.trim()) {
+                    isValid = false;
+                    useCaseElement.style.borderColor = 'red';
+                    validationErrors.push("Empty field: What are you interested in using Eagle Eyes for?");
+                } else {
+                    useCaseElement.style.borderColor = '';
+                }
+            }
+        }
         
         requiredFields.forEach(function(field) {
             // Skip fields that are not visible
@@ -766,6 +966,19 @@ permalink: /user-form/
             }
         });
 
+        // Log the use_case field explicitly for debugging purposes
+        console.log("use_case field before cleanup:", formData['use_case']);
+        
+        // Check if this is a trial form
+        if (currentFormType === 'trial') {
+            const useCaseElement = document.getElementById('use-case');
+            console.log("use-case element:", useCaseElement);
+            if (useCaseElement) {
+                console.log("use-case visibility:", isElementVisible(useCaseElement));
+                console.log("use-case value:", useCaseElement.value);
+            }
+        }
+
         // Remove empty keys or invalid entries
         for (var key in formData) {
             if (formData[key] === null || formData[key] === undefined || 
@@ -782,10 +995,24 @@ permalink: /user-form/
         if (currentFormType == 'trial') {
             // Add the trial type to the form data
             formData['trial_request'] = true;
+            
+            // Explicitly ensure use_case field is included for trial forms
+            if (!formData.hasOwnProperty('use_case')) {
+                console.warn("use_case field missing from trial form data!");
+                const useCaseElement = document.getElementById('use-case');
+                if (useCaseElement && useCaseElement.value) {
+                    console.log("Manually adding use_case from element:", useCaseElement.value);
+                    formData.use_case = useCaseElement.value;
+                } else {
+                    console.log("Could not retrieve use_case value from element");
+                }
+            }
         } else {
             formData['trial_request'] = false;
         }
         
+        // Final check of the form data before returning
+        console.log("Final form data:", formData);
         return formData;
     }
 
