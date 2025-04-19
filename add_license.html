@@ -125,6 +125,7 @@ permalink: /add_license/
 
     <section id="signin">
         <div class="info-box" id="using-emulator-info" style="display: none;">Using local Firebase emulator</div>
+        <div class="info-box" id="trial-request-info" style="display: none;"></div>
         <h1>Add a License</h1>
         <h3> Step 1: Sign in </h3>
         {% include signinWidget.html %}
@@ -145,6 +146,7 @@ permalink: /add_license/
                     <div class="form-section">
                         <label for="license_name"><b>License Name: (optional)</b></label>
                         <input type="text" placeholder="Enter License Name" id="license_name" name="license_name">
+                        <div id="licenseNameError" class="error-message" style="color: red; display: none;">License name must be at least 20 characters long.</div>
                     </div>
                     <!-- <div class="form-section">
                         <label for="registration_email"><b>Email of registered person: (required)</b></label>
@@ -184,29 +186,60 @@ permalink: /add_license/
                     
                     <div class="form-section">
                         <fieldset>
-                            <legend><b>User Type:</b></legend>
+                            <legend><b>License Type:</b></legend>
                             <div class="radio-container">
                                 <label>
-                                    <input type="radio" id="volunteer" name="userType" value="volunteer" required>
+                                    <input type="radio" id="no_license" name="licenseType" value="no_license" required checked>
                                     <span class="custom-radio"></span>
-                                    Volunteer
+                                    No license (user account approval/verification)
                                 </label>
                             </div>
                             <div class="radio-container">
                                 <label>
-                                    <input type="radio" id="general" name="userType" value="general" required checked>
+                                    <input type="radio" id="trial" name="licenseType" value="trial" required>
                                     <span class="custom-radio"></span>
-                                    General
+                                    Trial license
                                 </label>
                             </div>
                             <div class="radio-container">
                                 <label>
-                                    <input type="radio" id="special" name="userType" value="special" required>
+                                    <input type="radio" id="customer" name="licenseType" value="customer" required>
                                     <span class="custom-radio"></span>
-                                    Special
+                                    Customer license (courtesy license for non-ambassadors)
+                                </label>
+                            </div>
+                            <div class="radio-container">
+                                <label>
+                                    <input type="radio" id="ambassador" name="licenseType" value="ambassador" required>
+                                    <span class="custom-radio"></span>
+                                    Ambassador license
+                                </label>
+                            </div>
+                            <div class="radio-container">
+                                <label>
+                                    <input type="radio" id="internal" name="licenseType" value="internal" required>
+                                    <span class="custom-radio"></span>
+                                    Internal license (for our own testing)
+                                </label>
+                            </div>
+                            <div class="radio-container">
+                                <label>
+                                    <input type="radio" id="public" name="licenseType" value="public" required>
+                                    <span class="custom-radio"></span>
+                                    Public license (hides license users for public beta testing)
                                 </label>
                             </div>
                         </fieldset>
+                        <div id="publicLicenseNameContainer" style="display:none; margin-top: 10px;">
+                            <label for="publicLicenseName"><b>Public License Name (exactly 20 alphanumeric characters):</b></label>
+                            <input type="text" id="publicLicenseName" name="publicLicenseName" placeholder="20 alphanumeric characters" maxlength="20">
+                            <div id="publicLicenseNameError" class="error-message" style="color: red; display: none;">License name must be exactly 20 alphanumeric characters.</div>
+                        </div>
+                        <div id="trialRequestIdContainer" style="display:none; margin-top: 10px;">
+                            <label for="trialRequestId"><b>Trial Request ID:</b></label>
+                            <input type="text" id="trialRequestId" name="trialRequestId" placeholder="Enter trial request ID">
+                            <div class="help-text" style="font-size: 0.85em; color: #555; margin-top: 5px;">If the trial request ID is empty, the system will create a new trial request ID.</div>
+                        </div>
                     </div>
     
                     <div class="form-section">
@@ -248,10 +281,10 @@ permalink: /add_license/
             // Populate license duration select
             const licenseOptions = [
                 { value: 'no_license', text: 'No License' },
-                { value: 'two_weeks', text: 'Intro License: Pro - 2 Weeks' },
-                { value: 'one_month', text: 'Pro - 1 Month' },
-                { value: 'three_months', text: 'Pro - 3 Months' },
-                { value: 'one_year', text: 'Pro - 1 Year' },
+                { value: 'two_weeks', text: '2 Weeks' },
+                { value: 'one_month', text: '1 Month' },
+                { value: 'three_months', text: '3 Months' },
+                { value: 'one_year', text: '1 Year' },
                 { value: 'custom', text: 'Custom'},
                 { value: 'live', text: 'Live' }
             ];
@@ -270,6 +303,42 @@ permalink: /add_license/
                 } else {
                     $('#customDaysInput').hide();
                 }
+            });
+            
+            // Show/hide public license name field based on license type selection
+            $('input[name="licenseType"]').on('change', function() {
+                updateFieldVisibility();
+            });
+            
+            // Function to update field visibility based on selected license type
+            function updateFieldVisibility() {
+                const selectedLicenseType = $('input[name="licenseType"]:checked').val();
+                
+                // Public license name field visibility
+                if (selectedLicenseType === 'public') {
+                    $('#publicLicenseNameContainer').show();
+                } else {
+                    $('#publicLicenseNameContainer').hide();
+                    $('#publicLicenseName').val(''); // Clear the field when hidden
+                    $('#publicLicenseNameError').hide();
+                }
+                
+                // Trial request ID field visibility
+                if (selectedLicenseType === 'trial') {
+                    $('#trialRequestIdContainer').show();
+                } else {
+                    $('#trialRequestIdContainer').hide();
+                }
+                
+                // Set license duration to "No license" when "No license (just approval)" is selected
+                if (selectedLicenseType === 'no_license') {
+                    $('#licenseDurationSelect').val('no_license').trigger('change');
+                }
+            }
+            
+            // Validate public license name when it changes
+            $('#publicLicenseName').on('input', function() {
+                validatePublicLicenseName();
             });
     
             // Listener for sign-in completion
@@ -305,15 +374,40 @@ permalink: /add_license/
     
         function handleForm() {
             event.preventDefault();
+            
+            // Validate public license name if public license type is selected
+            if ($('input[name="licenseType"]:checked').val() === 'public') {
+                if (!validatePublicLicenseName()) {
+                    return; // Stop form submission if validation fails
+                }
+            }
+            
+            // Get license type
+            const licenseType = $('input[name="licenseType"]:checked').val();
+            
+            // Validate license name (at least 20 characters) only for trial licenses
             const licenseName = $('#license_name').val();
+            if (licenseType === 'trial' && licenseName.length < 20) {
+                $('#licenseNameError').show();
+                $('#license_name').addClass('error');
+                return; // Stop form submission if validation fails
+            } else {
+                $('#licenseNameError').hide();
+                $('#license_name').removeClass('error');
+            }
+            
             const emails = $('#emails').val().split(/,\s*/);
             const domains = $('#domains').val().split(/,\s*/);
-            const userType = $('input[name="userType"]:checked').val();
             const licenseDuration = $('#licenseDurationSelect').val();
             const numberOfKeys = parseInt($('#number_of_keys').val(), 10);
             const extraSecurityPassword = $('#extra_security_password').val();
             const sameLicenseIdValue = $('input[name="sameLicenseIdValue"]:checked').val();
             const sameLicenseId = sameLicenseIdValue === 'true';
+            // Get public license name if applicable
+            const publicLicenseName = licenseType === 'public' ? $('#publicLicenseName').val() : null;
+            // Get trial request ID if applicable
+            const trialRequestId = licenseType === 'trial' ? $('#trialRequestId').val() : null;
+            
             // const registrationEmail = $('#registration_email').val();
             // const trial = $('input[name="is_trial"]:checked').val();
             console.log(sameLicenseIdValue);
@@ -356,18 +450,40 @@ permalink: /add_license/
                 license_name: licenseName,
                 emails: emails,
                 domains: domains,
-                user_type: userType,
+                license_type: licenseType,
                 license_duration: licenseDuration,
                 tier: tier,
                 n_tokens: numberOfKeys,
                 expiry_timestamp: expiryTimestamp,
                 extra_security_password: extraSecurityPassword,
-                same_license_id: sameLicenseId
+                same_license_id: sameLicenseId,
+                public_license_name: publicLicenseName,
+                trial_request_id: trialRequestId
                 // registration_email: registrationEmail,
                 // trial: trial
             };
 
             sendLicenseData(data);
+        }
+
+        // Function to validate the public license name
+        function validatePublicLicenseName() {
+            const publicLicenseNameField = $('#publicLicenseName');
+            const publicLicenseName = publicLicenseNameField.val();
+            const errorElement = $('#publicLicenseNameError');
+            
+            // Regular expression to check for exactly 20 alphanumeric characters
+            const regex = /^[a-zA-Z0-9]{20}$/;
+            
+            if (!regex.test(publicLicenseName)) {
+                errorElement.show();
+                publicLicenseNameField.addClass('error');
+                return false;
+            } else {
+                errorElement.hide();
+                publicLicenseNameField.removeClass('error');
+                return true;
+            }
         }
 
     function sendLicenseData(data) {
@@ -442,16 +558,59 @@ permalink: /add_license/
         });
     }
 
-    // function prefillEmail() {
-    //     // Get URL parameters
-    //     const urlParams = new URLSearchParams(window.location.search);
-    //     const email = urlParams.get('email'); // Get 'email' parameter from URL
-
-    //     // Check if the 'emails' parameter exists and set the value of the input field
-    //     if (email) {
-    //         document.getElementById('emails').value = email;
-    //     }
-    // }
+    function prefillEmail() {
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const email = urlParams.get('emails'); // Get 'emails' parameter from URL
+        const trialRequestId = urlParams.get('trial_request_id'); // Get 'trial_request_id' parameter
+        const isPurchase = urlParams.get('purchase') === 'true'; // Check for purchase=true
+        const teamName = urlParams.get('team'); // Get 'team' parameter from URL
+        
+        // Check if the 'emails' parameter exists and set the value of the input field
+        if (email) {
+            document.getElementById('emails').value = email;
+        }
+        
+        // If it's a purchase request
+        if (isPurchase) {
+            // Set license type to "no_license"
+            document.getElementById('no_license').checked = true;
+            
+            // Update fields visibility after setting the license type
+            updateFieldVisibility();
+        }
+        // If there's a trial request ID
+        else if (trialRequestId) {
+            // Set license type to "trial"
+            document.getElementById('trial').checked = true;
+            
+            // Set license duration to "1 Month" and 6 keys
+            $('#licenseDurationSelect').val('one_month');
+            $('#number_of_keys').val(6);
+            
+            // Prefill the trial request ID in the field and make it read-only
+            const trialRequestIdField = document.getElementById('trialRequestId');
+            trialRequestIdField.value = trialRequestId;
+            trialRequestIdField.readOnly = true;
+            trialRequestIdField.style.backgroundColor = "#f0f0f0"; // Visual indication that it's read-only
+            
+            // Prefill license title with "Trial license for [team]" if team parameter exists, 
+            // otherwise use email or default
+            if (teamName) {
+                document.getElementById('license_name').value = "Trial license for " + teamName;
+            } else if (email) {
+                document.getElementById('license_name').value = "Trial license for " + email;
+            } else {
+                document.getElementById('license_name').value = "Trial license";
+            }
+            
+            // Update fields visibility after setting the license type
+            updateFieldVisibility();
+        } else {
+            // If no specific action, ensure fields are still properly initialized
+            updateFieldVisibility();
+        }
+    }
 
     </script>
     
