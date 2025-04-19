@@ -438,18 +438,14 @@ permalink: /user-form/
     
     // Function to get existing user data for prefilling forms
     function fetchUserDataForPrefill(user, callback) {
-        console.log("fetchUserDataForPrefill called for user:", user.email);
-        
         // Get the host URL for API calls
         const hostURL = window.getHostUrl ? window.getHostUrl() : 
                       (useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 
                        'https://us-central1-eagleeyessearch.cloudfunctions.net');
         
         const fetch_url = hostURL + '/has_user_already_filled_in_form';
-        console.log("Prefill fetch URL:", fetch_url);
 
         user.getIdToken(true).then(function(idToken) {
-            console.log("Got user ID token for prefill, making request");
             $.ajax({
                 url: fetch_url,
                 type: 'GET',
@@ -457,13 +453,12 @@ permalink: /user-form/
                     'Authorization': 'Bearer ' + idToken
                 },
                 success: function(data) {
-                    console.log("Received data from server for prefill:", data);
                     // Parse the response if it's a string
                     const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
                     const formOrNull = parsedData.form;
                     
                     if (formOrNull !== null) {
-                        console.log("Retrieved existing form data for prefill:", formOrNull);
+                        console.log("Retrieved existing form data for prefill");
                         window.existingUserFormData = formOrNull;
                         
                         // Call callback with the data
@@ -481,8 +476,7 @@ permalink: /user-form/
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    console.error("Error fetching user data for prefill:", textStatus, errorThrown);
-                    console.error("Response text:", jqXHR.responseText);
+                    console.error("Error fetching user data for prefill:", textStatus);
                     window.existingUserFormData = null;
                     
                     if (callback && typeof callback === 'function') {
@@ -491,7 +485,7 @@ permalink: /user-form/
                 }
             });
         }).catch(function(error) {
-            console.error("Error getting ID token for prefill:", error);
+            console.error("Error getting ID token for prefill");
             window.existingUserFormData = null;
             
             if (callback && typeof callback === 'function') {
@@ -503,11 +497,8 @@ permalink: /user-form/
     // Function to prefill form fields with user data
     function prefillFormFields(formData) {
         if (!formData) {
-            console.log("No form data available for prefill");
             return;
         }
-        
-        console.log("Prefilling form fields with:", formData);
         
         // Simple direct field mapping for all fields
         const fieldIds = [
@@ -528,9 +519,30 @@ permalink: /user-form/
             
             if (element && formData[dataKey]) {
                 element.value = formData[dataKey];
-                console.log(`Prefilled ${fieldId} with ${formData[dataKey]}`);
             }
         });
+        
+        // Try direct querySelector as backup
+        if (formData.team) {
+            const teamElements = document.querySelectorAll('[name="team"]');
+            if (teamElements.length > 0) {
+                teamElements[0].value = formData.team;
+            }
+        }
+        
+        if (formData.website) {
+            const websiteElements = document.querySelectorAll('[name="website"]');
+            if (websiteElements.length > 0) {
+                websiteElements[0].value = formData.website;
+            }
+        }
+        
+        if (formData.location) {
+            const locationElements = document.querySelectorAll('[name="location"]');
+            if (locationElements.length > 0) {
+                locationElements[0].value = formData.location;
+            }
+        }
         
         // Handle radio buttons
         for (const [key, value] of Object.entries(formData)) {
@@ -539,7 +551,6 @@ permalink: /user-form/
                 radioButtons.forEach(radio => {
                     if (radio.value === value) {
                         radio.checked = true;
-                        console.log(`Set radio button ${key} to ${value}`);
                     }
                 });
             }
@@ -551,12 +562,9 @@ permalink: /user-form/
                 const checkbox = document.querySelector(`input[type="checkbox"][name="${key}"]`);
                 if (checkbox) {
                     checkbox.checked = value;
-                    console.log(`Set checkbox ${key} to ${value}`);
                 }
             }
         }
-        
-        console.log("Form prefill completed");
     }
     
     // Toggle the sign in overlay
@@ -686,8 +694,6 @@ permalink: /user-form/
         const hangOnMessage = document.getElementById('hang-on-message');
         const formContainer = document.getElementById('form-container');
         
-        console.log("redirectOrNot called with reason:", reason, "and user:", user ? user.email : "none");
-        
         // First check URL parameters to see if we should show a specific form
         if (reason === 'trial' || reason === 'purchase') {
             // Hide the loading message
@@ -700,27 +706,22 @@ permalink: /user-form/
                 setFormType(reason);
                 hideSignupTypeSection();
                 showFormSection(reason);
-                console.log(`Form type pre-selected from URL parameter: ${reason}`);
                 
                 // Make sure user is authenticated before fetching data
                 if (user) {
-                    console.log("User is authenticated, fetching data for prefill");
                     // Show the form first to ensure all fields are in the DOM
                     formContainer.style.display = 'block';
                     
-                    // Fetch user data for prefill with a slight delay to ensure DOM is ready
+                    // Fetch user data for prefill with a delay to ensure DOM is ready
                     setTimeout(() => {
                         fetchUserDataForPrefill(user, function(formData) {
-                            console.log("Prefill callback received data:", formData ? "yes" : "no");
-                            
                             // Prefill form if we have data
                             if (formData) {
                                 prefillFormFields(formData);
                             }
                         });
-                    }, 200);
+                    }, 500);
                 } else {
-                    console.log("User not authenticated, showing form without prefill");
                     formContainer.style.display = 'block';
                 }
             } else {
@@ -730,8 +731,6 @@ permalink: /user-form/
                 
                 // Show the form container without pre-selecting any option
                 formContainer.style.display = 'block';
-                
-                console.log('Invalid reason parameter. Showing default form options.');
             }
         } else {
             // No reason parameter, check if user has already filled the form
@@ -777,12 +776,10 @@ permalink: /user-form/
         // If we have a signed-in user, fetch their form data for prefill
         const user = firebase.auth().currentUser;
         if (user && (formType === 'purchase' || formType === 'trial')) {
-            console.log(`Fetching user data for ${formType} form prefill`);
-            
             // Add a slight delay to ensure DOM is ready
             setTimeout(() => {
                 fetchUserDataForPrefill(user, prefillFormFields);
-            }, 200);
+            }, 300);
         }
     }
     
@@ -794,8 +791,6 @@ permalink: /user-form/
         const purchaseQuestions = document.getElementById('purchase-questions');
         const titleElement = document.getElementById('formTypeTitle');
         const descriptionElement = document.getElementById('formTypeDescription');
-        
-        console.log(`Showing form section for type: ${formType}`);
         
         // First, show the additional fields
         additionalFields.style.display = 'block';
@@ -840,14 +835,10 @@ permalink: /user-form/
         
         // Check if we should prefill form fields
         if (window.existingUserFormData) {
-            console.log("Found existingUserFormData, will prefill shortly");
             // Use timeout to ensure form is fully visible before prefill
             setTimeout(() => {
-                console.log("Prefilling form with existingUserFormData");
                 prefillFormFields(window.existingUserFormData);
             }, 300);
-        } else {
-            console.log("No existingUserFormData available for prefill");
         }
         
         // Smooth scroll to the additional fields
