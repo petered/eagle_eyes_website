@@ -154,11 +154,12 @@ permalink: /add_license/
                     </div> -->
                     <div class="form-section" style="width: 80%;">
                         <label for="emails"><b>Emails:</b></label>
-                        <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com, bob@example.com"></textarea>
+                        <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com"></textarea>
+                        <div class="help-text" style="font-size: 0.7em; color: #555; margin-top: 5px; font-style: italic;">Will default to info@eagleeyessearch.com when public license is selected</div>
                     </div>
                     <div class="form-section">
                         <label for="domains"><b>Domains: (optional)</b></label>
-                        <input type="text" placeholder="examplecountysar.org,someotherdomain.com" id="domains" name="domains">
+                        <input type="text" placeholder="examplecountysar.org, someotherdomain.com" id="domains" name="domains">
                     </div>
                 </div>
     
@@ -201,6 +202,11 @@ permalink: /add_license/
                                     Trial license
                                 </label>
                             </div>
+                            <div id="trialRequestIdContainer" style="display:none; margin: 8px 0 8px 30px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">
+                                <label for="trialRequestId"><b>Trial Request ID:</b></label>
+                                <input type="text" id="trialRequestId" name="trialRequestId" placeholder="Enter trial request ID">
+                                <div class="help-text" style="font-size: 0.85em; color: #555; margin-top: 5px;">If there is not existing trial request ID, please live this field empty; the system will automatically assign a new trial request ID.</div>
+                            </div>
                             <div class="radio-container">
                                 <label>
                                     <input type="radio" id="customer" name="licenseType" value="customer" required>
@@ -234,11 +240,6 @@ permalink: /add_license/
                             <label for="publicLicenseName"><b>Public License Name (exactly 20 alphanumeric characters):</b></label>
                             <input type="text" id="publicLicenseName" name="publicLicenseName" placeholder="20 alphanumeric characters" maxlength="20">
                             <div id="publicLicenseNameError" class="error-message" style="color: red; display: none;">License name must be exactly 20 alphanumeric characters.</div>
-                        </div>
-                        <div id="trialRequestIdContainer" style="display:none; margin-top: 10px;">
-                            <label for="trialRequestId"><b>Trial Request ID:</b></label>
-                            <input type="text" id="trialRequestId" name="trialRequestId" placeholder="Enter trial request ID">
-                            <div class="help-text" style="font-size: 0.85em; color: #555; margin-top: 5px;">If the trial request ID is empty, the system will create a new trial request ID.</div>
                         </div>
                     </div>
     
@@ -278,6 +279,21 @@ permalink: /add_license/
         $('#place_to_view').html('<a href="' + fireStoreLink + ' " target="_blank">View Licenses</a>');
 
         $(document).ready(function() {
+            // Auto-sign in as joep@eagleeyessearch.com when running in emulator mode
+            if (useLocalFirebaseEmulator) {
+                console.log('Running in emulator mode - attempting auto-sign in as joep@eagleeyessearch.com');
+                // Only attempt auto-sign in on emulator, NEVER in production
+                firebase.auth().signInWithEmailAndPassword('joep@eagleeyessearch.com', 'test-password-for-emulator')
+                    .then(function(userCredential) {
+                        console.log('Auto-signed in as joep@eagleeyessearch.com for local development');
+                        $('#using-emulator-info').text('Using local Firebase emulator - Auto-signed in as joep@eagleeyessearch.com').show();
+                    })
+                    .catch(function(error) {
+                        console.error('Auto-sign in failed:', error);
+                        // Continue with normal sign-in flow if auto-sign in fails
+                    });
+            }
+
             // Populate license duration select
             const licenseOptions = [
                 { value: 'no_license', text: 'No License' },
@@ -285,8 +301,7 @@ permalink: /add_license/
                 { value: 'one_month', text: '1 Month' },
                 { value: 'three_months', text: '3 Months' },
                 { value: 'one_year', text: '1 Year' },
-                { value: 'custom', text: 'Custom'},
-                { value: 'live', text: 'Live' }
+                { value: 'custom', text: 'Custom'}
             ];
     
             const $licenseDurationSelect = $('#licenseDurationSelect');
@@ -326,6 +341,10 @@ permalink: /add_license/
                 // Trial request ID field visibility
                 if (selectedLicenseType === 'trial') {
                     $('#trialRequestIdContainer').show();
+                    // Set license duration to "1 Month" when trial is selected
+                    $('#licenseDurationSelect').val('one_month').trigger('change');
+                    // Set default number of keys to 6 for trial licenses
+                    $('#number_of_keys').val(6);
                 } else {
                     $('#trialRequestIdContainer').hide();
                 }
@@ -357,6 +376,8 @@ permalink: /add_license/
                             var isAdmin = JSON.parse(data).is_admin;
                             if (isAdmin) {
                                 $('#form').show();
+                                // Ensure trial request ID is visible after form is shown
+                                setTimeout(ensureTrialRequestIdVisibility, 200);
                             } else {
                                 $('#creationStatus').text('Access denied. You are not authorized to add licenses.');
                                 $('#form').hide();
@@ -385,16 +406,8 @@ permalink: /add_license/
             // Get license type
             const licenseType = $('input[name="licenseType"]:checked').val();
             
-            // Validate license name (at least 20 characters) only for trial licenses
+            // Remove validation for license name length
             const licenseName = $('#license_name').val();
-            if (licenseType === 'trial' && licenseName.length < 20) {
-                $('#licenseNameError').show();
-                $('#license_name').addClass('error');
-                return; // Stop form submission if validation fails
-            } else {
-                $('#licenseNameError').hide();
-                $('#license_name').removeClass('error');
-            }
             
             const emails = $('#emails').val().split(/,\s*/);
             const domains = $('#domains').val().split(/,\s*/);
@@ -415,35 +428,33 @@ permalink: /add_license/
             // Calculate expiry timestamp based on selected license duration
             let expiryTimestamp = null;
             let tier = null;
-            if (licenseDuration !== 'live') {
-                const now = moment();
-                switch (licenseDuration) {
-                    case 'two_weeks':
-                        expiryTimestamp = now.add(14, 'days').unix();
-                        tier = 'SAR';
-                        break;
-                    case 'one_month':
-                        expiryTimestamp = now.add(1, 'month').unix();
-                        tier = 'SAR';
-                        break;
-                    case 'three_months':
-                        expiryTimestamp = now.add(3, 'months').unix();
-                        tier = 'SAR';
-                        break;
-                    case 'one_year':
-                        expiryTimestamp = now.add(1, 'year').unix();
-                        tier = 'SAR';
-                        break;
-                    case 'custom':
-                        const customDays = parseInt($('#customDaysInput').val(), 10);
-                        expiryTimestamp = now.add(customDays, 'days').unix();
-                        tier = 'SAR';
-                        break;
-                    case 'live':
-                        expiryTimestamp = null;
-                        tier = 'Live';
-                        break;
-                }
+            
+            const now = moment();
+            switch (licenseDuration) {
+                case 'two_weeks':
+                    expiryTimestamp = now.add(14, 'days').unix();
+                    tier = 'SAR';
+                    break;
+                case 'one_month':
+                    expiryTimestamp = now.add(1, 'month').unix();
+                    tier = 'SAR';
+                    break;
+                case 'three_months':
+                    expiryTimestamp = now.add(3, 'months').unix();
+                    tier = 'SAR';
+                    break;
+                case 'one_year':
+                    expiryTimestamp = now.add(1, 'year').unix();
+                    tier = 'SAR';
+                    break;
+                case 'custom':
+                    const customDays = parseInt($('#customDaysInput').val(), 10);
+                    expiryTimestamp = now.add(customDays, 'days').unix();
+                    tier = 'SAR';
+                    break;
+                case 'no_license':
+                    expiryTimestamp = null;
+                    break;
             }
 
             const data = {
@@ -581,6 +592,9 @@ permalink: /add_license/
         }
         // If there's a trial request ID
         else if (trialRequestId) {
+            // Don't show trial info at the top anymore
+            // $('#trial-request-info').html('Processing trial request ID: ' + trialRequestId).show();
+            
             // Set license type to "trial"
             document.getElementById('trial').checked = true;
             
@@ -606,9 +620,29 @@ permalink: /add_license/
             
             // Update fields visibility after setting the license type
             updateFieldVisibility();
+            
+            // GUARANTEED show the trial request ID container
+            $('#trialRequestIdContainer').css('display', 'block');
+            
+            // Add a small delay to ensure UI updates properly
+            setTimeout(function() {
+                console.log("Ensuring trial request ID container visibility");
+                $('#trialRequestIdContainer').show();
+            }, 100);
         } else {
             // If no specific action, ensure fields are still properly initialized
             updateFieldVisibility();
+        }
+    }
+
+    // Add this function to ensure trial request ID is visible after sign-in
+    function ensureTrialRequestIdVisibility() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const trialRequestId = urlParams.get('trial_request_id');
+        
+        if (trialRequestId) {
+            console.log("Ensuring trial request ID visibility after form display");
+            $('#trialRequestIdContainer').css('display', 'block');
         }
     }
 
