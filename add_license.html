@@ -209,9 +209,9 @@ permalink: /add_license/
                             </div>
                             <div class="radio-container">
                                 <label>
-                                    <input type="radio" id="customer" name="licenseType" value="customer" required>
+                                    <input type="radio" id="customer-manual-license" name="licenseType" value="customer-manual-license" required>
                                     <span class="custom-radio"></span>
-                                    Customer license (courtesy license for non-ambassadors)
+                                    Customer manual license (courtesy license for non-ambassadors)
                                 </label>
                             </div>
                             <div class="radio-container">
@@ -363,8 +363,12 @@ permalink: /add_license/
             // Listener for sign-in completion
             document.addEventListener('signInComplete', function (e) {
                 var globalUser = e.detail.user;
+                console.log('SignInComplete triggered, attempting to verify admin status for:', globalUser.email);
+                
                 globalUser.getIdToken(true).then(function (idToken) {
                     var requestURL = getHostUrl() + '/is_logged_in_user_admin';
+                    console.log('Calling admin verification endpoint:', requestURL);
+                    
                     $.ajax({
                         url: requestURL,
                         type: 'POST',
@@ -373,20 +377,40 @@ permalink: /add_license/
                             'Authorization': 'Bearer ' + idToken
                         },
                         success: function (data) {
+                            console.log('Admin verification response:', data);
                             var isAdmin = JSON.parse(data).is_admin;
                             if (isAdmin) {
+                                console.log('User verified as admin, showing form');
                                 $('#form').show();
                                 // Ensure trial request ID is visible after form is shown
                                 setTimeout(ensureTrialRequestIdVisibility, 200);
                             } else {
+                                console.log('User not verified as admin');
                                 $('#creationStatus').text('Access denied. You are not authorized to add licenses.');
                                 $('#form').hide();
                             }
                         },
-                        error: function () {
-                            alert('Failed to verify admin status.');
+                        error: function (xhr, status, error) {
+                            console.error('Admin verification failed:', xhr.status, error);
+                            $('#creationStatus').html('<p>Failed to verify admin status.</p><p>Error: ' + error + '</p><p>Status: ' + xhr.status + '</p>');
+                            $('#creationStatus').addClass('error-box');
+                            // If in emulator mode, offer bypass option for testing
+                            if (useLocalFirebaseEmulator) {
+                                console.log('Emulator mode detected, offering admin bypass for testing');
+                                $('#creationStatus').append('<p>Since you are in emulator mode, you can <button id="bypassAdminCheck">bypass admin check</button> for testing purposes.</p>');
+                                $('#bypassAdminCheck').on('click', function() {
+                                    console.log('Admin check bypassed for emulator testing');
+                                    $('#form').show();
+                                    $('#creationStatus').removeClass('error-box').addClass('info-box').text('Admin check bypassed for testing');
+                                    setTimeout(ensureTrialRequestIdVisibility, 200);
+                                });
+                            }
                         }
                     });
+                }).catch(function(error) {
+                    console.error('Error getting ID token:', error);
+                    $('#creationStatus').html('<p>Authentication error: ' + error.message + '</p>');
+                    $('#creationStatus').addClass('error-box');
                 });
             });
             // Call prefillEmail when the document is ready
