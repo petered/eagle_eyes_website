@@ -325,41 +325,6 @@ permalink: /add_license/
                 updateFieldVisibility();
             });
             
-            // Function to update field visibility based on selected license type
-            function updateFieldVisibility() {
-                const selectedLicenseType = $('input[name="licenseType"]:checked').val();
-                
-                // Public license name field visibility
-                if (selectedLicenseType === 'public') {
-                    $('#publicLicenseNameContainer').show();
-                } else {
-                    $('#publicLicenseNameContainer').hide();
-                    $('#publicLicenseName').val(''); // Clear the field when hidden
-                    $('#publicLicenseNameError').hide();
-                }
-                
-                // Trial request ID field visibility
-                if (selectedLicenseType === 'trial') {
-                    $('#trialRequestIdContainer').show();
-                    // Set license duration to "1 Month" when trial is selected
-                    $('#licenseDurationSelect').val('one_month').trigger('change');
-                    // Set default number of keys to 6 for trial licenses
-                    $('#number_of_keys').val(6);
-                } else {
-                    $('#trialRequestIdContainer').hide();
-                }
-                
-                // Set license duration to "No license" when "No license (just approval)" is selected
-                if (selectedLicenseType === 'no_license') {
-                    $('#licenseDurationSelect').val('no_license').trigger('change');
-                }
-            }
-            
-            // Validate public license name when it changes
-            $('#publicLicenseName').on('input', function() {
-                validatePublicLicenseName();
-            });
-    
             // Listener for sign-in completion
             document.addEventListener('signInComplete', function (e) {
                 var globalUser = e.detail.user;
@@ -597,14 +562,15 @@ permalink: /add_license/
         if (isPurchase) {
             // Set license type to "no_license"
             document.getElementById('no_license').checked = true;
-            
-            // Update fields visibility after setting the license type
             updateFieldVisibility();
         }
-        // If there's a license ID
+        // If there's a license ID, handle trial license setup
         else if (licenseId) {
+            console.log("Setting up trial license with ID:", licenseId);
+            
             // Set license type to "trial"
-            document.getElementById('trial').checked = true;
+            const trialRadio = document.getElementById('trial');
+            trialRadio.checked = true;
             
             // Set license duration to "1 Month" and 6 keys
             $('#licenseDurationSelect').val('one_month');
@@ -618,24 +584,28 @@ permalink: /add_license/
             
             // Prefill license title with "Trial license for [team]" if team parameter exists, 
             // otherwise use email or default
+            let licenseTitle = "Trial license";
             if (teamName) {
-                document.getElementById('license_name').value = "Trial license for " + teamName;
+                licenseTitle = `Trial license for ${teamName}`;
             } else if (email) {
-                document.getElementById('license_name').value = "Trial license for " + email;
-            } else {
-                document.getElementById('license_name').value = "Trial license";
+                licenseTitle = `Trial license for ${email}`;
             }
+            document.getElementById('license_name').value = licenseTitle;
             
-            // Update fields visibility after setting the license type
+            // Update fields visibility and ensure trial license ID container is shown
             updateFieldVisibility();
-            
-            // GUARANTEED show the trial license ID container
-            $('#trialRequestIdContainer').css('display', 'block');
+            $('#trialRequestIdContainer').show();
             
             // Add a small delay to ensure UI updates properly
             setTimeout(function() {
                 console.log("Ensuring trial license ID container visibility");
                 $('#trialRequestIdContainer').show();
+                // Double-check that trial is selected
+                if (!trialRadio.checked) {
+                    console.log("Re-selecting trial license type");
+                    trialRadio.checked = true;
+                    updateFieldVisibility();
+                }
             }, 100);
         } else {
             // If no specific action, ensure fields are still properly initialized
@@ -651,6 +621,36 @@ permalink: /add_license/
         if (licenseId) {
             console.log("Ensuring trial license ID visibility after form display");
             $('#trialRequestIdContainer').css('display', 'block');
+        }
+    }
+
+    // Function to update field visibility based on selected license type
+    function updateFieldVisibility() {
+        const selectedLicenseType = $('input[name="licenseType"]:checked').val();
+        
+        // Public license name field visibility
+        if (selectedLicenseType === 'public') {
+            $('#publicLicenseNameContainer').show();
+        } else {
+            $('#publicLicenseNameContainer').hide();
+            $('#publicLicenseName').val(''); // Clear the field when hidden
+            $('#publicLicenseNameError').hide();
+        }
+        
+        // Trial request ID field visibility
+        if (selectedLicenseType === 'trial') {
+            $('#trialRequestIdContainer').show();
+            // Set license duration to "1 Month" when trial is selected
+            $('#licenseDurationSelect').val('one_month').trigger('change');
+            // Set default number of keys to 6 for trial licenses
+            $('#number_of_keys').val(6);
+        } else {
+            $('#trialRequestIdContainer').hide();
+        }
+        
+        // Set license duration to "No license" when "No license (just approval)" is selected
+        if (selectedLicenseType === 'no_license') {
+            $('#licenseDurationSelect').val('no_license').trigger('change');
         }
     }
 
