@@ -203,9 +203,9 @@ permalink: /add_license/
                                 </label>
                             </div>
                             <div id="trialRequestIdContainer" style="display:none; margin: 8px 0 8px 30px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">
-                                <label for="trialRequestId"><b>Trial Request ID:</b></label>
-                                <input type="text" id="trialRequestId" name="trialRequestId" placeholder="Enter trial request ID">
-                                <div class="help-text" style="font-size: 0.85em; color: #555; margin-top: 5px;">If there is not existing trial request ID, please live this field empty; the system will automatically assign a new trial request ID.</div>
+                                <label for="trialRequestId"><b>Trial License ID:</b></label>
+                                <input type="text" id="trialRequestId" name="trialRequestId" placeholder="Enter trial license ID">
+                                <div class="help-text" style="font-size: 0.85em; color: #555; margin-top: 5px;">If there is not existing trial license ID, please leave this field empty; the system will automatically assign a new trial license ID.</div>
                             </div>
                             <div class="radio-container">
                                 <label>
@@ -325,41 +325,6 @@ permalink: /add_license/
                 updateFieldVisibility();
             });
             
-            // Function to update field visibility based on selected license type
-            function updateFieldVisibility() {
-                const selectedLicenseType = $('input[name="licenseType"]:checked').val();
-                
-                // Public license name field visibility
-                if (selectedLicenseType === 'public') {
-                    $('#publicLicenseNameContainer').show();
-                } else {
-                    $('#publicLicenseNameContainer').hide();
-                    $('#publicLicenseName').val(''); // Clear the field when hidden
-                    $('#publicLicenseNameError').hide();
-                }
-                
-                // Trial request ID field visibility
-                if (selectedLicenseType === 'trial') {
-                    $('#trialRequestIdContainer').show();
-                    // Set license duration to "1 Month" when trial is selected
-                    $('#licenseDurationSelect').val('one_month').trigger('change');
-                    // Set default number of keys to 6 for trial licenses
-                    $('#number_of_keys').val(6);
-                } else {
-                    $('#trialRequestIdContainer').hide();
-                }
-                
-                // Set license duration to "No license" when "No license (just approval)" is selected
-                if (selectedLicenseType === 'no_license') {
-                    $('#licenseDurationSelect').val('no_license').trigger('change');
-                }
-            }
-            
-            // Validate public license name when it changes
-            $('#publicLicenseName').on('input', function() {
-                validatePublicLicenseName();
-            });
-    
             // Listener for sign-in completion
             document.addEventListener('signInComplete', function (e) {
                 var globalUser = e.detail.user;
@@ -383,7 +348,7 @@ permalink: /add_license/
                                 console.log('User verified as admin, showing form');
                                 $('#form').show();
                                 // Ensure trial request ID is visible after form is shown
-                                setTimeout(ensureTrialRequestIdVisibility, 200);
+                                setTimeout(ensureTrialLicenseIdVisibility, 200);
                             } else {
                                 console.log('User not verified as admin');
                                 $('#creationStatus').text('Access denied. You are not authorized to add licenses.');
@@ -402,7 +367,7 @@ permalink: /add_license/
                                     console.log('Admin check bypassed for emulator testing');
                                     $('#form').show();
                                     $('#creationStatus').removeClass('error-box').addClass('info-box').text('Admin check bypassed for testing');
-                                    setTimeout(ensureTrialRequestIdVisibility, 200);
+                                    setTimeout(ensureTrialLicenseIdVisibility, 200);
                                 });
                             }
                         }
@@ -493,7 +458,7 @@ permalink: /add_license/
                 extra_security_password: extraSecurityPassword,
                 same_license_id: sameLicenseId,
                 public_license_name: publicLicenseName,
-                trial_request_id: trialRequestId
+                license_id: trialRequestId
                 // registration_email: registrationEmail,
                 // trial: trial
             };
@@ -537,57 +502,44 @@ permalink: /add_license/
                 },
                 success: function (response) {
                     console.log("License created successfully:", response);
-                    licenseData = JSON.parse(response);
-                    // license_id=license_id,
-                    // new_license=new_license_json_dict,  # Or None if no new license was created
-                    // users_added=emails,
-                    // if (decodedJson) {
-                    //     $('#creationStatus').html('<p>License Key: ' + decodedJson.license_key + '</p>');
-                    // } else {
-                    //     $('#creationStatus').html('<p>User Verfied</p>');
-                    // }
-                    // Just directly post response
-                    var AllLicenseData = {};
-                    var licenseObjectData = {};
-                    for (const key in licenseData) {
-                        if (licenseData.hasOwnProperty(key)) {
-                            const license = licenseData[key];
-                            const licenseId = license['license_id'];
-                            const licenseInfo = license['new_license'];
-                            var expiryDateStr;
-                            // if (licenseData[1].expiry_timestamp === null) {
-                            if (licenseInfo===null || licenseInfo?.expiry_timestamp === null) {
-                                expiryDateStr = 'No Expiry';
-                            } else {
-                                expiryDateStr = new Date(licenseInfo.expiry_timestamp * 1000).toLocaleString();
+                    try {
+                        const licenseData = JSON.parse(response);
+                        let licenseDataDisplay = '<div class="info-box">License(s) created successfully:</div>';
+                        
+                        for (const licenseId in licenseData) {
+                            if (licenseData.hasOwnProperty(licenseId)) {
+                                const license = licenseData[licenseId];
+                                let expiryDateStr = 'No Expiry';
+                                
+                                if (license.expiry_timestamp) {
+                                    expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
+                                }
+                                
+                                const linkToViewFirestore = useLocalFirebaseEmulator
+                                    ? `http://localhost:4000/firestore/default/data/licenses/${licenseId}`
+                                    : `https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F${licenseId}`;
+                                
+                                licenseDataDisplay += `
+                                    <div class="license-info">
+                                        <pre>${JSON.stringify(license, null, 2)}</pre>
+                                        <p>Expiry: ${expiryDateStr}</p>
+                                        <p><a href="${linkToViewFirestore}" target="_blank">View License in Firestore</a></p>
+                                    </div>
+                                `;
                             }
-                            
-                            if (useLocalFirebaseEmulator){
-                                linkToViewFirestore = 'http://localhost:4000/firestore/default/data/licenses/'+licenseId;
-                            } else {
-                                linkToViewFirestore = 'https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F' + licenseId;
-                            }
-                            licenseObjectData = JSON.stringify(license, null, 2) + '</pre>\nExpiry: ' + expiryDateStr + '\n<a href="' + linkToViewFirestore + '" target="_blank">View License in Firestore</a>';
-                            AllLicenseData[key] = licenseObjectData;
                         }
+                        
+                        statusSpan.html(licenseDataDisplay).removeClass('error-box').addClass('info-box');
+                    } catch (error) {
+                        console.error("Error parsing license data:", error);
+                        statusSpan.html('<div class="error-box">Error displaying license information. Please check the console for details.</div>');
                     }
-                    licenseDataDisplay = 'License(s) created successfully:';
-                    for (key in AllLicenseData) {
-                        licenseDataDisplay += '\n<pre>'
-                        licenseDataDisplay += AllLicenseData[key];
-                    }
-                    console.log(licenseDataDisplay);
-                    statusSpan.html(licenseDataDisplay).removeClass('error-box').addClass('info-box');
-                    // Make button normal again
-                    $('#createLicenseButton').removeClass('processing')
+                    $('#createLicenseButton').removeClass('processing');
                 },
                 error: function (xhr, status, error) {
                     console.log("Error creating license:", xhr.responseText);
-                    statusSpan.html('<p>Error creating license: ' + xhr.responseText + '</p>');
-                    // Add .error-box class
-                    statusSpan.removeClass('info-box').addClass('error-box');
-                    // Remove processing class from button
-                    $('#createLicenseButton').removeClass('processing')
+                    statusSpan.html('<div class="error-box">Error creating license: ' + xhr.responseText + '</div>');
+                    $('#createLicenseButton').removeClass('processing');
                 }
             });
         });
@@ -597,7 +549,7 @@ permalink: /add_license/
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const email = urlParams.get('emails'); // Get 'emails' parameter from URL
-        const trialRequestId = urlParams.get('trial_request_id'); // Get 'trial_request_id' parameter
+        const licenseId = urlParams.get('license_id'); // Get 'license_id' parameter
         const isPurchase = urlParams.get('purchase') === 'true'; // Check for purchase=true
         const teamName = urlParams.get('team'); // Get 'team' parameter from URL
         
@@ -610,48 +562,50 @@ permalink: /add_license/
         if (isPurchase) {
             // Set license type to "no_license"
             document.getElementById('no_license').checked = true;
-            
-            // Update fields visibility after setting the license type
             updateFieldVisibility();
         }
-        // If there's a trial request ID
-        else if (trialRequestId) {
-            // Don't show trial info at the top anymore
-            // $('#trial-request-info').html('Processing trial request ID: ' + trialRequestId).show();
+        // If there's a license ID, handle trial license setup
+        else if (licenseId) {
+            console.log("Setting up trial license with ID:", licenseId);
             
             // Set license type to "trial"
-            document.getElementById('trial').checked = true;
+            const trialRadio = document.getElementById('trial');
+            trialRadio.checked = true;
             
             // Set license duration to "1 Month" and 6 keys
             $('#licenseDurationSelect').val('one_month');
             $('#number_of_keys').val(6);
             
-            // Prefill the trial request ID in the field and make it read-only
+            // Prefill the trial license ID in the field and make it read-only
             const trialRequestIdField = document.getElementById('trialRequestId');
-            trialRequestIdField.value = trialRequestId;
+            trialRequestIdField.value = licenseId;
             trialRequestIdField.readOnly = true;
             trialRequestIdField.style.backgroundColor = "#f0f0f0"; // Visual indication that it's read-only
             
             // Prefill license title with "Trial license for [team]" if team parameter exists, 
             // otherwise use email or default
+            let licenseTitle = "Trial license";
             if (teamName) {
-                document.getElementById('license_name').value = "Trial license for " + teamName;
+                licenseTitle = `Trial license for ${teamName}`;
             } else if (email) {
-                document.getElementById('license_name').value = "Trial license for " + email;
-            } else {
-                document.getElementById('license_name').value = "Trial license";
+                licenseTitle = `Trial license for ${email}`;
             }
+            document.getElementById('license_name').value = licenseTitle;
             
-            // Update fields visibility after setting the license type
+            // Update fields visibility and ensure trial license ID container is shown
             updateFieldVisibility();
-            
-            // GUARANTEED show the trial request ID container
-            $('#trialRequestIdContainer').css('display', 'block');
+            $('#trialRequestIdContainer').show();
             
             // Add a small delay to ensure UI updates properly
             setTimeout(function() {
-                console.log("Ensuring trial request ID container visibility");
+                console.log("Ensuring trial license ID container visibility");
                 $('#trialRequestIdContainer').show();
+                // Double-check that trial is selected
+                if (!trialRadio.checked) {
+                    console.log("Re-selecting trial license type");
+                    trialRadio.checked = true;
+                    updateFieldVisibility();
+                }
             }, 100);
         } else {
             // If no specific action, ensure fields are still properly initialized
@@ -659,14 +613,44 @@ permalink: /add_license/
         }
     }
 
-    // Add this function to ensure trial request ID is visible after sign-in
-    function ensureTrialRequestIdVisibility() {
+    // Update the ensureTrialRequestIdVisibility function name and logic
+    function ensureTrialLicenseIdVisibility() {
         const urlParams = new URLSearchParams(window.location.search);
-        const trialRequestId = urlParams.get('trial_request_id');
+        const licenseId = urlParams.get('license_id');
         
-        if (trialRequestId) {
-            console.log("Ensuring trial request ID visibility after form display");
+        if (licenseId) {
+            console.log("Ensuring trial license ID visibility after form display");
             $('#trialRequestIdContainer').css('display', 'block');
+        }
+    }
+
+    // Function to update field visibility based on selected license type
+    function updateFieldVisibility() {
+        const selectedLicenseType = $('input[name="licenseType"]:checked').val();
+        
+        // Public license name field visibility
+        if (selectedLicenseType === 'public') {
+            $('#publicLicenseNameContainer').show();
+        } else {
+            $('#publicLicenseNameContainer').hide();
+            $('#publicLicenseName').val(''); // Clear the field when hidden
+            $('#publicLicenseNameError').hide();
+        }
+        
+        // Trial request ID field visibility
+        if (selectedLicenseType === 'trial') {
+            $('#trialRequestIdContainer').show();
+            // Set license duration to "1 Month" when trial is selected
+            $('#licenseDurationSelect').val('one_month').trigger('change');
+            // Set default number of keys to 6 for trial licenses
+            $('#number_of_keys').val(6);
+        } else {
+            $('#trialRequestIdContainer').hide();
+        }
+        
+        // Set license duration to "No license" when "No license (just approval)" is selected
+        if (selectedLicenseType === 'no_license') {
+            $('#licenseDurationSelect').val('no_license').trigger('change');
         }
     }
 
