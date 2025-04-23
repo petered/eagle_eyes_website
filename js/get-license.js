@@ -813,7 +813,7 @@ function onClickBuy() {
     
     // Add a "processsing" class
     purchaseButton.addClass('processing');
-    url = `${window.location.origin}/buy_license?${window.location.search.slice(1)}`;
+    url = `${window.location.origin}/pricing?${window.location.search.slice(1)}`;
     console.log('Redirecting to: ', url);
     window.open(url);
 }
