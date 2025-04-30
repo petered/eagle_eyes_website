@@ -603,7 +603,10 @@ permalink: /account/
             <div class="centered">
                 <h2 class="mb-10">Account</h2>
                 <div style="display: flex; justify-content: flex-start; align-items: center; gap: 20px;">
-                    <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                    <div style="display: flex; flex-direction: column;">
+                        <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                        <div id="accountStatusDisplay" style="color: #666; font-size: 16px; display: none;">Account status: <span style="font-weight: 500; color: #4CAF50;">verified</span></div>
+                    </div>
                     <div id="signOutContainer" style="display: none;">
                         <a href="#" id="signOutButton" class="button small rounded" style="padding: 8px 15px; font-size: 14px;">Sign Out</a>
                     </div>
@@ -641,8 +644,8 @@ permalink: /account/
                         <div class="row">
                             <div class="column width-12">
                                 <!-- Add the license purchase suggestion here -->
-                                <div style="color: #666; font-size: 16px; margin-bottom: 20px; text-align: center;" id="verification-status">
-                                    Looking to buy a new license? <a href="{{ '/user-form/' | relative_url }}?reason=purchase" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                                <div style="color: #666; font-size: 16px; margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center;" id="verification-status">
+                                    <a href="{{ '/pricing/' | relative_url }}" class="button small rounded" style="background-color: #1e90ff; color: white; text-decoration: none; padding: 8px 15px; font-size: 14px; border-radius: 4px;">Purchase a new license</a>
                                 </div>
                                 
                                 <!-- Tab Navigation -->
@@ -1113,6 +1116,8 @@ permalink: /account/
                     'warning',
                     true
                 );
+                // Hide account status
+                document.getElementById('accountStatusDisplay').style.display = 'none';
                 document.getElementById('verification-status').innerHTML = ``;
                 return false; // No redirect
             
@@ -1124,11 +1129,10 @@ permalink: /account/
                     'warning',
                     true
                 );
+                // Show account status
+                document.getElementById('accountStatusDisplay').style.display = 'block';
                 document.getElementById('verification-status').innerHTML = `
-                            You have a verified account. Looking to buy a new license? 
-                            <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
-                                Start here
-                            </a>.
+                            <a href="{{ '/pricing/' | relative_url }}" class="button small rounded" style="background-color: #1e90ff; color: white; text-decoration: none; padding: 8px 15px; font-size: 14px; border-radius: 4px;">Purchase a new license</a>
                 `;
                 return false; // No redirect
             
@@ -1272,24 +1276,27 @@ permalink: /account/
                     'info',
                     true
                 );
+                // Hide account status
+                document.getElementById('accountStatusDisplay').style.display = 'none';
                 document.getElementById('verification-status').innerHTML = ``;
                 return false; // No redirect
             
             case 'approved':
+                // Show account status
+                document.getElementById('accountStatusDisplay').style.display = 'block';
                 document.getElementById('verification-status').innerHTML = `
-                            You have a verified account. Looking to buy a new license? 
-                            <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
-                                Start here
-                            </a>.
+                            <a href="{{ '/pricing/' | relative_url }}" class="button small rounded" style="background-color: #1e90ff; color: white; text-decoration: none; padding: 8px 15px; font-size: 14px; border-radius: 4px;">Purchase a new license</a>
                 `;
                 return false; // No redirect
                 
             case 'unverified':
+                // Hide account status
+                document.getElementById('accountStatusDisplay').style.display = 'none';
                 // Construct the URL dynamically, preserving the emulator parameter
                 const verificationUrl = getUrlWithEmulatorParam('{{ '/user-form/' | relative_url }}?reason=purchase');
                 // Add a link to the verification form using the dynamic URL
                 document.getElementById('verification-status').innerHTML = `
-                    Looking to buy a new license? <a href="${verificationUrl}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                    <div style="width: 100%; text-align: center;">Looking to buy a new license? <a href="${verificationUrl}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.</div>
                 `;
                 return false; // No redirect
             
