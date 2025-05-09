@@ -191,6 +191,19 @@ permalink: /get-license/
             padding: 0 15px;
         }
     }
+
+    /* Responsive styling for the button group */
+    @media (max-width: 576px) {
+        .button-group {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .button-group a#share-key-toggle {
+            margin-left: 0 !important;
+            margin-top: 10px !important;
+        }
+    }
 </style>
 
 <br>
@@ -465,11 +478,21 @@ permalink: /get-license/
     <div class="box license-box">
         <div class="input-label">Your key</div>
         <textarea id="license-key" class="license-info-box" placeholder="" readonly></textarea>
-        <div class="button-group">
+        <div class="button-group" style="display: flex; flex-wrap: wrap; align-items: center;">
             <button id='license-key-copy-button'>Copy Key</button>
+            <a href="#" id="share-key-toggle" style="color: #1e90ff; text-decoration: underline; font-size: 16px; margin-left: 15px; margin-top: 5px;">Do you need to copy this key to another device?</a>
+        </div>
+        <div id="share-key-explanation" style="display: none; margin-top: 10px; padding: 12px; border-left: 4px solid #1e90ff; background-color: #f8f9fa;">
+            <p>If you started the licensing process from the Eagle Eyes app on another device and got redirected to this device for authentication, use the button below to create a temporary link to this license key. You can open this link on your original device and copy the code from there.</p>
+            <button id='license-key-share-button' style="margin-top: 10px;">Create Shareable Link</button>
         </div>
     </div>
     <div id="license-key-status"></div>
+    <div id="share-url-container" class="info-box" style="display:none; margin-top: 15px; background-color: #f0f7ff; border: 1px solid #1e90ff; border-radius: 6px; padding: 15px;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Shareable Link</h4>
+        <div class="url-display" style="word-break: break-all; padding: 10px; background-color: white; border-radius: 4px; font-family: monospace; font-size: 14px; white-space: normal; font-weight: bold;" id="share-url-display"></div>
+        <p style="font-size: 0.9em; color: #666; margin-top: 10px;">This link will expire after 24 hours.</p>
+    </div>
 </section>
 
 <div id="final-status-box" hidden></div>
@@ -478,4 +501,65 @@ permalink: /get-license/
 <!-- Leave a little space on the bottom -->
 <br />
 <br />
+
+<script>
+    $(document).ready(function() {
+        // Toggle the share key explanation
+        $('#share-key-toggle').on('click', function(e) {
+            e.preventDefault();
+            $('#share-key-explanation').slideToggle();
+            // Hide the license key status message when opening share options
+            $('#license-key-status').hide();
+        });
+        
+        // Add the event listener for the license key share button
+        $('#license-key-share-button').on('click', function() {
+            const licenseKey = $('#license-key').val();
+            if (!licenseKey) {
+                alert('No license key available to share.');
+                return;
+            }
+            
+            // Show a loading state on the button
+            const $button = $(this);
+            const originalText = $button.text();
+            $button.text('Creating link...').prop('disabled', true);
+            
+            // Send the license key to dpaste.org
+            $.ajax({
+                url: 'https://dpaste.org/api/',
+                type: 'POST',
+                data: {
+                    content: licenseKey,
+                    syntax: 'text',
+                    title: 'Eagle Eyes License Key',
+                    expiry_days: 1
+                },
+                success: function(response) {
+                    // Extract the URL from the response and ensure no quotes
+                    let shareUrl = response.trim();
+                    // Remove any quotation marks if they exist
+                    shareUrl = shareUrl.replace(/['"]/g, '');
+                    
+                    // Display the URL to the user
+                    $('#share-url-display').text(shareUrl);
+                    $('#share-url-container').show();
+                    
+                    // Scroll to ensure the URL is visible
+                    $('#share-url-container').get(0).scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Reset the button
+                    $button.text(originalText).prop('disabled', false);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating share link:', error);
+                    alert('Failed to create shareable link. Please try again or use the "Copy Key" option instead.');
+                    
+                    // Reset the button
+                    $button.text(originalText).prop('disabled', false);
+                }
+            });
+        });
+    });
+</script>
 
