@@ -1,4 +1,4 @@
-var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true
+var useLocalFirebaseEmulator = getIsEmulatorFromURL();  // When running local emulator with "firebase emulators:start", set this to "true"
 var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
 
 // var hostURL = 'https://us-central1-aaaaggfdsfdsdaa.cloudfunctions.net';
@@ -147,7 +147,10 @@ function reCheckLicense() {
         // Then, re-check the license
         checkLicense(globalUser);
         $('#licenses').show();
-        scrollToBottomWithDelay();
+        // Scroll to the top of the licenses section with increased offset
+        $('html, body').animate({
+            scrollTop: $("#licenses").offset().top - 70
+        }, 1000);
     }, 250);
 
 
@@ -234,7 +237,12 @@ function onNewKeyReceived(tokenAndCodeJSONString) {
     // alert('New key received.  Code ' + code.slice(0, 10) + '... has been copied to the clipboard.  You can now paste it into the Eagle Eyes app.');
     // Scroll to the bottom of the page
     // window.scrollTo(0, document.body.scrollHeight);
-    scrollToBottomWithDelay();
+    // scrollToBottomWithDelay();
+    
+    // Scroll to the top of the key-view section with increased offset
+    $('html, body').animate({
+        scrollTop: $("#key-view").offset().top - 70
+    }, 1000);
 }
 
 function getKeyForThisLicense(licenseID, user) {
@@ -290,21 +298,13 @@ function getKeyForThisLicense(licenseID, user) {
 }
 
 function scrollToBottomWithDelay() {
-    // Scroll to the bottom of the page after a small delay of half a second
-    // setTimeout(function () {
-    //     window.scrollTo(0, document.body.scrollHeight);
-    // }, 1000);
-    // Use the animation approach 
     $('html, body').animate({
-        scrollTop: $("#end-of-page").offset().top
+        scrollTop: $("#end-of-page").offset().top - 70 // Increased offset to account for navbar
     }, 1000); // 1000 milliseconds = 1 second
-
 }
     
 
 function showError(message) {
-
-
     // Show an error message to the user
     // $('#final-status-box').text(message).classList.add('error-box').show();
     // Fix for jquery
@@ -324,17 +324,19 @@ function showError(message) {
     // Show the "try again" button (try-again-button) (just make it not hidden)
     // $('#try-again-button').css('display', 'block');
 
-    // Scroll to the bottom of the page
-    scrollToBottomWithDelay();
+    // Scroll to the error message with increased offset
+    $('html, body').animate({
+        scrollTop: $("#final-status-box").offset().top - 70
+    }, 1000);
 }
 
 // side-effect: reads value of license-id box and checks 
 function checkLicense(user) {
-    // $('#licenses').show();
-    scrollToBottomWithDelay();
-    // $('html, body').animate({
-    //     scrollTop: $("#licenses").offset().top
-    // }, 1000); // 1000 milliseconds = 1 second
+    // Modify to scroll to the top of the licenses section with increased offset
+    $('html, body').animate({
+        scrollTop: $("#licenses").offset().top - 70
+    }, 1000);
+    
     // If user is null, use globalUser
     if (!user) {
         user = globalUser;
@@ -683,8 +685,11 @@ function selectLicense() {
     //     scrollTop: $("#issue-key").offset().top
     // }, 1000); // 1000 milliseconds = 1 second
     console.log("Selected license: ", selectedLicenseInfo);
-    scrollToBottomWithDelay();
     
+    // Scroll to the top of the issue-key section with increased offset
+    $('html, body').animate({
+        scrollTop: $("#issue-key").offset().top - 70
+    }, 1000);
 }
 
 function onSelectLicenseToken() {
