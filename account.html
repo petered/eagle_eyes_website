@@ -839,6 +839,12 @@ permalink: /account/
         const signinOverlay = document.getElementById('signin-overlay');
         const loadingOverlay = document.getElementById('loading-overlay');
 
+        // Check device type and reorder download sections
+        reorderDownloadSections();
+        
+        // Also reorder sections when window is resized
+        window.addEventListener('resize', reorderDownloadSections);
+
         // Add this to hide the overlay immediately if user is already signed in
         if (firebase.auth().currentUser) {
             signinOverlay.style.display = 'none';
@@ -972,6 +978,11 @@ permalink: /account/
                 
                 // Save the active tab in localStorage to persist through page refreshes
                 localStorage.setItem('activeAccountTab', tabId);
+                
+                // If the downloads tab was clicked, ensure the sections are in the right order
+                if (tabId === 'downloads-tab') {
+                    reorderDownloadSections();
+                }
             });
         });
         
@@ -1370,8 +1381,6 @@ permalink: /account/
             console.log('Available Pilot files:', pilotFiles);
             console.log('Available Scan files:', scanFiles);
 
-            // Reordering: Show Scan first, then Pilot
-            
             // Render Scan downloads as cards
             const scanGrid = document.getElementById('scanGrid');
             scanGrid.innerHTML = '';
@@ -1396,7 +1405,6 @@ permalink: /account/
                         const card = document.createElement('div');
                         card.className = 'download-card';
                         
-                        // Card header with platform as clickable title
                         const header = document.createElement('div');
                         header.className = 'download-header';
                         
@@ -1514,7 +1522,6 @@ permalink: /account/
                         const card = document.createElement('div');
                         card.className = 'download-card';
                         
-                        // Card header with platform as clickable title
                         const header = document.createElement('div');
                         header.className = 'download-header';
                         
@@ -1533,7 +1540,7 @@ permalink: /account/
                         pilotWarning.style.color = 'red';
                         pilotWarning.style.marginBottom = '15px';
                         pilotWarning.style.fontSize = '14px';
-                        pilotWarning.innerHTML = 'Eagle Eyes Pilot currently supports the following drones:<ul style="margin: 5px 0 10px 20px;"><li>DJI Mini 3 pro</li><li>DJI M3T</li><li>M30T (early compatibility - works but needs more field testing)</li></ul>The application may be fully functional on other DJI drones, but your mileage may vary. Read about the current status of drone and controller compatibility <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.16dyxpfxra6k" target="_blank" style="color: red; text-decoration: underline;">here</a>.<br><br>Please complete <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdMWp4Tn4w8-RwYMf1-jQwXyzxlD7xXtoWPia0DAIbqhn0LA/viewform?usp=sf_link" target="_blank" style="color: red; text-decoration: underline;">this form</a> for a free trial license to try out Eagle Eyes Pilot.';
+                        pilotWarning.innerHTML = 'Eagle Eyes Pilot currently supports the following drones:<ul style="margin: 5px 0 10px 20px;"><li>DJI Mini 3 pro</li><li>DJI M3T</li><li>M30T (early compatibility - works but needs more field testing)</li></ul>The application may be fully functional on other DJI drones, but your mileage may vary. Read about the current status of drone and controller compatibility <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.16dyxpfxra6k" target="_blank" style="color: red; text-decoration: underline;">here</a>.';
                         body.appendChild(pilotWarning);
                         
                         // Remove macOS x86_64 warning for Pilot since it's an Android app
@@ -1608,6 +1615,9 @@ permalink: /account/
             // Hide spinners
             document.getElementById('pilotSpinner').style.display = 'none';
             document.getElementById('scanSpinner').style.display = 'none';
+            
+            // Apply the correct ordering based on device type
+            reorderDownloadSections();
             
         } catch (error) {
             console.error('Error in fetchAvailableDownloads:', error);
@@ -2250,6 +2260,37 @@ permalink: /account/
     /***********************************************
      * UTILITY FUNCTIONS
      ***********************************************/
+    
+    /**
+     * Reorders the download sections based on device type.
+     * For mobile devices, shows Pilot section first.
+     * For desktop devices, shows Scan section first.
+     */
+    function reorderDownloadSections() {
+        // Get the parent container
+        const downloadsTab = document.getElementById('downloads-tab');
+        if (!downloadsTab) return;
+        
+        // Get the two sections - they're direct children divs with class mb-50
+        const sections = downloadsTab.querySelectorAll('.mb-50');
+        if (sections.length !== 2) return;
+        
+        const scanSection = sections[0]; // First section is Scan
+        const pilotSection = sections[1]; // Second section is Pilot
+        
+        // Detect if this is a mobile device using screen width
+        // Common breakpoint for mobile is 768px
+        const isMobile = window.innerWidth < 768;
+        
+        // Reorder based on device type
+        if (isMobile) {
+            // Mobile: Pilot first, then Scan
+            downloadsTab.insertBefore(pilotSection, scanSection);
+        } else {
+            // Desktop: Scan first, then Pilot
+            downloadsTab.insertBefore(scanSection, pilotSection);
+        }
+    }
     
     // Get emulator mode from URL parameters
     function getIsEmulatorFromURL() {
