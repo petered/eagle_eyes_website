@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Computer vision tools for drones in search and rescue"
-image: "/images/blog/drones-in-them-hills.jpg"
+image: "/images/shaggy_peak_orange_before.jpg"
 date:   2023-03-15 16:46:00 -0800
 author: Peter O'Connor
 permalink: /blog/comparison
