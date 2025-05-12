@@ -2278,9 +2278,18 @@ permalink: /account/
         const scanSection = sections[0]; // First section is Scan
         const pilotSection = sections[1]; // Second section is Pilot
         
-        // Detect if this is a mobile device using screen width
-        // Common breakpoint for mobile is 768px
-        const isMobile = window.innerWidth < 768;
+        // Improved mobile detection - check for Android in user agent or small screen width
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isSmallScreen = window.innerWidth < 768;
+        const isMobile = isAndroid || isSmallScreen;
+        
+        console.log("Device detection:", { 
+            isAndroid, 
+            isSmallScreen, 
+            isMobile, 
+            userAgent: navigator.userAgent,
+            screenWidth: window.innerWidth
+        });
         
         // Reorder based on device type
         if (isMobile) {
