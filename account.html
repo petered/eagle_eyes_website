@@ -860,8 +860,30 @@ permalink: /account/
             }, 100);
         }
         
-        // Also reorder sections when window is resized
-        window.addEventListener('resize', reorderDownloadSections);
+        // Debounce function to limit rapid firing of resize events
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+        
+        // Replace the direct resize listener with a debounced version
+        // Also only reorder if width actually changes (not just height changes from scrolling)
+        let lastWidth = window.innerWidth;
+        const debouncedReorder = debounce(function() {
+            const currentWidth = window.innerWidth;
+            // Only reorder if width changed significantly (not just scroll-induced height changes)
+            if (Math.abs(currentWidth - lastWidth) > 10) {
+                lastWidth = currentWidth;
+                reorderDownloadSections();
+            }
+        }, 250); // 250ms debounce
+        
+        window.addEventListener('resize', debouncedReorder);
 
         // Add this to hide the overlay immediately if user is already signed in
         if (firebase.auth().currentUser) {
