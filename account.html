@@ -2321,27 +2321,66 @@ permalink: /account/
         const scanSection = sections[0]; // First section is Scan
         const pilotSection = sections[1]; // Second section is Pilot
         
-        // Improved mobile detection - check for Android in user agent or small screen width
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        const isSmallScreen = window.innerWidth < 768;
-        const isMobile = isAndroid || isSmallScreen;
+        // First check if we have a saved preference in localStorage
+        let savedPreference = localStorage.getItem('preferPilotFirst');
         
-        console.log("Device detection:", { 
-            isAndroid, 
-            isSmallScreen, 
-            isMobile, 
-            userAgent: navigator.userAgent,
-            screenWidth: window.innerWidth
-        });
-        
-        // Reorder based on device type
-        if (isMobile) {
-            // Mobile: Pilot first, then Scan
-            downloadsTab.insertBefore(pilotSection, scanSection);
+        // If no preference exists, detect device and set preference
+        if (savedPreference === null) {
+            // Enhanced device detection for Android and DJI controllers
+            const userAgent = navigator.userAgent;
+            console.log("User agent string:", userAgent);
+            
+            const isAndroid = /Android/i.test(userAgent);
+            const isDJIController = /DJI|RC Pro|DJI RC Pro/i.test(userAgent); 
+            const isSmallScreen = window.innerWidth < 768;
+            
+            // Forced preference from URL parameter (for testing)
+            const urlParams = new URLSearchParams(window.location.search);
+            const showPilotFirst = urlParams.get('show_pilot_first') === 'true';
+            
+            // Set preference based on device detection
+            savedPreference = (isAndroid || isDJIController || isSmallScreen || showPilotFirst) ? 'true' : 'false';
+            
+            // Save preference to localStorage for consistency
+            localStorage.setItem('preferPilotFirst', savedPreference);
+            
+            // Log detection info
+            console.log("Device detection:", { 
+                isAndroid,
+                isDJIController, 
+                isSmallScreen,
+                showPilotFirst,
+                userAgent: userAgent,
+                screenWidth: window.innerWidth,
+                preferPilotFirst: savedPreference
+            });
         } else {
+            console.log("Using saved preference for section order:", {preferPilotFirst: savedPreference});
+        }
+        
+        // Check current order to avoid unnecessary DOM operations
+        const isPilotFirst = pilotSection.previousElementSibling === null;
+        const shouldBePilotFirst = savedPreference === 'true';
+        
+        // Only reorder if needed
+        if (shouldBePilotFirst && !isPilotFirst) {
+            // Mobile/DJI: Pilot first, then Scan
+            downloadsTab.insertBefore(pilotSection, scanSection);
+            console.log("Reordering: Showing Pilot section first");
+        } else if (!shouldBePilotFirst && isPilotFirst) {
             // Desktop: Scan first, then Pilot
             downloadsTab.insertBefore(scanSection, pilotSection);
+            console.log("Reordering: Showing Scan section first");
+        } else {
+            console.log("No reordering needed, current order is correct");
         }
+    }
+    
+    // Add this function to reset the section order preference
+    function resetSectionOrderPreference() {
+        localStorage.removeItem('preferPilotFirst');
+        console.log("Reset section order preference");
+        reorderDownloadSections();
     }
     
     // Get emulator mode from URL parameters
