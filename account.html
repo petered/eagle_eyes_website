@@ -587,6 +587,11 @@ permalink: /account/
             width: 100% !important;
         }
     }
+    
+    /* Hide download sections by default until JavaScript runs */
+    #downloads-tab .mb-50 {
+        visibility: hidden;
+    }
 </style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
@@ -683,9 +688,10 @@ permalink: /account/
                                                 </ul>
                                             </div>
                                             
-                                            <!-- Add spinner container -->
+                                            <!-- Update the Scan spinner with descriptive text -->
                                             <div id="scanSpinner" class="loading-spinner">
                                                 <div class="spinner"></div>
+                                                <p style="margin-top: 10px; color: #666; font-size: 14px;">Retrieving download links for Eagle Eyes Scan...</p>
                                             </div>
                                             <!-- Use a grid for cards instead of a table -->
                                             <div id="scanGrid" style="display: none;"></div>
@@ -720,9 +726,10 @@ permalink: /account/
                                                 </ul>
                                             </div>
                                             
-                                            <!-- Add spinner container -->
+                                            <!-- Update the Pilot spinner with descriptive text -->
                                             <div id="pilotSpinner" class="loading-spinner">
                                                 <div class="spinner"></div>
+                                                <p style="margin-top: 10px; color: #666; font-size: 14px;">Retrieving download links for Eagle Eyes Pilot...</p>
                                             </div>
                                             <!-- Use a grid for cards instead of a table -->
                                             <div id="pilotGrid" style="display: none;"></div>
@@ -839,25 +846,26 @@ permalink: /account/
         const signinOverlay = document.getElementById('signin-overlay');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // Check device type and reorder download sections immediately
-        // Hide sections initially to prevent visual shift
+        // Enhanced section handling for download sections
         const downloadsTab = document.getElementById('downloads-tab');
         if (downloadsTab) {
-            const sections = downloadsTab.querySelectorAll('.mb-50');
-            sections.forEach(section => {
-                section.style.opacity = '0';
-                section.style.transition = 'opacity 0.3s ease-in-out';
-            });
-            
-            // Run reordering immediately
+            // Force reordering to happen synchronously before anything is shown
             reorderDownloadSections();
             
-            // Show sections after reordering
+            // Then fade in the sections with the correct order
+            const sections = downloadsTab.querySelectorAll('.mb-50');
+            sections.forEach(section => {
+                section.style.transition = 'opacity 0.3s ease-in-out';
+                section.style.opacity = '0';
+                section.style.visibility = 'visible'; // Make them visible but still transparent
+            });
+            
+            // Then fade in after a short delay
             setTimeout(() => {
                 sections.forEach(section => {
                     section.style.opacity = '1';
                 });
-            }, 100);
+            }, 50);
         }
         
         // Debounce function to limit rapid firing of resize events
