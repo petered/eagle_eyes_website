@@ -839,8 +839,26 @@ permalink: /account/
         const signinOverlay = document.getElementById('signin-overlay');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // Check device type and reorder download sections
-        reorderDownloadSections();
+        // Check device type and reorder download sections immediately
+        // Hide sections initially to prevent visual shift
+        const downloadsTab = document.getElementById('downloads-tab');
+        if (downloadsTab) {
+            const sections = downloadsTab.querySelectorAll('.mb-50');
+            sections.forEach(section => {
+                section.style.opacity = '0';
+                section.style.transition = 'opacity 0.3s ease-in-out';
+            });
+            
+            // Run reordering immediately
+            reorderDownloadSections();
+            
+            // Show sections after reordering
+            setTimeout(() => {
+                sections.forEach(section => {
+                    section.style.opacity = '1';
+                });
+            }, 100);
+        }
         
         // Also reorder sections when window is resized
         window.addEventListener('resize', reorderDownloadSections);
@@ -979,9 +997,18 @@ permalink: /account/
                 // Save the active tab in localStorage to persist through page refreshes
                 localStorage.setItem('activeAccountTab', tabId);
                 
-                // If the downloads tab was clicked, ensure the sections are in the right order
+                // If the downloads tab was clicked, ensure the sections are in the right order before showing content
                 if (tabId === 'downloads-tab') {
+                    const sections = document.getElementById('downloads-tab').querySelectorAll('.mb-50');
+                    sections.forEach(section => {
+                        section.style.opacity = '0';
+                    });
                     reorderDownloadSections();
+                    setTimeout(() => {
+                        sections.forEach(section => {
+                            section.style.opacity = '1';
+                        });
+                    }, 100);
                 }
             });
         });
@@ -1102,6 +1129,22 @@ permalink: /account/
                     // Hide loading overlay before showing content
                     document.getElementById('loading-overlay').style.display = 'none';
                     $("#accountContent").show();
+                    
+                    // Apply section ordering before showing downloads
+                    const downloadsTab = document.getElementById('downloads-tab');
+                    if (downloadsTab) {
+                        const sections = downloadsTab.querySelectorAll('.mb-50');
+                        sections.forEach(section => {
+                            section.style.opacity = '0';
+                        });
+                        reorderDownloadSections();
+                        setTimeout(() => {
+                            sections.forEach(section => {
+                                section.style.opacity = '1';
+                            });
+                        }, 100);
+                    }
+                    
                     fetchAvailableDownloads();
                     console.log("Fetching license overview");
                     fetchLicenseOverview();
