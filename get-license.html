@@ -1,8 +1,60 @@
 ---
-layout: ee_page_layout
-title: Unlock Eagle Eyes Scan
+layout: main
+title: Unlock Eagle Eyes
 permalink: /get-license/
 ---
+
+<!-- Firebase initialization check -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM Content Loaded - Checking Firebase initialization status");
+        
+        // Give a slight delay to ensure all scripts have loaded
+        setTimeout(function() {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    console.log("Firebase object exists", firebase);
+                    console.log("Firebase apps:", firebase.apps);
+                    
+                    if (firebase.apps.length > 0) {
+                        console.log("✅ Firebase is initialized. App count:", firebase.apps.length);
+                        
+                        // Check if auth is available
+                        if (typeof firebase.auth === 'function') {
+                            console.log("✅ Firebase Auth is available");
+                        } else {
+                            console.error("❌ Firebase Auth is NOT available");
+                        }
+                    } else {
+                        console.warn("⚠️ Firebase is imported but not initialized");
+                        
+                        // Initialize Firebase now
+                        firebase.initializeApp({
+                            apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
+                            authDomain: "eagleeyessearch.firebaseapp.com",
+                            projectId: "eagleeyessearch",
+                            storageBucket: "eagleeyessearch.appspot.com",
+                            messagingSenderId: "983592831720",
+                            appId: "1:983592831720:web:57b3880d0185ea3110575d",
+                            measurementId: "G-J057SPR81M"
+                        });
+                        console.log("Firebase initialized in debug script");
+                    }
+                } else {
+                    console.error("❌ Firebase object is not defined. Firebase SDK may not be loaded correctly.");
+                }
+                
+                // Debug sign-in buttons
+                ['googleSignIn', 'microsoftSignIn', 'emailSignInForm'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    console.log(`Button/form #${id} exists:`, !!el, el);
+                });
+            } catch (e) {
+                console.error("Error checking Firebase:", e);
+            }
+        }, 1000);
+    });
+</script>
 
 <!-- Include additional CSS & scripts in the front matter where they'll be added to head -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -70,6 +122,27 @@ permalink: /get-license/
         margin-top: 10px;
     }
     
+    /* Style for the sign-in button */
+    #show-signin-button {
+        background-color: #1e90ff;
+        color: white;
+        font-size: 16px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: block;
+        margin: 20px auto;
+        min-width: 200px;
+    }
+    
+    #show-signin-button:hover {
+        background-color: #1873cc;
+    }
+    
     /* Mobile responsive adjustments */
     @media (max-width: 768px) {
         .container {
@@ -105,7 +178,38 @@ permalink: /get-license/
     #test-user-login:hover {
         background-color: #45a049;
     }
+
+    /* Add proper page margins */
+    body {
+        margin: 0 auto;
+        padding: 0 20px;
+        max-width: 1200px;
+    }
+    
+    @media (max-width: 768px) {
+        body {
+            padding: 0 15px;
+        }
+    }
+
+    /* Responsive styling for the button group */
+    @media (max-width: 576px) {
+        .button-group {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .button-group a#share-key-toggle {
+            margin-left: 0 !important;
+            margin-top: 10px !important;
+        }
+    }
 </style>
+
+<br>
+<br>
+<br>
+<br>
 
 <!-- Test User Banner for Emulator Mode -->
 <div id="test-user-banner">
@@ -113,9 +217,9 @@ permalink: /get-license/
     <button id="test-user-login">Sign in as test@example.com</button>
 </div>
 
-<h1>Unlock all features Eagle Eyes Scan on your device</h1>
+<h1>Activate Eagle Eyes on your device</h1>
 <p>
-    To unlock Eagle Eyes Scan, you need to get a <b class="tooltip">license key
+    To unlock Eagle Eyes, you need to get a <b class="tooltip">license key
     <span class="tooltiptext">A license key is a code that unlocks all features of the software on your device.  It looks like: <br/>X2SBUDUKXA3ZWCIK2VA6QLHDLO4QG6JDGJYUP274IRBVICAW4WIDOJV3GPVBP6JP3J26OHLULFKEWSU6PNIM3BWL6I7JEPQNV2HPB4IOHA7OW7MF6X3BVQILINJBSXKVNZM5DH6OQE3WZDCYEVBYSKFYVA5TJFYFSSYXQ3MCKZVD73OPYD3NXSNPIKOB5OL7QNJWUVW7FPUUPWDJ25WG5SQKLGXPQMXYN2MDSYHI23FVST5IGCZQ7IKMUDHXPFDJVBZRBVZMLIHVC3H24HCUWJMBU4SSLNRDEQ2U4ZNSAKCMBC4E3WRQON2A26VBVJMCE2GB7MTZHIMYEOM3SHSGJTEUZXRKPDFSNOFWEIPWZKG4K3I7F4VALILISI3AWFLBY26HWIEWDZMYIVHDKZJTEETRB3DRZ2C6X3WM7I7OPBOUIZ2ZJEAOSXGFLCSS7IQGJWUXSZHSGXJ3ZTPBL5IW7LF47CWENSSFJ7PPCIFL</span></b>
     and enter it into the app.
 </p>
@@ -148,11 +252,59 @@ permalink: /get-license/
     </dialog>
 </p>
 
-<h2>Step 1: Sign in</h2>
+<!-- Single sign-in button that shows the widget when clicked -->
+<div id="sign-in-button-container" class="button-container">
+    <button id="show-signin-button" class="signin-button" onclick="showSignInWidget()">Sign in to continue</button>
+</div>
 
-{% include signinWidget.html %}
+<!-- Hidden signin widget that will be shown when the button is clicked -->
+<div id="signin-widget-container" style="display: none;">
+    {% include signinwidget-main.html %}
+</div>
+
+<!-- User info display (shown after sign-in) -->
+<div id="user-info-display" class="info-box" style="display: none; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>Signed in as: <span id="user-email"></span></div>
+        <button id="sign-out-button" class="non_important_button" onclick="signOut()">Sign Out</button>
+    </div>
+</div>
 
 <script>
+    function showSignInWidget() {
+        // Hide the button
+        document.getElementById('sign-in-button-container').style.display = 'none';
+        // Show the signin widget
+        document.getElementById('signin-widget-container').style.display = 'block';
+    }
+
+    function signOut() {
+        firebase.auth().signOut().then(function() {
+            console.log('User signed out successfully');
+            // Hide user info
+            document.getElementById('user-info-display').style.display = 'none';
+            // Hide license sections
+            $("#choose-license").hide();
+            $("#licenses").hide();
+            $("#issue-key").hide();
+            $("#key-view").hide();
+            // Show sign-in button again
+            document.getElementById('sign-in-button-container').style.display = 'flex';
+        }).catch(function(error) {
+            console.error('Error signing out:', error);
+        });
+    }
+
+    // Update the user information display
+    function updateUserInfoDisplay(user) {
+        if (user) {
+            document.getElementById('user-email').textContent = user.email;
+            document.getElementById('user-info-display').style.display = 'block';
+        } else {
+            document.getElementById('user-info-display').style.display = 'none';
+        }
+    }
+
     $(document).ready(function() {
         $("#checking-licenses-box").hide();
         
@@ -163,6 +315,23 @@ permalink: /get-license/
     // On document load, run fillMachineIDFromArgs();
     document.addEventListener('DOMContentLoaded', function () {
         fillMachineIDFromArgs();
+        
+        // Check if user is already signed in
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                // User is already signed in
+                console.log('User already signed in:', user.email);
+                // Hide the sign-in button
+                document.getElementById('sign-in-button-container').style.display = 'none';
+                // Set the global user
+                globalUser = user;
+                // Update user info display
+                updateUserInfoDisplay(user);
+                // Show the license section
+                $("#choose-license").show();
+                checkLicenseIDFromArgsAndUpdateAvailableLicenses();
+            }
+        });
     });
 
     document.addEventListener('signInComplete', function (e) {
@@ -174,9 +343,15 @@ permalink: /get-license/
         globalUser = e.detail.user;
         console.log('signInComplete event received: ' + globalUser);
 
+        // Hide the signin widget container after successful signin
+        document.getElementById('signin-widget-container').style.display = 'none';
+        
+        // Update user info display
+        updateUserInfoDisplay(globalUser);
+
         $("#choose-license").show();
         checkLicenseIDFromArgsAndUpdateAvailableLicenses()
-        $("#choose-license").get(0).scrollIntoView();
+        $("#choose-license").get(0).scrollIntoView({block: "start", behavior: "smooth", top: window.innerHeight * 0.1});
     });
     
     // Function to set up test user banner
@@ -229,10 +404,10 @@ permalink: /get-license/
 <br />
 
 <section id="choose-license" hidden>
-    <h2>Step 2: Choose where to get your license</h2>
+    <h2>Step 1: Choose where to get your license</h2>
     <div id="licenses-found-info" class="info-box">⏳ Checking available licenses...</div>
     <div id='step2-button-container' class="button-container">
-        <button id="btn-use-existing" onclick="$('#licenses').show(); $('#license-select').show().css('display', 'block').attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px 32px 8px 8px !important; margin-bottom: 15px; border: 2px solid #0066cc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important; background: #fff url(\'data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E\') no-repeat right 8px center !important; background-size: 16px !important;'); scrollToBottomWithDelay()">Use an existing license</button>
+        <button id="btn-use-existing" onclick="$('#licenses').show(); $('#license-select').show().css('display', 'block').attr('style', 'display: block !important; visibility: visible !important; width: 100%; padding: 8px 32px 8px 8px !important; margin-bottom: 15px; border: 2px solid #0066cc; border-radius: 4px; background-color: #fff; font-size: 14px; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important; background: #fff url(\'data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095.1c3.5-3.6%205.4-7.9%205.4-12.9%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E\') no-repeat right 8px center !important; background-size: 16px !important;'); $('html, body').animate({scrollTop: $('#licenses').offset().top - 70}, 1000);">Use an existing license</button>
         <button id='purchase' onclick="onClickBuy()">Purchase a new license</button>
     </div>
     <div id="payment-successful-message" class="info-box" hidden></div>
@@ -240,7 +415,7 @@ permalink: /get-license/
 <br/>
 
 <section id="licenses" hidden>
-    <h2>Step 3: Select an existing license</h2>
+    <h2>Step 2: Select an existing license</h2>
     <div class="container">
         <!-- Box for License Selection and Details -->
         <div class="box license-box">
@@ -279,7 +454,7 @@ permalink: /get-license/
 </section>
 
 <section id="issue-key" hidden>
-    <h2>Step 4: Issue a key for your device</h2>
+    <h2>Step 3: Issue a key for your device</h2>
     <div id="issue-key-info" class="info-box"></div>
     <div class="container">
         <!-- Box for License Selection and Details -->
@@ -298,16 +473,26 @@ permalink: /get-license/
 </section>
 
 <section id="key-view" hidden>
-    <h2>Step 5: Copy key into Eagle Eyes Scan</h2>
+    <h2>Step 4: Copy key into Eagle Eyes Scan</h2>
     <!-- Box for showing key ID -->
     <div class="box license-box">
         <div class="input-label">Your key</div>
         <textarea id="license-key" class="license-info-box" placeholder="" readonly></textarea>
-        <div class="button-group">
+        <div class="button-group" style="display: flex; flex-wrap: wrap; align-items: center;">
             <button id='license-key-copy-button'>Copy Key</button>
+            <a href="#" id="share-key-toggle" style="color: #1e90ff; text-decoration: underline; font-size: 16px; margin-left: 15px; margin-top: 5px;">Do you need to copy this key to another device?</a>
+        </div>
+        <div id="share-key-explanation" style="display: none; margin-top: 10px; padding: 12px; border-left: 4px solid #1e90ff; background-color: #f8f9fa;">
+            <p>If you started the licensing process from the Eagle Eyes app on another device and got redirected to this device for authentication, use the button below to create a temporary link to this license key. You can open this link on your original device and copy the code from there.</p>
+            <button id='license-key-share-button' style="margin-top: 10px;">Create Shareable Link</button>
         </div>
     </div>
     <div id="license-key-status"></div>
+    <div id="share-url-container" class="info-box" style="display:none; margin-top: 15px; background-color: #f0f7ff; border: 1px solid #1e90ff; border-radius: 6px; padding: 15px;">
+        <h4 style="margin-top: 0; margin-bottom: 10px;">Shareable Link</h4>
+        <div class="url-display" style="word-break: break-all; padding: 10px; background-color: white; border-radius: 4px; font-family: monospace; font-size: 14px; white-space: normal; font-weight: bold;" id="share-url-display"></div>
+        <p style="font-size: 0.9em; color: #666; margin-top: 10px;">This link will expire after 24 hours.</p>
+    </div>
 </section>
 
 <div id="final-status-box" hidden></div>
@@ -316,4 +501,65 @@ permalink: /get-license/
 <!-- Leave a little space on the bottom -->
 <br />
 <br />
+
+<script>
+    $(document).ready(function() {
+        // Toggle the share key explanation
+        $('#share-key-toggle').on('click', function(e) {
+            e.preventDefault();
+            $('#share-key-explanation').slideToggle();
+            // Hide the license key status message when opening share options
+            $('#license-key-status').hide();
+        });
+        
+        // Add the event listener for the license key share button
+        $('#license-key-share-button').on('click', function() {
+            const licenseKey = $('#license-key').val();
+            if (!licenseKey) {
+                alert('No license key available to share.');
+                return;
+            }
+            
+            // Show a loading state on the button
+            const $button = $(this);
+            const originalText = $button.text();
+            $button.text('Creating link...').prop('disabled', true);
+            
+            // Send the license key to dpaste.org
+            $.ajax({
+                url: 'https://dpaste.org/api/',
+                type: 'POST',
+                data: {
+                    content: licenseKey,
+                    syntax: 'text',
+                    title: 'Eagle Eyes License Key',
+                    expiry_days: 1
+                },
+                success: function(response) {
+                    // Extract the URL from the response and ensure no quotes
+                    let shareUrl = response.trim();
+                    // Remove any quotation marks if they exist
+                    shareUrl = shareUrl.replace(/['"]/g, '');
+                    
+                    // Display the URL to the user
+                    $('#share-url-display').text(shareUrl);
+                    $('#share-url-container').show();
+                    
+                    // Scroll to ensure the URL is visible
+                    $('#share-url-container').get(0).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Reset the button
+                    $button.text(originalText).prop('disabled', false);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error creating share link:', error);
+                    alert('Failed to create shareable link. Please try again or use the "Copy Key" option instead.');
+                    
+                    // Reset the button
+                    $button.text(originalText).prop('disabled', false);
+                }
+            });
+        });
+    });
+</script>
 

@@ -527,7 +527,13 @@
             switch(index) {
                 case 0: // First box (Trial)
                     button.addEventListener('click', function() {
-                        window.location.href = getUrlWithEmulatorParam('{{ '/account/?reason=trial' | relative_url }}');
+                        const url = new URL(getUrlWithEmulatorParam('{{ '/account/?reason=trial' | relative_url }}'), window.location.origin);
+                        // Add machine_id if present in current URL
+                        const currentMachineId = new URLSearchParams(window.location.search).get('machine_id');
+                        if (currentMachineId) {
+                            url.searchParams.set('machine_id', currentMachineId);
+                        }
+                        window.location.href = url.toString();
                     });
                     break;
                     
@@ -537,7 +543,13 @@
                     button.addEventListener('click', function() {
                         const productId = this.getAttribute('data-product-id');
                         if (productId) {
-                            window.location.href = getUrlWithEmulatorParam('{{ '/account/?reason=purchase&product=' | relative_url }}' + productId);
+                            const url = new URL(getUrlWithEmulatorParam('{{ '/account/?reason=purchase&product=' | relative_url }}' + productId), window.location.origin);
+                            // Add machine_id if present in current URL
+                            const currentMachineId = new URLSearchParams(window.location.search).get('machine_id');
+                            if (currentMachineId) {
+                                url.searchParams.set('machine_id', currentMachineId);
+                            }
+                            window.location.href = url.toString();
                         }
                     });
                     break;

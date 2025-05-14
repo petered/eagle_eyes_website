@@ -186,6 +186,18 @@
         background-color: #1873cc;
     }
 
+    .highlighted-button {
+        border: 2px solid #1e90ff !important;
+        box-shadow: 0 0 8px rgba(30, 144, 255, 0.5) !important;
+        animation: pulseBorder 1.5s infinite;
+    }
+
+    @keyframes pulseBorder {
+        0% { box-shadow: 0 0 8px rgba(30, 144, 255, 0.5); }
+        50% { box-shadow: 0 0 16px rgba(30, 144, 255, 0.8); }
+        100% { box-shadow: 0 0 8px rgba(30, 144, 255, 0.5); }
+    }
+
     .status-message {
         margin-top: 16px;
         padding: 12px;
@@ -204,6 +216,12 @@
     .status-message.error {
         background-color: #fce8e6;
         color: #d93025;
+        display: block;
+    }
+
+    .status-message.info {
+        background-color: #e8f0fe;
+        color: #1a73e8;
         display: block;
     }
 
@@ -240,21 +258,110 @@
   
         setupEventListeners() {
             // Google Sign-In
-            this.googleButton.addEventListener('click', () => this.signInWithGoogle());
+            this.googleButton.addEventListener('click', async () => {
+                try {
+                    console.log("Google button clicked");
+                    // Clear status message when button is clicked
+                    this.statusMessage.innerHTML = '';
+                    this.showMessage("Signing in with Google...", "info");
+                    
+                    const googleProvider = new firebase.auth.GoogleAuthProvider();
+                    // Add required scopes
+                    googleProvider.addScope('email');
+                    googleProvider.addScope('profile');
+                    
+                    // Force account selection dialog
+                    googleProvider.setCustomParameters({
+                        prompt: 'select_account'
+                    });
+                    
+                    console.log("Google provider configured");
+                    
+                    // Check if we have pending Microsoft credentials
+                    const hasPendingMicrosoftCred = !!window.pendingMicrosoftCredential || !!localStorage.getItem('pendingMicrosoftCredential');
+                    console.log("Has pending Microsoft credential:", hasPendingMicrosoftCred);
+                    
+                    if (hasPendingMicrosoftCred) {
+                        console.log("Attempting sign-in for account linking");
+                    }
+                    
+                    const result = await firebase.auth().signInWithPopup(googleProvider);
+                    console.log("Google sign-in successful, user:", result.user?.email || 'unknown');
+                    
+                    // Link with the stored Microsoft credential if it exists
+                    let pendingCred = window.pendingMicrosoftCredential;
+                    
+                    // If no credential in window, try to get from localStorage
+                    if (!pendingCred) {
+                        const storedCredential = localStorage.getItem('pendingMicrosoftCredential');
+                        if (storedCredential) {
+                            try {
+                                const parsedCred = JSON.parse(storedCredential);
+                                console.log("Found stored Microsoft credential:", parsedCred.providerId);
+                                
+                                // Recreate the credential object
+                                pendingCred = firebase.auth.OAuthProvider.credential(
+                                    parsedCred.providerId,
+                                    parsedCred.idToken,
+                                    parsedCred.accessToken
+                                );
+                            } catch (parseError) {
+                                console.error("Error parsing stored credential:", parseError);
+                            }
+                        }
+                    }
+                    
+                    if (pendingCred) {
+                        console.log("Attempting to link Microsoft credential to Google account");
+                        try {
+                            await result.user.linkWithCredential(pendingCred);
+                            console.log("Account linking successful!");
+                            this.showSuccess("Your Microsoft and Google accounts have been successfully linked!");
+                            
+                            // Clear credentials after successful linking
+                            delete window.pendingMicrosoftCredential;
+                            delete window.pendingMicrosoftEmail;
+                            localStorage.removeItem('pendingMicrosoftCredential');
+                        } catch (linkError) {
+                            console.error("Detailed linking error:", linkError.code, linkError.message);
+                            
+                            if (linkError.code === 'auth/provider-already-linked') {
+                                console.log("Provider already linked - accounts are already connected");
+                                this.showSuccess("Your accounts are already linked. You can now sign in with either method.");
+                            } else if (linkError.code === 'auth/credential-already-in-use') {
+                                console.error("Microsoft credential already in use by another account");
+                                this.showError("This Microsoft account is already linked to a different user.");
+                            } else {
+                                console.error("Unhandled linking error:", linkError);
+                                this.showError("Error linking accounts: " + linkError.message);
+                            }
+                            
+                            // Clear credentials even after error
+                            delete window.pendingMicrosoftCredential;
+                            delete window.pendingMicrosoftEmail;
+                            localStorage.removeItem('pendingMicrosoftCredential');
+                        }
+                    }
+                    
+                    this.handleSignInSuccess(result.user);
+                } catch (googleError) {
+                    console.error("Error signing in with Google:", googleError);
+                    console.error("Google error code:", googleError.code);
+                    console.error("Google error message:", googleError.message);
+                    
+                    if (googleError.code === 'auth/popup-blocked') {
+                        this.showError("Google sign-in popup was blocked. Please allow popups for this site and try again.");
+                    } else if (googleError.code === 'auth/popup-closed-by-user') {
+                        this.showError("Google sign-in was cancelled. Please try again if you want to sign in.");
+                    } else {
+                        this.showError("Google sign-in failed: " + googleError.message);
+                    }
+                }
+            });
             // Microsoft Sign-In
             this.microsoftButton.addEventListener('click', () => this.signInWithMicrosoft());
             // Email Sign-In
             this.emailForm.addEventListener('submit', (e) => this.signInWithEmail(e));
-        }
-  
-        async signInWithGoogle() {
-            try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                const result = await firebase.auth().signInWithPopup(provider);
-                this.handleSignInSuccess(result.user);
-            } catch (error) {
-                this.showError("Google sign-in failed. Please try again.");
-            }
         }
   
         async signInWithMicrosoft() {
@@ -267,12 +374,7 @@
                 provider.addScope('profile');
                 provider.addScope('email');
                 
-                // Set tenant ID if available (may be needed for organizational accounts)
-                // provider.setCustomParameters({
-                //     tenant: 'TENANT_ID' // Replace with your Microsoft tenant ID if using organizational accounts
-                // });
-                
-                // Use simple parameters for standard accounts
+                // Set custom parameters for standard accounts
                 provider.setCustomParameters({
                     prompt: 'login',
                     login_hint: ''
@@ -286,26 +388,101 @@
                 this.handleSignInSuccess(result.user);
             } catch (error) {
                 console.error("Microsoft sign-in error:", error);
+                console.error("Error code:", error.code);
+                console.error("Error message:", error.message);
                 
-                // Show more helpful error messages based on the error code
-                switch(error.code) {
-                    case 'auth/popup-blocked':
-                        this.showError("Pop-up was blocked. Please allow pop-ups for this site.");
-                        break;
-                    case 'auth/popup-closed-by-user':
-                        this.showError("Sign-in was cancelled. Please try again.");
-                        break;
-                    case 'auth/account-exists-with-different-credential':
-                        this.showError("An account already exists with the same email address but different sign-in credentials.");
-                        break;
-                    case 'auth/unauthorized-domain':
-                        this.showError("This domain is not authorized for OAuth operations. Please contact support.");
-                        break;
-                    case 'auth/operation-not-allowed':
-                        this.showError("Microsoft authentication is not enabled. Please contact support.");
-                        break;
-                    default:
-                        this.showError("Microsoft sign-in failed: " + (error.message || "Please try again."));
+                // Special handling for account linking
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    // Save the Microsoft credential for later linking
+                    const pendingCred = error.credential;
+                    const email = error.email;
+                    
+                    try {
+                        // Log credential details for debugging (without sensitive info)
+                        console.log("Credential detected:", {
+                            providerId: pendingCred?.providerId || 'unknown',
+                            signInMethod: pendingCred?.signInMethod || 'unknown',
+                            hasAccessToken: !!pendingCred?.accessToken,
+                            hasIdToken: !!pendingCred?.idToken,
+                            email: email || 'unknown'
+                        });
+                        
+                        // Save credential in window for immediate use (in case we stay in same session)
+                        window.pendingMicrosoftCredential = pendingCred;
+                        window.pendingMicrosoftEmail = email;
+                        
+                        // Also save to localStorage for persistence between page refreshes
+                        try {
+                            const credentialForStorage = {
+                                providerId: pendingCred.providerId,
+                                idToken: pendingCred.idToken,
+                                accessToken: pendingCred.accessToken,
+                                email: email
+                            };
+                            localStorage.setItem('pendingMicrosoftCredential', JSON.stringify(credentialForStorage));
+                            console.log("Stored Microsoft credential in localStorage for linking");
+                        } catch (storageError) {
+                            console.error("Error storing Microsoft credential in localStorage:", storageError);
+                        }
+                        
+                        // Fetch sign-in methods for the email
+                        const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+                        console.log("Available sign-in methods:", methods);
+                        
+                        // Prepare a coherent user message based on available methods
+                        let signInMessage = "This email is already associated with a different sign-in method.";
+                        
+                        if (methods.includes('google.com')) {
+                            signInMessage = "This email is already used with Google authentication. Please sign in with Google to link your accounts.";
+                            // Apply visual highlighting to Google button
+                            this.googleButton.classList.add('highlighted-button');
+                            
+                            // Make status message visible and show Google sign-in instructions
+                            this.statusMessage.innerHTML = '';
+                            this.statusMessage.textContent = signInMessage;
+                            this.statusMessage.className = 'status-message warning';
+                            this.statusMessage.style.display = 'block';
+                            
+                            // Scroll to make sure the message is visible
+                            this.statusMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            console.log("UI updated: Google button highlighted, instruction message displayed");
+                            return;
+                        } else if (methods.includes('password')) {
+                            signInMessage = "This email is already used with password authentication. Please sign in with your password to link your accounts.";
+                        } else if (methods.includes('emailLink')) {
+                            signInMessage = "This email is already used with email link authentication. We'll send you a sign-in link to link your accounts.";
+                            
+                            // Set up email sign-in with linking mode
+                            this.emailInput.value = email;
+                            
+                            // Request email sign-in link automatically
+                            const actionCodeSettings = {
+                                url: window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'linkMode=true',
+                                handleCodeInApp: true
+                            };
+                            
+                            await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+                            localStorage.setItem('emailForSignIn', email);
+                            this.showSuccess(`Sign-in link sent to ${email}. Please check your email to complete linking your accounts.`);
+                            return;
+                        }
+                        
+                        this.showMessage(signInMessage, "warning");
+                    } catch (fetchError) {
+                        console.error("Error fetching sign-in methods or processing credential:", fetchError);
+                        this.showError("There was a problem processing your sign-in. Please try again.");
+                    }
+                } else if (error.code === 'auth/popup-blocked') {
+                    console.error("Popup was blocked during Microsoft sign-in");
+                    this.showError("Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.");
+                } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+                    console.log("User cancelled the Microsoft sign-in popup");
+                    this.showError("Sign-in was cancelled. Please try again if you want to sign in.");
+                } else {
+                    // Generic error handling with more details
+                    console.error("Unhandled Microsoft auth error:", error);
+                    this.showError("Microsoft sign-in failed: " + (error.message || "Please try again."));
                 }
             }
         }
@@ -340,11 +517,13 @@
         showSuccess(message) {
             this.statusMessage.textContent = message;
             this.statusMessage.className = 'status-message success';
+            this.statusMessage.style.display = 'block';
         }
   
         showError(message) {
             this.statusMessage.textContent = message;
             this.statusMessage.className = 'status-message error';
+            this.statusMessage.style.display = 'block';
         }
   
         completeEmailLinkSigninIfApplicable() {
@@ -353,20 +532,282 @@
                 if (!email) {
                     email = window.prompt("Please provide your email for confirmation");
                 }
+                
+                // Check if we're in account linking mode
+                const isLinkingMode = window.location.href.includes('linkMode=true');
+                const pendingCredentialJson = isLinkingMode ? localStorage.getItem('pendingMicrosoftCredential') : null;
+                
+                if (isLinkingMode && pendingCredentialJson) {
+                    console.log("Detected linking mode with pending credential");
+                }
+                
                 firebase.auth().signInWithEmailLink(email, window.location.href)
                     .then((result) => {
                         window.localStorage.removeItem('emailForSignIn');
-                        this.handleSignInSuccess(result.user);
+                        
+                        // If we're in linking mode and have a pending credential, link the accounts
+                        if (isLinkingMode && pendingCredentialJson) {
+                            try {
+                                const pendingCredData = JSON.parse(pendingCredentialJson);
+                                console.log("Retrieved credential data for linking:", {
+                                    providerId: pendingCredData.providerId,
+                                    hasIdToken: !!pendingCredData.idToken,
+                                    hasAccessToken: !!pendingCredData.accessToken,
+                                    email: pendingCredData.email
+                                });
+                                
+                                // Convert the stored data back into a credential object
+                                const pendingCred = firebase.auth.OAuthProvider.credential(
+                                    pendingCredData.providerId,
+                                    pendingCredData.idToken,
+                                    pendingCredData.accessToken
+                                );
+                                
+                                console.log("Created credential for linking with provider:", pendingCredData.providerId);
+                                
+                                // Link the accounts
+                                return result.user.linkWithCredential(pendingCred)
+                                    .then(() => {
+                                        // Clear the stored credential
+                                        localStorage.removeItem('pendingMicrosoftCredential');
+                                        
+                                        this.showSuccess("Your accounts have been successfully linked! You can now sign in with either method.");
+                                        this.handleSignInSuccess(result.user);
+                                    })
+                                    .catch((linkError) => {
+                                        console.error("Error during account linking:", linkError.code, linkError.message);
+                                        
+                                        // Check for specific linking errors
+                                        if (linkError.code === 'auth/provider-already-linked') {
+                                            this.showSuccess("Your accounts are already linked. You can now sign in with either method.");
+                                        } else if (linkError.code === 'auth/credential-already-in-use') {
+                                            this.showError("This Microsoft account is already linked to a different user. Please use a different Microsoft account.");
+                                        } else {
+                                            this.showError("Failed to link accounts: " + linkError.message);
+                                        }
+                                        
+                                        localStorage.removeItem('pendingMicrosoftCredential');
+                                        this.handleSignInSuccess(result.user);
+                                    });
+                            } catch (error) {
+                                console.error("Error processing stored credential:", error);
+                                this.showError("There was a problem linking your accounts. Please try again.");
+                                this.handleSignInSuccess(result.user);
+                            }
+                        } else {
+                            // Normal email link sign-in flow
+                            this.handleSignInSuccess(result.user);
+                        }
                     })
                     .catch((error) => {
                         console.error("Error during email link sign-in:", error);
                         this.showError("Error during email sign-in. Please try again.");
+                        
+                        // Clean up stored items on error
+                        if (isLinkingMode) {
+                            localStorage.removeItem('pendingMicrosoftCredential');
+                        }
                     });
+            }
+        }
+
+        // Add a more versatile message display method for info/warning states
+        showMessage(message, type = 'info') {
+            this.statusMessage.textContent = message;
+            this.statusMessage.className = `status-message ${type}`;
+            this.statusMessage.style.display = 'block';
+        }
+
+        async handleEmailSignIn() {
+            try {
+                const emailLink = window.location.href;
+                const email = localStorage.getItem('emailForSignIn');
+                
+                if (!email) {
+                    this.showError("Could not find your email in storage. Please restart the sign-in process.");
+                    return;
+                }
+                
+                console.log("Attempting to sign in with email link...");
+                // Log if this is a linking operation
+                const isLinking = emailLink.includes('linkMode=true');
+                console.log("Email link sign-in in linking mode:", isLinking);
+                
+                // Sign in with email link
+                const result = await firebase.auth().signInWithEmailLink(email, emailLink);
+                console.log("Email link sign-in successful:", result.user);
+                
+                // Check if we have pending credentials to link
+                let pendingCred = null;
+                let credentialProvider = null;
+                
+                // Try to retrieve Microsoft credentials first
+                try {
+                    const storedMicrosoftCred = localStorage.getItem('pendingMicrosoftCredential');
+                    if (storedMicrosoftCred) {
+                        const parsedCred = JSON.parse(storedMicrosoftCred);
+                        console.log("Found stored Microsoft credential for linking:", {
+                            providerId: parsedCred.providerId,
+                            email: parsedCred.email
+                        });
+                        
+                        // Reconstruct the credential object
+                        pendingCred = firebase.auth.OAuthProvider.credential(
+                            parsedCred.providerId,
+                            parsedCred.idToken,
+                            parsedCred.accessToken
+                        );
+                        credentialProvider = "Microsoft";
+                    }
+                } catch (microsoftStorageError) {
+                    console.error("Error retrieving stored Microsoft credential:", microsoftStorageError);
+                }
+                
+                // If no Microsoft credentials, try Google credentials
+                if (!pendingCred) {
+                    try {
+                        const storedGoogleCred = localStorage.getItem('pendingGoogleCredential');
+                        if (storedGoogleCred) {
+                            const parsedCred = JSON.parse(storedGoogleCred);
+                            console.log("Found stored Google credential for linking:", {
+                                providerId: parsedCred.providerId,
+                                email: parsedCred.email
+                            });
+                            
+                            // Reconstruct the credential object
+                            pendingCred = firebase.auth.GoogleAuthProvider.credential(
+                                parsedCred.idToken,
+                                parsedCred.accessToken
+                            );
+                            credentialProvider = "Google";
+                        }
+                    } catch (googleStorageError) {
+                        console.error("Error retrieving stored Google credential:", googleStorageError);
+                    }
+                }
+                
+                // If we have pending credentials, link them
+                if (pendingCred) {
+                    try {
+                        console.log(`Attempting to link pending ${credentialProvider} credentials...`);
+                        await result.user.linkWithCredential(pendingCred);
+                        console.log(`Successfully linked ${credentialProvider} account!`);
+                        
+                        // Clear pending credentials
+                        localStorage.removeItem('pendingMicrosoftCredential');
+                        localStorage.removeItem('pendingGoogleCredential');
+                        
+                        this.showSuccess(`Your ${credentialProvider} and email accounts have been successfully linked!`);
+                    } catch (linkError) {
+                        console.error(`Error linking ${credentialProvider} account:`, linkError);
+                        this.showError(`There was a problem linking your accounts: ${linkError.message || "Please try again."}`);
+                    }
+                } else {
+                    // Regular sign-in success
+                    this.handleSignInSuccess(result.user);
+                }
+                
+                // Clear the email from localStorage
+                localStorage.removeItem('emailForSignIn');
+                
+                // Clear URL parameters to prevent re-processing this link
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } catch (error) {
+                console.error("Email link sign-in error:", error);
+                
+                if (error.code === 'auth/invalid-email') {
+                    this.showError("The email address is invalid.");
+                } else if (error.code === 'auth/invalid-action-code') {
+                    this.showError("The sign-in link is invalid or has expired. Please request a new sign-in link.");
+                } else if (error.code === 'auth/user-disabled') {
+                    this.showError("Your account has been disabled. Please contact support.");
+                } else {
+                    this.showError("Email sign-in failed: " + (error.message || "Please try again."));
+                }
+                
+                // Clear URL parameters on error as well
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+        }
+
+        async sendEmailLink() {
+            const email = document.getElementById('email').value.trim();
+            
+            if (!email) {
+                this.showError("Please enter your email address.");
+                return;
+            }
+            
+            // Get pending credentials if we're in linking mode
+            const pendingGoogleCred = localStorage.getItem('pendingGoogleCredential');
+            const pendingMicrosoftCred = localStorage.getItem('pendingMicrosoftCredential');
+            const isLinking = pendingGoogleCred || pendingMicrosoftCred;
+            
+            try {
+                console.log("Sending email link for sign-in...");
+                console.log("Link mode:", isLinking ? "Linking" : "Regular sign-in");
+                
+                // Save the email locally so we can verify it later
+                localStorage.setItem('emailForSignIn', email);
+                
+                // Configure action code settings
+                const actionCodeSettings = {
+                    url: window.location.href,
+                    handleCodeInApp: true
+                };
+                
+                // Add linking parameter if we're in linking mode
+                if (isLinking) {
+                    const urlWithParams = new URL(actionCodeSettings.url);
+                    urlWithParams.searchParams.append('linkMode', 'true');
+                    actionCodeSettings.url = urlWithParams.toString();
+                    console.log("Using link URL with params:", actionCodeSettings.url);
+                }
+                
+                // Send sign-in link
+                await firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings);
+                console.log("Email link sent successfully to:", email);
+                
+                this.showSuccess("Email link sent! Check your email to complete sign-in.");
+                this.toggleEmailForm(false);
+            } catch (error) {
+                console.error("Error sending email link:", error);
+                
+                if (error.code === 'auth/invalid-email') {
+                    this.showError("The email address is invalid.");
+                } else if (error.code === 'auth/missing-continue-uri') {
+                    this.showError("Configuration error: Missing continue URL.");
+                } else if (error.code === 'auth/invalid-continue-uri') {
+                    this.showError("Configuration error: Invalid continue URL.");
+                } else if (error.code === 'auth/unauthorized-continue-uri') {
+                    this.showError("Configuration error: The domain is not authorized.");
+                } else {
+                    this.showError("Failed to send email link: " + (error.message || "Please try again."));
+                }
             }
         }
     }
   
     document.addEventListener('DOMContentLoaded', () => {
+        // Check if Firebase is initialized before trying to use it
+        if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
+            console.error("Firebase not initialized yet, initializing now...");
+            firebase.initializeApp({
+                apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
+                authDomain: "eagleeyessearch.firebaseapp.com",
+                projectId: "eagleeyessearch",
+                storageBucket: "eagleeyessearch.appspot.com",
+                messagingSenderId: "983592831720",
+                appId: "1:983592831720:web:57b3880d0185ea3110575d",
+                measurementId: "G-J057SPR81M"
+            });
+            console.log("Firebase initialized in signinwidget-main.html");
+        }
+        
         // Try to get redirect result first, before initializing widget
         firebase.auth().getRedirectResult().then((result) => {
             if (result && result.user) {

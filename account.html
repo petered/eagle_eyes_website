@@ -139,7 +139,7 @@ permalink: /account/
     }
     
     .license-meta-highlight, .token-meta-highlight {
-      font-weight: 500;
+      font-weight: 300;
       color: #333;
     }
     
@@ -587,6 +587,11 @@ permalink: /account/
             width: 100% !important;
         }
     }
+    
+    /* Hide download sections by default until JavaScript runs */
+    #downloads-tab .mb-50 {
+        visibility: hidden;
+    }
 </style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
@@ -603,7 +608,10 @@ permalink: /account/
             <div class="centered">
                 <h2 class="mb-10">Account</h2>
                 <div style="display: flex; justify-content: flex-start; align-items: center; gap: 20px;">
-                    <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                    <div style="display: flex; flex-direction: column;">
+                        <div id="userEmailDisplay" style="color: #666; font-size: 16px;"></div>
+                        <div id="accountStatusDisplay" style="color: #666; font-size: 16px; display: none;">Account status: <span style="font-weight: 500; color: #4CAF50;">verified</span></div>
+                    </div>
                     <div id="signOutContainer" style="display: none;">
                         <a href="#" id="signOutButton" class="button small rounded" style="padding: 8px 15px; font-size: 14px;">Sign Out</a>
                     </div>
@@ -641,8 +649,8 @@ permalink: /account/
                         <div class="row">
                             <div class="column width-12">
                                 <!-- Add the license purchase suggestion here -->
-                                <div style="color: #666; font-size: 16px; margin-bottom: 20px; text-align: center;" id="verification-status">
-                                    Looking to buy a new license? <a href="{{ '/user-form/' | relative_url }}?reason=purchase" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Get verified</a>.
+                                <div style="color: #666; font-size: 16px; margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center;" id="verification-status">
+                                    <a href="{{ '/pricing/' | relative_url }}" class="button small rounded" style="background-color: #1e90ff; color: white; text-decoration: none; padding: 8px 15px; font-size: 14px; border-radius: 4px;">Purchase a new license</a>
                                 </div>
                                 
                                 <!-- Tab Navigation -->
@@ -660,10 +668,30 @@ permalink: /account/
                                         <p style="color: #666; font-size: 14px; margin-bottom: 30px; font-style: italic; text-align: center;">Requires an active license to access all features</p>
                                         
                                         <div class="mb-50">
-                                            <h4>Eagle Eyes Scan</h4>
-                                            <!-- Add spinner container -->
+                                            <h4 style="font-size: 22px; margin-bottom: 15px;">Eagle Eyes Scan for desktop</h4>
+                                            
+                                            <!-- Add Scan instructions -->
+                                            <div style="margin-bottom: 25px; background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                                                <h4 style="margin-bottom: 15px; font-weight: 300; text-align: center;">Getting Started with Eagle Eyes Scan</h4>
+                                                
+                                                <p style="margin-bottom: 15px;"><strong>1. Download Eagle Eyes Scan</strong> below and install the program.</p>
+                                                
+                                                <p style="margin-bottom: 15px;"><strong>2. Get a key for your device.</strong> Open the application and click the "🔑" (key) button. Follow the on‑screen instructions to generate your device‑specific license key. This key ties to your active Eagle Eyes license and unlocks the full feature set.</p>
+                                                
+                                                <p style="margin-bottom: 15px;"><strong>3. Activate your device/computer.</strong> Return to your app and paste in the key.</p>
+                                                
+                                                <p style="margin-bottom: 10px;">To get up and running fast, check out our:</p>
+                                                <ul style="margin-left: 20px; margin-bottom: 5px;">
+                                                    <li><a href="https://www.eagleeyessearch.com/scan#tutorial" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Quick field tutorial</a></li>
+                                                    <li><a href="https://docs.google.com/document/d/12mhRVmhtQUfvJHy7tI7mB_oLd3aRqYJJPWzKlhKnTwY" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Full user manual</a></li>
+                                                    <li><a href="https://www.eagleeyessearch.com/faq" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Frequently Asked Questions</a></li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <!-- Update the Scan spinner with descriptive text -->
                                             <div id="scanSpinner" class="loading-spinner">
                                                 <div class="spinner"></div>
+                                                <p style="margin-top: 10px; color: #666; font-size: 14px;">Retrieving download links for Eagle Eyes Scan...</p>
                                             </div>
                                             <!-- Use a grid for cards instead of a table -->
                                             <div id="scanGrid" style="display: none;"></div>
@@ -675,10 +703,33 @@ permalink: /account/
                                         </div>
 
                                         <div class="mb-50">
-                                            <h4>Eagle Eyes Pilot</h4>
-                                            <!-- Add spinner container -->
+                                            <h4 style="font-size: 22px; margin-bottom: 15px;">Eagle Eyes Pilot for DJI/Android</h4>
+                                            
+                                            <!-- Add Pilot instructions -->
+                                            <div style="margin-bottom: 25px; background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                                                <h4 style="margin-bottom: 15px; font-weight: 300; text-align: center;">Getting Started with Eagle Eyes Pilot</h4>
+                                                
+                                                <p style="margin-bottom: 15px; ;"><strong>1. Download Eagle Eyes Pilot on your device.</strong> Make sure your device has at least 6 GB of free space. Sign in with your Eagle Eyes Search account from your controller (or any compatible Android device), and download and install the .apk file below.</p>
+                                                
+                                                <p style="margin-bottom: 15px;">If you can't log in from the controller, email us at <a href="mailto:info@eagleeyessearch.com" style="color: #1e90ff; text-decoration: none; font-weight: 500;">info@eagleeyessearch.com</a> and we'll help you sort it out.</p>
+                                                
+                                                <p style="margin-bottom: 15px;"><strong>2. Get a key for your device.</strong> Open the app and follow the on‑screen instructions to generate your device‑specific license key. This key ties to your active Eagle Eyes license and unlocks the full feature set.</p>
+
+                                                <p style="margin-bottom: 15px;"><strong>3. Activate your device.</strong> Return to your app and paste in the key. 
+                                                
+                                                
+                                                <p style="margin-bottom: 10px;">To get up and running fast, check out our:</p>
+                                                <ul style="margin-left: 20px; margin-bottom: 5px;">
+                                                    <li><a href="https://www.eagleeyessearch.com/pilot#tutorial" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Quick‑start field tutorial</a></li>
+                                                    <li><a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Full user manual</a></li>
+                                                    <li><a href="https://www.eagleeyessearch.com/faq" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Frequently Asked Questions</a></li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <!-- Update the Pilot spinner with descriptive text -->
                                             <div id="pilotSpinner" class="loading-spinner">
                                                 <div class="spinner"></div>
+                                                <p style="margin-top: 10px; color: #666; font-size: 14px;">Retrieving download links for Eagle Eyes Pilot...</p>
                                             </div>
                                             <!-- Use a grid for cards instead of a table -->
                                             <div id="pilotGrid" style="display: none;"></div>
@@ -794,6 +845,53 @@ permalink: /account/
         const signOutButton = document.getElementById('signOutButton');
         const signinOverlay = document.getElementById('signin-overlay');
         const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Enhanced section handling for download sections
+        const downloadsTab = document.getElementById('downloads-tab');
+        if (downloadsTab) {
+            // Force reordering to happen synchronously before anything is shown
+            reorderDownloadSections();
+            
+            // Then fade in the sections with the correct order
+            const sections = downloadsTab.querySelectorAll('.mb-50');
+            sections.forEach(section => {
+                section.style.transition = 'opacity 0.3s ease-in-out';
+                section.style.opacity = '0';
+                section.style.visibility = 'visible'; // Make them visible but still transparent
+            });
+            
+            // Then fade in after a short delay
+            setTimeout(() => {
+                sections.forEach(section => {
+                    section.style.opacity = '1';
+                });
+            }, 50);
+        }
+        
+        // Debounce function to limit rapid firing of resize events
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+        
+        // Replace the direct resize listener with a debounced version
+        // Also only reorder if width actually changes (not just height changes from scrolling)
+        let lastWidth = window.innerWidth;
+        const debouncedReorder = debounce(function() {
+            const currentWidth = window.innerWidth;
+            // Only reorder if width changed significantly (not just scroll-induced height changes)
+            if (Math.abs(currentWidth - lastWidth) > 10) {
+                lastWidth = currentWidth;
+                reorderDownloadSections();
+            }
+        }, 250); // 250ms debounce
+        
+        window.addEventListener('resize', debouncedReorder);
 
         // Add this to hide the overlay immediately if user is already signed in
         if (firebase.auth().currentUser) {
@@ -928,6 +1026,20 @@ permalink: /account/
                 
                 // Save the active tab in localStorage to persist through page refreshes
                 localStorage.setItem('activeAccountTab', tabId);
+                
+                // If the downloads tab was clicked, ensure the sections are in the right order before showing content
+                if (tabId === 'downloads-tab') {
+                    const sections = document.getElementById('downloads-tab').querySelectorAll('.mb-50');
+                    sections.forEach(section => {
+                        section.style.opacity = '0';
+                    });
+                    reorderDownloadSections();
+                    setTimeout(() => {
+                        sections.forEach(section => {
+                            section.style.opacity = '1';
+                        });
+                    }, 100);
+                }
             });
         });
         
@@ -1047,6 +1159,22 @@ permalink: /account/
                     // Hide loading overlay before showing content
                     document.getElementById('loading-overlay').style.display = 'none';
                     $("#accountContent").show();
+                    
+                    // Apply section ordering before showing downloads
+                    const downloadsTab = document.getElementById('downloads-tab');
+                    if (downloadsTab) {
+                        const sections = downloadsTab.querySelectorAll('.mb-50');
+                        sections.forEach(section => {
+                            section.style.opacity = '0';
+                        });
+                        reorderDownloadSections();
+                        setTimeout(() => {
+                            sections.forEach(section => {
+                                section.style.opacity = '1';
+                            });
+                        }, 100);
+                    }
+                    
                     fetchAvailableDownloads();
                     console.log("Fetching license overview");
                     fetchLicenseOverview();
@@ -1072,6 +1200,8 @@ permalink: /account/
                     'warning',
                     true
                 );
+                // Hide account status
+                document.getElementById('accountStatusDisplay').style.display = 'none';
                 document.getElementById('verification-status').innerHTML = ``;
                 return false; // No redirect
             
@@ -1083,11 +1213,10 @@ permalink: /account/
                     'warning',
                     true
                 );
+                // Show account status
+                document.getElementById('accountStatusDisplay').style.display = 'block';
                 document.getElementById('verification-status').innerHTML = `
-                            You have a verified account. Looking to buy a new license? 
-                            <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
-                                Start here
-                            </a>.
+                            <a href="{{ '/pricing/' | relative_url }}" class="button small rounded" style="background-color: #1e90ff; color: white; text-decoration: none; padding: 8px 15px; font-size: 14px; border-radius: 4px;">Purchase a new license</a>
                 `;
                 return false; // No redirect
             
@@ -1231,19 +1360,22 @@ permalink: /account/
                     'info',
                     true
                 );
+                // Hide account status
+                document.getElementById('accountStatusDisplay').style.display = 'none';
                 document.getElementById('verification-status').innerHTML = ``;
                 return false; // No redirect
             
             case 'approved':
+                // Show account status
+                document.getElementById('accountStatusDisplay').style.display = 'block';
                 document.getElementById('verification-status').innerHTML = `
-                            You have a verified account. Looking to buy a new license? 
-                            <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff; text-decoration: none; font-weight: 500;">
-                                Start here
-                            </a>.
+                            <a href="{{ '/pricing/' | relative_url }}" class="button small rounded" style="background-color: #1e90ff; color: white; text-decoration: none; padding: 8px 15px; font-size: 14px; border-radius: 4px;">Purchase a new license</a>
                 `;
                 return false; // No redirect
                 
             case 'unverified':
+                // Hide account status
+                document.getElementById('accountStatusDisplay').style.display = 'none';
                 // Construct the URL dynamically, preserving the emulator parameter
                 const verificationUrl = getUrlWithEmulatorParam('{{ '/user-form/' | relative_url }}?reason=purchase');
                 // Add a link to the verification form using the dynamic URL
@@ -1322,8 +1454,6 @@ permalink: /account/
             console.log('Available Pilot files:', pilotFiles);
             console.log('Available Scan files:', scanFiles);
 
-            // Reordering: Show Scan first, then Pilot
-            
             // Render Scan downloads as cards
             const scanGrid = document.getElementById('scanGrid');
             scanGrid.innerHTML = '';
@@ -1348,7 +1478,6 @@ permalink: /account/
                         const card = document.createElement('div');
                         card.className = 'download-card';
                         
-                        // Card header with platform as clickable title
                         const header = document.createElement('div');
                         header.className = 'download-header';
                         
@@ -1466,7 +1595,6 @@ permalink: /account/
                         const card = document.createElement('div');
                         card.className = 'download-card';
                         
-                        // Card header with platform as clickable title
                         const header = document.createElement('div');
                         header.className = 'download-header';
                         
@@ -1485,7 +1613,7 @@ permalink: /account/
                         pilotWarning.style.color = 'red';
                         pilotWarning.style.marginBottom = '15px';
                         pilotWarning.style.fontSize = '14px';
-                        pilotWarning.innerHTML = 'Eagle Eyes Pilot is currently still in an experimental phase, and you may encounter errors. Please complete <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdMWp4Tn4w8-RwYMf1-jQwXyzxlD7xXtoWPia0DAIbqhn0LA/viewform?usp=sf_link" target="_blank" style="color: red; text-decoration: underline;">this form</a> for a free trial license to try out Eagle Eyes Pilot. Read about drone and controller compatibility <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.16dyxpfxra6k" target="_blank" style="color: red; text-decoration: underline;">here</a>.';
+                        pilotWarning.innerHTML = 'Eagle Eyes Pilot currently supports the following drones:<ul style="margin: 5px 0 10px 20px;"><li>DJI Mini 3 pro</li><li>DJI M3T</li><li>M30T (early compatibility - works but needs more field testing)</li></ul>The application may be fully functional on other DJI drones, but your mileage may vary. Read about the current status of drone and controller compatibility <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.16dyxpfxra6k" target="_blank" style="color: red; text-decoration: underline;">here</a>.';
                         body.appendChild(pilotWarning);
                         
                         // Remove macOS x86_64 warning for Pilot since it's an Android app
@@ -1560,6 +1688,9 @@ permalink: /account/
             // Hide spinners
             document.getElementById('pilotSpinner').style.display = 'none';
             document.getElementById('scanSpinner').style.display = 'none';
+            
+            // Apply the correct ordering based on device type
+            reorderDownloadSections();
             
         } catch (error) {
             console.error('Error in fetchAvailableDownloads:', error);
@@ -1833,7 +1964,7 @@ permalink: /account/
           header.style.backgroundColor = '#e6f2ff'; // Light blue for active licenses
         }
         
-        // Left section - Name and ID
+        // Left section - Name and expiry date
         const headerLeft = document.createElement('div');
         headerLeft.className = 'license-header-left';
         
@@ -1841,95 +1972,25 @@ permalink: /account/
         title.className = 'license-title';
         title.textContent = license.license_name;
         
-        const subtitle = document.createElement('p');
-        subtitle.className = 'license-subtitle';
-        subtitle.textContent = `ID: ${license.license_id}`;
-
-        // Add owner information in the header section
-        const ownerInfo = document.createElement('p');
-        ownerInfo.className = 'license-subtitle';
-        ownerInfo.style.marginTop = '3px';
+        // Add title to headerLeft
+        headerLeft.appendChild(title);
         
-        // Add license owner information if available
-        if (license.license_owner) {
-          // Check if the owner is the current user
-          const currentUserEmail = firebase.auth().currentUser.email;
-          if (license.license_owner === currentUserEmail) {
-            // Show "You are the owner" message in dark blue
-            ownerInfo.style.color = '#1e3a8a';
-            ownerInfo.style.fontWeight = '600';
-            ownerInfo.textContent = "You are the owner of this license";
-          } else {
-            // Show regular owner information
-            ownerInfo.innerHTML = `Owner: <span style="font-weight: 500;">${license.license_owner}</span>`;
-          }
-        } else {
-          ownerInfo.style.display = 'none'; // Hide if no owner info
-        }
-        
-        // Add copy button for active licenses with remaining devices
-        if (!isExpired && keysLeft > 0) {
-          const idRow = document.createElement('div');
-          idRow.style.display = 'flex';
-          idRow.style.alignItems = 'center';
-          idRow.style.marginTop = '5px';
-          
-          idRow.appendChild(subtitle);
-          
-          const copyButton = document.createElement('button');
-          copyButton.className = 'copy-button';
-          copyButton.textContent = 'Copy License ID';
-          copyButton.style.marginLeft = '10px';
-          copyButton.style.padding = '3px 8px';
-          copyButton.style.fontSize = '12px';
-          copyButton.onclick = function() {
-            navigator.clipboard.writeText(license.license_id).then(
-              function() {
-                // Success feedback
-                copyButton.textContent = 'Copied!';
-                copyButton.classList.add('copied');
-                
-                // Reset button after 2 seconds
-                setTimeout(function() {
-                  copyButton.textContent = 'Copy License ID';
-                  copyButton.classList.remove('copied');
-                }, 2000);
-              },
-              function(err) {
-                console.error('Could not copy text: ', err);
-                copyButton.textContent = 'Error';
-                
-                // Reset button after 2 seconds
-                setTimeout(function() {
-                  copyButton.textContent = 'Copy License ID';
-                }, 2000);
-              }
-            );
-          };
-          
-          idRow.appendChild(copyButton);
-          headerLeft.appendChild(title);
-          headerLeft.appendChild(idRow);
-          headerLeft.appendChild(ownerInfo);
-        } else {
-          headerLeft.appendChild(title);
-          headerLeft.appendChild(subtitle);
-          headerLeft.appendChild(ownerInfo);
-        }
-        
-        // Right section - Expiry date and Devices
-        const headerRight = document.createElement('div');
-        headerRight.className = 'license-header-right';
-        
-        // Expiry Date
+        // Add expiry date directly under the title
         const expiryMeta = document.createElement('div');
         expiryMeta.className = 'license-meta';
+        expiryMeta.style.marginTop = '5px';
         
         if (isExpired) {
           expiryMeta.innerHTML = `<span style="color: red; font-weight: 500;">Expired on ${license.expiry_date}</span>`;
         } else {
           expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
         }
+        
+        headerLeft.appendChild(expiryMeta);
+        
+        // Right section - Devices information only
+        const headerRight = document.createElement('div');
+        headerRight.className = 'license-header-right';
         
         // Add total devices information based on total_keys
         const totalDevicesMeta = document.createElement('div');
@@ -1946,7 +2007,6 @@ permalink: /account/
           remainingDevicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
         }
         
-        headerRight.appendChild(expiryMeta);
         headerRight.appendChild(totalDevicesMeta);
         headerRight.appendChild(remainingDevicesMeta);
         
@@ -1955,9 +2015,81 @@ permalink: /account/
         header.appendChild(headerRight);
         card.appendChild(header);
         
-        // Card body - only for device users
+        // Card body - contains license ID, owner info, and users
         const body = document.createElement('div');
         body.className = 'license-body';
+        
+        // Add license ID in the body section
+        const licenseIdInfo = document.createElement('div');
+        licenseIdInfo.className = 'license-users-label';
+        licenseIdInfo.style.marginBottom = '15px';
+        licenseIdInfo.style.display = 'flex';
+        licenseIdInfo.style.alignItems = 'center';
+        // Change from space-between to flex-start to keep elements close together
+        licenseIdInfo.style.justifyContent = 'flex-start';
+        
+        // Create span for the ID text
+        const idText = document.createElement('span');
+        idText.innerHTML = `License ID: <span style="font-weight: 300;">${license.license_id}</span>`;
+        licenseIdInfo.appendChild(idText);
+        
+        // Add copy button for active licenses with remaining devices
+        if (!isExpired && keysLeft > 0) {
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-button';
+          copyButton.textContent = 'Copy';
+          copyButton.style.padding = '3px 8px';
+          copyButton.style.fontSize = '12px';
+          // Add margin to the left of the button to create space between ID and button
+          copyButton.style.marginLeft = '10px';
+          copyButton.onclick = function() {
+            navigator.clipboard.writeText(license.license_id).then(
+              function() {
+                // Success feedback
+                copyButton.textContent = 'Copied!';
+                copyButton.classList.add('copied');
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy';
+                  copyButton.classList.remove('copied');
+                }, 2000);
+              },
+              function(err) {
+                console.error('Could not copy text: ', err);
+                copyButton.textContent = 'Error';
+                
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                  copyButton.textContent = 'Copy';
+                }, 2000);
+              }
+            );
+          };
+          
+          licenseIdInfo.appendChild(copyButton);
+        }
+        
+        body.appendChild(licenseIdInfo);
+        
+        // Add owner information in the body section
+        if (license.license_owner) {
+          const ownerInfo = document.createElement('div');
+          ownerInfo.className = 'license-users-label';
+          ownerInfo.style.marginBottom = '15px';
+          
+          // Check if the current user is the owner to add "(you)" indicator
+          const currentUserEmail = firebase.auth().currentUser.email;
+          if (license.license_owner === currentUserEmail) {
+            // Add "(you)" after the email for the current user
+            ownerInfo.innerHTML = `Owner: <span style="font-weight: 300;">${license.license_owner} (you)</span>`;
+          } else {
+            // Regular owner display without "(you)"
+            ownerInfo.innerHTML = `Owner: <span style="font-weight: 300;">${license.license_owner}</span>`;
+          }
+          
+          body.appendChild(ownerInfo);
+        }
         
         // Display device users if available
         if (license.keys_used_by && license.keys_used_by.length > 0) {
@@ -2201,6 +2333,85 @@ permalink: /account/
     /***********************************************
      * UTILITY FUNCTIONS
      ***********************************************/
+    
+    /**
+     * Reorders the download sections based on device type.
+     * For mobile devices, shows Pilot section first.
+     * For desktop devices, shows Scan section first.
+     */
+    function reorderDownloadSections() {
+        // Get the parent container
+        const downloadsTab = document.getElementById('downloads-tab');
+        if (!downloadsTab) return;
+        
+        // Get the two sections - they're direct children divs with class mb-50
+        const sections = downloadsTab.querySelectorAll('.mb-50');
+        if (sections.length !== 2) return;
+        
+        const scanSection = sections[0]; // First section is Scan
+        const pilotSection = sections[1]; // Second section is Pilot
+        
+        // First check if we have a saved preference in localStorage
+        let savedPreference = localStorage.getItem('preferPilotFirst');
+        
+        // If no preference exists, detect device and set preference
+        if (savedPreference === null) {
+            // Enhanced device detection for Android and DJI controllers
+            const userAgent = navigator.userAgent;
+            console.log("User agent string:", userAgent);
+            
+            const isAndroid = /Android/i.test(userAgent);
+            const isDJIController = /DJI|RC Pro|DJI RC Pro/i.test(userAgent); 
+            const isSmallScreen = window.innerWidth < 768;
+            
+            // Forced preference from URL parameter (for testing)
+            const urlParams = new URLSearchParams(window.location.search);
+            const showPilotFirst = urlParams.get('show_pilot_first') === 'true';
+            
+            // Set preference based on device detection
+            savedPreference = (isAndroid || isDJIController || isSmallScreen || showPilotFirst) ? 'true' : 'false';
+            
+            // Save preference to localStorage for consistency
+            localStorage.setItem('preferPilotFirst', savedPreference);
+            
+            // Log detection info
+            console.log("Device detection:", { 
+                isAndroid,
+                isDJIController, 
+                isSmallScreen,
+                showPilotFirst,
+                userAgent: userAgent,
+                screenWidth: window.innerWidth,
+                preferPilotFirst: savedPreference
+            });
+        } else {
+            console.log("Using saved preference for section order:", {preferPilotFirst: savedPreference});
+        }
+        
+        // Check current order to avoid unnecessary DOM operations
+        const isPilotFirst = pilotSection.previousElementSibling === null;
+        const shouldBePilotFirst = savedPreference === 'true';
+        
+        // Only reorder if needed
+        if (shouldBePilotFirst && !isPilotFirst) {
+            // Mobile/DJI: Pilot first, then Scan
+            downloadsTab.insertBefore(pilotSection, scanSection);
+            console.log("Reordering: Showing Pilot section first");
+        } else if (!shouldBePilotFirst && isPilotFirst) {
+            // Desktop: Scan first, then Pilot
+            downloadsTab.insertBefore(scanSection, pilotSection);
+            console.log("Reordering: Showing Scan section first");
+        } else {
+            console.log("No reordering needed, current order is correct");
+        }
+    }
+    
+    // Add this function to reset the section order preference
+    function resetSectionOrderPreference() {
+        localStorage.removeItem('preferPilotFirst');
+        console.log("Reset section order preference");
+        reorderDownloadSections();
+    }
     
     // Get emulator mode from URL parameters
     function getIsEmulatorFromURL() {
