@@ -2,7 +2,7 @@
 layout: post
 title: "How StormPoint leveraged Eagle Eyes to Locate Hurricane Helene Survivors by Drone"
 image: "/images/stormpoint-banner.jpg"
-date: 2024-10-03 09:00:00 -0800
+date: 2025-05-03 09:00:00 -0800
 author: Joep Maas
 permalink: /blog/stormpoint-hurricane-helene
 categories: case-study disaster-response
