@@ -473,12 +473,22 @@ permalink: /add_license/
                 same_license_id: sameLicenseId,
                 public_license_name: publicLicenseName,
                 trial_request_id: trialRequestId,
-                user_status: licenseType === 'review' ? 'reviewed' : undefined
-                // registration_email: registrationEmail,
-                // trial: trial
+                user_status: licenseType === 'review' ? 'reviewed' : 
+                           licenseType === 'no_license' ? 'approved' : undefined
             };
 
-            sendLicenseData(data);
+            // If this is a review or no_license action, only send the essential data
+            if (licenseType === 'review' || licenseType === 'no_license') {
+                const statusData = {
+                    emails: emails,
+                    extra_security_password: extraSecurityPassword,
+                    user_status: licenseType === 'review' ? 'reviewed' : 'approved',
+                    trial_request_id: trialRequestId || null
+                };
+                sendLicenseData(statusData);
+            } else {
+                sendLicenseData(data);
+            }
         }
 
         // Function to validate the public license name
