@@ -242,6 +242,13 @@ permalink: /add_license/
                                     Public license (hides license users for public beta testing)
                                 </label>
                             </div>
+                            <div class="radio-container">
+                                <label>
+                                    <input type="radio" id="review" name="licenseType" value="review" required>
+                                    <span class="custom-radio"></span>
+                                    Decline this request and set the status of this account to "reviewed"
+                                </label>
+                            </div>
                         </fieldset>
                         <div id="publicLicenseNameContainer" style="display:none; margin-top: 10px;">
                             <label for="publicLicenseName"><b>Public License Name (exactly 20 alphanumeric characters):</b></label>
@@ -465,7 +472,8 @@ permalink: /add_license/
                 extra_security_password: extraSecurityPassword,
                 same_license_id: sameLicenseId,
                 public_license_name: publicLicenseName,
-                trial_request_id: trialRequestId
+                trial_request_id: trialRequestId,
+                user_status: licenseType === 'review' ? 'reviewed' : undefined
                 // registration_email: registrationEmail,
                 // trial: trial
             };
@@ -657,6 +665,11 @@ permalink: /add_license/
         
         // Set license duration to "No license" when "No license (just approval)" is selected
         if (selectedLicenseType === 'no_license') {
+            $('#licenseDurationSelect').val('no_license').trigger('change');
+        }
+
+        // When review option is selected, set license duration to "No license"
+        if (selectedLicenseType === 'review') {
             $('#licenseDurationSelect').val('no_license').trigger('change');
         }
     }
