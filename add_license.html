@@ -591,21 +591,21 @@ permalink: /add_license/
         }
         // If there's a trial request ID, handle trial license setup
         else if (trialRequestId) {
-            console.log("Setting up trial license with request ID:", trialRequestId);
-            
-            // Set license type to "trial"
-            const trialRadio = document.getElementById('trial');
-            trialRadio.checked = true;
-            
-            // Set license duration to "1 Month" and 6 keys
-            $('#licenseDurationSelect').val('one_month');
-            $('#number_of_keys').val(6);
+            console.log("Setting up with trial request ID:", trialRequestId);
             
             // Prefill the trial request ID in the field and make it read-only
             const trialRequestIdField = document.getElementById('trialRequestId');
             trialRequestIdField.value = trialRequestId;
             trialRequestIdField.readOnly = true;
             trialRequestIdField.style.backgroundColor = "#f0f0f0"; // Visual indication that it's read-only
+            
+            // By default, set license type to "trial"
+            const trialRadio = document.getElementById('trial');
+            trialRadio.checked = true;
+            
+            // Set license duration to "1 Month" and 6 keys
+            $('#licenseDurationSelect').val('one_month');
+            $('#number_of_keys').val(6);
             
             // Prefill license title with "Trial license for [team]" if team parameter exists, 
             // otherwise use email or default
@@ -646,6 +646,14 @@ permalink: /add_license/
         if (trialRequestId) {
             console.log("Ensuring trial request ID visibility after form display");
             $('#trialRequestIdContainer').css('display', 'block');
+            
+            // Make sure the field is populated
+            const trialRequestIdField = document.getElementById('trialRequestId');
+            if (!trialRequestIdField.value) {
+                trialRequestIdField.value = trialRequestId;
+                trialRequestIdField.readOnly = true;
+                trialRequestIdField.style.backgroundColor = "#f0f0f0";
+            }
         }
     }
 
@@ -663,12 +671,15 @@ permalink: /add_license/
         }
         
         // Trial request ID field visibility
-        if (selectedLicenseType === 'trial') {
+        if (selectedLicenseType === 'trial' || selectedLicenseType === 'review') {
             $('#trialRequestIdContainer').show();
+            
             // Set license duration to "1 Month" when trial is selected
-            $('#licenseDurationSelect').val('one_month').trigger('change');
-            // Set default number of keys to 6 for trial licenses
-            $('#number_of_keys').val(6);
+            if (selectedLicenseType === 'trial') {
+                $('#licenseDurationSelect').val('one_month').trigger('change');
+                // Set default number of keys to 6 for trial licenses
+                $('#number_of_keys').val(6);
+            }
         } else {
             $('#trialRequestIdContainer').hide();
         }
