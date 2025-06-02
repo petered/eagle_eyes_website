@@ -421,8 +421,14 @@ permalink: /add_license/
             const sameLicenseId = sameLicenseIdValue === 'true';
             // Get public license name if applicable
             const publicLicenseName = licenseType === 'public' ? $('#publicLicenseName').val() : null;
-            // Get trial request ID if applicable
-            const trialRequestId = (licenseType === 'trial' || licenseType === 'review') ? $('#trialRequestId').val() : null;
+            // Get trial request ID if applicable and ensure it's not empty
+            let trialRequestId = null;
+            if ((licenseType === 'trial' || licenseType === 'review')) {
+                const trialIdValue = $('#trialRequestId').val().trim();
+                if (trialIdValue && trialIdValue !== '') {
+                    trialRequestId = trialIdValue;
+                }
+            }
             
             // const registrationEmail = $('#registration_email').val();
             // const trial = $('input[name="is_trial"]:checked').val();
@@ -472,19 +478,28 @@ permalink: /add_license/
                 extra_security_password: extraSecurityPassword,
                 same_license_id: sameLicenseId,
                 public_license_name: publicLicenseName,
-                trial_request_id: trialRequestId,
                 user_status: licenseType === 'review' ? 'reviewed' : 
                            licenseType === 'no_license' ? 'approved' : undefined
             };
+
+            // Only add trial_request_id to the data if it has a valid value
+            if (trialRequestId) {
+                data.trial_request_id = trialRequestId;
+            }
 
             // If this is a review or no_license action, only send the essential data
             if (licenseType === 'review' || licenseType === 'no_license') {
                 const statusData = {
                     emails: emails,
                     extra_security_password: extraSecurityPassword,
-                    user_status: licenseType === 'review' ? 'reviewed' : 'approved',
-                    trial_request_id: trialRequestId || null
+                    user_status: licenseType === 'review' ? 'reviewed' : 'approved'
                 };
+                
+                // Only add trial_request_id if it has a valid value
+                if (trialRequestId) {
+                    statusData.trial_request_id = trialRequestId;
+                }
+                
                 sendLicenseData(statusData);
             } else {
                 sendLicenseData(data);
