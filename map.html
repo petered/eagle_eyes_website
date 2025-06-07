@@ -1,0 +1,143 @@
+---
+layout: empty
+title: Customer Map (Admin)
+permalink: /map/
+---
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customer Map (Admin)</title>
+    <link rel="stylesheet" href="{{ '/css/form_buttons_and_boxes.css' | relative_url }}">
+    <!-- Add Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <!-- Add Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #main-content {
+            display: none;
+            width: 100%;
+            height: 100vh;
+        }
+        .error-message {
+            color: red;
+            padding: 20px;
+            text-align: center;
+        }
+        #signin-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sign in section -->
+    <div id="signin-overlay">
+        <div style="position: relative; width: 100%; height: 100%;">
+            {% include signinwidget-main.html %}
+        </div>
+    </div>
+
+    <!-- Main content section -->
+    <div id="main-content"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if we're in emulator mode
+            const isEmulator = getIsEmulatorFromURL();
+            
+            if (!isEmulator) {
+                // Listen for the signInComplete event
+                document.addEventListener('signInComplete', async function(e) {
+                    const user = e.detail.user;
+                    try {
+                        // Get the host URL
+                        const hostURL = window.getHostUrl
+                            ? window.getHostUrl()
+                            : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                        // Get the auth token
+                        const idToken = await user.getIdToken();
+                        
+                        // Fetch the map page content
+                        const response = await fetch(hostURL + '/get_map_page', {
+                            headers: {
+                                'Authorization': 'Bearer ' + idToken
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error('Map page response not OK:', {
+                                status: response.status,
+                                statusText: response.statusText,
+                                errorText: errorText
+                            });
+                            
+                            // Handle specific error cases
+                            if (response.status === 403) {
+                                throw new Error('Access denied: You need admin privileges to view this page');
+                            } else if (response.status === 401) {
+                                throw new Error('Authentication failed: Please sign in again');
+                            } else {
+                                throw new Error(`Failed to load map page: ${response.status} ${response.statusText}`);
+                            }
+                        }
+                        
+                        const content = await response.text();
+                        
+                        // Hide the sign-in overlay
+                        const signinOverlay = document.getElementById('signin-overlay');
+                        if (signinOverlay) {
+                            signinOverlay.style.display = 'none';
+                        }
+                        
+                        // Show and populate the main content
+                        const mainContent = document.getElementById('main-content');
+                        mainContent.style.display = 'block';
+                        mainContent.innerHTML = content;
+                        
+                        // Initialize any scripts in the loaded content
+                        const scripts = mainContent.getElementsByTagName('script');
+                        for (let script of scripts) {
+                            eval(script.innerHTML);
+                        }
+                    } catch (error) {
+                        console.error('Error loading map page:', error);
+                        document.getElementById('main-content').innerHTML = 
+                            `<div class="error-message">${error.message}</div>`;
+                    }
+                });
+            } else {
+                // In emulator mode, load the map page directly
+                const mainContent = document.getElementById('main-content');
+                mainContent.style.display = 'block';
+                mainContent.innerHTML = '<div class="error-message">Please use the local Firebase emulator to access the map.</div>';
+            }
+        });
+
+        function getIsEmulatorFromURL() {
+            const url = new URL(window.location.href);
+            return url.searchParams.get("is_emulator") === "true";
+        }
+    </script>
+</body>
+</html> 
