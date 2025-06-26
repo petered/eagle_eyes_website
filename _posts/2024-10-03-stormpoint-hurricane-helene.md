@@ -12,7 +12,7 @@ In September 2024, Hurricane Helene tore a destructive path across parts of Flor
 
 Hurricane Helene caused widespread damage and flooding, leaving many people in hazardous conditions. Collapsed bridges and roads, filled with water and debris, made it hard for first responders to locate stranded people and deliver essential supplies. 
 
-StormPoint, a charitable nonprofit that uses drones for emergency response, quickly mobilized to survey the aftermath. Their goal was to locate stranded individuals, guide rescue efforts, and deliver aid to areas that ground vehicles couldn't reach.
+[StormPoint](https://stormpoint.org/), a charitable nonprofit that uses drones for emergency response, quickly mobilized to survey the aftermath. Their goal was to locate stranded individuals, guide rescue efforts, and deliver aid to areas that ground vehicles couldn't reach.
 
 ![A collapsed bridge in Eastern Tennessee](/images/stormpoint1.jpg)
 *A collapsed bridge in Eastern Tennessee (Source: StormPoint)*
@@ -59,4 +59,4 @@ We are using what we've learned to make our products better. Eagle Eyes Pilot is
 
 ## Support StormPoint
 
-StormPoint's dedication to saving lives and bringing relief hinges on partnerships, donations, and volunteer support. Consider making a donation through their website. Funds will be used for supplies and equipment for our team to assist other first responders and local residents. 
+StormPoint's dedication to saving lives and bringing relief hinges on partnerships, donations, and volunteer support. Consider making a donation through their [website](https://stormpoint.org/). Funds will be used for supplies and equipment for our team to assist other first responders and local residents. 
