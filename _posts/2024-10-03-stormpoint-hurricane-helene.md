@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "How StormPoint leveraged Eagle Eyes to Locate Hurricane Helene Survivors by Drone"
-image: "/images/stormpoint-banner.jpg"
+image: "images/stormpoint-banner.jpg"
 date: 2025-05-03 09:00:00 -0800
 author: Joep Maas
 permalink: /blog/stormpoint-hurricane-helene
@@ -14,7 +14,7 @@ Hurricane Helene caused widespread damage and flooding, leaving many people in h
 
 <a href="https://stormpoint.org/" target="_blank" rel="noopener">StormPoint</a>, a charitable nonprofit that uses drones for emergency response, quickly mobilized to survey the aftermath. Their goal was to locate stranded individuals, guide rescue efforts, and deliver aid to areas that ground vehicles couldn't reach.
 
-![A collapsed bridge in Eastern Tennessee](/images/stormpoint1.jpg)
+![A collapsed bridge in Eastern Tennessee]({{ site.baseurl }}/images/stormpoint1.jpg)
 *A collapsed bridge in Eastern Tennessee (Source: StormPoint)*
 
 <br>
@@ -26,10 +26,10 @@ Deliveries often required beyond-visual-line-of-sight (BVLOS) flights, demanding
 
 <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
   <div style="flex: 1; margin-right: 10px;">
-    <img src="/images/stormpoint2.jpg" alt="StormPoint field operations" style="width: 100%; height: auto;">
+    <img src="{{ site.baseurl }}/images/stormpoint2.jpg" alt="StormPoint field operations" style="width: 100%; height: auto;">
   </div>
   <div style="flex: 1; margin-left: 10px;">
-    <img src="/images/stormpoint3.jpg" alt="StormPoint mobile command unit" style="width: 100%; height: auto;">
+    <img src="{{ site.baseurl }}/images/stormpoint3.jpg" alt="StormPoint mobile command unit" style="width: 100%; height: auto;">
   </div>
 </div>
 <div style="text-align: center; font-style: italic; margin-bottom: 20px;">
@@ -44,7 +44,7 @@ In a <a href="https://youtu.be/Y22zKInhP1Q?si=Ra4ba54q9IpaOOBr&t=1476" target="_
 > "We were very, very fortunate to be able to use Eagle Eyes. It was incredibly helpful for us. The software was able to notice the smallest details... The reports it generates are really neat, containing pictures and coordinates of each detection."
 > — Jeff Clementi, Operations Manager at StormPoint
 
-![Eagle Eyes helped process imagery](/images/Stormpoint4.png)
+![Eagle Eyes helped process imagery]({{ site.baseurl }}/images/Stormpoint4.png)
 *Eagle Eyes helped StormPoint to sift through masses of drone imagery to find targets to investigate*
 
 <br>
@@ -74,5 +74,5 @@ StormPoint's dedication to saving lives and bringing relief hinges on partnershi
 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin-bottom: 20px;">
   <iframe src="https://www.youtube.com/embed/Y22zKInhP1Q?start=1476" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 </div>
-
 <br>
+
