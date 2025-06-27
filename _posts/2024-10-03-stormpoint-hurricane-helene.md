@@ -12,11 +12,12 @@ In September 2024, Hurricane Helene tore a destructive path across parts of Flor
 
 Hurricane Helene caused widespread damage and flooding, leaving many people in hazardous conditions. Collapsed bridges and roads, filled with water and debris, made it hard for first responders to locate stranded people and deliver essential supplies. 
 
-[StormPoint](https://stormpoint.org/), a charitable nonprofit that uses drones for emergency response, quickly mobilized to survey the aftermath. Their goal was to locate stranded individuals, guide rescue efforts, and deliver aid to areas that ground vehicles couldn't reach.
+<a href="https://stormpoint.org/" target="_blank" rel="noopener">StormPoint</a>, a charitable nonprofit that uses drones for emergency response, quickly mobilized to survey the aftermath. Their goal was to locate stranded individuals, guide rescue efforts, and deliver aid to areas that ground vehicles couldn't reach.
 
 ![A collapsed bridge in Eastern Tennessee](/images/stormpoint1.jpg)
 *A collapsed bridge in Eastern Tennessee (Source: StormPoint)*
 
+<br>
 ## The right tools for the job
 
 StormPoint's teams used off-road vehicles, portable power stations, and Starlink to operate in even the most disrupted areas. Their fleet included DJI M30T, M3E and M3T drones for search and mapping.
@@ -35,9 +36,10 @@ Deliveries often required beyond-visual-line-of-sight (BVLOS) flights, demanding
   StormPoint coordinated operations both in the field and from their mobile command unit (Source: StormPoint)
 </div>
 
+<br>
 ## Eagle Eyes in action
 
-In a webinar hosted by DJI, Jeff Clementi, Operations Manager at StormPoint, explained how leveraging Eagle Eyes helped identify targets they might have otherwise missed. While StormPoint captured aerial footage, Matt Quinn of Great Lakes Drone Company used Eagle Eyes Scan to analyze the footage, add small descriptions to the detections, and generate useful reports for StormPoint to investigate. This allowed StormPoint to stay focused on continuous search and relief flights.
+In a <a href="https://youtu.be/Y22zKInhP1Q?si=Ra4ba54q9IpaOOBr&t=1476" target="_blank" rel="noopener">webinar</a> hosted by DJI, Jeff Clementi, Operations Manager at StormPoint, explained how leveraging Eagle Eyes helped identify targets they might have otherwise missed. While StormPoint captured aerial footage, Matt Quinn of Great Lakes Drone Company used Eagle Eyes Scan to analyze the footage, add small descriptions to the detections, and generate useful reports for StormPoint to investigate. This allowed StormPoint to stay focused on continuous search and relief flights.
 
 > "We were very, very fortunate to be able to use Eagle Eyes. It was incredibly helpful for us. The software was able to notice the smallest details... The reports it generates are really neat, containing pictures and coordinates of each detection."
 > — Jeff Clementi, Operations Manager at StormPoint
@@ -45,6 +47,7 @@ In a webinar hosted by DJI, Jeff Clementi, Operations Manager at StormPoint, exp
 ![Eagle Eyes helped process imagery](/images/Stormpoint4.png)
 *Eagle Eyes helped StormPoint to sift through masses of drone imagery to find targets to investigate*
 
+<br>
 ## Lessons learned
 
 This is the first major case of Eagle Eyes being used in a disaster response scenario, as opposed to more typical Search and Rescue use. We learned the following:
@@ -57,6 +60,19 @@ This is the first major case of Eagle Eyes being used in a disaster response sce
 
 We are using what we've learned to make our products better. Eagle Eyes Pilot is an upcoming DJI piloting application that is now being tested with StormPoint. Drone pilots can mark objects during flight and send images and exact locations straight to CalTopo, so ground teams know exactly where to go. Along with Eagle Eyes' detection system, we hope this will cut down response times even more.
 
+<br>
 ## Support StormPoint
 
-StormPoint's dedication to saving lives and bringing relief hinges on partnerships, donations, and volunteer support. Consider making a donation through their [website](https://stormpoint.org/). Funds will be used for supplies and equipment for our team to assist other first responders and local residents. 
+StormPoint's dedication to saving lives and bringing relief hinges on partnerships, donations, and volunteer support. Consider making a donation through their <a href="https://stormpoint.org/" target="_blank" rel="noopener">website</a>. Funds will be used for supplies and equipment for our team to assist other first responders and local residents.
+
+<br><br>
+
+<!-- Webinar Caption & Embed -->
+<div style="text-align: center; font-style: italic; margin-bottom: 10px;">
+  Watch the webinar recording with StormPoint below (video starts at 24:36)
+</div>
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; margin-bottom: 20px;">
+  <iframe src="https://www.youtube.com/embed/Y22zKInhP1Q?start=1476" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+
+<br>
