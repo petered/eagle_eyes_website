@@ -407,7 +407,7 @@
               <div class="device-calculator">
                 <div class="device-input-group">
                   <label for="deviceCount" style="font-weight: 500;">Devices:</label>
-                  <input type="number" id="deviceCount" class="device-input" min="1" max="999" value="1" placeholder="1">
+                  <input type="number" id="deviceCount" class="device-input" min="1" max="12" value="1" placeholder="1">
                 </div>
                 <div class="pricing-formula">
                   USD $400 for 1st device<br>
@@ -460,18 +460,22 @@
         
         function calculatePrice(deviceCount) {
             if (deviceCount < 1) return 400;
+            if (deviceCount > 12) deviceCount = 12; // Cap at 12 devices
             if (deviceCount === 1) return 400;
             return 400 + (deviceCount - 1) * 150;
         }
         
         function updatePrice() {
-            const deviceCount = parseInt(deviceInput.value) || 1;
+            let deviceCount = parseInt(deviceInput.value) || 1;
+            if (deviceCount > 12) {
+                deviceCount = 12;
+                deviceInput.value = 12; // Update the input to show the capped value
+            }
             const price = calculatePrice(deviceCount);
             priceDisplay.textContent = `USD $${price.toLocaleString()}`;
             
-            // Update button data attributes for purchase
+            // Update button data attributes for purchase - only store device count
             purchaseButton.setAttribute('data-device-count', deviceCount);
-            purchaseButton.setAttribute('data-price', price);
         }
         
         // Update price when input changes
@@ -501,12 +505,10 @@
                 case 1: // Device Calculator
                     button.addEventListener('click', function() {
                         const deviceCount = this.getAttribute('data-device-count');
-                        const price = this.getAttribute('data-price');
                         
-                        // Create a URL that includes device count and price information
+                        // Create a URL that includes device count information
                         const url = new URL(getUrlWithEmulatorParam('{{ "/account/?reason=purchase" | relative_url }}'), window.location.origin);
                         url.searchParams.set('device_count', deviceCount);
-                        url.searchParams.set('price', price);
                         
                         // Add machine_id if present in current URL
                         const currentMachineId = new URLSearchParams(window.location.search).get('machine_id');
