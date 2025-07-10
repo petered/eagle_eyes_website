@@ -1617,7 +1617,7 @@ permalink: /account/
                         // Show specific error message
                         if (errorMessage.includes('only extend licenses associated with your email')) {
                             showNotification(
-                                'You can only extend licenses that you own. If you believe this is an error, please contact support at info@eagleeyessearch.com.',
+                                'There was an error processing your extension request. Please contact support at info@eagleeyessearch.com if this issue persists.',
                                 'error',
                                 true
                             );
@@ -2369,17 +2369,14 @@ permalink: /account/
         const buyMoreItem = document.createElement('div');
         buyMoreItem.className = 'license-detail-item';
         
-        // Add extension functionality for active licenses only AND when user is the license owner
-        if (!isExpired && license.license_owner) {
-          const currentUserEmail = firebase.auth().currentUser.email;
-          if (license.license_owner === currentUserEmail) {
-            const buyMoreLink = document.createElement('span');
-            buyMoreLink.className = 'license-buy-more-link';
-            buyMoreLink.textContent = 'buy more devices for this license';
-            buyMoreLink.title = 'Add more devices to this license';
-            
-            buyMoreItem.appendChild(buyMoreLink);
-          }
+        // Add extension functionality for active licenses - now available to all users on the license
+        if (!isExpired) {
+          const buyMoreLink = document.createElement('span');
+          buyMoreLink.className = 'license-buy-more-link';
+          buyMoreLink.textContent = 'buy more devices for this license';
+          buyMoreLink.title = 'Add more devices to this license';
+          
+          buyMoreItem.appendChild(buyMoreLink);
         }
         
         // Add all items to the grid
@@ -2541,17 +2538,10 @@ permalink: /account/
                 purchaseBtn.onclick = function() {
                   const { deviceCount, totalCost } = updateCalculation();
                   
-                  // Safety check: ensure user is still authenticated and is the license owner
+                  // Safety check: ensure user is still authenticated
                   const currentUser = firebase.auth().currentUser;
                   if (!currentUser) {
                     showNotification('You must be signed in to purchase an extension. Please sign in and try again.', 'error', true);
-                    purchaseBtn.textContent = 'Purchase';
-                    purchaseBtn.disabled = false;
-                    return;
-                  }
-                  
-                  if (license.license_owner && license.license_owner !== currentUser.email) {
-                    showNotification('You can only extend licenses that you own. If you believe this is an error, please contact support.', 'error', true);
                     purchaseBtn.textContent = 'Purchase';
                     purchaseBtn.disabled = false;
                     return;
@@ -2562,8 +2552,7 @@ permalink: /account/
                     licenseId: license.license_id,
                     deviceCount: deviceCount,
                     currentUserEmail: currentUser.email,
-                    licenseOwner: license.license_owner,
-                    isOwnerMatch: license.license_owner === currentUser.email
+                    licenseOwner: license.license_owner
                   });
                   
                   // Show loading state
