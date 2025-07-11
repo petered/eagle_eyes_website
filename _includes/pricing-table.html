@@ -227,15 +227,25 @@
     }
     
     .device-input {
-        width: 80px;
-        padding: 8px 12px;
-        border: 2px solid #ddd;
-        border-radius: 6px;
+        width: 60px;
+        height: 40px;
+        border: 1px solid #ddd;
+        border-radius: 0;
         text-align: center;
-        font-size: 1.1rem;
+        font-size: 16px;
         font-weight: 600;
         background-color: #fff;
         transition: border-color 0.3s ease;
+        transform: translateY(6px);
+        /* Hide number input spinners */
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+    }
+    
+    .device-input::-webkit-outer-spin-button,
+    .device-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
     
     .device-input:focus {
@@ -406,8 +416,12 @@
             <div class="section-description">
               <div class="device-calculator">
                 <div class="device-input-group">
-                  <label for="deviceCount" style="font-weight: 500;">Devices:</label>
-                  <input type="number" id="deviceCount" class="device-input" min="1" max="12" value="1" placeholder="1">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 0;">
+                    <button id="decreaseDevices" style="width: 35px; height: 40px; border: none; background: transparent; border-radius: 4px 0 0 4px; cursor: pointer; font-size: 18px; font-weight: 900;">−</button>
+                    <input type="number" id="deviceCount" class="device-input" min="1" max="12" value="1">
+                    <button id="increaseDevices" style="width: 35px; height: 40px; border: none; background: transparent; border-radius: 0 4px 4px 0; cursor: pointer; font-size: 18px; font-weight: 900;">+</button>
+                    <span style="font-size: 14px; color: #666; margin-left: 8px;">device(s)</span>
+                  </div>
                 </div>
                 <div class="pricing-formula">
                   USD $400 for 1st device<br>
@@ -444,8 +458,14 @@
         </div>
         
         <div class="license-explainer">
-          A verified account is required to purchase a license. Account verification can take 1-3 business days.<br><br>
-          A purchased license can be used on any supported device. Once a device is activated using a license, the device becomes permanently linked to that license and cannot be replaced with a different device. 
+          <h4 style="margin-bottom: 15px; font-weight: 500; text-align: center; color: #333; font-style: normal;">License Terms and Options</h4>
+          <div style="text-align: center; max-width: 700px; margin: 0 auto; line-height: 1.8; font-style: normal;">
+            <p style="margin-bottom: 4px; text-align: center;">A verified account is required to purchase a license. Verification typically takes 1–3 business days.</p>
+            <p style="margin-bottom: 4px; text-align: center; font-size: 20px;">•</p>
+            <p style="margin-bottom: 4px; text-align: center;">Licenses are valid for use on any supported device. Once activated, a device is permanently associated with the license and cannot be replaced with another device.</p>
+            <p style="margin-bottom: 4px; text-align: center; font-size: 20px;">•</p>
+            <p style="margin-bottom: 0; text-align: center;">Additional devices may be added to a license at any time for $240 per year, with the fee pro-rated according to the remaining months in the current license term.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -455,6 +475,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize device count calculator
         const deviceInput = document.getElementById('deviceCount');
+        const decreaseBtn = document.getElementById('decreaseDevices');
+        const increaseBtn = document.getElementById('increaseDevices');
         const priceDisplay = document.getElementById('calculatedPrice');
         const purchaseButton = document.getElementById('purchaseButton');
         
@@ -467,20 +489,45 @@
         
         function updatePrice() {
             let deviceCount = parseInt(deviceInput.value) || 1;
+            
+            // Ensure device count is within valid range
             if (deviceCount > 12) {
                 deviceCount = 12;
-                deviceInput.value = 12; // Update the input to show the capped value
+                deviceInput.value = 12;
             }
+            if (deviceCount < 1) {
+                deviceCount = 1;
+                deviceInput.value = 1;
+            }
+            
             const price = calculatePrice(deviceCount);
             priceDisplay.textContent = `USD $${price.toLocaleString()}`;
             
-            // Update button data attributes for purchase - only store device count
+            // Update button data attributes for purchase
             purchaseButton.setAttribute('data-device-count', deviceCount);
         }
         
-        // Update price when input changes
+        // Handle input field changes (keyboard input)
         deviceInput.addEventListener('input', updatePrice);
         deviceInput.addEventListener('change', updatePrice);
+        
+        // Handle decrease button
+        decreaseBtn.addEventListener('click', function() {
+            let currentValue = parseInt(deviceInput.value) || 1;
+            if (currentValue > 1) {
+                deviceInput.value = currentValue - 1;
+                updatePrice();
+            }
+        });
+        
+        // Handle increase button  
+        increaseBtn.addEventListener('click', function() {
+            let currentValue = parseInt(deviceInput.value) || 1;
+            if (currentValue < 12) {
+                deviceInput.value = currentValue + 1;
+                updatePrice();
+            }
+        });
         
         // Initialize with default value
         updatePrice();
