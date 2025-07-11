@@ -200,26 +200,101 @@ permalink: /account/
     
     /* License-specific styles */
     .license-users-label {
-      font-weight: 500;
-      color: #666;
-      margin-bottom: 8px;
-      font-size: 14px;
+        font-weight: 500;
+        color: #666;
+        margin-bottom: 8px;
+        font-size: 14px;
     }
     
     .license-users-list {
-      font-size: 14px;
-      color: #333;
-      max-height: 80px;
-      overflow-y: auto;
-      padding-right: 5px;
-      line-height: 1.5;
+        font-size: 14px;
+        color: #333;
+        max-height: 80px;
+        overflow-y: auto;
+        padding-right: 5px;
+        line-height: 1.5;
     }
     
     .license-empty, .token-empty {
-      padding: 15px;
-      text-align: center;
-      color: #666;
-      font-style: italic;
+        padding: 15px;
+        text-align: center;
+        color: #666;
+        font-style: italic;
+    }
+
+    /* New license header layout styles */
+    .license-header {
+        background-color: #f8f8f8;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .license-title-row {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .license-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 20px;
+        align-items: start;
+    }
+
+    .license-detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .license-detail-item .license-meta {
+        margin-bottom: 0;
+    }
+
+    /* Explicit grid positioning for proper layout */
+    .license-detail-item:nth-child(1) { grid-column: 1; grid-row: 1; } /* Expires */
+    .license-detail-item:nth-child(2) { grid-column: 2; grid-row: 1; text-align: right; } /* License for x devices */
+    .license-detail-item:nth-child(3) { grid-column: 1; grid-row: 2; } /* License ID */
+    .license-detail-item:nth-child(4) { grid-column: 2; grid-row: 2; text-align: right; } /* x devices remaining */
+    .license-detail-item:nth-child(5) { grid-column: 1; grid-row: 3; } /* Owner */
+    .license-detail-item:nth-child(6) { grid-column: 2; grid-row: 3; text-align: right; } /* buy more devices */
+
+    .license-buy-more-link {
+        color: #1e90ff;
+        text-decoration: underline;
+        cursor: pointer;
+        font-size: 13px;
+        margin-top: 3px;
+        display: inline-block;
+    }
+
+    .license-buy-more-link:hover {
+        color: #0066cc;
+    }
+
+    /* Responsive behavior for narrow screens */
+    @media (max-width: 768px) {
+        .license-details-grid {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+        
+        /* On narrow screens, reposition items so right column appears under left column */
+        .license-detail-item:nth-child(1) { grid-column: 1; grid-row: 1; text-align: left; } /* Expires */
+        .license-detail-item:nth-child(3) { grid-column: 1; grid-row: 2; text-align: left; } /* License ID */
+        .license-detail-item:nth-child(5) { grid-column: 1; grid-row: 3; text-align: left; } /* Owner */
+        .license-detail-item:nth-child(2) { grid-column: 1; grid-row: 4; text-align: left; } /* License for x devices */
+        .license-detail-item:nth-child(4) { grid-column: 1; grid-row: 5; text-align: left; } /* x devices remaining */
+        .license-detail-item:nth-child(6) { grid-column: 1; grid-row: 6; text-align: left; } /* buy more devices */
+        
+        .license-header {
+            padding: 12px;
+        }
+        
+        .license-title-row {
+            margin-bottom: 10px;
+        }
     }
     
     /* For mobile */
@@ -986,7 +1061,7 @@ permalink: /account/
             });
         }
 
-        // Update pricing links - preserve the pricing URL but add emulator parameter if needed
+        // Update pricing links - preserve the pricing URL but add important parameters if needed
         $('#accountContent a[href="pricing/"], #accountContent a:contains("Get Eagle Eyes")').each(function() {
             // Get current href (defaulting to pricing/ if it's a text-based selector)
             let href = $(this).attr('href') || "pricing/";
@@ -997,12 +1072,22 @@ permalink: /account/
                 $(this).attr('href', href);
             }
             
-            // Check if we're in emulator mode
-            const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
-            if (isEmulator) {
-                // Add the emulator parameter
+            // Get current URL parameters to preserve important ones
+            const currentParams = new URLSearchParams(window.location.search);
+            const urlParams = new URLSearchParams();
+            
+            // Preserve important parameters that should carry over to pricing page
+            const preserveParams = ['machine_id', 'is_emulator'];
+            preserveParams.forEach(param => {
+                if (currentParams.has(param)) {
+                    urlParams.set(param, currentParams.get(param));
+                }
+            });
+            
+            // Add parameters to URL if any exist
+            if (urlParams.toString()) {
                 const separator = href.includes('?') ? '&' : '?';
-                href = href + separator + 'is_emulator=true';
+                href = href + separator + urlParams.toString();
                 $(this).attr('href', href);
             }
         });
@@ -1230,7 +1315,8 @@ permalink: /account/
     // Helper function to handle purchase redirects/notifications
     function handlePurchaseRedirect(status) {
         const urlParams = new URLSearchParams(window.location.search);
-        const productId = urlParams.get('product');
+        const productId = urlParams.get('product'); // Old system
+        const deviceCount = urlParams.get('device_count'); // New system
 
         switch(status) {
             case 'pending':
@@ -1246,9 +1332,14 @@ permalink: /account/
                 return false; // No redirect
             
             case 'approved':
+                // Handle both old product system and new flexible pricing
                 if (productId) {
-                    // Create Stripe payment link and redirect user
+                    // Old system: Create Stripe payment link with product ID
                     createStripePaymentLink(productId);
+                    return true; // Redirect happened
+                } else if (deviceCount) {
+                    // New system: Create Stripe payment link with device count
+                    createFlexibleStripePaymentLink(deviceCount);
                     return true; // Redirect happened
                 } else {
                     showNotification(
@@ -1348,6 +1439,208 @@ permalink: /account/
             });
     }
 
+    /**
+     * Creates a Stripe payment link for flexible pricing and redirects the user to the Stripe checkout page
+     * @param {string} deviceCount - The number of devices
+     */
+    function createFlexibleStripePaymentLink(deviceCount) {
+        // Show loading notification
+        showNotification(
+            'Preparing your payment page. Please wait...',
+            'info',
+            false
+        );
+        
+        // Get the current user
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showNotification(
+                'You must be signed in to make a purchase. Please sign in and try again.',
+                'error',
+                true
+            );
+            return;
+        }
+
+        const basePath = getBasePath();
+        
+        // Construct the URL with flexible pricing parameters
+        const hostURL = window.getHostUrl();
+        let queryString = `?device_count=${deviceCount}`;
+        
+        // Include all url arguments passed in to this url (preserving emulator status, machine_id, etc)
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.delete('device_count'); // Remove to avoid duplicates
+        currentParams.delete('reason'); // Remove reason as it's not needed for Stripe
+        
+        if (currentParams.toString()) {
+            queryString += `&${currentParams.toString()}`;
+        }
+        
+        const url = `${hostURL}/get_stripe_payment_link${queryString}`;
+        console.log('Fetching flexible payment link from:', url);
+        
+        // Get user token and make request using jQuery AJAX
+        user.getIdToken(true)
+            .then(function(idToken) {
+                $.ajax({
+                    headers: {'Authorization': 'Bearer ' + idToken},
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                        console.log('Received data:', data);
+                        var decodedData = typeof data === 'string' ? JSON.parse(data) : data;
+                        var paymentUrl = decodedData.url;
+                        
+                        if (paymentUrl) {
+                            console.log('Redirecting to payment URL:', paymentUrl);
+                            // Redirect to the payment URL - don't use replaceState for external URLs
+                            safeRedirect(paymentUrl, false);
+                        } else {
+                            showNotification(
+                                'There was an error creating your payment link. Please try again or contact support.',
+                                'error',
+                                true
+                            );
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error getting flexible payment link:', textStatus, errorThrown);
+                        console.error('Response:', jqXHR.responseText);
+                        showNotification(
+                            'There was an error processing your request. Please try again or contact support.',
+                            'error',
+                            true
+                        );
+                    }
+                });
+            })
+            .catch(function(error) {
+                console.error('Error getting auth token:', error);
+                showNotification(
+                    'Authentication error. Please try signing in again.',
+                    'error',
+                    true
+                );
+            });
+    }
+
+    /**
+     * Creates a Stripe payment link for license extensions
+     * @param {string} licenseId - The license ID to extend
+     * @param {number} deviceCount - The number of devices to add
+     */
+    function createLicenseExtensionPayment(licenseId, deviceCount) {
+        // Show loading notification
+        showNotification(
+            'Preparing your payment page. Please wait...',
+            'info',
+            false
+        );
+        
+        // Get the current user
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            showNotification(
+                'You must be signed in to make a purchase. Please sign in and try again.',
+                'error',
+                true
+            );
+            return;
+        }
+
+        const basePath = getBasePath();
+        
+        // Construct the URL with extension parameters
+        const hostURL = window.getHostUrl();
+        let queryString = `?device_count=${deviceCount}`;
+        
+        // Add extension-specific parameters
+        queryString += `&reason=extend`;
+        queryString += `&license_id=${encodeURIComponent(licenseId)}`;
+        
+        // Include all url arguments passed in to this url (preserving emulator status, machine_id, etc)
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.delete('device_count'); // Remove to avoid duplicates
+        currentParams.delete('reason'); // Remove to avoid duplicates
+        currentParams.delete('license_id'); // Remove to avoid duplicates
+        
+        if (currentParams.toString()) {
+            queryString += `&${currentParams.toString()}`;
+        }
+        
+        const url = `${hostURL}/get_stripe_payment_link${queryString}`;
+        console.log('Fetching license extension payment link from:', url);
+        
+        // Get user token and make request using jQuery AJAX
+        user.getIdToken(true)
+            .then(function(idToken) {
+                $.ajax({
+                    headers: {'Authorization': 'Bearer ' + idToken},
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                        console.log('Received extension payment data:', data);
+                        var decodedData = typeof data === 'string' ? JSON.parse(data) : data;
+                        var paymentUrl = decodedData.url;
+                        
+                        if (paymentUrl) {
+                            console.log('Redirecting to extension payment URL:', paymentUrl);
+                            // Redirect to the payment URL - don't use replaceState for external URLs
+                            safeRedirect(paymentUrl, false);
+                        } else {
+                            showNotification(
+                                'There was an error creating your payment link. Please try again or contact support.',
+                                'error',
+                                true
+                            );
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error getting license extension payment link:', textStatus, errorThrown);
+                        console.error('Response:', jqXHR.responseText);
+                        
+                        // Parse error message if possible
+                        let errorMessage = 'There was an error processing your request. Please try again or contact support.';
+                        try {
+                            const errorData = JSON.parse(jqXHR.responseText);
+                            if (errorData.message || errorData.error) {
+                                errorMessage = errorData.message || errorData.error;
+                            }
+                        } catch (e) {
+                            // If response is not JSON, use the raw response text
+                            if (jqXHR.responseText && jqXHR.responseText.length < 200) {
+                                errorMessage = jqXHR.responseText;
+                            }
+                        }
+                        
+                        // Show specific error message
+                        if (errorMessage.includes('only extend licenses associated with your email')) {
+                            showNotification(
+                                'There was an error processing your extension request. Please contact support at info@eagleeyessearch.com if this issue persists.',
+                                'error',
+                                true
+                            );
+                        } else {
+                            showNotification(
+                                `Error: ${errorMessage}`,
+                                'error',
+                                true
+                            );
+                        }
+                    }
+                });
+            })
+            .catch(function(error) {
+                console.error('Error getting auth token:', error);
+                showNotification(
+                    'Authentication error. Please try signing in again.',
+                    'error',
+                    true
+                );
+            });
+    }
+
     // Helper function to handle default redirects (no reason parameter)
     function handleDefaultRedirect(user, status) {
         switch(status) {
@@ -1389,24 +1682,6 @@ permalink: /account/
                 redirectToUserForm();
                 return true; // Redirect happened
         }
-    }
-
-    // Helper function to handle redirects to user-form.html
-    function redirectToUserForm(reason = '') {
-        let url = '{{ '/user-form/' | relative_url }}';
-        
-        // Add reason parameter if provided
-        if (reason) {
-            url += `?reason=${reason}`;
-        }
-        
-        // Preserve emulator parameter if present
-        const redirectUrl = getUrlWithEmulatorParam(url);
-        
-        // Use our utility function to replace the state and redirect
-        safeRedirect(redirectUrl, true); // true = replace state
-        
-        // The loading overlay will be hidden by the new page load
     }
 
     /***********************************************
@@ -1955,7 +2230,7 @@ permalink: /account/
         const card = document.createElement('div');
         card.className = 'license-card';
         
-        // Create header with left and right sections
+        // Create header with new structure
         const header = document.createElement('div');
         header.className = 'license-header';
         
@@ -1964,21 +2239,27 @@ permalink: /account/
           header.style.backgroundColor = '#e6f2ff'; // Light blue for active licenses
         }
         
-        // Left section - Name and expiry date
-        const headerLeft = document.createElement('div');
-        headerLeft.className = 'license-header-left';
+        // Title row (full width on top)
+        const titleRow = document.createElement('div');
+        titleRow.className = 'license-title-row';
         
         const title = document.createElement('h4');
         title.className = 'license-title';
         title.textContent = license.license_name;
         
-        // Add title to headerLeft
-        headerLeft.appendChild(title);
+        titleRow.appendChild(title);
+        header.appendChild(titleRow);
         
-        // Add expiry date directly under the title
+        // Details grid (2x3 layout)
+        const detailsGrid = document.createElement('div');
+        detailsGrid.className = 'license-details-grid';
+        
+        // Row 1: Expiry Date | Total Devices
+        const expiryItem = document.createElement('div');
+        expiryItem.className = 'license-detail-item';
+        
         const expiryMeta = document.createElement('div');
         expiryMeta.className = 'license-meta';
-        expiryMeta.style.marginTop = '5px';
         
         if (isExpired) {
           expiryMeta.innerHTML = `<span style="color: red; font-weight: 500;">Expired on ${license.expiry_date}</span>`;
@@ -1986,52 +2267,31 @@ permalink: /account/
           expiryMeta.innerHTML = `Expires: <span class="license-meta-highlight">${license.expiry_date}</span>`;
         }
         
-        headerLeft.appendChild(expiryMeta);
+        expiryItem.appendChild(expiryMeta);
         
-        // Right section - Devices information only
-        const headerRight = document.createElement('div');
-        headerRight.className = 'license-header-right';
+        const totalDevicesItem = document.createElement('div');
+        totalDevicesItem.className = 'license-detail-item';
         
-        // Add total devices information based on total_keys
         const totalDevicesMeta = document.createElement('div');
         totalDevicesMeta.className = 'license-meta';
         totalDevicesMeta.innerHTML = `License for <span class="license-meta-highlight">${totalKeys} ${totalKeys === 1 ? 'device' : 'devices'}</span>`;
         
-        // Devices remaining info based on keys_left
-        const remainingDevicesMeta = document.createElement('div');
-        remainingDevicesMeta.className = 'license-meta';
+        totalDevicesItem.appendChild(totalDevicesMeta);
         
-        if (noDevicesLeft) {
-          remainingDevicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
-        } else {
-          remainingDevicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
-        }
+        // Row 2: License ID | Remaining Devices
+        const licenseIdItem = document.createElement('div');
+        licenseIdItem.className = 'license-detail-item';
         
-        headerRight.appendChild(totalDevicesMeta);
-        headerRight.appendChild(remainingDevicesMeta);
-        
-        // Assemble the header
-        header.appendChild(headerLeft);
-        header.appendChild(headerRight);
-        card.appendChild(header);
-        
-        // Card body - contains license ID, owner info, and users
-        const body = document.createElement('div');
-        body.className = 'license-body';
-        
-        // Add license ID in the body section
-        const licenseIdInfo = document.createElement('div');
-        licenseIdInfo.className = 'license-users-label';
-        licenseIdInfo.style.marginBottom = '15px';
-        licenseIdInfo.style.display = 'flex';
-        licenseIdInfo.style.alignItems = 'center';
-        // Change from space-between to flex-start to keep elements close together
-        licenseIdInfo.style.justifyContent = 'flex-start';
+        const licenseIdMeta = document.createElement('div');
+        licenseIdMeta.className = 'license-meta';
+        licenseIdMeta.style.display = 'flex';
+        licenseIdMeta.style.alignItems = 'center';
+        licenseIdMeta.style.justifyContent = 'flex-start';
         
         // Create span for the ID text
         const idText = document.createElement('span');
         idText.innerHTML = `License ID: <span style="font-weight: 300;">${license.license_id}</span>`;
-        licenseIdInfo.appendChild(idText);
+        licenseIdMeta.appendChild(idText);
         
         // Add copy button for active licenses with remaining devices
         if (!isExpired && keysLeft > 0) {
@@ -2040,7 +2300,6 @@ permalink: /account/
           copyButton.textContent = 'Copy';
           copyButton.style.padding = '3px 8px';
           copyButton.style.fontSize = '12px';
-          // Add margin to the left of the button to create space between ID and button
           copyButton.style.marginLeft = '10px';
           copyButton.onclick = function() {
             navigator.clipboard.writeText(license.license_id).then(
@@ -2067,29 +2326,73 @@ permalink: /account/
             );
           };
           
-          licenseIdInfo.appendChild(copyButton);
+          licenseIdMeta.appendChild(copyButton);
         }
         
-        body.appendChild(licenseIdInfo);
+        licenseIdItem.appendChild(licenseIdMeta);
         
-        // Add owner information in the body section
+        const remainingDevicesItem = document.createElement('div');
+        remainingDevicesItem.className = 'license-detail-item';
+        
+        const remainingDevicesMeta = document.createElement('div');
+        remainingDevicesMeta.className = 'license-meta';
+        
+        if (noDevicesLeft) {
+          remainingDevicesMeta.innerHTML = `<span style="color: red; font-weight: 500;">${keysLeft} devices remaining</span>`;
+        } else {
+          remainingDevicesMeta.innerHTML = `<span class="license-meta-highlight">${keysLeft} ${keysLeft === 1 ? 'device' : 'devices'} remaining</span>`;
+        }
+        
+        remainingDevicesItem.appendChild(remainingDevicesMeta);
+        
+        // Row 3: Owner | Buy More Devices Link
+        const ownerItem = document.createElement('div');
+        ownerItem.className = 'license-detail-item';
+        
         if (license.license_owner) {
-          const ownerInfo = document.createElement('div');
-          ownerInfo.className = 'license-users-label';
-          ownerInfo.style.marginBottom = '15px';
+          const ownerMeta = document.createElement('div');
+          ownerMeta.className = 'license-meta';
           
           // Check if the current user is the owner to add "(you)" indicator
           const currentUserEmail = firebase.auth().currentUser.email;
           if (license.license_owner === currentUserEmail) {
             // Add "(you)" after the email for the current user
-            ownerInfo.innerHTML = `Owner: <span style="font-weight: 300;">${license.license_owner} (you)</span>`;
+            ownerMeta.innerHTML = `Owner: <span style="font-weight: 300;">${license.license_owner} (you)</span>`;
           } else {
             // Regular owner display without "(you)"
-            ownerInfo.innerHTML = `Owner: <span style="font-weight: 300;">${license.license_owner}</span>`;
+            ownerMeta.innerHTML = `Owner: <span style="font-weight: 300;">${license.license_owner}</span>`;
           }
           
-          body.appendChild(ownerInfo);
+          ownerItem.appendChild(ownerMeta);
         }
+        
+        const buyMoreItem = document.createElement('div');
+        buyMoreItem.className = 'license-detail-item';
+        
+        // Add extension functionality for active licenses - now available to all users on the license
+        if (!isExpired) {
+          const buyMoreLink = document.createElement('span');
+          buyMoreLink.className = 'license-buy-more-link';
+          buyMoreLink.textContent = 'buy more devices for this license';
+          buyMoreLink.title = 'Add more devices to this license';
+          
+          buyMoreItem.appendChild(buyMoreLink);
+        }
+        
+        // Add all items to the grid
+        detailsGrid.appendChild(expiryItem);
+        detailsGrid.appendChild(totalDevicesItem);
+        detailsGrid.appendChild(licenseIdItem);
+        detailsGrid.appendChild(remainingDevicesItem);
+        detailsGrid.appendChild(ownerItem);
+        detailsGrid.appendChild(buyMoreItem);
+        
+        header.appendChild(detailsGrid);
+        card.appendChild(header);
+        
+        // Card body - contains users info only
+        const body = document.createElement('div');
+        body.className = 'license-body';
         
         // Display device users if available
         if (license.keys_used_by && license.keys_used_by.length > 0) {
@@ -2109,6 +2412,186 @@ permalink: /account/
           emptyState.className = 'license-empty';
           emptyState.textContent = 'This license is not used by anyone';
           body.appendChild(emptyState);
+        }
+        
+        // Add extension functionality for active licenses only
+        if (!isExpired) {
+          // Create the expandable calculation section (initially hidden)
+          const extensionSection = document.createElement('div');
+          extensionSection.style.display = 'none';
+          extensionSection.style.marginTop = '15px';
+          extensionSection.style.padding = '20px';
+          extensionSection.style.backgroundColor = '#f8f8f8';
+          extensionSection.style.border = '1px solid #eee';
+          extensionSection.style.borderTop = '2px solid #1e90ff';
+          extensionSection.style.borderRadius = '0 0 8px 8px';
+          
+          // Calculate base values for pricing
+          const currentDate = new Date();
+          const expiryDate = new Date(license.expiry_date);
+          const diffTime = expiryDate - currentDate;
+          const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Average days per month
+          const remainingMonths = Math.max(1, diffMonths);
+          const pricePerDevicePerMonth = 20;
+          
+          // Create extension section content
+          extensionSection.innerHTML = `
+            <h5 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 500; color: #333; text-align: center;">Extend license with more devices</h5>
+            
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; text-align: center;">
+                How many devices would you like to add?
+              </label>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 15px;">
+                <button id="decreaseDevices" style="width: 40px; height: 40px; border: none; background: #f8f8f8; border-radius: 4px 0 0 4px; cursor: pointer; font-size: 18px; font-weight: 900;">−</button>
+                <div id="deviceCountDisplay" style="width: 60px; height: 40px; border: 1px solid #ddd; background: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500;">1</div>
+                <button id="increaseDevices" style="width: 40px; height: 40px; border: none; background: #f8f8f8; border-radius: 0 4px 4px 0; cursor: pointer; font-size: 18px; font-weight: 900;">+</button>
+                <span style="font-size: 14px; color: #666; margin-left: 15px;">device(s)</span>
+              </div>
+            </div>
+            
+            <div id="calculationDetails" style="margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #eee; border-radius: 4px;">
+              <div style="margin-bottom: 10px; font-weight: 500; color: #333;">Calculation:</div>
+              <div style="margin-bottom: 8px; font-size: 14px;">
+                Remaining months on license: <span style="font-weight: 500;">${remainingMonths} months</span>
+              </div>
+              <div style="margin-bottom: 8px; font-size: 14px;">
+                Price per device per month: <span style="font-weight: 500;">USD $${pricePerDevicePerMonth}</span>
+              </div>
+              <div style="margin-bottom: 8px; font-size: 14px;">
+                Devices to add: <span id="deviceCountCalc" style="font-weight: 500;">1</span>
+              </div>
+              <div style="border-top: 1px solid #ddd; padding-top: 8px; font-size: 16px;">
+                <strong>Total cost: USD $<span id="totalCostDisplay">${remainingMonths * pricePerDevicePerMonth}</span></strong>
+              </div>
+            </div>
+            
+            <div style="text-align: center; display: flex; justify-content: center; align-items: center; gap: 20px;">
+              <div style="border: 1px solid #ddd; border-radius: 4px; padding: 0;">
+                <button id="purchaseExtension" style="background-color: #1e90ff; color: white; border: none; padding: 8px 15px; font-size: 14px; border-radius: 4px; cursor: pointer; text-decoration: none; width: 100%;">Purchase</button>
+              </div>
+              <div style="border: 1px solid #ddd; border-radius: 4px; padding: 0;">
+                <button id="cancelExtension" style="background-color: #666; color: white; border: none; padding: 8px 15px; font-size: 14px; border-radius: 4px; cursor: pointer; width: 100%;">Cancel</button>
+              </div>
+            </div>
+          `;
+          
+          // Add the extension section to the card body
+          body.appendChild(extensionSection);
+          
+          // Track current device count
+          let currentDeviceCount = 1;
+          
+          // Function to update calculation display
+          function updateCalculation() {
+            const totalCost = remainingMonths * pricePerDevicePerMonth * currentDeviceCount;
+            
+            document.getElementById('deviceCountDisplay').textContent = currentDeviceCount;
+            document.getElementById('deviceCountCalc').textContent = currentDeviceCount;
+            document.getElementById('totalCostDisplay').textContent = totalCost;
+            
+            return { deviceCount: currentDeviceCount, totalCost };
+          }
+          
+          // Handle clickable text click to show/hide extension section
+          const buyMoreLink = buyMoreItem.querySelector('.license-buy-more-link');
+          if (buyMoreLink) {
+            buyMoreLink.onclick = function() {
+              if (extensionSection.style.display === 'none') {
+                extensionSection.style.display = 'block';
+                
+                // Scroll to the extension section
+                setTimeout(() => {
+                  extensionSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                  });
+                }, 100);
+                
+                // Reset device count and update display
+                currentDeviceCount = 1;
+                updateCalculation();
+                
+                // Set up event listeners for the extension section
+                const decreaseBtn = document.getElementById('decreaseDevices');
+                const increaseBtn = document.getElementById('increaseDevices');
+                const purchaseBtn = document.getElementById('purchaseExtension');
+                const cancelBtn = document.getElementById('cancelExtension');
+                
+                // Decrease device count
+                decreaseBtn.onclick = function() {
+                  if (currentDeviceCount > 1) {
+                    currentDeviceCount--;
+                    updateCalculation();
+                  }
+                };
+                
+                // Increase device count
+                increaseBtn.onclick = function() {
+                  if (currentDeviceCount < 10) {
+                    currentDeviceCount++;
+                    updateCalculation();
+                  }
+                };
+                
+                // Handle purchase button
+                purchaseBtn.onclick = function() {
+                  const { deviceCount, totalCost } = updateCalculation();
+                  
+                  // Safety check: ensure user is still authenticated
+                  const currentUser = firebase.auth().currentUser;
+                  if (!currentUser) {
+                    showNotification('You must be signed in to purchase an extension. Please sign in and try again.', 'error', true);
+                    purchaseBtn.textContent = 'Purchase';
+                    purchaseBtn.disabled = false;
+                    return;
+                  }
+                  
+                  // Add debugging information
+                  console.log('Attempting license extension:', {
+                    licenseId: license.license_id,
+                    deviceCount: deviceCount,
+                    currentUserEmail: currentUser.email,
+                    licenseOwner: license.license_owner
+                  });
+                  
+                  // Show loading state
+                  purchaseBtn.textContent = 'Processing...';
+                  purchaseBtn.disabled = true;
+                  
+                  try {
+                    // Create custom payment for license extension
+                    createLicenseExtensionPayment(license.license_id, deviceCount);
+                  } catch (error) {
+                    console.error('Error creating extension payment:', error);
+                    purchaseBtn.textContent = 'Purchase';
+                    purchaseBtn.disabled = false;
+                    showNotification('Error processing request. Please try again.', 'error', true);
+                  }
+                };
+                
+                // Handle cancel button
+                cancelBtn.onclick = function() {
+                  extensionSection.style.display = 'none';
+                  
+                  // Reset form
+                  currentDeviceCount = 1;
+                  updateCalculation();
+                  purchaseBtn.textContent = 'Purchase Extension';
+                  purchaseBtn.disabled = false;
+                };
+                
+              } else {
+                extensionSection.style.display = 'none';
+                
+                // Reset form
+                currentDeviceCount = 1;
+                updateCalculation();
+                document.getElementById('purchaseExtension').textContent = 'Purchase Extension';
+                document.getElementById('purchaseExtension').disabled = false;
+              }
+            };
+          }
         }
         
         card.appendChild(body);
@@ -2626,6 +3109,40 @@ permalink: /account/
             console.error('Redirect failed, using fallback method', e);
             window.location.href = url;
         }
+    }
+
+    // Helper function to handle redirects to user-form.html
+    function redirectToUserForm(reason = '') {
+        let url = '{{ '/user-form/' | relative_url }}';
+        
+        // Get current URL parameters to preserve important ones
+        const currentParams = new URLSearchParams(window.location.search);
+        const newParams = new URLSearchParams();
+        
+        // Add reason parameter if provided
+        if (reason) {
+            newParams.set('reason', reason);
+        } else if (currentParams.has('reason')) {
+            newParams.set('reason', currentParams.get('reason'));
+        }
+        
+        // Preserve important parameters that should carry over
+        const preserveParams = ['device_count', 'machine_id', 'is_emulator'];
+        preserveParams.forEach(param => {
+            if (currentParams.has(param)) {
+                newParams.set(param, currentParams.get(param));
+            }
+        });
+        
+        // Add parameters to URL if any exist
+        if (newParams.toString()) {
+            url += `?${newParams.toString()}`;
+        }
+        
+        // Use our utility function to replace the state and redirect
+        safeRedirect(url, true); // true = replace state
+        
+        // The loading overlay will be hidden by the new page load
     }
 </script>
 

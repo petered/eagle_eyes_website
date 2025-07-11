@@ -574,14 +574,32 @@ permalink: /user-form/
         document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
     }
     
-    // Utility function to preserve the emulator parameter when redirecting
+    // Utility function to preserve important parameters when redirecting
     function getUrlWithEmulatorParam(url) {
-        const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
-        if (!isEmulator) return url;
+        // Get current URL parameters to preserve important ones
+        const currentParams = new URLSearchParams(window.location.search);
+        const newParams = new URLSearchParams();
         
-        // Add the parameter to the URL if it doesn't already have it
-        const separator = url.includes('?') ? '&' : '?';
-        return url.includes('is_emulator=true') ? url : `${url}${separator}is_emulator=true`;
+        // Always preserve emulator parameter if present
+        if (currentParams.has('is_emulator')) {
+            newParams.set('is_emulator', currentParams.get('is_emulator'));
+        }
+        
+        // Preserve important parameters that should carry over to account page
+        const preserveParams = ['device_count', 'machine_id'];
+        preserveParams.forEach(param => {
+            if (currentParams.has(param)) {
+                newParams.set(param, currentParams.get(param));
+            }
+        });
+        
+        // Add parameters to URL if any exist
+        if (newParams.toString()) {
+            const separator = url.includes('?') ? '&' : '?';
+            return `${url}${separator}${newParams.toString()}`;
+        }
+        
+        return url;
     }
     
     // Get emulator status from URL
