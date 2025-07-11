@@ -667,6 +667,34 @@ permalink: /account/
     #downloads-tab .mb-50 {
         visibility: hidden;
     }
+
+    /* Device input field styles for extension modal */
+    .extension-device-input {
+        width: 60px;
+        height: 40px;
+        border: 1px solid #ddd;
+        border-radius: 0;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 600;
+        background-color: #fff;
+        transition: border-color 0.3s ease;
+        transform: translateY(6px);
+        /* Hide number input spinners */
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+    }
+    
+    .extension-device-input::-webkit-outer-spin-button,
+    .extension-device-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    .extension-device-input:focus {
+        outline: none;
+        border-color: var(--blue-highlight);
+    }
 </style>
 
 <div class="section-block bkg-grey-ultralight" style="padding: 120px 0 30px 0;">
@@ -2439,14 +2467,11 @@ permalink: /account/
             <h5 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 500; color: #333; text-align: center;">Extend license with more devices</h5>
             
             <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; text-align: center;">
-                How many devices would you like to add?
-              </label>
               <div style="display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 15px;">
-                <button id="decreaseDevices" style="width: 40px; height: 40px; border: none; background: #f8f8f8; border-radius: 4px 0 0 4px; cursor: pointer; font-size: 18px; font-weight: 900;">−</button>
-                <div id="deviceCountDisplay" style="width: 60px; height: 40px; border: 1px solid #ddd; background: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500;">1</div>
-                <button id="increaseDevices" style="width: 40px; height: 40px; border: none; background: #f8f8f8; border-radius: 0 4px 4px 0; cursor: pointer; font-size: 18px; font-weight: 900;">+</button>
-                <span style="font-size: 14px; color: #666; margin-left: 15px;">device(s)</span>
+                <button id="decreaseDevices" style="width: 35px; height: 40px; border: none; background: transparent; border-radius: 4px 0 0 4px; cursor: pointer; font-size: 18px; font-weight: 900;">−</button>
+                <input type="number" id="deviceCountInput" class="extension-device-input" min="1" max="10" value="1">
+                <button id="increaseDevices" style="width: 35px; height: 40px; border: none; background: transparent; border-radius: 0 4px 4px 0; cursor: pointer; font-size: 18px; font-weight: 900;">+</button>
+                <span style="font-size: 14px; color: #666; margin-left: 8px;">device(s)</span>
               </div>
             </div>
             
@@ -2479,18 +2504,28 @@ permalink: /account/
           // Add the extension section to the card body
           body.appendChild(extensionSection);
           
-          // Track current device count
-          let currentDeviceCount = 1;
-          
           // Function to update calculation display
           function updateCalculation() {
-            const totalCost = remainingMonths * pricePerDevicePerMonth * currentDeviceCount;
+            const deviceInput = extensionSection.querySelector('#deviceCountInput');
+            let deviceCount = parseInt(deviceInput.value) || 1;
             
-            document.getElementById('deviceCountDisplay').textContent = currentDeviceCount;
-            document.getElementById('deviceCountCalc').textContent = currentDeviceCount;
-            document.getElementById('totalCostDisplay').textContent = totalCost;
+            // Ensure device count is within valid range
+            if (deviceCount > 10) {
+              deviceCount = 10;
+              deviceInput.value = 10;
+            }
+            if (deviceCount < 1) {
+              deviceCount = 1;
+              deviceInput.value = 1;
+            }
             
-            return { deviceCount: currentDeviceCount, totalCost };
+            const totalCost = remainingMonths * pricePerDevicePerMonth * deviceCount;
+            
+            deviceInput.value = deviceCount;
+            extensionSection.querySelector('#deviceCountCalc').textContent = deviceCount;
+            extensionSection.querySelector('#totalCostDisplay').textContent = totalCost;
+            
+            return { deviceCount: deviceCount, totalCost };
           }
           
           // Handle clickable text click to show/hide extension section
@@ -2509,27 +2544,34 @@ permalink: /account/
                 }, 100);
                 
                 // Reset device count and update display
-                currentDeviceCount = 1;
+                extensionSection.querySelector('#deviceCountInput').value = 1;
                 updateCalculation();
                 
                 // Set up event listeners for the extension section
-                const decreaseBtn = document.getElementById('decreaseDevices');
-                const increaseBtn = document.getElementById('increaseDevices');
-                const purchaseBtn = document.getElementById('purchaseExtension');
-                const cancelBtn = document.getElementById('cancelExtension');
+                const deviceInput = extensionSection.querySelector('#deviceCountInput');
+                const decreaseBtn = extensionSection.querySelector('#decreaseDevices');
+                const increaseBtn = extensionSection.querySelector('#increaseDevices');
+                const purchaseBtn = extensionSection.querySelector('#purchaseExtension');
+                const cancelBtn = extensionSection.querySelector('#cancelExtension');
+                
+                // Handle input field changes (keyboard input)
+                deviceInput.addEventListener('input', updateCalculation);
+                deviceInput.addEventListener('change', updateCalculation);
                 
                 // Decrease device count
                 decreaseBtn.onclick = function() {
-                  if (currentDeviceCount > 1) {
-                    currentDeviceCount--;
+                  let currentValue = parseInt(deviceInput.value) || 1;
+                  if (currentValue > 1) {
+                    deviceInput.value = currentValue - 1;
                     updateCalculation();
                   }
                 };
                 
                 // Increase device count
                 increaseBtn.onclick = function() {
-                  if (currentDeviceCount < 10) {
-                    currentDeviceCount++;
+                  let currentValue = parseInt(deviceInput.value) || 1;
+                  if (currentValue < 10) {
+                    deviceInput.value = currentValue + 1;
                     updateCalculation();
                   }
                 };
@@ -2575,9 +2617,9 @@ permalink: /account/
                   extensionSection.style.display = 'none';
                   
                   // Reset form
-                  currentDeviceCount = 1;
+                  deviceInput.value = 1;
                   updateCalculation();
-                  purchaseBtn.textContent = 'Purchase Extension';
+                  purchaseBtn.textContent = 'Purchase';
                   purchaseBtn.disabled = false;
                 };
                 
@@ -2585,10 +2627,12 @@ permalink: /account/
                 extensionSection.style.display = 'none';
                 
                 // Reset form
-                currentDeviceCount = 1;
+                const deviceInput = extensionSection.querySelector('#deviceCountInput');
+                const purchaseBtn = extensionSection.querySelector('#purchaseExtension');
+                deviceInput.value = 1;
                 updateCalculation();
-                document.getElementById('purchaseExtension').textContent = 'Purchase Extension';
-                document.getElementById('purchaseExtension').disabled = false;
+                purchaseBtn.textContent = 'Purchase';
+                purchaseBtn.disabled = false;
               }
             };
           }
