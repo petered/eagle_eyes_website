@@ -391,29 +391,50 @@ function checkLicense(user) {
 function requestErrorHandler(jqXHR, textStatus, errorThrown) {
     // Handle different error scenarios
     errorText = 'Error during license check: ';
+    
     if (textStatus === 'timeout') {
-        // showError('The request timed out.  You');
         errorText += 'The request timed out.  You may have a slow internet connection.';
     } else if (textStatus === 'error') {
         // Server might be down or unreachable (e.g., network error)
         if (!jqXHR.status) {
-            // showError('Network error: The server might be down or unreachable - do you have an internet connection?');
             errorText += 'Network error: The server at ' + hostURL + ' might be down or unreachable.  ' + jqXHR.statusText;
         } else {
             // HTTP error response from the server, handle accordingly
             let status = jqXHR.status;
             let errorMessage = jqXHR.responseText || jqXHR.responseJSON?.error || jqXHR.statusText || "Unknown error";
-            // showError(`Error ${status} during license check: ${errorMessage}`);
-            errorText += `Error ${status} during license check: ${errorMessage}`;
+            
+            // Check for specific error patterns to provide user-friendly messages
+            if (status === 500 && errorMessage.includes("'NoneType' object has no attribute 'expiry_timestamp'")) {
+                // This specific error means the license ID doesn't exist
+                const licenseID = $('#license-id').val().trim();
+                if (licenseID) {
+                    errorText = `License ID "${licenseID}" was not found in our database.`;
+                    errorText += '\n\nPlease check that you entered the license ID correctly. License IDs are usually 20 characters long and contain letters and numbers (e.g. jI9Y9kg8oK3w2yf2).';
+                    errorText += '\n\nIf you believe this license ID should exist, please contact us at info@eagleeyessearch.com with the license ID.';
+                } else {
+                    errorText = 'The license you\'re looking for was not found.';
+                }
+            } else if (status === 500 && (errorMessage.includes("NoneType") || errorMessage.includes("license") || errorMessage.includes("License"))) {
+                // Other license-related 500 errors - also likely license not found
+                const licenseID = $('#license-id').val().trim();
+                if (licenseID) {
+                    errorText = `License ID "${licenseID}" was not found or there was an issue accessing it.`;
+                    errorText += '\n\nPlease verify the license ID is correct, or contact us at info@eagleeyessearch.com if you need assistance.';
+                } else {
+                    errorText = 'There was an issue checking your licenses. Please try again or contact support.';
+                }
+            } else {
+                // Generic error handling for other cases
+                errorText += `Error ${status} during license check: ${errorMessage}`;
+                errorText += "\n\nIf you believe you should not be getting this error, please copy the above error message and email us at info@eagleeyessearch.com.";
+            }
         }
     } else {
         // Handle other statuses as needed
-        // showError('Unexpected error:', textStatus);
         errorText += 'Unexpected error: ' + textStatus;
+        errorText += "\n\nIf you believe you should not be getting this error, please copy the above error message and email us at info@eagleeyessearch.com.";
     }
-    errorText += "\n\nIf you believe you should not be getting this error, please copy the above error message and email us at info@eagleeyessearch.com.";
-    // It might be a good idea to show a user-friendly error message
-    // showError('An error occurred during the license check. Please try again later.');
+    
     showError(errorText);
 }
 
