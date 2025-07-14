@@ -68,7 +68,7 @@ When missions require field deployment, drones have become a versatile tool. The
 
 <br>
 <img src="{{ '/images/blog/lpcsar-eagle-eyes-pilot.png' | relative_url }}" alt="Eagle Eyes Pilot detecting hikers" style="width: 100%; margin: 20px 0;">
-<p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">Eagle Eyes Pilot detects and highlights hikers whose color or movement patterns stand out, marking them on the drone controller's display.</p>
+<p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">Eagle Eyes Pilot highlights hikers on the controller display of an LPCSAR drone, based on their colour and movement.</p>
 <br>
 
 ## Augmenting the human eye with Computer Vision
@@ -81,7 +81,7 @@ Eagle Eyes has become an integral part of LPCSAR's incident command workflow. It
 <br>
 
 <img src="{{ '/images/blog/lpcsar-operations-eagle-eyes.jpeg' | relative_url }}" alt="Team monitoring Eagle Eyes" style="width: 60%; height: 480px; margin: 20px auto; display: block; object-fit: cover; object-position: top;">
-<p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">While a team member flies the drone, another monitors the live video feed with Eagle Eyes Scan, searching for color and motion anomalies.</p>
+<p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">While a team member flies the drone, another monitors the live video feed with Eagle Eyes Scan.</p>
 
 But the value is not just in the real-time aspect.  "Our pilots are trained to understand that it's not just about having an eye in the sky. It's about collecting the data so we can analyze it afterward. You're really in a data acquisition role rather than doing a direct visual search." A perfect example came during a mission where LPCSAR assisted another county by running their drone footage through Eagle Eyes. By reviewing the collected data systematically, they were able to confirm that certain areas had already been thoroughly searched and didn't need immediate re-checking. "We were able to process all the Eagle Eyes data and say, 'We don't see the need to immediately re-search those locations.' That helped us allocate our teams more effectively and prioritize resources where they could have the most impact," Josh explained.
 
