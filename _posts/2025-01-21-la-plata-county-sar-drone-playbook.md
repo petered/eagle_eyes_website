@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Inside La Plata County SAR's Drone Playbook"
-subtitle: "An interview on drone strategies and lessons learned from the Colorado-based Search and Rescue team"
+subtitle: "An interview on drone strategies and lessons learned from a Colorado-based Search and Rescue team"
 image: "images/blog/lpcsar-dji-m4t-far.jpg"
 date: 2025-07-24 09:00:00 -0800
 author: Joep Maas
@@ -11,7 +11,7 @@ categories: interview sar-teams drone-operations
 <br>
 At Eagle Eyes Search, our products are shaped by the ideas of teams in the field. Talking with SAR teams gives us valuable insight into the realities of search and rescue operations, and how technology can make a real difference. We also believe there's huge value in sharing these experiences and lessons learned across the SAR community.
 
-Recently, we sat down with Josh Duttry, Director of IT and UAS Team Leader for <a href="https://laplatasar.org/" target="_blank" rel="noopener">La Plata County Search and Rescue</a> (LPCSAR) in South West Colorado. Josh has seen drones, or Uncrewed Aerial Systems (UAS), evolve from cautious trials to a trusted part of their operations. He shared practical insights on building a UAS program, working in challenging terrain, and using tools like Eagle Eyes to support the mission.
+Recently, we sat down with Josh Duttry, Director of IT and a leading member of the UAS team for <a href="https://laplatasar.org/" target="_blank" rel="noopener">La Plata County Search and Rescue</a> (LPCSAR) in South West Colorado. Josh has seen drones, or Uncrewed Aerial Systems (UAS), evolve from cautious trials to a trusted part of their operations. He shared practical insights on building a UAS program, working in challenging terrain, and using tools like Eagle Eyes to support the mission.
 
 <br>
 ## Starting up the Drone Program at La Plata County SAR
