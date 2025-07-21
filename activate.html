@@ -1,0 +1,331 @@
+---
+layout: main
+title: Set up Eagle Eyes Pilot on this device
+permalink: /activate/
+---
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="{{ '/shared.js' | relative_url }}"></script>
+
+<style>
+    .activation-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 120px 20px 20px 20px;
+        text-align: center;
+    }
+    
+    .activation-form {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .activation-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 30px;
+    }
+    
+    .code-input-container {
+        margin-bottom: 30px;
+    }
+    
+    .code-input {
+        width: 100%;
+        max-width: 300px;
+        padding: 15px;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        letter-spacing: 8px;
+        text-transform: uppercase;
+        font-family: 'Courier New', monospace;
+        margin-bottom: 20px;
+    }
+    
+    .code-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+    }
+    
+    .code-input.error {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+    
+    .activate-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        font-size: 18px;
+        font-weight: 500;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.3s;
+        min-width: 150px;
+    }
+    
+    .activate-button:hover {
+        background: #0056b3;
+    }
+    
+    .activate-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .forgot-link {
+        display: block;
+        margin-top: 30px;
+        color: #666;
+        font-size: 16px;
+        text-decoration: none;
+    }
+    
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
+    
+    .error-message {
+        color: #dc3545;
+        font-size: 16px;
+        margin-top: 15px;
+        padding: 10px;
+        background: #f8d7da;
+        border-radius: 4px;
+        display: none;
+    }
+    
+    .loading-spinner {
+        display: none;
+        margin: 20px 0;
+    }
+    
+    .spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .device-info {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        text-align: left;
+    }
+    
+    .device-info h4 {
+        color: #1976d2;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+    
+    .device-info p {
+        margin: 5px 0;
+        color: #333;
+    }
+    
+    @media (max-width: 768px) {
+        .activation-container {
+            padding: 100px 15px 15px 15px;
+        }
+        
+        .activation-form {
+            padding: 30px 20px;
+        }
+        
+        .activation-title {
+            font-size: 24px;
+        }
+        
+        .code-input {
+            font-size: 20px;
+            letter-spacing: 4px;
+        }
+    }
+</style>
+
+<div class="activation-container">
+    <div class="device-info">
+        <h4>📱 Device Information</h4>
+        <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+        <p><strong>Platform:</strong> <span id="platform"></span></p>
+        <p><strong>Screen Size:</strong> <span id="screenSize"></span></p>
+    </div>
+
+    <div class="activation-form">
+        <h1 class="activation-title">Set up Eagle Eyes Pilot on this device</h1>
+        
+        <div class="code-input-container">
+            <input type="text" 
+                   id="activationCode" 
+                   class="code-input" 
+                   placeholder="ABC123" 
+                   maxlength="6" 
+                   autocomplete="off">
+            <div>
+                <button id="activateButton" class="activate-button" onclick="handleActivation()">
+                    Activate Device
+                </button>
+            </div>
+        </div>
+        
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Verifying activation code...</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <a href="{{ '/pilot-setup/' | relative_url }}" class="forgot-link">
+            Forgot your 6-digit code? Request a new code.
+        </a>
+    </div>
+</div>
+
+<script>
+    var useLocalFirebaseEmulator = getIsEmulatorFromURL();
+    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+    
+    $(document).ready(function() {
+        // Show emulator banner if in emulator mode
+        if (useLocalFirebaseEmulator) {
+            const emulatorBanner = $(`
+                <div style="background-color: #ff9800; color: black; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 20px;">
+                    🧪 Emulator Mode: Using local Firebase emulator database
+                </div>
+            `);
+            $('.activation-container').prepend(emulatorBanner);
+        }
+        
+        // Display device information
+        displayDeviceInfo();
+        
+        // Auto-format input as user types
+        $('#activationCode').on('input', function() {
+            let value = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            $(this).val(value);
+            $(this).removeClass('error');
+            $('#errorMessage').hide();
+        });
+        
+        // Handle Enter key
+        $('#activationCode').on('keypress', function(e) {
+            if (e.which === 13) {
+                handleActivation();
+            }
+        });
+        
+        // Focus on input field
+        $('#activationCode').focus();
+    });
+    
+    function displayDeviceInfo() {
+        $('#userAgent').text(navigator.userAgent);
+        $('#platform').text(navigator.platform);
+        $('#screenSize').text(screen.width + 'x' + screen.height);
+    }
+    
+    function handleActivation() {
+        const code = $('#activationCode').val().trim();
+        
+        // Validate input
+        if (!code) {
+            showError('Please enter your 6-digit activation code');
+            return;
+        }
+        
+        if (code.length !== 6) {
+            showError('Activation code must be exactly 6 characters');
+            return;
+        }
+        
+        if (!/^[A-Z0-9]{6}$/.test(code)) {
+            showError('Activation code must contain only letters and numbers');
+            return;
+        }
+        
+        // Show loading
+        $('#loadingSpinner').show();
+        $('#activateButton').prop('disabled', true);
+        $('#errorMessage').hide();
+        
+        // Call API
+        getActivationRequest(code)
+            .then(function(result) {
+                console.log('Activation successful:', result);
+                
+                // Redirect to next step with parameters
+                const params = new URLSearchParams({
+                    license_id: result.licenseId,
+                    download_link: result.downloadUrl,
+                    file_size_mb: result.fileSizeMB
+                });
+                
+                window.location.href = `{{ '/next-step/' | relative_url }}?${params.toString()}`;
+            })
+            .catch(function(error) {
+                console.error('Activation failed:', error);
+                showError(error.message);
+                $('#loadingSpinner').hide();
+                $('#activateButton').prop('disabled', false);
+                $('#activationCode').addClass('error');
+            });
+    }
+    
+    async function getActivationRequest(activationCode) {
+        try {
+            // Make request using GET method
+            const response = await fetch(`${hostURL}/get_activation_request?code=${encodeURIComponent(activationCode.toUpperCase())}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                return {
+                    success: true,
+                    licenseId: data.license_id,
+                    downloadUrl: data.pilot_download_url,
+                    fileSizeMB: data.pilot_file_size_mb,
+                    expiresAt: new Date(data.expires_at)
+                };
+            } else {
+                // Handle specific error cases
+                switch (response.status) {
+                    case 404:
+                        throw new Error('Activation code not found. Please check the code and try again.');
+                    case 410:
+                        throw new Error('Activation code has expired. Please request a new code.');
+                    case 429:
+                        throw new Error('Too many requests. Please wait a minute before trying again.');
+                    default:
+                        throw new Error(data.error || 'Failed to retrieve activation request');
+                }
+            }
+        } catch (error) {
+            console.error('Error retrieving activation request:', error);
+            throw error;
+        }
+    }
+    
+    function showError(message) {
+        $('#errorMessage').text(message).show();
+    }
+</script>
