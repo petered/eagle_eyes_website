@@ -2,7 +2,7 @@
 layout: post
 title: "Computer Vision and Drones: Helping Find the Lost in BC's Mountains"
 subtitle: ""
-image: "images/blog/eagle-eyes-pilot-thermal.png"
+image: "images/blog/bc-mountains.jpg"
 date: 2025-06-29 09:00:00 -0800
 author: Patrick Robinson
 permalink: /blog/ai-thermal-drones-bc-mountains
