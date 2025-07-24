@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Computer Vision and Drones: Helping Find the Lost in BC's Mountains"
-subtitle: "How advanced thermal imaging and AI detection are revolutionizing search and rescue operations in British Columbia's challenging terrain"
+subtitle: ""
 image: "images/blog/eagle-eyes-pilot-thermal.png"
 date: 2025-06-29 09:00:00 -0800
 author: Patrick Robinson
@@ -25,17 +25,11 @@ Beneath a steel-gray sky, a hiker shivers under a gnarled cedar gripping the roc
 
 High above, a faint hum cuts through the wind. It's not a bird or a plane. It's a drone. Its cameras slice through the dusk, guided by something far sharper than human eyes alone.
 
-<br>
-## Technology Meets Rescue
-
 In April, CBC News ran a <a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">feature</a> spotlighting <a href="https://www.northshorerescue.com/" target="_blank" rel="noopener">North Shore Rescue</a>, one of Canada's most experienced volunteer SAR teams working to save lives in BC's unforgiving backcountry. Equipped with multi-sensor drones and powered by computer vision, they're reshaping what's possible in search and rescue.
 
 It's a biting winter evening. North Shore Rescue's drone team lead, Grant Baldwin, is running out of daylight and batteries. His team's mission is to find the missing hiker before hypothermia sets in.
 
 The terrain is brutal. Cliffs, thick underbrush, creeks. No human could search it all fast enough. But the drone can.
-
-<br>
-## Speed and Precision Save Lives
 
 With a whir, it lifts off. Its thermal camera scans the landscape in shades of heat, looking for the unusual. A patch of warmth. A splash of color that doesn't belong. A flicker of movement. When it finds something, with the help of Eagle Eyes software, it beams that data straight into the team's <a href="https://caltopo.com/about" target="_blank" rel="noopener">CalTopo map</a>.
 
@@ -45,14 +39,8 @@ That night, the drone locks onto a thermal signature. Just enough heat to spot t
 
 Without that drone, it could've been a body recovery.
 
-<br>
-## The Future of Search and Rescue
-
 Drones equipped with thermal cameras and Eagle Eyes computer vision are helping search teams scan terrain too dangerous or vast for humans alone. They're spotting the needle in the haystack and helping teams get to it in time.
 
-<br>
-## Read the Full Story
-
-Read the full CBC article: <a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">How drones are helping search teams find the lost</a>
+Read the full CBC article <a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363</a>
 
 <br>
