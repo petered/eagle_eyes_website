@@ -1,0 +1,922 @@
+---
+layout: main
+title: Drone Admin Panel
+permalink: /admin/
+---
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="{{ '/shared.js' | relative_url }}"></script>
+
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 120px 20px 20px 20px;
+    }
+    
+    .admin-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .admin-header h1 {
+        font-size: 32px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .admin-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .section-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+    
+    .add-button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .add-button:hover {
+        background: #218838;
+    }
+    
+    .drone-grid {
+        display: grid;
+        gap: 20px;
+    }
+    
+    .drone-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        transition: all 0.2s ease;
+    }
+    
+    .drone-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .drone-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .drone-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .drone-full-name {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+    
+    .compatibility-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .compatibility-tested {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .compatibility-untested {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .compatibility-unsupported {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .controllers-section {
+        margin-top: 15px;
+    }
+    
+    .controllers-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 10px;
+    }
+    
+    .controller-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    
+    .controller-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 16px;
+        font-size: 12px;
+    }
+    
+    .drone-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .edit-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .edit-button:hover {
+        background: #0056b3;
+    }
+    
+    .delete-button {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .delete-button:hover {
+        background: #c82333;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+    }
+    
+    .modal-content {
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin: 50px auto;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .modal-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+    
+    .close-button {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .close-button:hover {
+        color: #333;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s ease;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        transition: border-color 0.2s ease;
+    }
+    
+    .form-select:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+    }
+    
+    .controllers-form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .controllers-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .controller-form-item {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 15px;
+        position: relative;
+    }
+    
+    .controller-form-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .remove-controller {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .remove-controller:hover {
+        background: #c82333;
+    }
+    
+    .controller-form-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 15px;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .save-button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .save-button:hover {
+        background: #218838;
+    }
+    
+    .cancel-button {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .cancel-button:hover {
+        background: #5a6268;
+    }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .alert {
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+    
+    .auth-required {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .auth-required h3 {
+        color: #856404;
+        margin-bottom: 15px;
+    }
+    
+    .auth-required p {
+        color: #856404;
+        margin-bottom: 20px;
+    }
+    
+    .sign-in-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s ease;
+    }
+    
+    .sign-in-button:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-container {
+            padding: 100px 15px 15px 15px;
+        }
+        
+        .modal-content {
+            margin: 20px;
+            max-width: none;
+        }
+        
+        .controller-form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            gap: 15px;
+            align-items: stretch;
+        }
+        
+        .drone-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+    }
+</style>
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Drone Admin Panel</h1>
+        <p>Manage drone and controller compatibility records</p>
+    </div>
+    
+    <!-- Authentication Required Message -->
+    <div id="auth-required" class="auth-required" style="display: none;">
+        <a href="{{ '/account/' | relative_url }}" class="sign-in-button">Sign In</a>
+    </div>
+    
+    <!-- Admin Content -->
+    <div id="admin-content" style="display: none;">
+        <!-- Alerts -->
+        <div id="alerts-container"></div>
+        
+        <!-- Drone Management Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <h2 class="section-title">Drone Records</h2>
+                <button class="add-button" onclick="openDroneModal()">Add New Drone</button>
+            </div>
+            
+            <div class="loading-spinner" id="drones-loading">
+                <div class="spinner"></div>
+                <p>Loading drone records...</p>
+            </div>
+            
+            <div id="drones-container" class="drone-grid" style="display: none;">
+                <!-- Drone cards will be populated here -->
+            </div>
+            
+            <div id="drones-empty" style="display: none; text-align: center; padding: 40px; color: #6c757d;">
+                <p>No drone records found.</p>
+                <p>Click "Add New Drone" to create the first record.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Drone Modal -->
+<div id="drone-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Add New Drone</h3>
+            <button class="close-button" onclick="closeDroneModal()">&times;</button>
+        </div>
+        
+        <form id="drone-form">
+            <div class="form-group">
+                <label class="form-label" for="short-name">Short Name *</label>
+                <input type="text" id="short-name" class="form-input" placeholder="e.g., mini-3-pro" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="full-name">Full Name</label>
+                <input type="text" id="full-name" class="form-input" placeholder="e.g., DJI Mini 3 Pro">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="compatibility">Compatibility *</label>
+                <select id="compatibility" class="form-select" required>
+                    <option value="">Select compatibility</option>
+                    <option value="tested">Tested</option>
+                    <option value="untested">Untested</option>
+                    <option value="unsupported">Unsupported</option>
+                </select>
+            </div>
+            
+            <div class="controllers-form-section">
+                <div class="controllers-form-header">
+                    <h4>Controllers</h4>
+                    <button type="button" class="add-button" onclick="addControllerForm()">Add Controller</button>
+                </div>
+                
+                <div id="controllers-container">
+                    <!-- Controller forms will be added here -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="cancel-button" onclick="closeDroneModal()">Cancel</button>
+                <button type="submit" class="save-button">Save Drone</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    var useLocalFirebaseEmulator = getIsEmulatorFromURL();
+    var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+    
+    let currentDroneId = null;
+    let dronesData = [];
+    
+    // Check authentication and admin status on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                checkAdminStatus(user);
+            } else {
+                showAuthRequired();
+            }
+        });
+    });
+    
+    function showAuthRequired() {
+        document.getElementById('auth-required').style.display = 'block';
+        document.getElementById('admin-content').style.display = 'none';
+    }
+    
+    async function checkAdminStatus(user) {
+        try {
+            const idToken = await user.getIdToken(true);
+            const response = await fetch(`${hostURL}/is_logged_in_user_admin`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.is_admin) {
+                document.getElementById('auth-required').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                loadDrones();
+            } else {
+                showAuthRequired();
+            }
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            showAuthRequired();
+        }
+    }
+    
+    async function loadDrones() {
+        try {
+            document.getElementById('drones-loading').style.display = 'block';
+            document.getElementById('drones-container').style.display = 'none';
+            document.getElementById('drones-empty').style.display = 'none';
+            
+            const user = firebase.auth().currentUser;
+            const idToken = await user.getIdToken(true);
+            
+            const response = await fetch(`${hostURL}/get_drones`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to load drones');
+            }
+            
+            dronesData = await response.json();
+            displayDrones(dronesData);
+            
+        } catch (error) {
+            console.error('Error loading drones:', error);
+            showAlert('Error loading drone records: ' + error.message, 'error');
+        } finally {
+            document.getElementById('drones-loading').style.display = 'none';
+        }
+    }
+    
+    function displayDrones(drones) {
+        const container = document.getElementById('drones-container');
+        container.innerHTML = '';
+        
+        if (drones.length === 0) {
+            document.getElementById('drones-empty').style.display = 'block';
+            return;
+        }
+        
+        drones.forEach(drone => {
+            const droneCard = createDroneCard(drone);
+            container.appendChild(droneCard);
+        });
+        
+        document.getElementById('drones-container').style.display = 'block';
+    }
+    
+    function createDroneCard(drone) {
+        const card = document.createElement('div');
+        card.className = 'drone-card';
+        
+        const compatibilityClass = `compatibility-${drone.compatibility}`;
+        const compatibilityText = drone.compatibility.charAt(0).toUpperCase() + drone.compatibility.slice(1);
+        
+        const controllersHtml = drone.controllers.map(controller => {
+            const controllerCompatibilityClass = `compatibility-${controller.compatibility}`;
+            return `
+                <div class="controller-tag">
+                    <span>${controller.controller_name}</span>
+                    <span class="compatibility-badge ${controllerCompatibilityClass}">${controller.compatibility}</span>
+                </div>
+            `;
+        }).join('');
+        
+        card.innerHTML = `
+            <div class="drone-header">
+                <div>
+                    <div class="drone-name">${drone.short_name}</div>
+                    ${drone.full_name ? `<div class="drone-full-name">${drone.full_name}</div>` : ''}
+                </div>
+                <div class="compatibility-badge ${compatibilityClass}">${compatibilityText}</div>
+            </div>
+            
+            <div class="controllers-section">
+                <div class="controllers-title">Controllers (${drone.controllers.length})</div>
+                <div class="controller-list">
+                    ${controllersHtml}
+                </div>
+            </div>
+            
+            <div class="drone-actions">
+                <button class="edit-button" onclick="editDrone('${drone.id}')">Edit</button>
+                <button class="delete-button" onclick="deleteDrone('${drone.id}', '${drone.short_name}')">Delete</button>
+            </div>
+        `;
+        
+        return card;
+    }
+    
+    function openDroneModal(droneId = null) {
+        currentDroneId = droneId;
+        const modal = document.getElementById('drone-modal');
+        const form = document.getElementById('drone-form');
+        
+        if (droneId) {
+            document.getElementById('modal-title').textContent = 'Edit Drone';
+            const drone = dronesData.find(d => d.id === droneId);
+            populateForm(drone);
+        } else {
+            document.getElementById('modal-title').textContent = 'Add New Drone';
+            form.reset();
+            document.getElementById('controllers-container').innerHTML = '';
+            addControllerForm(); // Add one controller form by default
+        }
+        
+        modal.style.display = 'block';
+    }
+    
+    function closeDroneModal() {
+        document.getElementById('drone-modal').style.display = 'none';
+        currentDroneId = null;
+    }
+    
+    function populateForm(drone) {
+        document.getElementById('short-name').value = drone.short_name;
+        document.getElementById('full-name').value = drone.full_name || '';
+        document.getElementById('compatibility').value = drone.compatibility;
+        
+        const controllersContainer = document.getElementById('controllers-container');
+        controllersContainer.innerHTML = '';
+        
+        drone.controllers.forEach(controller => {
+            addControllerForm(controller);
+        });
+        
+        if (drone.controllers.length === 0) {
+            addControllerForm();
+        }
+    }
+    
+    function addControllerForm(controller = null) {
+        const container = document.getElementById('controllers-container');
+        const controllerDiv = document.createElement('div');
+        controllerDiv.className = 'controller-form-item';
+        
+        controllerDiv.innerHTML = `
+            <button type="button" class="remove-controller" onclick="removeControllerForm(this)">×</button>
+            <div class="controller-form-grid">
+                <div class="form-group">
+                    <label class="form-label">Controller Name *</label>
+                    <input type="text" class="form-input controller-name" placeholder="e.g., DJI RC-N1" value="${controller ? controller.controller_name : ''}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Compatibility *</label>
+                    <select class="form-select controller-compatibility" required>
+                        <option value="">Select</option>
+                        <option value="tested" ${controller && controller.compatibility === 'tested' ? 'selected' : ''}>Tested</option>
+                        <option value="untested" ${controller && controller.compatibility === 'untested' ? 'selected' : ''}>Untested</option>
+                        <option value="unsupported" ${controller && controller.compatibility === 'unsupported' ? 'selected' : ''}>Unsupported</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(controllerDiv);
+    }
+    
+    function removeControllerForm(button) {
+        const controllerItem = button.closest('.controller-form-item');
+        controllerItem.remove();
+    }
+    
+    function editDrone(droneId) {
+        openDroneModal(droneId);
+    }
+    
+    async function deleteDrone(droneId, droneName) {
+        if (!confirm(`Are you sure you want to delete "${droneName}"? This action cannot be undone.`)) {
+            return;
+        }
+        
+        try {
+            const user = firebase.auth().currentUser;
+            const idToken = await user.getIdToken(true);
+            
+            const response = await fetch(`${hostURL}/delete_drone`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ drone_id: droneId })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete drone');
+            }
+            
+            showAlert(`Successfully deleted "${droneName}"`, 'success');
+            loadDrones();
+            
+        } catch (error) {
+            console.error('Error deleting drone:', error);
+            showAlert('Error deleting drone: ' + error.message, 'error');
+        }
+    }
+    
+    // Form submission
+    document.getElementById('drone-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const shortName = document.getElementById('short-name').value.trim();
+        const fullName = document.getElementById('full-name').value.trim();
+        const compatibility = document.getElementById('compatibility').value;
+        
+        // Collect controllers
+        const controllers = [];
+        const controllerItems = document.querySelectorAll('.controller-form-item');
+        
+        for (const item of controllerItems) {
+            const name = item.querySelector('.controller-name').value.trim();
+            const comp = item.querySelector('.controller-compatibility').value;
+            
+            if (name && comp) {
+                controllers.push({
+                    controller_name: name,
+                    compatibility: comp
+                });
+            }
+        }
+        
+        if (controllers.length === 0) {
+            showAlert('Please add at least one controller', 'error');
+            return;
+        }
+        
+        const droneData = {
+            short_name: shortName,
+            full_name: fullName || null,
+            compatibility: compatibility,
+            controllers: controllers
+        };
+        
+        if (currentDroneId) {
+            droneData.drone_id = currentDroneId;
+        }
+        
+        try {
+            const user = firebase.auth().currentUser;
+            const idToken = await user.getIdToken(true);
+            
+            const endpoint = currentDroneId ? '/update_drone' : '/create_drone';
+            const method = currentDroneId ? 'PUT' : 'POST';
+            
+            const response = await fetch(`${hostURL}${endpoint}`, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(droneData)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to save drone');
+            }
+            
+            const action = currentDroneId ? 'updated' : 'created';
+            showAlert(`Successfully ${action} "${shortName}"`, 'success');
+            closeDroneModal();
+            loadDrones();
+            
+        } catch (error) {
+            console.error('Error saving drone:', error);
+            showAlert('Error saving drone: ' + error.message, 'error');
+        }
+    });
+    
+    function showAlert(message, type) {
+        const alertsContainer = document.getElementById('alerts-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        
+        alertsContainer.appendChild(alert);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('drone-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDroneModal();
+        }
+    });
+</script>

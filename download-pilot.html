@@ -1,0 +1,666 @@
+---
+layout: main
+title: Download Eagle Eyes Pilot
+permalink: /download-pilot/
+---
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="{{ '/shared.js' | relative_url }}"></script>
+
+<style>
+    .setup-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 120px 20px 20px 20px;
+    }
+    
+    .setup-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .setup-section.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    
+    .step-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .step-number {
+        background: #007bff;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    
+    .step-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+    
+    .device-selection-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+    
+    .device-list-container h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .device-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        background: white;
+    }
+    
+    .device-tile {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f1f1;
+        transition: all 0.2s ease;
+        gap: 12px;
+    }
+    
+    .device-tile:last-child {
+        border-bottom: none;
+    }
+    
+    .device-tile:hover {
+        background: #f8f9fa;
+    }
+    
+    .device-tile.selected {
+        background: #f0f7ff;
+        border-left: 4px solid #007bff;
+    }
+    
+    .device-tile.incompatible {
+        background: #fff5f5;
+        border-left: 4px solid #dc3545;
+    }
+    
+    .device-tile.untested {
+        background: #fffdf5;
+        border-left: 4px solid #ffc107;
+    }
+    
+    .device-image {
+        width: 40px;
+        height: 40px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+    
+    .device-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .device-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .compatibility-status {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    
+    .status-supported {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-untested {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-incompatible {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .compatibility-message {
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    
+    .compatibility-supported {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .compatibility-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+    
+    .compatibility-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    .download-versions {
+        display: grid;
+        gap: 20px;
+    }
+    
+    .version-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        transition: all 0.2s ease;
+    }
+    
+    .version-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .version-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .version-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .version-date {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    
+    .version-badge {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .version-badge.beta {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .version-badge.alpha {
+        background: #dc3545;
+    }
+    
+    .release-notes {
+        margin-bottom: 15px;
+    }
+    
+    .release-notes h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+    
+    .release-notes ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .version-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .download-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s ease;
+    }
+    
+    .download-button:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .file-info {
+        color: #6c757d;
+        font-size: 12px;
+    }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .lead {
+        font-size: 18px;
+        color: #6c757d;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+        .setup-container {
+            padding: 100px 15px 15px 15px;
+        }
+        
+        .device-selection-container {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .setup-section {
+            padding: 20px;
+        }
+        
+        .version-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .version-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .download-button {
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="setup-container">
+    <h1>Download Eagle Eyes Pilot</h1>
+    <p class="lead">Download Eagle Eyes Pilot for your DJI controller or Android device. Select your devices below to see compatibility information and available downloads.</p>
+
+    <!-- Step 1: Drone and Controller Selection -->
+    <section id="step1" class="setup-section">
+        <div class="step-header">
+            <div class="step-number">1</div>
+            <h2 class="step-title">Select Your Drone and Controller</h2>
+        </div>
+        
+        <div class="device-selection-container">
+            <div class="device-list-container">
+                <h3>Choose Your Drone</h3>
+                <div class="device-list" id="droneList">
+                    <div class="device-tile" data-device="mini-3-pro" data-compatibility="supported">
+                        <div class="device-image">🚁</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI Mini 3 Pro</div>
+                            <div class="compatibility-status status-supported">✅ Fully Supported</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="m3t" data-compatibility="supported">
+                        <div class="device-image">🚁</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI M3T</div>
+                            <div class="compatibility-status status-supported">✅ Fully Supported</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="m30t" data-compatibility="untested">
+                        <div class="device-image">🚁</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI M30T</div>
+                            <div class="compatibility-status status-untested">⚠️ Early Compatibility</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="mavic-3" data-compatibility="untested">
+                        <div class="device-image">🚁</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI Mavic 3</div>
+                            <div class="compatibility-status status-untested">⚠️ May Work</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="air-2s" data-compatibility="incompatible">
+                        <div class="device-image">🚁</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI Air 2S</div>
+                            <div class="compatibility-status status-incompatible">❌ Not Supported</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="mini-3" data-compatibility="incompatible">
+                        <div class="device-image">🚁</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI Mini 3</div>
+                            <div class="compatibility-status status-incompatible">❌ Not Supported</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="device-list-container" id="controllerContainer">
+                <h3>Choose Your Controller</h3>
+                <div class="device-list" id="controllerList">
+                    <div class="device-tile" data-device="rc-n1" data-compatibility="supported">
+                        <div class="device-image">🎮</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI RC-N1</div>
+                            <div class="compatibility-status status-supported">✅ Fully Supported</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="rc-pro" data-compatibility="supported">
+                        <div class="device-image">🎮</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI RC Pro</div>
+                            <div class="compatibility-status status-supported">✅ Fully Supported</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="rc-2" data-compatibility="untested">
+                        <div class="device-image">🎮</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI RC 2</div>
+                            <div class="compatibility-status status-untested">⚠️ May Work</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="smart-controller" data-compatibility="incompatible">
+                        <div class="device-image">🎮</div>
+                        <div class="device-info">
+                            <div class="device-name">DJI Smart Controller</div>
+                            <div class="compatibility-status status-incompatible">❌ Not Supported</div>
+                        </div>
+                    </div>
+                    <div class="device-tile" data-device="android-device" data-compatibility="supported">
+                        <div class="device-image">📱</div>
+                        <div class="device-info">
+                            <div class="device-name">Android Device</div>
+                            <div class="compatibility-status status-supported">✅ Android 8.0+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="compatibilityMessage" class="compatibility-message" style="display: none; margin-top: 20px; padding: 15px; border-radius: 8px;"></div>
+    </section>
+
+    <!-- Step 2: Available Downloads -->
+    <section id="step2" class="setup-section disabled">
+        <div class="step-header">
+            <div class="step-number">2</div>
+            <h2 class="step-title">Available Downloads</h2>
+        </div>
+        
+        <div class="loading-spinner" id="downloadsLoading">
+            <div class="spinner"></div>
+            <p>Loading available versions...</p>
+        </div>
+        
+        <div id="downloadsContainer" class="download-versions" style="display: none;">
+            <!-- Versions will be populated by JavaScript -->
+        </div>
+        
+        <div id="downloadsEmpty" style="display: none; text-align: center; padding: 40px; color: #6c757d;">
+            <p>No downloads are currently available for your selected devices.</p>
+            <p>Please check back later or contact support for assistance.</p>
+        </div>
+    </section>
+</div>
+
+<script>
+    let selectedDrone = null;
+    let selectedController = null;
+    
+    $(document).ready(function() {
+        setupDeviceSelection();
+        loadDownloads();
+    });
+    
+    function setupDeviceSelection() {
+        // Drone selection
+        $('#droneList .device-tile').click(function() {
+            $('#droneList .device-tile').removeClass('selected');
+            $(this).addClass('selected');
+            selectedDrone = {
+                device: $(this).data('device'),
+                compatibility: $(this).data('compatibility'),
+                name: $(this).find('.device-name').text()
+            };
+            updateCompatibilityMessage();
+            updateDownloadsSection();
+        });
+        
+        // Controller selection
+        $('#controllerList .device-tile').click(function() {
+            $('#controllerList .device-tile').removeClass('selected');
+            $(this).addClass('selected');
+            selectedController = {
+                device: $(this).data('device'),
+                compatibility: $(this).data('compatibility'),
+                name: $(this).find('.device-name').text()
+            };
+            updateCompatibilityMessage();
+            updateDownloadsSection();
+        });
+    }
+    
+    function updateCompatibilityMessage() {
+        const messageDiv = $('#compatibilityMessage');
+        
+        if (!selectedDrone || !selectedController) {
+            messageDiv.hide();
+            return;
+        }
+        
+        let message = '';
+        let messageClass = '';
+        
+        if (selectedDrone.compatibility === 'supported' && selectedController.compatibility === 'supported') {
+            message = `✅ Great choice! ${selectedDrone.name} with ${selectedController.name} is fully supported by Eagle Eyes Pilot.`;
+            messageClass = 'compatibility-supported';
+        } else if (selectedDrone.compatibility === 'incompatible' || selectedController.compatibility === 'incompatible') {
+            message = `❌ Unfortunately, your selected combination (${selectedDrone.name} + ${selectedController.name}) is not currently supported. Eagle Eyes Pilot may not work properly with this setup.`;
+            messageClass = 'compatibility-error';
+        } else {
+            message = `⚠️ Your combination (${selectedDrone.name} + ${selectedController.name}) may work but hasn't been fully tested. Results may vary.`;
+            messageClass = 'compatibility-warning';
+        }
+        
+        messageDiv.text(message)
+            .removeClass('compatibility-supported compatibility-warning compatibility-error')
+            .addClass(messageClass)
+            .show();
+    }
+    
+    function updateDownloadsSection() {
+        if (selectedDrone && selectedController) {
+            $('#step2').removeClass('disabled');
+            // Scroll to downloads section
+            setTimeout(() => {
+                $('#step2')[0].scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        } else {
+            $('#step2').addClass('disabled');
+        }
+    }
+    
+    function loadDownloads() {
+        // Mock download data - in real implementation, this would fetch from Firebase
+        const mockVersions = [
+            {
+                id: 'v1.2.0',
+                name: 'Eagle Eyes Pilot v1.2.0',
+                date: '2024-03-15',
+                type: 'stable',
+                fileSize: '156 MB',
+                downloadUrl: '#',
+                releaseNotes: [
+                    'Improved detection accuracy for thermal imaging',
+                    'Added support for DJI Mini 3 Pro',
+                    'Fixed battery optimization issues',
+                    'Enhanced UI for better visibility in bright conditions'
+                ]
+            },
+            {
+                id: 'v1.1.8',
+                name: 'Eagle Eyes Pilot v1.1.8',
+                date: '2024-02-28',
+                type: 'stable',
+                fileSize: '152 MB',
+                downloadUrl: '#',
+                releaseNotes: [
+                    'Bug fixes for GPS accuracy',
+                    'Improved stability on Android 12+',
+                    'Added new search pattern options',
+                    'Performance optimizations'
+                ]
+            },
+            {
+                id: 'v1.2.1-beta',
+                name: 'Eagle Eyes Pilot v1.2.1 Beta',
+                date: '2024-03-20',
+                type: 'beta',
+                fileSize: '158 MB',
+                downloadUrl: '#',
+                releaseNotes: [
+                    'BETA: New AI detection algorithms',
+                    'BETA: Support for M30T thermal cameras',
+                    'Experimental flight pattern improvements',
+                    'Known issue: May cause increased battery drain'
+                ]
+            }
+        ];
+        
+        // Simulate loading delay
+        setTimeout(() => {
+            $('#downloadsLoading').hide();
+            displayVersions(mockVersions);
+        }, 1000);
+    }
+    
+    function displayVersions(versions) {
+        const container = $('#downloadsContainer');
+        container.empty();
+        
+        if (versions.length === 0) {
+            $('#downloadsEmpty').show();
+            return;
+        }
+        
+        versions.forEach(version => {
+            const versionCard = createVersionCard(version);
+            container.append(versionCard);
+        });
+        
+        container.show();
+    }
+    
+    function createVersionCard(version) {
+        const badgeClass = version.type === 'stable' ? '' : version.type;
+        const badge = version.type === 'stable' ? 'Stable' : version.type.charAt(0).toUpperCase() + version.type.slice(1);
+        
+        return $(`
+            <div class="version-card">
+                <div class="version-header">
+                    <div>
+                        <div class="version-name">${version.name}</div>
+                        <div class="version-date">Released ${version.date}</div>
+                    </div>
+                    <div class="version-badge ${badgeClass}">${badge}</div>
+                </div>
+                
+                <div class="release-notes">
+                    <h4>Release Notes:</h4>
+                    <ul>
+                        ${version.releaseNotes.map(note => `<li>${note}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div class="version-actions">
+                    <a href="${version.downloadUrl}" class="download-button" onclick="trackDownload('${version.id}')">
+                        <span>📱</span>
+                        Download APK
+                    </a>
+                    <span class="file-info">${version.fileSize}</span>
+                </div>
+            </div>
+        `);
+    }
+    
+    function trackDownload(versionId) {
+        console.log('Download tracked:', versionId);
+        // Add download tracking logic here
+    }
+</script>
