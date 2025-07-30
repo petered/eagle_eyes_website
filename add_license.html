@@ -592,14 +592,36 @@ permalink: /add_license/
         const trialRequestId = urlParams.get('trial_request_id'); // Get 'trial_request_id' parameter
         const isPurchase = urlParams.get('purchase') === 'true'; // Check for purchase=true
         const teamName = urlParams.get('team'); // Get 'team' parameter from URL
+        const licenseType = urlParams.get('license_type'); // Get 'license_type' parameter from URL
         
         // Check if the 'emails' parameter exists and set the value of the input field
         if (email) {
             document.getElementById('emails').value = email;
         }
         
-        // If it's a purchase request
-        if (isPurchase) {
+        // Handle license_type parameter
+        if (licenseType === 'review') {
+            // Set license type to "review" (decline request)
+            document.getElementById('review').checked = true;
+            
+            // If there's a trial request ID, prefill it
+            if (trialRequestId) {
+                const trialRequestIdField = document.getElementById('trialRequestId');
+                trialRequestIdField.value = trialRequestId;
+                trialRequestIdField.readOnly = true;
+                trialRequestIdField.style.backgroundColor = "#f0f0f0";
+            }
+            
+            updateFieldVisibility();
+            $('#trialRequestIdContainer').show();
+        }
+        else if (licenseType === 'no_license') {
+            // Set license type to "no_license" (verify user only)
+            document.getElementById('no_license').checked = true;
+            updateFieldVisibility();
+        }
+        // If it's a purchase request (legacy support)
+        else if (isPurchase) {
             // Set license type to "no_license"
             document.getElementById('no_license').checked = true;
             updateFieldVisibility();
