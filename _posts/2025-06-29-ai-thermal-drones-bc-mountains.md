@@ -15,32 +15,34 @@ categories: search-rescue technology thermal-drones
   CBC News feature: "How drones are helping search teams find the lost"
 </div>
 <div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; margin-bottom: 20px;">
-  <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" src="https://streamable.com/e/56voro?autoplay=1" width="100%" style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;"></iframe>
+  <iframe width="100%" height="100%" src="https://www.youtube.com/embed/9ZS98M0ZiGY?si=GJf2JsJ92OYY4j8u" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;"></iframe>
 </div>
 
 <br>
-The wind howls through the jagged peaks of Vancouver's Coast Mountains, where the forest is a labyrinth of towering cedars and shadowed gullies. It's the kind of place where one wrong step can turn a hike into a fight for survival.
+In the rugged terrain of Vancouver's Coast Mountains, where dense forests and steep ravines pose significant challenges, a single misstep can transform a routine hike into a life-threatening ordeal. Imagine a hiker, lost under a cloudy sky, seeking shelter beneath a weathered cedar tree along a fast-flowing river. Hypothermia looms as temperatures drop and visibility fades. In such critical situations, time is of the essence.
 
-Beneath a steel-gray sky, a hiker shivers under a gnarled cedar gripping the rocks on the edge of a rushing river. His breath is shallow, his body going numb. Hours earlier, he veered off trail. Now the wilderness has swallowed him whole. Time is running out.
 
-High above, a faint hum cuts through the wind. It's not a bird or a plane. It's a drone. Its cameras slice through the dusk, guided by something far sharper than human eyes alone.
 
-In April, CBC News ran a <a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">feature</a> spotlighting <a href="https://www.northshorerescue.com/" target="_blank" rel="noopener">North Shore Rescue</a>, one of Canada's most experienced volunteer SAR teams working to save lives in BC's unforgiving backcountry. Equipped with multi-sensor drones and powered by computer vision, they're reshaping what's possible in search and rescue.
+In April,<a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">CBC News highlghted</a> the efforts of <a href="https://www.northshorerescue.com/" target="_blank" rel="noopener">North Shore Rescue</a>, one of Canada's busiest volunteer SAR teams working to save lives in BC's unforgiving backcountry. Their integration of drones with thermal cameras and computer vision is changing SAR in the province's challenging backcountry.
 
-It's a biting winter evening. North Shore Rescue's drone team lead, Grant Baldwin, is running out of daylight and batteries. His team's mission is to find the missing hiker before hypothermia sets in.
+On a cold winter evening, Grant Baldwin, North Shore Rescue’s drone team leader, described a mission where his team faced fading daylight and limited drone battery life while searching for a missing hiker. The search area had treacherous cliffs, dense vegetation, and waterways, making it extrmeley hazardous and hard to access for human searchers.
 
-The terrain is brutal. Cliffs, thick underbrush, creeks. No human could search it all fast enough. But the drone can.
+Deploying the drone proved pivotal. Its thermal camera surveyed the hard to access terrain, identifying a faint heat signature amid the cold surroundings. As Baldwin explained to CBC, "It's about speed, getting that information to the map quickly so we can respond effectively." That evening, the drone pinpointed a faint thermal signature: the hiker, huddled under a tree near the river. The ground team was dispatched promptly, locating the individual, cold and wet, but alive.
 
-With a whir, it lifts off. Its thermal camera scans the landscape in shades of heat, looking for the unusual. A patch of warmth. A splash of color that doesn't belong. A flicker of movement. When it finds something, with the help of Eagle Eyes software, it beams that data straight into the team's <a href="https://caltopo.com/about" target="_blank" rel="noopener">CalTopo map</a>.
+Without this technology, the outcome might have been tragic, shifting from rescue to recovery.
 
-"It's about speed," Baldwin told CBC. "Getting that info to the map fast so we can act."
+Drones equipped with thermal cameras and computer vision tools like Eagle Eyes help enable SAR teams to cover hazardous or expansive areas efficiently. They enhance the ability to locate individuals in distress, often making the difference between life and death. Using Eagle Eyes software, these drones can now relay precise GPS data <a href="https://www.youtube.com/watch?v=wyg47If033M" target="_blank" rel="noopener">from the drone directly to the team’s CalTopo map</a>.
 
-That night, the drone locks onto a thermal signature. Just enough heat to spot the hiker beneath a tree by the river. The team moves in. They find him cold, soaked, but alive.
+<!-- CBC Video Embed -->
+<div style="text-align: center; font-style: italic; margin-bottom: 10px;">
+  CBC News feature: "Getting information to search crews"
+</div>
+<div style="position:relative; width:100%; height:0px; padding-bottom:53.438%">
+  <iframe allow="fullscreen" allowfullscreen height="100%" src="https://streamable.com/e/bkohew?" width="100%" style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;"></iframe>
+</div>
 
-Without that drone, it could've been a body recovery.
+Read the full CBC article <a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">"AI and thermal drones are helping find the lost in B.C.'s mountains"</a>
 
-Drones equipped with thermal cameras and Eagle Eyes computer vision are helping search teams scan terrain too dangerous or vast for humans alone. They're spotting the needle in the haystack and helping teams get to it in time.
 
-Read the full CBC article <a href="https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363" target="_blank" rel="noopener">https://www.cbc.ca/news/canada/british-columbia/technology-drone-artificial-intelligence-search-rescue-british-columbia-mountains-1.7492363</a>
 
 <br>
