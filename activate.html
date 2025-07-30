@@ -15,6 +15,47 @@ permalink: /activate/
         text-align: center;
     }
     
+    .activation-header {
+        background: #e8f4fd;
+        border: 1px solid #b3d9f7;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: left;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .activation-header h2 {
+        margin: 0 0 15px 0;
+        color: #1976d2;
+        font-size: 20px;
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    .activation-header p {
+        margin: 5px 0;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .login-different-user {
+        background: transparent;
+        color: #007bff;
+        border: 1px solid #007bff;
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    
+    .login-different-user:hover {
+        background: #007bff;
+        color: white;
+    }
+    
     .activation-form {
         background: #f8f9fa;
         border-radius: 12px;
@@ -345,7 +386,8 @@ permalink: /activate/
     }
     
     #device-info-section,
-    #license-selection-section {
+    #license-selection-section,
+    #activation-confirmation-section {
         margin-top: 30px;
         padding-top: 20px;
         border-top: 2px solid #e9ecef;
@@ -355,10 +397,115 @@ permalink: /activate/
         max-width: 800px;
         margin: 0 auto;
     }
+    
+    .confirmation-summary {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .confirmation-summary h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .confirmation-details {
+        background: white;
+        border-radius: 6px;
+        padding: 15px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+    
+    .detail-value {
+        color: #333;
+        font-size: 14px;
+        font-family: monospace;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .confirmation-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: 500;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+    
+    .success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        text-align: center;
+    }
+    
+    .error-message-inline {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        text-align: center;
+    }
 
     @media (max-width: 768px) {
         .activation-container {
             padding: 100px 15px 15px 15px;
+        }
+        
+        .activation-header {
+            padding: 12px;
+        }
+        
+        .activation-header h2 {
+            font-size: 18px;
+        }
+        
+        .activation-header p {
+            font-size: 13px;
         }
         
         .activation-form {
@@ -381,6 +528,39 @@ permalink: /activate/
         .license-detail-grid {
             grid-template-columns: 1fr;
             gap: 8px;
+        }
+        
+        .confirmation-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .confirmation-actions button {
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .detail-value {
+            width: 100%;
+            word-break: break-all;
+        }
+        
+        .activation-header div:first-child {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px;
+        }
+        
+        .login-different-user {
+            align-self: flex-end;
+            font-size: 11px;
+            padding: 3px 6px;
         }
     }
 </style>
@@ -471,6 +651,52 @@ permalink: /activate/
                     <button id="addLicenseBtn" class="btn-select-license">Add License to Account</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Activation Confirmation Section -->
+    <div id="activation-confirmation-section" style="display: none;">
+        <div class="activation-form">
+            <h1 class="activation-title">Confirm Activation</h1>
+            
+            <div class="confirmation-summary">
+                <h3>Please review the following details:</h3>
+                
+                <div class="confirmation-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Device:</span>
+                        <span class="detail-value" id="confirm-device-name"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Machine ID:</span>
+                        <span class="detail-value" id="confirm-machine-id"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Selected License:</span>
+                        <span class="detail-value" id="confirm-license-name"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">License ID:</span>
+                        <span class="detail-value" id="confirm-license-id"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="confirmation-actions">
+                <button id="confirmActivationBtn" class="activate-button" onclick="confirmActivation()">
+                    Confirm Activation
+                </button>
+                <button id="backToLicensesBtn" class="btn-secondary" onclick="cancelActivation()">
+                    Back to License Selection
+                </button>
+            </div>
+            
+            <div class="loading-spinner" id="activationLoading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Activating your device...</p>
+            </div>
+            
+            <div id="activationResult" style="display: none;"></div>
         </div>
     </div>
 </div>
@@ -592,9 +818,15 @@ permalink: /activate/
         $(document).on('click', '#addLicenseBtn', function() {
             const licenseId = $('#manualLicenseId').val().trim();
             if (!licenseId) {
-                alert('Please enter a license ID');
+                // Show error message inline instead of alert
+                const errorMsg = $('<div class="error-message-inline" style="margin-top: 10px;">Please enter a license ID</div>');
+                $('#addLicenseBtn').after(errorMsg);
+                setTimeout(() => errorMsg.fadeOut(), 3000);
                 return;
             }
+            
+            // Remove any previous messages
+            $('#addLicenseBtn').siblings('.success-message, .error-message-inline').remove();
             
             addLicenseToAccount(licenseId);
         });
@@ -675,12 +907,27 @@ permalink: /activate/
     }
     
     function showAutoActivationProgress(displayCode) {
-        // Create and show auto-activation progress UI
+        const user = firebase.auth().currentUser;
+        const userEmail = user ? user.email : 'Unknown';
+        
+        // Create header with activation info at the top
+        const headerHtml = `
+            <div id="activation-header" class="activation-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span><strong>Logged in as:</strong> ${userEmail}</span>
+                    <button class="login-different-user" onclick="loginAsDifferentUser()">Login as a different user</button>
+                </div>
+                <p><strong>Using activation code:</strong> ${displayCode}</p>
+                <div id="device-info-placeholder" style="display: none;">
+                    <p><strong>Device:</strong> <span id="temp-device-name"></span></p>
+                    <p><strong>Machine ID:</strong> <span id="temp-machine-id"></span></p>
+                </div>
+            </div>
+        `;
+        
+        // Create progress content below header
         const progressHtml = `
             <div id="auto-activation-progress" class="activation-form">
-                <h1 class="activation-title">Activating Device</h1>
-                <p style="color: #6c757d; margin-bottom: 20px;">Using activation code: <strong>${displayCode}</strong></p>
-                
                 <div class="loading-spinner">
                     <div class="spinner"></div>
                     <p>Verifying activation code...</p>
@@ -688,7 +935,8 @@ permalink: /activate/
             </div>
         `;
         
-        $('.activation-container').append(progressHtml);
+        // Add header first, then progress content to container
+        $('.activation-container').prepend(headerHtml).append(progressHtml);
     }
     
     function showAutoActivationError(errorMessage, displayCode) {
@@ -810,35 +1058,57 @@ permalink: /activate/
     }
     
     function showDeviceInfo(deviceIdentifier, machineId) {
-        // Hide activation form and show device info
-        $('#activation-content').hide();
-        $('#device-info-section').show();
-        
-        // Populate device information
+        // Populate device information in both locations
         $('#deviceName').text(deviceIdentifier);
         $('#machineId').text(machineId);
+        
+        // Update the persistent header with device info if it exists
+        if ($('#activation-header').length > 0) {
+            $('#temp-device-name').text(deviceIdentifier);
+            $('#temp-machine-id').text(machineId);
+            $('#device-info-placeholder').show();
+            
+            // Update the loading message
+            $('#auto-activation-progress .loading-spinner p').text('Device detected. Loading your licenses...');
+        } else {
+            // Hide activation form and show device info section
+            $('#activation-content').hide();
+            $('#device-info-section').show();
+            
+            // Scroll to device info section
+            setTimeout(() => {
+                $('#device-info-section')[0].scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
         
         // Hide loading spinner
         $('#loadingSpinner').hide();
         $('#activateButton').prop('disabled', false);
-        
-        // Scroll to device info section
-        setTimeout(() => {
-            $('#device-info-section')[0].scrollIntoView({ behavior: 'smooth' });
-        }, 100);
     }
     
     function showLicenseSelection() {
-        // Show license selection section
-        $('#license-selection-section').show();
-        
-        // Load user licenses
-        loadUserLicenses();
-        
-        // Scroll to license selection section
-        setTimeout(() => {
-            $('#license-selection-section')[0].scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        // If we have the persistent header, just update it and show licenses below
+        if ($('#activation-header').length > 0) {
+            // Hide the loading spinner
+            $('#auto-activation-progress .loading-spinner').hide();
+            
+            // Show license selection section but keep the header
+            $('#license-selection-section').show();
+            
+            // Load user licenses
+            loadUserLicenses();
+        } else {
+            // Standard flow - show license selection section
+            $('#license-selection-section').show();
+            
+            // Load user licenses
+            loadUserLicenses();
+            
+            // Scroll to license selection section
+            setTimeout(() => {
+                $('#license-selection-section')[0].scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
     }
     
     // Global variables for license management
@@ -984,8 +1254,52 @@ permalink: /activate/
         
         console.log('License selected:', licenseId);
         
-        // Complete the activation process
-        completeActivation();
+        // Show activation confirmation instead of immediate activation
+        showActivationConfirmation();
+    }
+    
+    function showActivationConfirmation() {
+        // Get device information
+        const deviceName = $('#deviceName').text();
+        const machineId = $('#machineId').text();
+        
+        // Get selected license information
+        const selectedLicenseCard = $(`.license-card[data-license-id="${selectedLicense}"]`);
+        const licenseName = selectedLicenseCard.find('.license-title').text();
+        
+        // Populate confirmation details
+        $('#confirm-device-name').text(deviceName);
+        $('#confirm-machine-id').text(machineId);
+        $('#confirm-license-name').text(licenseName);
+        $('#confirm-license-id').text(selectedLicense);
+        
+        // Reset confirmation section state
+        $('#activationLoading').hide();
+        $('#activationResult').hide();
+        $('#confirmActivationBtn').prop('disabled', false).text('Confirm Activation');
+        $('#backToLicensesBtn').prop('disabled', false);
+        
+        // Show confirmation section
+        $('#activation-confirmation-section').show();
+        
+        // Scroll to confirmation section
+        setTimeout(() => {
+            $('#activation-confirmation-section')[0].scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    }
+    
+    function cancelActivation() {
+        // Hide confirmation section
+        $('#activation-confirmation-section').hide();
+        
+        // Clear license selection
+        $('.license-card').removeClass('selected');
+        selectedLicense = null;
+        
+        // Scroll back to license selection
+        setTimeout(() => {
+            $('#license-selection-section')[0].scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     }
     
     function addLicenseToAccount(licenseId) {
@@ -996,6 +1310,9 @@ permalink: /activate/
         }
         
         $('#addLicenseBtn').text('Adding...').prop('disabled', true);
+        
+        // Remove any previous messages
+        $('#addLicenseBtn').siblings('.success-message, .error-message-inline').remove();
         
         globalUser.getIdToken(true).then(function(idToken) {
             var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + $('#machineId').text() + '&license_id=' + licenseId;
@@ -1013,7 +1330,10 @@ permalink: /activate/
                     // Reload licenses to show the newly added one
                     loadUserLicenses();
                     
-                    alert('License added successfully to your account!');
+                    // Show success message inline instead of alert
+                    const successMsg = $('<div class="success-message" style="margin-top: 10px;">License added successfully to your account!</div>');
+                    $('#addLicenseBtn').after(successMsg);
+                    setTimeout(() => successMsg.fadeOut(), 3000);
                 },
                 error: function(xhr, status, error) {
                     console.error('Error adding license:', error);
@@ -1028,34 +1348,95 @@ permalink: /activate/
                         errorMessage += 'Please check the license ID and try again.';
                     }
                     
-                    alert(errorMessage);
+                    // Show error message inline instead of alert
+                    const errorMsg = $(`<div class="error-message-inline" style="margin-top: 10px;">${errorMessage}</div>`);
+                    $('#addLicenseBtn').after(errorMsg);
+                    setTimeout(() => errorMsg.fadeOut(), 5000);
                 }
             });
         });
     }
     
-    function completeActivation() {
-        // Show a more professional success message with device info
+    function confirmActivation() {
+        // Show loading state
+        $('#activationLoading').show();
+        $('#confirmActivationBtn').prop('disabled', true).text('Activating...');
+        $('#backToLicensesBtn').prop('disabled', true);
+        $('#activationResult').hide();
+        
+        // Get device information for the API call
         const deviceName = $('#deviceName').text();
         const machineId = $('#machineId').text();
         
-        // Create a success confirmation dialog
-        const confirmed = confirm(`Activate Eagle Eyes Pilot on this device?\n\nDevice: ${deviceName}\nMachine ID: ${machineId}\nLicense: ${selectedLicense}\n\nClick OK to complete activation or Cancel to select a different license.`);
-        
-        if (confirmed) {
-            // Show loading state
-            $('.license-card').css('pointer-events', 'none');
-            $('#addLicenseBtn').prop('disabled', true);
-            
-            // Here you would typically make an API call to complete the activation
-            // For now, simulate API call with timeout
-            setTimeout(() => {
-                alert(`✅ Activation completed successfully!\n\nYour device "${deviceName}" is now activated with Eagle Eyes Pilot.\n\nYou can now use the application on your drone controller.`);
+        // Here you would typically make an API call to complete the activation
+        // For now, simulate API call with timeout
+        setTimeout(() => {
+            try {
+                // Simulate successful activation
+                $('#activationLoading').hide();
                 
-                // Redirect to account page
-                window.location.href = "{{ '/account/' | relative_url }}";
-            }, 1000);
-        }
+                const successHtml = `
+                    <div class="success-message">
+                        <h3>✅ Activation Completed Successfully!</h3>
+                        <p>Your device "${deviceName}" is now activated with Eagle Eyes Pilot.</p>
+                        <p>You can now use the application on your drone controller.</p>
+                        <button class="activate-button" onclick="window.location.href='{{ '/account/' | relative_url }}'">
+                            Go to Account Page
+                        </button>
+                    </div>
+                `;
+                
+                $('#activationResult').html(successHtml).show();
+                
+                // Scroll to result
+                setTimeout(() => {
+                    $('#activationResult')[0].scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+                
+            } catch (error) {
+                // Handle activation error
+                $('#activationLoading').hide();
+                $('#confirmActivationBtn').prop('disabled', false).text('Confirm Activation');
+                $('#backToLicensesBtn').prop('disabled', false);
+                
+                const errorHtml = `
+                    <div class="error-message-inline">
+                        <h3>❌ Activation Failed</h3>
+                        <p>There was an error activating your device. Please try again.</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+                
+                $('#activationResult').html(errorHtml).show();
+            }
+        }, 2000); // Simulate 2-second API call
+    }
+    
+    function loginAsDifferentUser() {
+        // Sign out current user
+        firebase.auth().signOut().then(function() {
+            console.log('User signed out successfully');
+            
+            // Clear any stored activation data
+            urlActivationCode = null;
+            selectedLicense = null;
+            userLicenses = [];
+            
+            // Hide all sections except auth required
+            $('#activation-header').remove();
+            $('#auto-activation-progress').remove();
+            $('#device-info-section').hide();
+            $('#license-selection-section').hide();
+            $('#activation-confirmation-section').hide();
+            $('#activation-content').hide();
+            
+            // Show auth required message
+            showAuthRequired();
+            
+        }).catch(function(error) {
+            console.error('Error signing out:', error);
+            showError('Error signing out. Please try again.');
+        });
     }
     
     function showError(message) {
