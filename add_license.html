@@ -434,36 +434,13 @@ permalink: /add_license/
             // const trial = $('input[name="is_trial"]:checked').val();
             console.log(sameLicenseIdValue);
 
-            // Calculate expiry timestamp based on selected license duration
-            let expiryTimestamp = null;
-            let tier = null;
+            // Set tier for all license types
+            let tier = 'SAR';
             
-            const now = moment();
-            switch (licenseDuration) {
-                case 'two_weeks':
-                    expiryTimestamp = now.add(14, 'days').unix();
-                    tier = 'SAR';
-                    break;
-                case 'one_month':
-                    expiryTimestamp = now.add(1, 'month').unix();
-                    tier = 'SAR';
-                    break;
-                case 'three_months':
-                    expiryTimestamp = now.add(3, 'months').unix();
-                    tier = 'SAR';
-                    break;
-                case 'one_year':
-                    expiryTimestamp = now.add(1, 'year').unix();
-                    tier = 'SAR';
-                    break;
-                case 'custom':
-                    const customDays = parseInt($('#customDaysInput').val(), 10);
-                    expiryTimestamp = now.add(customDays, 'days').unix();
-                    tier = 'SAR';
-                    break;
-                case 'no_license':
-                    expiryTimestamp = null;
-                    break;
+            // For custom duration, get the number of days
+            let customDays = null;
+            if (licenseDuration === 'custom') {
+                customDays = parseInt($('#customDaysInput').val(), 10);
             }
 
             const data = {
@@ -474,13 +451,16 @@ permalink: /add_license/
                 license_duration: licenseDuration,
                 tier: tier,
                 n_tokens: numberOfKeys,
-                expiry_timestamp: expiryTimestamp,
                 extra_security_password: extraSecurityPassword,
                 same_license_id: sameLicenseId,
                 public_license_name: publicLicenseName,
-                user_status: licenseType === 'review' ? 'reviewed' : 'approved',
-                action_type: 'license_creation'
+                user_status: licenseType === 'review' ? 'reviewed' : 'approved'
             };
+            
+            // Add custom_days if it's a custom duration
+            if (customDays !== null) {
+                data.custom_days = customDays;
+            }
 
             // Only add trial_request_id to the data if it has a valid value
             if (trialRequestId) {
@@ -492,8 +472,7 @@ permalink: /add_license/
                 const statusData = {
                     emails: emails,
                     extra_security_password: extraSecurityPassword,
-                    user_status: licenseType === 'review' ? 'reviewed' : 'approved',
-                    action_type: 'user_status_only'
+                    user_status: licenseType === 'review' ? 'reviewed' : 'approved'
                 };
                 
                 // Only add trial_request_id if it has a valid value
@@ -501,7 +480,7 @@ permalink: /add_license/
                     statusData.trial_request_id = trialRequestId;
                 }
                 
-                sendLicenseData(statusData);
+                sendUserStatusData(statusData);
             } else {
                 sendLicenseData(data);
             }
@@ -526,6 +505,52 @@ permalink: /add_license/
                 return true;
             }
         }
+
+    function sendUserStatusData(data) {
+        const globalUser = firebase.auth().currentUser;
+        // Add processing class to button
+        $('#createLicenseButton').addClass('processing');
+        statusSpan = $('#creationStatus');
+        globalUser.getIdToken(true).then(function (idToken) {
+            $.ajax({
+                url: getHostUrl() + '/update_user_status',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function (response) {
+                    console.log("User status updated successfully:", response);
+                    try {
+                        const responseData = JSON.parse(response);
+                        let statusMessage = '<div class="info-box">User status updated successfully:</div>';
+                        
+                        if (responseData.user_status === 'approved') {
+                            statusMessage += '<p>User has been verified and approved.</p>';
+                        } else if (responseData.user_status === 'reviewed') {
+                            statusMessage += '<p>Request has been declined and marked as reviewed.</p>';
+                        }
+                        
+                        if (responseData.trial_request_id) {
+                            statusMessage += `<p>Trial Request ID: ${responseData.trial_request_id}</p>`;
+                        }
+                        
+                        statusSpan.html(statusMessage).removeClass('error-box').addClass('info-box');
+                    } catch (error) {
+                        console.error("Error parsing response:", error);
+                        statusSpan.html('<div class="info-box">User status updated successfully.</div>').removeClass('error-box').addClass('info-box');
+                    }
+                    $('#createLicenseButton').removeClass('processing');
+                },
+                error: function (xhr, status, error) {
+                    console.log("Error updating user status:", xhr.responseText);
+                    statusSpan.html('<div class="error-box">Error updating user status: ' + xhr.responseText + '</div>');
+                    $('#createLicenseButton').removeClass('processing');
+                }
+            });
+        });
+    }
 
     function sendLicenseData(data) {
         const globalUser = firebase.auth().currentUser;
