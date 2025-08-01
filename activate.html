@@ -490,6 +490,44 @@ permalink: /activate/
         margin: 20px 0;
         text-align: center;
     }
+    
+    .activation-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 20px 0;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .activation-warning span {
+        font-weight: 600;
+        color: #dc3545;
+    }
+    
+    .back-link-container {
+        text-align: center;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .back-link {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+    
+    .back-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+        background-color: #f8f9fa;
+    }
 
     @media (max-width: 768px) {
         .activation-container {
@@ -592,7 +630,7 @@ permalink: /activate/
                        autocomplete="off">
                 <div>
                     <button id="activateButton" class="activate-button" onclick="handleActivation()">
-                        Activate Device
+                        Start Activation
                     </button>
                 </div>
             </div>
@@ -603,10 +641,7 @@ permalink: /activate/
             </div>
             
             <div class="error-message" id="errorMessage"></div>
-            
-            <a href="{{ '/pilot-setup/' | relative_url }}" class="forgot-link">
-                Forgot your 6-digit code? Request a new code.
-            </a>
+
         </div>
     </div>
 
@@ -679,16 +714,27 @@ permalink: /activate/
                         <span class="detail-label">License ID:</span>
                         <span class="detail-value" id="confirm-license-id"></span>
                     </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Available Devices:</span>
+                        <span class="detail-value" id="confirm-available-devices"></span>
+                    </div>
                 </div>
+            </div>
+            
+            <div class="activation-warning">
+                After activation, this license can be activated on <span id="remaining-after-activation">0</span> more devices
             </div>
             
             <div class="confirmation-actions">
                 <button id="confirmActivationBtn" class="activate-button" onclick="confirmActivation()">
-                    Confirm Activation
+                    Activate Device on this License
                 </button>
-                <button id="backToLicensesBtn" class="btn-secondary" onclick="cancelActivation()">
-                    Back to License Selection
-                </button>
+            </div>
+            
+            <div class="back-link-container">
+                <a href="#" onclick="cancelActivation(); return false;" class="back-link">
+                    Back to license selection
+                </a>
             </div>
             
             <div class="loading-spinner" id="activationLoading" style="display: none;">
@@ -1231,7 +1277,7 @@ permalink: /activate/
                                 <div class="license-detail-label">Expires: <span class="license-detail-value">${expiryDate}</span></div>
                             </div>
                             <div class="license-detail-item">
-                                <div class="license-detail-label">Remaining Keys: <span class="license-detail-value">${license.remaining_keys || 'Unlimited'}</span></div>
+                                <div class="license-detail-label">Remaining Devices: <span class="license-detail-value">${license.remaining_keys || 'Unlimited'}</span></div>
                             </div>
                         </div>
                         <div class="license-actions">
@@ -1267,17 +1313,23 @@ permalink: /activate/
         const selectedLicenseCard = $(`.license-card[data-license-id="${selectedLicense}"]`);
         const licenseName = selectedLicenseCard.find('.license-title').text();
         
+        // Find the selected license object to get remaining_keys
+        const selectedLicenseObj = userLicenses.find(license => license.license_id === selectedLicense);
+        const availableDevices = selectedLicenseObj ? selectedLicenseObj.remaining_keys : 0;
+        const remainingAfterActivation = Math.max(0, availableDevices - 1);
+        
         // Populate confirmation details
         $('#confirm-device-name').text(deviceName);
         $('#confirm-machine-id').text(machineId);
         $('#confirm-license-name').text(licenseName);
         $('#confirm-license-id').text(selectedLicense);
+        $('#confirm-available-devices').text(availableDevices);
+        $('#remaining-after-activation').text(remainingAfterActivation);
         
         // Reset confirmation section state
         $('#activationLoading').hide();
         $('#activationResult').hide();
-        $('#confirmActivationBtn').prop('disabled', false).text('Confirm Activation');
-        $('#backToLicensesBtn').prop('disabled', false);
+        $('#confirmActivationBtn').prop('disabled', false).text('Activate Device on this License');
         
         // Show confirmation section
         $('#activation-confirmation-section').show();
@@ -1361,7 +1413,6 @@ permalink: /activate/
         // Show loading state
         $('#activationLoading').show();
         $('#confirmActivationBtn').prop('disabled', true).text('Activating...');
-        $('#backToLicensesBtn').prop('disabled', true);
         $('#activationResult').hide();
         
         // Get device information for the API call
@@ -1396,8 +1447,7 @@ permalink: /activate/
             } catch (error) {
                 // Handle activation error
                 $('#activationLoading').hide();
-                $('#confirmActivationBtn').prop('disabled', false).text('Confirm Activation');
-                $('#backToLicensesBtn').prop('disabled', false);
+                $('#confirmActivationBtn').prop('disabled', false).text('Activate Device on this License');
                 
                 const errorHtml = `
                     <div class="error-message-inline">
