@@ -164,10 +164,17 @@ permalink: /user-form/
         // Centralized function to handle auth state changes
         function handleAuthStateChange(user) {
             if (user) {
-                // User is signed in
+                // User is signed in - ensure sign-in UI is completely hidden
                 signinButtonSection.style.display = 'none';
                 userEmail.textContent = `Logged in as: ${user.email}`;
                 signOutContainer.style.display = 'block';
+                
+                // IMPORTANT: Hide the sign-in overlay if it's visible
+                const signinOverlay = document.getElementById('signin-overlay');
+                if (signinOverlay) {
+                    signinOverlay.style.display = 'none';
+                    document.body.style.overflow = 'auto'; // Restore body scroll
+                }
                 
                 // Don't immediately check or show form - let signinwidget handle redirects
                 // We'll only display forms if we know we need to stay on this page
@@ -185,6 +192,13 @@ permalink: /user-form/
                 postForm.style.display = 'none';
                 userEmail.textContent = '';
                 signOutContainer.style.display = 'none';
+                
+                // Ensure sign-in overlay is hidden when signed out too
+                const signinOverlay = document.getElementById('signin-overlay');
+                if (signinOverlay) {
+                    signinOverlay.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
             }
         }
         
@@ -570,8 +584,20 @@ permalink: /user-form/
     // Toggle the sign in overlay
     function toggleSignIn() {
         const overlay = document.getElementById('signin-overlay');
-        overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
-        document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
+        
+        // Check if user is already authenticated - don't show overlay if they are
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+            console.log('User is already authenticated, not showing sign-in overlay');
+            overlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            return;
+        }
+        
+        // Toggle overlay visibility for unauthenticated users
+        const isCurrentlyVisible = overlay.style.display === 'block';
+        overlay.style.display = isCurrentlyVisible ? 'none' : 'block';
+        document.body.style.overflow = isCurrentlyVisible ? 'auto' : 'hidden';
     }
     
     // Utility function to preserve important parameters when redirecting
