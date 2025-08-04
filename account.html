@@ -1298,6 +1298,29 @@ permalink: /account/
                 // Hide loading overlay on error
                 document.getElementById('loading-overlay').style.display = 'none';
             }
+        })
+        .catch(function(error) {
+            // Handle API failure - always hide loading overlay
+            console.error("Error checking user account status:", error);
+            document.getElementById('loading-overlay').style.display = 'none';
+            
+            // Show the account content anyway, but with a warning
+            $("#accountContent").show();
+            
+            // Show an error notification to the user
+            showNotification(
+                'We couldn\'t verify your account status at this time. Some features may be limited. ' +
+                'If this issue persists, please contact us at ' +
+                '<a href="mailto:info@eagleeyessearch.com" style="color: white; text-decoration: underline;">info@eagleeyessearch.com</a>.',
+                'warning',
+                true
+            );
+            
+            // Try to show basic account info anyway
+            document.getElementById('accountStatusDisplay').style.display = 'block';
+            document.getElementById('verification-status').innerHTML = `
+                <span style="color: #666;">Account status verification unavailable</span>
+            `;
         });
     }
 
