@@ -419,11 +419,83 @@ permalink: /activate/
     }
     
     #device-info-section,
+    #license-choice-section,
     #license-selection-section,
     #activation-confirmation-section {
         margin-top: 30px;
         padding-top: 20px;
         border-top: 2px solid #e9ecef;
+    }
+    
+    .license-choice-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 400px;
+        margin: 0 auto 40px auto;
+    }
+    
+    .license-choice-btn {
+        padding: 20px 30px;
+        font-size: 18px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .license-choice-btn.primary {
+        background: #007bff;
+        color: white;
+        border: 2px solid #007bff;
+    }
+    
+    .license-choice-btn.primary:hover {
+        background: #0056b3;
+        border-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+    }
+    
+    .license-choice-btn.secondary {
+        background: white;
+        color: #007bff;
+        border: 2px solid #007bff;
+    }
+    
+    .license-choice-btn.secondary:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,123,255,0.2);
+    }
+    
+    .license-choice-info {
+        max-width: 500px;
+        margin: 0 auto;
+        text-align: left;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .license-choice-info p {
+        margin: 10px 0;
+        color: #495057;
+        font-size: 14px;
+    }
+    
+    .license-choice-info p:first-child {
+        margin-top: 0;
+    }
+    
+    .license-choice-info p:last-child {
+        margin-bottom: 0;
     }
     
     #license-selection-section .activation-form {
@@ -630,7 +702,7 @@ permalink: /activate/
     <!-- Main Activation Content -->
     <div id="activation-content" style="display: none;">
         <div class="activation-form">
-            <h1 class="activation-title">Set up Eagle Eyes Pilot on this device</h1>
+            <h1 class="activation-title">Activate Eagle Eyes Pilot</h1>
             
             <div class="code-input-container">
                 <input type="text" 
@@ -673,10 +745,40 @@ permalink: /activate/
         </div>
     </div>
 
+    <!-- License Choice Section -->
+    <div id="license-choice-section" style="display: none;">
+        <div class="activation-form">
+            <h1 class="activation-title">Choose License Option</h1>
+            
+            <p style="text-align: center; color: #6c757d; margin-bottom: 30px;">
+                How would you like to get a license for your device?
+            </p>
+            
+            <div class="license-choice-buttons">
+                <button id="btn-use-existing" class="license-choice-btn primary" onclick="onUseExisting()">
+                    Use an existing license
+                </button>
+                <button id="btn-purchase-new" class="license-choice-btn secondary" onclick="onPurchaseNew()">
+                    Purchase a new license
+                </button>
+            </div>
+            
+            <div class="license-choice-info">
+                <p><strong>Use an existing license</strong> - Select from licenses already in your account</p>
+                <p><strong>Purchase a new license</strong> - Buy a new license from our pricing page</p>
+            </div>
+        </div>
+    </div>
+
     <!-- License Selection Section -->
     <div id="license-selection-section" style="display: none;">
         <div class="activation-form">
-            <h1 class="activation-title">Select Your License</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1 class="activation-title" style="margin: 0;">Select Your License</h1>
+                <button id="backToChoiceBtn" class="btn-secondary" onclick="backToLicenseChoice()" style="padding: 8px 16px; font-size: 14px;">
+                    ← Back to Options
+                </button>
+            </div>
             
             <div class="loading-spinner" id="licensesLoading" style="display: none;">
                 <div class="spinner"></div>
@@ -759,8 +861,9 @@ permalink: /activate/
     var useLocalFirebaseEmulator = getIsEmulatorFromURL();
     var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
     
-    // Global variable to store URL activation code
+    // Global variables to store activation data
     let urlActivationCode = null;
+    let manualSessionId = null; // Store manually entered session ID
     
     function getUrlActivationCode() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -894,7 +997,7 @@ permalink: /activate/
             $('#auth-required p').html(`Please sign in to activate Eagle Eyes Pilot with code <strong>${displayCode}</strong>.`);
         } else {
             $('#auth-required h3').text('Sign In Required');
-            $('#auth-required p').text('Please sign in to activate Eagle Eyes Pilot on this device.');
+            $('#auth-required p').text('Please sign in to continue the activation process for Eagle Eyes Pilot.');
         }
         
         $('#auth-required').show();
@@ -921,7 +1024,7 @@ permalink: /activate/
             $('#activation-content').show();
             
             // Update title for manual activation
-            $('#activation-content .activation-title').text('Set up Eagle Eyes Pilot on this device');
+            $('#activation-content .activation-title').text('Activate Eagle Eyes Pilot');
             
             // Focus on input field when showing activation content
             setTimeout(() => {
@@ -1050,6 +1153,9 @@ permalink: /activate/
             .then(function(result) {
                 console.log('Activation successful:', result);
                 
+                // Store the session ID globally for later use in confirmActivation
+                manualSessionId = sessionId;
+                
                 // Show device information and proceed to license selection
                 showDeviceInfo(result.device_identifier, result.machine_id);
                 showLicenseSelection();
@@ -1141,26 +1247,25 @@ permalink: /activate/
     }
     
     function showLicenseSelection() {
-        // If we have the persistent header, just update it and show licenses below
+        // Now show the choice section first instead of going directly to license selection
+        showLicenseChoiceOptions();
+    }
+    
+    function showLicenseChoiceOptions() {
+        // If we have the persistent header, just update it and show choice below
         if ($('#activation-header').length > 0) {
             // Hide the loading spinner
             $('#auto-activation-progress .loading-spinner').hide();
             
-            // Show license selection section but keep the header
-            $('#license-selection-section').show();
-            
-            // Load user licenses
-            loadUserLicenses();
+            // Show license choice section but keep the header
+            $('#license-choice-section').show();
         } else {
-            // Standard flow - show license selection section
-            $('#license-selection-section').show();
+            // Standard flow - show license choice section
+            $('#license-choice-section').show();
             
-            // Load user licenses
-            loadUserLicenses();
-            
-            // Scroll to license selection section
+            // Scroll to license choice section
             setTimeout(() => {
-                $('#license-selection-section')[0].scrollIntoView({ behavior: 'smooth' });
+                $('#license-choice-section')[0].scrollIntoView({ behavior: 'smooth' });
             }, 100);
         }
     }
@@ -1463,11 +1568,34 @@ permalink: /activate/
     }
     
     function confirmActivation() {
+        // Get current authenticated user
+        const globalUser = firebase.auth().currentUser;
+        
         // Get selected license information to determine if it's a re-activation
         const selectedLicenseCard = $(`.license-card[data-license-id="${selectedLicense}"]`);
         const hasExistingKey = selectedLicenseCard.attr('data-has-existing-key') === 'true';
         const deviceName = $('#deviceName').text();
         const machineId = $('#machineId').text();
+        
+        // Get session_id from URL parameters or use manually entered one
+        const urlParams = new URLSearchParams(window.location.search);
+        let sessionId = urlParams.get('session_id') || urlParams.get('code') || urlParams.get('nonce') || urlParams.get('activation_code');
+        
+        // If no URL parameter, use the manually entered session ID
+        if (!sessionId) {
+            sessionId = manualSessionId;
+        }
+        
+        if (!sessionId) {
+            const errorHtml = `
+                <div class="error-message-inline">
+                    <h3>❌ Activation Failed</h3>
+                    <p>Missing session ID. Please restart the activation process from your device.</p>
+                </div>
+            `;
+            $('#activationResult').html(errorHtml).show();
+            return;
+        }
         
         // Show loading state with different text for re-activation
         $('#activationLoading').show();
@@ -1481,64 +1609,114 @@ permalink: /activate/
         $('#backToLicensesBtn').prop('disabled', true);
         $('#activationResult').hide();
         
-        // Here you would typically make an API call to complete the activation
-        // For now, simulate API call with timeout
-        setTimeout(() => {
-            try {
-                // Simulate successful activation
-                $('#activationLoading').hide();
-                
-                let successHtml;
-                if (hasExistingKey) {
-                    successHtml = `
-                        <div class="success-message">
-                            <h3>✅ Re-sync Completed Successfully!</h3>
-                            <p>Your device "${deviceName}" has been re-synchronized with Eagle Eyes Pilot.</p>
-                            <p>You can now use the application on your drone controller.</p>
-                            <button class="btn-reactivate-license" onclick="window.location.href='{{ '/account/' | relative_url }}'">
-                                Go to Account Page
-                            </button>
+        // Make real API call to activate the device
+        if (!globalUser) {
+            const errorHtml = `
+                <div class="error-message-inline">
+                    <h3>❌ Authentication Error</h3>
+                    <p>Please sign in and try again.</p>
+                </div>
+            `;
+            $('#activationResult').html(errorHtml).show();
+            $('#activationLoading').hide();
+            $('#confirmActivationBtn').prop('disabled', false).text(hasExistingKey ? 'Re-sync activation to device' : 'Activate device on this license');
+            $('#backToLicensesBtn').prop('disabled', false);
+            return;
+        }
+        
+        globalUser.getIdToken(true).then(function(idToken) {
+            // Clean session ID (remove dashes, make uppercase)
+            const cleanSessionId = sessionId.replace(/[-]/g, '').toUpperCase();
+            
+            // Build API URL
+            const apiUrl = `${hostURL}/request_token_from_license?machine_id=${encodeURIComponent(machineId)}&license_id=${encodeURIComponent(selectedLicense)}&session_id=${encodeURIComponent(cleanSessionId)}`;
+            
+            console.log('Calling activation API:', apiUrl);
+            
+            $.ajax({
+                url: apiUrl,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken
+                },
+                success: function(response) {
+                    console.log('Activation API success:', response);
+                    $('#activationLoading').hide();
+                    
+                    let successHtml;
+                    if (hasExistingKey) {
+                        successHtml = `
+                            <div class="success-message">
+                                <h3>🔄 Re-sync Processing...</h3>
+                                <p>Your device "${deviceName}" should be re-synchronized within the next few seconds.</p>
+                                <p><strong>Please check your device's display for confirmation.</strong></p>
+                                <button class="btn-reactivate-license" onclick="window.location.href='{{ '/account/' | relative_url }}'">
+                                    Go to Account Page
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        successHtml = `
+                            <div class="success-message">
+                                <h3>🔄 Activation Processing...</h3>
+                                <p>Your device "${deviceName}" should be activated within the next few seconds.</p>
+                                <p><strong>Please check your device's display for confirmation.</strong></p>
+                                <button class="activate-button" onclick="window.location.href='{{ '/account/' | relative_url }}'">
+                                    Go to Account Page
+                                </button>
+                            </div>
+                        `;
+                    }
+                    
+                    $('#activationResult').html(successHtml).show();
+                    
+                    // Scroll to result
+                    setTimeout(() => {
+                        $('#activationResult')[0].scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Activation API error:', xhr.responseText || error);
+                    $('#activationLoading').hide();
+                    const buttonText = hasExistingKey ? 'Re-sync activation to device' : 'Activate device on this license';
+                    $('#confirmActivationBtn').prop('disabled', false).text(buttonText);
+                    $('#backToLicensesBtn').prop('disabled', false);
+                    
+                    let errorMessage = 'Unknown error occurred';
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        errorMessage = errorData.message || errorData.error || errorMessage;
+                    } catch (e) {
+                        errorMessage = xhr.responseText || error;
+                    }
+                    
+                    const actionType = hasExistingKey ? 're-syncing' : 'activating';
+                    const errorHtml = `
+                        <div class="error-message-inline">
+                            <h3>❌ ${hasExistingKey ? 'Re-sync' : 'Activation'} Failed</h3>
+                            <p>There was an error ${actionType} your device. Please try again.</p>
+                            <p><strong>Error:</strong> ${errorMessage}</p>
                         </div>
                     `;
-                } else {
-                    successHtml = `
-                        <div class="success-message">
-                            <h3>✅ Activation Completed Successfully!</h3>
-                            <p>Your device "${deviceName}" is now activated with Eagle Eyes Pilot.</p>
-                            <p>You can now use the application on your drone controller.</p>
-                            <button class="activate-button" onclick="window.location.href='{{ '/account/' | relative_url }}'">
-                                Go to Account Page
-                            </button>
-                        </div>
-                    `;
+                    
+                    $('#activationResult').html(errorHtml).show();
                 }
-                
-                $('#activationResult').html(successHtml).show();
-                
-                // Scroll to result
-                setTimeout(() => {
-                    $('#activationResult')[0].scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-                
-            } catch (error) {
-                // Handle activation error
-                $('#activationLoading').hide();
-                const buttonText = hasExistingKey ? 'Re-sync activation to device' : 'Activate device on this license';
-                $('#confirmActivationBtn').prop('disabled', false).text(buttonText);
-                $('#backToLicensesBtn').prop('disabled', false);
-                
-                const actionType = hasExistingKey ? 're-syncing' : 'activating';
-                const errorHtml = `
-                    <div class="error-message-inline">
-                        <h3>❌ ${hasExistingKey ? 'Re-sync' : 'Activation'} Failed</h3>
-                        <p>There was an error ${actionType} your device. Please try again.</p>
-                        <p><strong>Error:</strong> ${error.message}</p>
-                    </div>
-                `;
-                
-                $('#activationResult').html(errorHtml).show();
-            }
-        }, 2000); // Simulate 2-second API call
+            });
+        }).catch(function(authError) {
+            console.error('Authentication error:', authError);
+            $('#activationLoading').hide();
+            $('#confirmActivationBtn').prop('disabled', false).text(hasExistingKey ? 'Re-sync activation to device' : 'Activate device on this license');
+            $('#backToLicensesBtn').prop('disabled', false);
+            
+            const errorHtml = `
+                <div class="error-message-inline">
+                    <h3>❌ Authentication Error</h3>
+                    <p>Failed to get authentication token. Please sign in and try again.</p>
+                </div>
+            `;
+            
+            $('#activationResult').html(errorHtml).show();
+        });
     }
     
     function loginAsDifferentUser() {
@@ -1570,5 +1748,47 @@ permalink: /activate/
     
     function showError(message) {
         $('#errorMessage').text(message).show();
+    }
+    
+    function onUseExisting() {
+        // Hide the choice section and show license selection
+        $('#license-choice-section').hide();
+        $('#license-selection-section').show();
+        
+        // Load user licenses
+        loadUserLicenses();
+        
+        // Scroll to license selection section
+        setTimeout(() => {
+            $('#license-selection-section')[0].scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    }
+    
+    function onPurchaseNew() {
+        console.log('Purchase new license button clicked');
+        
+        // Build the pricing page URL with current query parameters to maintain context
+        const currentParams = window.location.search;
+        const pricingUrl = `${window.location.origin}/pricing${currentParams}`;
+        
+        console.log('Redirecting to pricing page:', pricingUrl);
+        
+        // Open pricing page in new tab like get-license.html does
+        window.open(pricingUrl, '_blank');
+    }
+    
+    function backToLicenseChoice() {
+        // Hide license selection and show choice section again
+        $('#license-selection-section').hide();
+        $('#license-choice-section').show();
+        
+        // Clear any selected license
+        $('.license-card').removeClass('selected');
+        selectedLicense = null;
+        
+        // Scroll back to choice section
+        setTimeout(() => {
+            $('#license-choice-section')[0].scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     }
 </script>
