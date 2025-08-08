@@ -1,0 +1,38 @@
+---
+layout: null
+---
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>DJI Airspace</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://unpkg.com/ol/ol.css" rel="stylesheet" />
+  <link href="https://unpkg.com/ol-dji-geozones@2.3.0/dist/ol-dji-geozones.min.css" rel="stylesheet" />
+  <style>html,body,#map{height:100%;margin:0}</style>
+  <meta name="robots" content="noindex,nofollow" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/ol"></script>
+  <script src="https://unpkg.com/ol-dji-geozones@2.3.0"></script>
+  <script>
+    const map = new ol.Map({
+      target: 'map',
+      layers: [new ol.layer.Tile({ source: new ol.source.OSM() })],
+      view: new ol.View({ center: ol.proj.fromLonLat([-98.35, 39.5]), zoom: 5 })
+    });
+
+    const dji = new DjiGeozones({
+      // README notes a proxy is required; this public one is fine for testing
+      urlProxy: 'https://api.allorigins.win/raw?url=',
+      createPanel: 'full',
+      startActive: true,
+      buffer: 10000
+    });
+
+    map.addControl(dji);
+  </script>
+</body>
+</html>
