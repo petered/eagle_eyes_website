@@ -1357,7 +1357,22 @@ permalink: /activate/
         
         console.log('Creating license cards for', userLicenses.length, 'licenses');
         
-        userLicenses.forEach(function(license) {
+        // Sort licenses: Reactivate first, then available, then used up
+        const sortedLicenses = [...userLicenses].sort((a, b) => {
+            // Priority 1: has_existing_key (reactivate licenses)
+            if (a.has_existing_key && !b.has_existing_key) return -1;
+            if (!a.has_existing_key && b.has_existing_key) return 1;
+            
+            // Priority 2: remaining_keys > 0 (available licenses)
+            const aAvailable = a.remaining_keys > 0;
+            const bAvailable = b.remaining_keys > 0;
+            if (aAvailable && !bAvailable) return -1;
+            if (!aAvailable && bAvailable) return 1;
+            
+            return 0; // Keep original order for same priority
+        });
+        
+        sortedLicenses.forEach(function(license) {
             const expiryDate = license.expiry_timestamp ? 
                 new Date(license.expiry_timestamp * 1000).toLocaleDateString() : 
                 'No expiry';
@@ -1402,7 +1417,7 @@ permalink: /activate/
                                 <div class="license-detail-label">Expires: <span class="license-detail-value">${expiryDate}</span></div>
                             </div>
                             <div class="license-detail-item">
-                                <div class="license-detail-label">Remaining Devices: <span class="license-detail-value">${license.remaining_keys || 'Unlimited'}</span></div>
+                                <div class="license-detail-label">Remaining Devices: <span class="license-detail-value">${license.remaining_keys !== undefined ? license.remaining_keys : 'Unlimited'}</span></div>
                             </div>
                         </div>
                         <div class="license-actions">
