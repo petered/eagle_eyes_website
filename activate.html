@@ -733,6 +733,14 @@ permalink: /activate/
         <div class="activation-form">
             <h1 class="activation-title">Device Information</h1>
             
+            <!-- User info header -->
+            <div class="activation-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><strong>Logged in as:</strong> <span id="device-section-user-email"></span></span>
+                    <button class="login-different-user" onclick="loginAsDifferentUser()">Login as a different user</button>
+                </div>
+            </div>
+            
             <div class="device-info">
                 <h4>Detected Device</h4>
                 <p><strong>Device:</strong> <span id="deviceName"></span></p>
@@ -864,6 +872,7 @@ permalink: /activate/
     // Global variables to store activation data
     let urlActivationCode = null;
     let manualSessionId = null; // Store manually entered session ID
+    let globalSessionId = null; // Store session ID for backend requests
     
     function getUrlActivationCode() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -922,6 +931,11 @@ permalink: /activate/
     $(document).ready(function() {
         // Check for URL activation code on page load
         urlActivationCode = getUrlActivationCode();
+        
+        // Store session ID globally for backend requests
+        if (urlActivationCode) {
+            globalSessionId = urlActivationCode;
+        }
         
         // Show emulator banner if in emulator mode
         if (useLocalFirebaseEmulator) {
@@ -1152,6 +1166,10 @@ permalink: /activate/
         
         // Call API (remove dash for backend)
         const sessionId = code.replace('-', '');
+        
+        // Store session ID globally for later use in license activation
+        globalSessionId = sessionId;
+        
         getActivationRequest(sessionId)
             .then(function(result) {
                 console.log('Activation successful:', result);
@@ -1234,6 +1252,11 @@ permalink: /activate/
             // Update the loading message
             $('#auto-activation-progress .loading-spinner p').text('Device detected. Loading your licenses...');
         } else {
+            // Get current user and populate user info in device section
+            const user = firebase.auth().currentUser;
+            const userEmail = user ? user.email : 'Unknown';
+            $('#device-section-user-email').text(userEmail);
+            
             // Hide activation form and show device info section
             $('#activation-content').hide();
             $('#device-info-section').show();
@@ -1316,12 +1339,14 @@ permalink: /activate/
                         console.log('Parsed licenses data:', licenseData);
                         
                         if (licenseData && licenseData.licenses_and_dispensed) {
-                            // Get existing keys for this machine
+                            // Get existing keys for this machine for the current user only
                             const existingKeysForMachine = [];
                             if (licenseData.tokens_and_codes) {
+                                const currentUserEmail = globalUser?.email;
                                 for (const tokenId in licenseData.tokens_and_codes) {
                                     const tokenAndCode = licenseData.tokens_and_codes[tokenId];
-                                    if (tokenAndCode && tokenAndCode.token) {
+                                    // Only include tokens that belong to the current user
+                                    if (tokenAndCode && tokenAndCode.token && tokenAndCode.token.email === currentUserEmail) {
                                         existingKeysForMachine.push(tokenAndCode.token.license_id);
                                     }
                                 }
@@ -1536,12 +1561,28 @@ permalink: /activate/
                     'Authorization': 'Bearer ' + idToken
                 },
                 success: function(response) {
-                    console.log('License added successfully:', response);
+                    console.log('Add license response:', response);
+                    console.log('Response type:', typeof response);
+                    
+                    // Parse response if needed
+                    let responseData;
+                    try {
+                        if (typeof response === 'string') {
+                            responseData = JSON.parse(response);
+                        } else {
+                            responseData = response;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing add license response:', e);
+                        responseData = response;
+                    }
+                    
                     $('#manualLicenseId').val('');
                     $('#addLicenseBtn').text('Add License to Account').prop('disabled', false);
                     
-                    // Reload licenses to show the newly added one
-                    loadUserLicenses();
+                    // Process the response directly instead of reloading (like get-license.js does)
+                    console.log('Processing add license response directly...');
+                    processLicenseResponse(responseData);
                     
                     // Show success message inline instead of alert
                     const successMsg = $('<div class="success-message" style="margin-top: 10px;">License added successfully to your account!</div>');
@@ -1729,6 +1770,7 @@ permalink: /activate/
             
             // Clear any stored activation data
             urlActivationCode = null;
+            globalSessionId = null;
             selectedLicense = null;
             userLicenses = [];
             
@@ -1793,5 +1835,85 @@ permalink: /activate/
         setTimeout(() => {
             $('#license-choice-section')[0].scrollIntoView({ behavior: 'smooth' });
         }, 100);
+    }
+    
+    function processLicenseResponse(responseData) {
+        console.log('Processing license response:', responseData);
+        
+        // Get current user for filtering tokens
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            console.error('No user authenticated in processLicenseResponse');
+            return;
+        }
+        
+        // Parse response if needed (similar to get-license.js)
+        let licenseData;
+        try {
+            if (typeof responseData === 'string') {
+                licenseData = JSON.parse(responseData);
+            } else {
+                licenseData = responseData;
+            }
+        } catch (e) {
+            console.error('Error parsing license response:', e);
+            return;
+        }
+        
+        if (licenseData && licenseData.licenses_and_dispensed) {
+            // Get existing keys for this machine for the current user only
+            const existingKeysForMachine = [];
+            if (licenseData.tokens_and_codes) {
+                const currentUserEmail = currentUser.email;
+                for (const tokenId in licenseData.tokens_and_codes) {
+                    const tokenAndCode = licenseData.tokens_and_codes[tokenId];
+                    // Only include tokens that belong to the current user
+                    if (tokenAndCode && tokenAndCode.token && tokenAndCode.token.email === currentUserEmail) {
+                        existingKeysForMachine.push(tokenAndCode.token.license_id);
+                    }
+                }
+            }
+            
+            // Transform licenses_and_dispensed object to array format (same as loadUserLicenses)
+            userLicenses = [];
+            console.log('Processing licenses_and_dispensed from add response:', licenseData.licenses_and_dispensed);
+            
+            for (const licenseId in licenseData.licenses_and_dispensed) {
+                console.log('Processing license ID from add response:', licenseId);
+                const licenseInfo = licenseData.licenses_and_dispensed[licenseId];
+                
+                if (licenseInfo && licenseInfo.license) {
+                    const license = licenseInfo.license;
+                    // Add license_id and calculate remaining tokens
+                    license.license_id = licenseId;
+                    const totalTokens = license.n_tokens || 0;
+                    const dispensedTokens = licenseInfo.n_tokens_dispensed || 0;
+                    license.remaining_keys = Math.max(0, totalTokens - dispensedTokens);
+                    
+                    // Check if this license already has a key for this machine
+                    license.has_existing_key = existingKeysForMachine.includes(licenseId);
+                    
+                    console.log('Adding license to array from add response:', {
+                        id: licenseId,
+                        name: license.license_name,
+                        remaining_keys: license.remaining_keys,
+                        has_existing_key: license.has_existing_key
+                    });
+                    
+                    userLicenses.push(license);
+                }
+            }
+            
+            console.log('Updated userLicenses from add response:', userLicenses.length, 'total licenses');
+            $('#licensesLoading').hide();
+            $('#licensesContainer').show();
+            displayLicenses();
+        } else {
+            console.log('No licenses_and_dispensed found in add response');
+            userLicenses = [];
+            $('#licensesLoading').hide();
+            $('#licensesContainer').show();
+            displayLicenses();
+        }
     }
 </script>
