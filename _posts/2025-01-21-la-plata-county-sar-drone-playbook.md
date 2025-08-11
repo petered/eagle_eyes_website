@@ -163,4 +163,5 @@ Josh values connecting with other teams and exchanging lessons learned. He welco
 Check out more of LPCSAR's <a href="https://laplatasar.org/category/sar-news/" target="_blank" rel="noopener">SAR Tech & UAS insights</a>, or feel free to <a href="mailto:josh.duttry@lpcsar.com">email Josh</a> to keep the conversation going.
 
 <br>
+Photos: La Plata County SAR
 <br> 
