@@ -1617,20 +1617,22 @@ permalink: /activate/
         }
         
         user.getIdToken(true).then(function(idToken) {
-            // Build the URL with session ID if available
-            let fetch_url = hostURL + '/request_token_from_license?machine_id=' + machineId + '&license_id=' + selectedLicense;
-            if (globalSessionId) {
-                fetch_url += '&session_id=' + encodeURIComponent(globalSessionId);
-            }
+            // Use the new /complete_activation endpoint for mobile activation
+            const requestBody = {
+                session_id: globalSessionId,
+                license_id: selectedLicense
+            };
             
-            console.log('Requesting activation for license:', selectedLicense, 'machine:', machineId, 'session:', globalSessionId || 'none');
+            console.log('Requesting activation for license:', selectedLicense, 'session:', globalSessionId || 'none');
             
             $.ajax({
-                url: fetch_url,
-                method: 'GET',
+                url: hostURL + '/complete_activation',
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + idToken
                 },
+                data: JSON.stringify(requestBody),
                 success: function(response) {
                     handleActivationSuccess(response, hasExistingKey, deviceName);
                 },
@@ -1648,18 +1650,26 @@ permalink: /activate/
         try {
             console.log('Activation API response:', response);
             
-            // Parse the response (similar to onNewKeyReceived in get-license.js)
-            let tokenAndCode;
+            // Parse the response from /complete_activation endpoint
+            let result;
             if (typeof response === 'string') {
-                tokenAndCode = JSON.parse(response);
+                result = JSON.parse(response);
             } else {
-                tokenAndCode = response;
+                result = response;
             }
             
-            const licenseKey = tokenAndCode.code;
-            const token = tokenAndCode.token;
+            // Check if activation was successful
+            if (!result.success) {
+                throw new Error(result.message || 'Activation failed');
+            }
             
-            console.log('Activation successful, license key generated:', licenseKey ? licenseKey.substring(0, 10) + '...' : 'undefined');
+            // License key is directly in response for new tokens (if provided)
+            const licenseKey = result.license_key;
+            
+            console.log('Activation successful:', result.success);
+            if (licenseKey) {
+                console.log('License key generated:', licenseKey.substring(0, 10) + '...');
+            }
             
             $('#activationLoading').hide();
             
@@ -1706,27 +1716,45 @@ permalink: /activate/
         
         let errorMessage = 'Failed to activate device. ';
         
+        try {
+            // Try to parse the new structured error response from /complete_activation
+            const errorResponse = JSON.parse(xhr.responseText);
+            if (errorResponse.error) {
+                errorMessage = errorResponse.error;
+            } else if (errorResponse.message) {
+                errorMessage = errorResponse.message;
+            } else {
+                // Fall back to generic error handling
+                errorMessage = getGenericErrorMessage(xhr, status, error, errorMessage);
+            }
+        } catch (parseError) {
+            // Fall back to generic error handling if JSON parsing fails
+            errorMessage = getGenericErrorMessage(xhr, status, error, errorMessage);
+        }
+        
+        showActivationError(errorMessage, hasExistingKey);
+    }
+    
+    function getGenericErrorMessage(xhr, status, error, defaultMessage) {
         if (xhr.status === 500) {
             // Check for specific error patterns similar to get-license.js
             const responseText = xhr.responseText || '';
             if (responseText.includes("'NoneType' object has no attribute")) {
-                errorMessage = 'License not found or invalid. Please check your license and try again.';
+                return 'License not found or invalid. Please check your license and try again.';
             } else if (responseText.includes('insufficient')) {
-                errorMessage = 'No available device slots remaining on this license.';
+                return 'No available device slots remaining on this license.';
             } else {
-                errorMessage += 'Server error occurred. Please try again or contact support.';
+                return 'Server error occurred. Please try again or contact support.';
             }
         } else if (xhr.status === 401) {
-            errorMessage = 'Authentication failed. Please sign out and sign in again.';
+            return 'Authentication failed. Please sign out and sign in again.';
         } else if (xhr.status === 429) {
-            errorMessage = 'Too many requests. Please wait a moment and try again.';
+            return 'Too many requests. Please wait a moment and try again.';
         } else if (!xhr.status) {
-            errorMessage = 'Network error. Please check your internet connection and try again.';
+            return 'Network error. Please check your internet connection and try again.';
         } else {
-            errorMessage += `Error ${xhr.status}: ${xhr.responseText || error}`;
+            return defaultMessage + `Error ${xhr.status}: ${xhr.responseText || error}`;
         }
-        
-        showActivationError(errorMessage, hasExistingKey);
     }
     
     function showActivationError(message, hasExistingKey) {
