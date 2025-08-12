@@ -6,7 +6,7 @@ def main():
     #   key   = source URL (the old URL you want to redirect from)
     #   value = destination URL (the new URL you want to redirect to)
     redirects = {
-        "/help/connect-eepilot-to-caltopo": "https://docs.google.com/document/d/1FWbQLkwrYZoAAg3zbsxEeG-DClcL04zU_dSvcRDk8OA/edit?tab=t.0#bookmark=id.xe2q49a0wdsn",
+        "/help/connect-eepilot-to-caltopo": "https://www.eagleeyessearch.com/faq/#connect-caltopo",
         "/help/pilot-tutorials": "/pilot#tutorials",
     }
     
