@@ -1,7 +1,7 @@
 ---
 layout: main
 title: Download Eagle Eyes Software
-permalink: /download-pilot/
+permalink: /download/
 ---
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -661,7 +661,7 @@ permalink: /download-pilot/
     }
     
     .version-card {
-        background: white;
+        background: #fafafa;
         border: 1px solid #e9ecef;
         border-radius: 8px;
         padding: 20px;
@@ -745,6 +745,66 @@ permalink: /download-pilot/
         color: #6c757d;
         font-size: 14px;
         line-height: 1.5;
+    }
+    
+    .release-notes-item {
+        margin-bottom: 4px;
+    }
+    
+    .release-notes-subitem {
+        margin-bottom: 2px;
+        margin-left: 0;
+    }
+    
+    .release-notes-subitem ul {
+        padding-left: 15px;
+        margin-top: 4px;
+    }
+    
+    .release-notes-container {
+        position: relative;
+    }
+    
+    .release-notes-fade {
+        position: relative;
+        overflow: hidden;
+        max-height: 180px; /* Further reduced - approximately 5-6 lines visible */
+    }
+    
+    .release-notes-fade::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        background: linear-gradient(transparent, white);
+        pointer-events: none;
+    }
+    
+    .release-notes-expanded .release-notes-fade {
+        max-height: none;
+    }
+    
+    .release-notes-expanded .release-notes-fade::after {
+        display: none;
+    }
+    
+    .read-more-btn {
+        background: none;
+        border: none;
+        color: #007bff;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 5px 0;
+        margin-top: 8px;
+        text-decoration: underline;
+        transition: color 0.2s ease;
+    }
+    
+    .read-more-btn:hover {
+        color: #0056b3;
     }
     
     .version-actions {
@@ -2089,9 +2149,7 @@ permalink: /download-pilot/
             ${release.release_notes && release.release_notes.trim() ? `
                 <div class="release-notes">
                     <h4>Release Notes</h4>
-                    <ul>
-                        ${release.release_notes.split('\n').map(note => note.trim() ? `<li>${note}</li>` : '').join('')}
-                    </ul>
+                    ${renderReleaseNotes(parseReleaseNotes(release.release_notes), releaseId)}
                 </div>
             ` : ''}
             
@@ -2125,12 +2183,106 @@ permalink: /download-pilot/
     
     function formatDate(dateString) {
         if (!dateString) return 'Unknown date';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
+        
+        // Handle timezone issues by extracting just the date part
+        // This prevents timezone shifts that can change the displayed date
+        let dateToUse;
+        
+        if (dateString.includes('T') || dateString.includes('Z')) {
+            // If it's an ISO string with time info, extract just the date part
+            const datePart = dateString.split('T')[0];
+            const [year, month, day] = datePart.split('-').map(num => parseInt(num, 10));
+            // Create date in local timezone to avoid shifts
+            dateToUse = new Date(year, month - 1, day);
+        } else {
+            // Simple date string, use as-is
+            dateToUse = new Date(dateString);
+        }
+        
+        return dateToUse.toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'short', 
-            day: 'numeric' 
+            day: 'numeric',
+            timeZone: 'America/Los_Angeles' // Force Pacific Time interpretation
         });
+    }
+    
+    function parseReleaseNotes(releaseNotesText) {
+        const lines = releaseNotesText.split('\n').map(line => line.trim()).filter(line => line);
+        const result = [];
+        let currentMainItem = null;
+        
+        for (const line of lines) {
+            if (line.startsWith('-')) {
+                // This is a sub-item (dash-prefixed)
+                const subItemText = line.substring(1).trim();
+                if (currentMainItem) {
+                    // Add to the current main item's sub-items
+                    if (!currentMainItem.subItems) {
+                        currentMainItem.subItems = [];
+                    }
+                    currentMainItem.subItems.push(subItemText);
+                } else {
+                    // No current main item, treat as main item but remove dash
+                    currentMainItem = { text: subItemText, subItems: [] };
+                    result.push(currentMainItem);
+                }
+            } else {
+                // This is a main item
+                currentMainItem = { text: line, subItems: [] };
+                result.push(currentMainItem);
+            }
+        }
+        
+        return result;
+    }
+    
+    function renderReleaseNotes(parsedNotes, releaseId) {
+        const containerId = `release-notes-${releaseId}`;
+        
+        // Always show "Read More" functionality for all releases
+        let html = `<div class="release-notes-container release-notes-truncated">`;
+        html += `<div class="release-notes-content release-notes-fade" id="${containerId}">`;
+        html += '<ul>';
+        
+        parsedNotes.forEach(item => {
+            html += `<li class="release-notes-item">${item.text}`;
+            
+            if (item.subItems && item.subItems.length > 0) {
+                html += '<ul>';
+                item.subItems.forEach(subItem => {
+                    html += `<li class="release-notes-subitem">${subItem}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            html += '</li>';
+        });
+        
+        html += '</ul>';
+        html += '</div>';
+        
+        // Always show "Read More" button for all releases
+        html += `<button class="read-more-btn" onclick="toggleReleaseNotes('${containerId}', this)">Read More</button>`;
+        
+        html += '</div>';
+        
+        return html;
+    }
+    
+    function toggleReleaseNotes(containerId, buttonElement) {
+        const container = document.getElementById(containerId);
+        const parentContainer = container.closest('.release-notes-container');
+        
+        if (parentContainer.classList.contains('release-notes-expanded')) {
+            // Collapse
+            parentContainer.classList.remove('release-notes-expanded');
+            buttonElement.textContent = 'Read More';
+        } else {
+            // Expand
+            parentContainer.classList.add('release-notes-expanded');
+            buttonElement.textContent = 'Read Less';
+        }
     }
     
     function generateSetupInstructions() {
