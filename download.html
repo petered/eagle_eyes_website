@@ -748,17 +748,25 @@ permalink: /download/
     }
     
     .release-notes-item {
+        margin-bottom: 12px;
+    }
+    
+    .release-notes-item strong {
+        color: #333;
+        font-weight: normal;
+        display: block;
         margin-bottom: 4px;
+    }
+    
+    .release-notes-item ul {
+        margin-top: 4px;
+        margin-bottom: 0;
+        padding-left: 20px;
     }
     
     .release-notes-subitem {
         margin-bottom: 2px;
         margin-left: 0;
-    }
-    
-    .release-notes-subitem ul {
-        padding-left: 15px;
-        margin-top: 4px;
     }
     
     .release-notes-container {
@@ -982,7 +990,7 @@ permalink: /download/
                     <h3 class="platform-title">Windows</h3>
                     <p class="platform-subtitle">Windows 10 or newer</p>
                     <div class="platform-description">
-                        <p>Compatible with all Windows 10 and Windows 11 systems.</p>
+                        <p>Compatible with most modern Windows 10 and Windows 11 systems.</p>
                     </div>
                 </div>
                 
@@ -2212,6 +2220,9 @@ permalink: /download/
         const result = [];
         let currentMainItem = null;
         
+        console.log('Parsing release notes:', releaseNotesText);
+        console.log('Lines:', lines);
+        
         for (const line of lines) {
             if (line.startsWith('-')) {
                 // This is a sub-item (dash-prefixed)
@@ -2222,18 +2233,22 @@ permalink: /download/
                         currentMainItem.subItems = [];
                     }
                     currentMainItem.subItems.push(subItemText);
+                    console.log(`Added "${subItemText}" as sub-item to "${currentMainItem.text}"`);
                 } else {
-                    // No current main item, treat as main item but remove dash
-                    currentMainItem = { text: subItemText, subItems: [] };
-                    result.push(currentMainItem);
+                    // No current main item, so this dash-prefixed item stands alone
+                    // Create a standalone sub-item (will be rendered as a regular bullet)
+                    result.push({ text: subItemText, subItems: [], isStandalone: true });
+                    console.log(`Created standalone item: "${subItemText}"`);
                 }
             } else {
-                // This is a main item
+                // This is a main item (no dash)
                 currentMainItem = { text: line, subItems: [] };
                 result.push(currentMainItem);
+                console.log(`Created main item: "${line}"`);
             }
         }
         
+        console.log('Final parsed result:', result);
         return result;
     }
     
@@ -2243,23 +2258,43 @@ permalink: /download/
         // Always show "Read More" functionality for all releases
         let html = `<div class="release-notes-container release-notes-truncated">`;
         html += `<div class="release-notes-content release-notes-fade" id="${containerId}">`;
-        html += '<ul>';
         
         parsedNotes.forEach(item => {
-            html += `<li class="release-notes-item">${item.text}`;
-            
-            if (item.subItems && item.subItems.length > 0) {
-                html += '<ul>';
-                item.subItems.forEach(subItem => {
-                    html += `<li class="release-notes-subitem">${subItem}</li>`;
-                });
-                html += '</ul>';
+            if (item.isStandalone) {
+                // Standalone items (originally had dashes) - render in a list
+                if (html.indexOf('<ul>') === -1) {
+                    html += '<ul>';
+                }
+                html += `<li class="release-notes-subitem">${item.text}</li>`;
+            } else {
+                // Main items (no original dash) - render as headings or different structure
+                if (html.endsWith('<ul>')) {
+                    html += '</ul>';
+                }
+                
+                if (item.subItems && item.subItems.length > 0) {
+                    // Main item with sub-items - render as heading + sub-list
+                    html += `<div class="release-notes-item"><strong>${item.text}</strong>`;
+                    html += '<ul>';
+                    item.subItems.forEach(subItem => {
+                        html += `<li class="release-notes-subitem">${subItem}</li>`;
+                    });
+                    html += '</ul></div>';
+                } else {
+                    // Main item without sub-items - render in main list
+                    if (html.indexOf('<ul>') === -1) {
+                        html += '<ul>';
+                    }
+                    html += `<li class="release-notes-item">${item.text}</li>`;
+                }
             }
-            
-            html += '</li>';
         });
         
-        html += '</ul>';
+        // Close any open ul tags
+        if (html.endsWith('</li>') && !html.endsWith('</ul>')) {
+            html += '</ul>';
+        }
+        
         html += '</div>';
         
         // Always show "Read More" button for all releases
