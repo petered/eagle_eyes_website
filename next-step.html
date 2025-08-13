@@ -1,0 +1,464 @@
+---
+layout: main
+title: Download Eagle Eyes Pilot
+permalink: /next-step/
+---
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="{{ '/shared.js' | relative_url }}"></script>
+
+<style>
+    .download-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 120px 20px 20px 20px;
+        text-align: center;
+    }
+    
+    .download-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .download-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 30px;
+    }
+    
+    .license-info {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        text-align: left;
+    }
+    
+    .license-info h4 {
+        color: #1976d2;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+    
+    .license-info p {
+        margin: 8px 0;
+        color: #333;
+    }
+    
+    .storage-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        color: #856404;
+        display: none;
+    }
+    
+    .storage-warning.critical {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+    
+    .download-button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: 500;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.3s;
+        min-width: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .download-button:hover {
+        background: #218838;
+    }
+    
+    .download-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .progress-container {
+        display: none;
+        margin: 30px 0;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: #007bff;
+        width: 0%;
+        transition: width 0.3s ease;
+        border-radius: 10px;
+    }
+    
+    .progress-text {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .download-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 15px;
+    }
+    
+    .fallback-container {
+        display: none;
+        margin: 30px 0;
+        padding: 20px;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    
+    .fallback-link {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+    
+    .fallback-link:hover {
+        background: #0056b3;
+        text-decoration: none;
+        color: white;
+    }
+    
+    .success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        display: none;
+    }
+    
+    .error-message {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        display: none;
+    }
+    
+    @media (max-width: 768px) {
+        .download-container {
+            padding: 100px 15px 15px 15px;
+        }
+        
+        .download-card {
+            padding: 30px 20px;
+        }
+        
+        .download-title {
+            font-size: 24px;
+        }
+        
+        .download-stats {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+</style>
+
+<div class="download-container">
+    <div class="download-card">
+        <h1 class="download-title">Download Eagle Eyes Pilot</h1>
+        
+        <div class="license-info">
+            <h4>📋 Setup Information</h4>
+            <p><strong>License ID:</strong> <span id="licenseId"></span></p>
+            <p><strong>File Size:</strong> <span id="fileSize"></span> MB</p>
+            <p><strong>Platform:</strong> <span id="devicePlatform"></span></p>
+        </div>
+        
+        <div class="storage-warning" id="storageWarning">
+            <h4>⚠️ Storage Space Warning</h4>
+            <p id="storageWarningText"></p>
+        </div>
+        
+        <button id="downloadButton" class="download-button" onclick="startDownload()">
+            📱 Download Eagle Eyes Pilot
+        </button>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-text" id="progressText">Preparing download...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="download-stats">
+                <span id="downloadedBytes">0 MB</span>
+                <span id="downloadSpeed">0 KB/s</span>
+                <span id="remainingTime">Calculating...</span>
+            </div>
+            <button id="cancelButton" class="download-button" style="background: #dc3545; font-size: 14px; padding: 8px 16px; min-width: 100px;" onclick="cancelDownload()">
+                Cancel
+            </button>
+        </div>
+        
+        <div class="fallback-container" id="fallbackContainer">
+            <h4>Manual Download</h4>
+            <p>If the automatic download doesn't work, use the direct link below:</p>
+            <a href="#" id="fallbackLink" class="fallback-link" target="_blank">
+                Direct Download Link
+            </a>
+        </div>
+        
+        <div class="success-message" id="successMessage">
+            <h4>✅ Download Complete!</h4>
+            <p>Eagle Eyes Pilot has been downloaded successfully. You can now install it on your device.</p>
+            <p><strong>Next steps:</strong></p>
+            <ol style="text-align: left; margin-top: 10px;">
+                <li>Open the downloaded APK file</li>
+                <li>Allow installation from unknown sources if prompted</li>
+                <li>Follow the installation wizard</li>
+                <li>Launch Eagle Eyes Pilot and activate with your license</li>
+            </ol>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+</div>
+
+<script>
+    let downloadController = null;
+    let startTime = null;
+    let urlParams = null;
+    
+    $(document).ready(function() {
+        // Parse URL parameters
+        urlParams = new URLSearchParams(window.location.search);
+        
+        // Validate required parameters
+        if (!urlParams.get('license_id') || !urlParams.get('download_link') || !urlParams.get('file_size_mb')) {
+            showError('Missing required parameters. Please start the activation process again.');
+            return;
+        }
+        
+        // Display information
+        displayDownloadInfo();
+        
+        // Check storage space
+        checkStorageSpace();
+        
+        // Show fallback link immediately
+        setupFallbackLink();
+    });
+    
+    function displayDownloadInfo() {
+        $('#licenseId').text(urlParams.get('license_id'));
+        $('#fileSize').text(urlParams.get('file_size_mb'));
+        $('#devicePlatform').text(navigator.platform);
+    }
+    
+    function checkStorageSpace() {
+        const fileSizeMB = parseInt(urlParams.get('file_size_mb'));
+        const requiredSpaceGB = Math.ceil((fileSizeMB + 1024) / 1024); // File size + 1GB buffer
+        
+        // Check if we can estimate storage
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            navigator.storage.estimate().then(function(estimate) {
+                const availableSpaceGB = Math.floor(estimate.quota / (1024 * 1024 * 1024));
+                const usedSpaceGB = Math.floor(estimate.usage / (1024 * 1024 * 1024));
+                const freeSpaceGB = availableSpaceGB - usedSpaceGB;
+                
+                console.log('Storage estimate:', {
+                    total: availableSpaceGB + 'GB',
+                    used: usedSpaceGB + 'GB',
+                    free: freeSpaceGB + 'GB',
+                    required: requiredSpaceGB + 'GB'
+                });
+                
+                if (freeSpaceGB < requiredSpaceGB) {
+                    showStorageWarning(fileSizeMB, requiredSpaceGB, freeSpaceGB, true);
+                }
+            }).catch(function(error) {
+                console.log('Storage estimate not available:', error);
+                showStorageWarning(fileSizeMB, requiredSpaceGB, null, false);
+            });
+        } else {
+            // Fallback warning for devices that don't support storage estimation
+            showStorageWarning(fileSizeMB, requiredSpaceGB, null, false);
+        }
+    }
+    
+    function showStorageWarning(fileSizeMB, requiredSpaceGB, freeSpaceGB, isCritical) {
+        const warningDiv = $('#storageWarning');
+        const warningText = $('#storageWarningText');
+        
+        if (isCritical && freeSpaceGB !== null) {
+            warningDiv.addClass('critical');
+            warningText.html(`
+                <strong>Critical:</strong> There might not be enough space on this device to install. 
+                The file that you are going to download is <strong>${fileSizeMB} MB</strong>. 
+                You have approximately <strong>${freeSpaceGB} GB</strong> free space, but we recommend having at least <strong>${requiredSpaceGB} GB</strong> available.
+            `);
+        } else {
+            warningText.html(`
+                There might not be enough space on this device to install. 
+                The file that you are going to download is <strong>${fileSizeMB} MB</strong>. 
+                Please verify if you have <strong>${requiredSpaceGB} GB</strong> available.
+            `);
+        }
+        
+        warningDiv.show();
+    }
+    
+    function setupFallbackLink() {
+        const downloadUrl = urlParams.get('download_link');
+        $('#fallbackLink').attr('href', downloadUrl);
+        $('#fallbackContainer').show();
+    }
+    
+    async function startDownload() {
+        const downloadUrl = urlParams.get('download_link');
+        const fileSizeMB = parseInt(urlParams.get('file_size_mb'));
+        
+        try {
+            // Show progress container
+            $('#progressContainer').show();
+            $('#downloadButton').prop('disabled', true);
+            $('#progressText').text('Starting download...');
+            
+            // Create abort controller for cancellation
+            downloadController = new AbortController();
+            startTime = Date.now();
+            
+            // Start download with progress tracking
+            const response = await fetch(downloadUrl, {
+                signal: downloadController.signal
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const contentLength = response.headers.get('content-length');
+            const totalBytes = contentLength ? parseInt(contentLength) : fileSizeMB * 1024 * 1024;
+            
+            // Create readable stream
+            const reader = response.body.getReader();
+            const chunks = [];
+            let receivedBytes = 0;
+            
+            // Read stream with progress tracking
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) {
+                    break;
+                }
+                
+                chunks.push(value);
+                receivedBytes += value.length;
+                
+                // Update progress
+                updateProgress(receivedBytes, totalBytes);
+            }
+            
+            // Create blob and download
+            const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create download link
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'eagle-eyes-pilot.apk';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Clean up
+            URL.revokeObjectURL(url);
+            
+            // Show success message
+            $('#progressContainer').hide();
+            $('#successMessage').show();
+            
+        } catch (error) {
+            console.error('Download failed:', error);
+            
+            if (error.name === 'AbortError') {
+                showError('Download was cancelled.');
+            } else {
+                showError('Download failed: ' + error.message + '. Please try the manual download link below.');
+            }
+            
+            $('#progressContainer').hide();
+            $('#downloadButton').prop('disabled', false);
+        }
+    }
+    
+    function updateProgress(receivedBytes, totalBytes) {
+        const percentage = Math.round((receivedBytes / totalBytes) * 100);
+        const receivedMB = (receivedBytes / (1024 * 1024)).toFixed(1);
+        const totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
+        
+        // Update progress bar
+        $('#progressFill').css('width', percentage + '%');
+        
+        // Update text
+        $('#progressText').text(`Downloading... ${percentage}%`);
+        $('#downloadedBytes').text(`${receivedMB} MB / ${totalMB} MB`);
+        
+        // Calculate speed and remaining time
+        const elapsedTime = (Date.now() - startTime) / 1000; // seconds
+        const speed = receivedBytes / elapsedTime; // bytes per second
+        const speedKB = (speed / 1024).toFixed(1);
+        const remainingBytes = totalBytes - receivedBytes;
+        const remainingTime = remainingBytes / speed; // seconds
+        
+        $('#downloadSpeed').text(`${speedKB} KB/s`);
+        
+        if (remainingTime > 0 && remainingTime < Infinity) {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = Math.floor(remainingTime % 60);
+            $('#remainingTime').text(`${minutes}m ${seconds}s remaining`);
+        } else {
+            $('#remainingTime').text('Calculating...');
+        }
+    }
+    
+    function cancelDownload() {
+        if (downloadController) {
+            downloadController.abort();
+            downloadController = null;
+        }
+        
+        $('#progressContainer').hide();
+        $('#downloadButton').prop('disabled', false);
+    }
+    
+    function showError(message) {
+        $('#errorMessage').text(message).show();
+    }
+</script>
