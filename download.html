@@ -519,6 +519,23 @@ permalink: /download/
         transform: translateY(-50%) rotate(180deg);
     }
     
+    .drone-compatibility-message {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #6c757d;
+        text-align: center;
+    }
+    
+    .drone-compatibility-message a {
+        color: #007bff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    
+    .drone-compatibility-message a:hover {
+        text-decoration: underline;
+    }
+    
     .drone-info-container {
         margin-top: 20px;
         display: none;
@@ -1060,6 +1077,11 @@ permalink: /download/
                     <span class="dropdown-arrow">▼</span>
                 </div>
                 
+                <!-- Drone compatibility message -->
+                <div class="drone-compatibility-message">
+                    If your drone is not listed here then it's likely not compatible. <a href="#" onclick="selectOtherDrone(); return false;">More info</a>.
+                </div>
+                
                 <!-- Drone Info Display -->
                 <div id="drone-info-container" class="drone-info-container">
                     <!-- Controller compatibility sections will be populated here -->
@@ -1427,6 +1449,30 @@ permalink: /download/
             setTimeout(() => {
                 autocompleteDropdown.style.display = 'none';
             }, 150);
+        }
+    }
+    
+    function selectOtherDrone() {
+        const dropdown = document.getElementById('drone-dropdown');
+        const searchInput = document.getElementById('drone-search');
+        
+        if (!dropdown) {
+            console.error('Drone dropdown element not found');
+            return;
+        }
+        
+        // Find and select the "Other drone make or model" option
+        const otherOption = Array.from(dropdown.options).find(option => 
+            option.value === 'other' || option.textContent.includes('Other drone')
+        );
+        
+        if (otherOption) {
+            dropdown.value = otherOption.value;
+            if (searchInput) {
+                searchInput.value = otherOption.textContent;
+            }
+            // Trigger the change event to update the display
+            selectDroneFromDropdown();
         }
     }
     
