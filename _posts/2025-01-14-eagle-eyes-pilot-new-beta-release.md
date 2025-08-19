@@ -22,7 +22,49 @@ Our main points of focus in this release were:
 
 - **Interoperability with Eagle Eyes Scan** - You can now use Eagle Eyes Pilot (or DJI Pilot) and Scan together - transmitting live video and coordinates to a nearby laptop for analysis.
 
-You can download it at EagleEyesSearch.com/pilot.
+<style>
+.download-card {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 25px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 25px auto;
+    max-width: 400px;
+}
+
+.download-card:hover {
+    border-color: #007bff;
+    background: #f0f8ff;
+}
+
+.download-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.download-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 4px 0;
+}
+
+.download-subtitle {
+    color: #666;
+    font-size: 12px;
+    margin: 0;
+    line-height: 1.2;
+}
+</style>
+
+<div class="download-card" onclick="window.open('https://www.eagleeyessearch.com/download/', '_blank')">
+    <div class="download-icon">📱</div>
+    <h3 class="download-title">Download the new Eagle Eyes Pilot Beta here</h3>
+</div>
 <br>
 <br>
 # Detailed Release Notes
