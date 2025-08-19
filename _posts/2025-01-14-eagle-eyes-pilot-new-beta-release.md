@@ -10,7 +10,7 @@ categories: product-updates pilot releases
 ---
 <br>
 <br>
-Today we're releasing the Beta of the next edition of Eagle Eyes Pilot—the drone app designed for search and rescue. This early version offers a preview of the new capabilities we're building. While you may notice the occasional hiccup, we encourage you to explore and share your feedback. 
+Today we're releasing the Beta of the next edition of Eagle Eyes Pilot, the drone app designed for search and rescue. This early version offers a preview of the new capabilities we're building. While you may notice the occasional hiccup, we encourage you to explore and share your feedback. 
 
 Our main points of focus in this release were:
 
@@ -20,7 +20,7 @@ Our main points of focus in this release were:
 
 - **Running quietly in the background** - We're enabling users to fly as they're accustomed to flying - in DJI Pilot 2 - while still integrating with CalTopo. While flying in DJI Pilot 2 you can now livetrack to caltopo, upload flight logs straight to caltopo, and download CalTopo areas to create mapping missions.
 
-- **Interoperability with Eagle Eyes Scan** - You can now use Eagle Eyes Pilot (or DJI Pilot) and Scan together - transmitting live video and coordinates to a nearby laptop for analysis.
+- **Interoperability with Eagle Eyes Scan** - You can now use Eagle Eyes Pilot (or DJI Pilot) and Scan together - transmitting live video and coordinates to a nearby laptop for analysis.  
 
 <style>
 .download-card {
@@ -71,10 +71,23 @@ Our main points of focus in this release were:
 <br>
 ## Unified Situational Awareness
 
+<div style="max-width: 80%; margin: 20px auto;">
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
+<iframe src="https://www.youtube.com/embed/__i8BL0HGOU?si=6cIc7oNUkzBOVafn" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
+</div>
+</div>
+
 - **Airspace Deconfliction** - You can now see the live locations of other drone pilots who are on the same local wifi network as you.
 - **Air-Ops mode** - Just install Eagle Eyes Pilot on your phone and click maps - you'll see all other pilot locations (overtop your CalTopo Map)
-
+<br>
+<br>
 ## Simplified Workflow
+
+<div style="max-width: 80%; margin: 20px auto;">
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
+<iframe src="https://www.youtube.com/embed/KYztoarEkoU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
+</div>
+</div>
 
 - **Default CalTopo map**: Many teams have a "Master" map that they just reuse for most of their operations. You can now set up a default map in "... → Setup Controller" and not have to connect to a CalTopo map each time you fly the drone.
 
@@ -88,22 +101,36 @@ Our main points of focus in this release were:
 
 - **CalTopo Tracking improvements** - The app now starts a new track when it makes sense to do so (based on distance/time since last track), and lets you start/stop/name tracks manually (e.g. to attach assignment-numbers to tracks). No internet? No problem - tracks will buffer locally and upload next time you're on the internet.
 
-- **Downloads Offline Maps** - Need to make sure your drone team has maps reliably when you have no service? Download a .mbtiles file from CalTopo, get it on your RC - (Get LocalSend on your RC) - set up your team's controllers with it - then you'll always have offline maps.
+- **Downloads Offline Maps** - Need to make sure your drone team has maps reliably when you have no service? Download a .mbtiles file from CalTopo, get it on your RC - (Get [LocalSend](https://localsend.org/) on your RC) - set up your team's controllers with it - then you'll always have offline maps.
 
 - **Coordinate Systems** can be a pain to convert in the field. We now let you easily show/convert coordinate format between (Decimal Degrees (DD), Degrees Decimal Minutes (DDM), Degrees Minutes Seconds (DMS), Universal Transverse Mercator (UTM), Military Grid Reference System (MGRS), Ordinance Survey Grid (OS Grid - UK only), US National Grid (USNG) - and of course Vocal Coordinates (VC)
-
+<br>
+<br>
 ## Running Quietly in the Background
+
+<div style="max-width: 80%; margin: 20px auto;">
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
+<iframe src="https://www.youtube.com/embed/gos2qwe04_Q" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
+</div>
+</div>
 
 - **Live Tracking from DJI Pilot** - Let Eagle Eyes Pilot run quietly in the background - it'll share your drone's live location to your fellow pilots / air-ops managers and upload live tracks to CalTopo.
 
 - **Upload DJI Flight Logs to CalTopo** via "... → Sync Flight Logs → (select) → CalTopo". Currently only works with DJI Flight logs (not EE-Pilot Flight logs) - yes, we're working on it.
-
+<br>
+<br>
 ## Interoperability with Eagle Eyes Scan
 
+<div style="max-width: 80%; margin: 20px auto;">
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
+<iframe src="https://www.youtube.com/embed/cwZ4tvBRdjA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
+</div>
+</div>
+
 - **Clean HDMI out from Pilot** - Eagle Eyes Pilot now supports "Clean HDMI output" mode - meaning you can export clean HDMI for detection in Eagle Eyes Scan or display. From the pilot view: "㆔ → Livestreeaming → Clean HDMI Output"
-
-- **Live drone coordinates from Pilot to Scan** - If your drone and laptop are on the same local network, you can transmit live drone coordinates and record them in Eagle Eyes Scan.
-
+- **Live drone coordinates from Pilot to Scan** - If your drone and laptop are on the same local network, you can transmit live drone coordinates and record them in Eagle Eyes Scan.  
+<br>
+<br>
 ## Miscellaneous Improvements/Fixes
 
 - **Crosshairs** - So you know exactly where the camera is centered.
@@ -113,7 +140,8 @@ Our main points of focus in this release were:
 - **Double-tap to zoom** - Now works properly - double tap on the screen to zoom to that point.
 
 - **Camera/Thermal Settings** - (Thermal Palette, exposure, etc) can be adjusted from "㆔ → Quick Actions → Camera Settings".
-
+<br>
+<br>
 ## Known Issues
 
 - **Single crosshairs in split-view** - Should be one crosshair on each side.
