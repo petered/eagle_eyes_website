@@ -10,7 +10,7 @@ categories: product-updates pilot releases
 ---
 <br>
 <br>
-We're publishing a new edition of Eagle Eyes Pilot - the drone app for search and rescue. 
+Today we're releasing the Beta of the next edition of Eagle Eyes Pilot—the drone app designed for search and rescue. This early version offers a preview of the new capabilities we're building. While you may notice the occasional hiccup, we encourage you to explore and share your feedback. 
 
 Our main points of focus in this release were:
 
