@@ -26,7 +26,7 @@ We've just dropped a new Beta release for Eagle Eyes Pilot, our app that runs on
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    margin: 25px 0;
+    margin: 40px 0;
     line-height: 1.2;
     width: auto;
 }
@@ -48,8 +48,6 @@ We've just dropped a new Beta release for Eagle Eyes Pilot, our app that runs on
 <div class="download-button-container">
     <a href="https://www.eagleeyessearch.com/download/" target="_blank" class="download-button">Download Eagle Eyes Pilot 1.4.0 Beta</a>
 </div>
-<br>
-<br>
 
 ## Quick setup and improved CalTopo integration
 We want to reduce the number of steps between a drone pilot showing up on site and actually getting the drone in the air. We enable a one-time "Setup" of the controller, where you can set a default CalTopo "master" map, name the drone and load an .mbtiles file from CalTopo to always have access to detailed offline maps.
@@ -67,6 +65,7 @@ We want to reduce the number of steps between a drone pilot showing up on site a
 - **CalTopo Tracking improvements** - The app now starts a new track when it makes sense to do so (based on distance/time since last track), and lets you start/stop/name tracks manually (e.g. to attach assignment-numbers to tracks). No internet? No problem - tracks will buffer locally and upload next time you're on the internet.
 <br>
 <br>
+
 ## AirOps view: Seeing other drones' live locations
 Pilots, as well as users that install Eagle Eyes Pilot on a separate Android, can see the location of all drones on the same Wi-Fi network, overlaid on a CalTopo map with near-zero latency. This works even when flying in DJI Pilot 2 with EE Pilot running in the background.
 
@@ -78,6 +77,7 @@ Pilots, as well as users that install Eagle Eyes Pilot on a separate Android, ca
 
 - **Airspace Deconfliction** - You can now see the live locations of other drone pilots who are on the same local wifi network as you.
 - **Air-Ops mode** - Just install Eagle Eyes Pilot on your phone and click maps - you'll see all other pilot locations (overtop your CalTopo Map)
+
 <br>
 <br>
 ## Improved flight experience for pilots
@@ -92,6 +92,7 @@ Eagle Eyes Pilot now supports most controller button functions from DJI Pilot 2.
 - **RC Buttons finally work** - The buttons on the DJI RC-Pro (and most on the DJI-RC plus) now perform the same functions they do on DJI Pilot 2 - meaning you can Zoom-in/out, Gimbal down/level, adjust exposure with buttons. Then there's…
 - **The magic button (Quick Actions)** - (Little circle on the top right of DJI controllers) - now brings up a full status overview and quick-options menu. CalTopo Map, wifi-status, drone/RC battery/storage levels, turn on/off nav beacon, etc etc - just press the magic button and it's one tap away. Very useful helper for pre-flight checklists.
 - **Coordinate Systems** can be a pain to convert in the field. We now let you easily show/convert coordinate format between (Decimal Degrees (DD), Degrees Decimal Minutes (DDM), Degrees Minutes Seconds (DMS), Universal Transverse Mercator (UTM), Military Grid Reference System (MGRS), Ordinance Survey Grid (OS Grid - UK only), US National Grid (USNG) - and of course Vocal Coordinates (VC)
+
 <br>
 <br>
 ## CalTopo integration for teams flying with DJI Pilot 2 
@@ -106,6 +107,7 @@ Some teams are reluctant to use third party piloting apps. We want to enable the
 - **Live Tracking from DJI Pilot** - Let Eagle Eyes Pilot run quietly in the background - it'll share your drone's live location to your fellow pilots / air-ops managers and upload live tracks to CalTopo.
 - 🎥 **[Fly with DJI Pilot 2 and sync tracks to CalTopo post flight](https://youtu.be/kL0-SSLd23c)** via "... → Sync Flight Logs → (select) → CalTopo". Currently only works with DJI Flight logs (not EE-Pilot Flight logs) - yes, we're working on it.
 - 🎥 **[Convert CalTopo search areas into DJI Pilot 2 flight mission](https://youtu.be/0i_ph36RUqE?si=AkWor4C4fnHVTb84)**: Eagle Eyes Pilot now includes a free feature that lets you turn any CalTopo search area polygon into a flight mission that can be loaded directly into the DJI Pilot 2 mission planner. From your drone controller, Eagle Eyes Pilot syncs with your CalTopo map so you can simply select the search area, download the KML to the controller, and upload it into DJI's flight planner. The entire process is wireless, handled right on the controller, and available for free!
+
 <br>
 <br>
 ## Interoperability with Eagle Eyes Scan:
@@ -118,7 +120,8 @@ You can now use Eagle Eyes Pilot (or DJI Pilot) and Scan together - transmitting
 </div>
 
 - **Clean HDMI out from Pilot** - Eagle Eyes Pilot now supports "Clean HDMI output" mode - meaning you can export clean HDMI for detection in Eagle Eyes Scan or display. From the pilot view: "㆔ → Livestreeaming → Clean HDMI Output"
-- **Live drone coordinates from Pilot to Scan** - If your drone and laptop are on the same local network, you can transmit live drone coordinates and record them in Eagle Eyes Scan.  
+- **Live drone coordinates from Pilot to Scan** - If your drone and laptop are on the same local network, you can transmit live drone coordinates and record them in Eagle Eyes Scan.
+
 <br>
 <br>
 ## Miscellaneous Improvements/Fixes
@@ -127,9 +130,13 @@ You can now use Eagle Eyes Pilot (or DJI Pilot) and Scan together - transmitting
 - **Primary Flight Display** (That big circle at in your piloting screen) - Gives the pilot a one-glance overview of their current situation. Don't like it? Swipe it left to remove. Want it back? "㆔ → Quick Actions → Primary flight display:"
 - **Double-tap to zoom** - Now works properly - double tap on the screen to zoom to that point.
 - **Camera/Thermal Settings** - (Thermal Palette, exposure, etc) can be adjusted from "㆔ → Quick Actions → Camera Settings".
+
 <br>
 <br>
 ## Known Issues
 
 - **Single crosshairs in split-view** - Should be one crosshair on each side.
-- **Detector on split view** - Runs detections on full frame, not great especially when thermal pallet is red tint because it distracts detector. Really, detector should focus on visual in split. 
+- **Detector on split view** - Runs detections on full frame, not great especially when thermal pallet is red tint because it distracts detector. Really, detector should focus on visual in split.
+
+<br>
+<br> 
