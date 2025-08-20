@@ -96,7 +96,7 @@ Eagle Eyes Pilot now supports most controller button functions from DJI Pilot 2.
 <br>
 <br>
 ## CalTopo integration for teams flying with DJI Pilot 2 
-Some teams are reluctant to use third party piloting apps. We want to enable these teams to still benefit from the CalTopo integration, computer vision, and airspace deconfliction features that we provide. 
+Some teams prefer to stick with the native DJI Piloting apps, and we aim to support that as much as possible. We've added some new features that enable Eagle Eyes Pilot to function as more of a "background app", enabling the user to benefit from the CalTopo integration, computer vision, and airspace deconfliction features that we provide, while still flying in DJI Pilot 2. 
 
 <div style="max-width: 80%; margin: 20px auto;">
 <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
