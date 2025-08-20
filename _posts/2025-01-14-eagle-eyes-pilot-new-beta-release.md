@@ -60,7 +60,7 @@ We want to reduce the number of steps between a drone pilot showing up on site a
 
 - **Easier licence activation via QR code** - We heard you - getting the license set up was a pain! We now have a much easier workflow for activating your Eagle Eyes license by just scanning a QR code with your phone.
 - **Default CalTopo map**: Many teams have a "Master" map that they just reuse for most of their operations. You can now set up a default map in "... → Setup Controller" and not have to connect to a CalTopo map each time you fly the drone.
-- 🎥 **[Scan CalTopo QR code with drone](https://youtu.be/sRl4Z12AUqM)** - Yes, you can now connect to a CalTopo map by scanning the map's QR code using the drone's camera. From the Piloting view (㆔ → Caltopo → Scan QR Code)
+- 🎥 **[Scan CalTopo QR code with drone](https://www.youtube.com/watch?v=qBTjyNCN4a4)** - Yes, you can now connect to a CalTopo map by scanning the map's QR code using the drone's camera. From the Piloting view (㆔ → Caltopo → Scan QR Code)
 - 🎥 **[Download maps pre-flight for offline use on the controller](https://youtu.be/d3JGNzw3KJs)** - Need to make sure your drone team has maps reliably when you have no service? Download a .mbtiles file from CalTopo, get it on your RC - (Get [LocalSend](https://localsend.org/) on your RC) - set up your team's controllers with it - then you'll always have offline maps.
 - **CalTopo Tracking improvements** - The app now starts a new track when it makes sense to do so (based on distance/time since last track), and lets you start/stop/name tracks manually (e.g. to attach assignment-numbers to tracks). No internet? No problem - tracks will buffer locally and upload next time you're on the internet.
 <br>
