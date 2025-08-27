@@ -4,11 +4,14 @@ title: Eagle Eyes Compatibility
 permalink: /compatibility/
 ---
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="{{ '/shared.js' | relative_url }}"></script>
+
 <style>
     .compatibility-container {
-        max-width: 1400px;
+        max-width: 900px;
         margin: 0 auto;
-        padding: 120px 40px 20px 40px;
+        padding: 120px 20px 20px 20px;
     }
     
     .page-header {
@@ -38,93 +41,216 @@ permalink: /compatibility/
         line-height: 1.6;
     }
     
-    .compatibility-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 80px;
-        margin-top: 50px;
+    .compatibility-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        margin-top: 30px;
     }
     
-    .device-section {
-        background: #f8f9fa;
+    .section {
+        background: white;
         border-radius: 12px;
         padding: 40px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        min-height: 600px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+        min-height: 200px;
     }
     
     .section-header {
         display: flex;
         align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e9ecef;
     }
     
     .section-icon {
-        font-size: 36px;
-        margin-right: 20px;
+        font-size: 32px;
+        margin-right: 15px;
     }
     
     .section-title {
-        font-size: 32px;
+        font-size: 24px;
         font-weight: 600;
         color: #333;
         margin: 0;
     }
     
-    .device-list {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        background: white;
-        padding: 10px;
+    .section-description {
+        font-size: 16px;
+        color: #6c757d;
+        margin-bottom: 20px;
+        line-height: 1.5;
     }
     
-    .device-tile {
-        display: flex;
-        align-items: center;
-        padding: 25px;
+    /* Search styles from download page */
+    .search-container {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 16px;
+        background: white;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .autocomplete-item {
+        padding: 12px 16px;
         cursor: pointer;
         border-bottom: 1px solid #f1f1f1;
-        transition: all 0.2s ease;
-        gap: 20px;
-        min-height: 80px;
+        transition: background-color 0.2s;
     }
     
-    .device-tile:last-child {
+    .autocomplete-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .autocomplete-item:last-child {
         border-bottom: none;
     }
     
-    .device-tile:hover {
+    /* Dropdown styles from download page */
+    .dropdown-container {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .drone-dropdown {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 16px;
+        background: white;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+    }
+    
+    .drone-dropdown:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    .dropdown-arrow {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #6c757d;
+        font-size: 12px;
+    }
+    
+    /* Platform grid styles from download page */
+    .platform-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    /* Force 3 columns for desktop platform selection on wider screens */
+    @media (min-width: 900px) {
+        .platform-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    /* 2 columns for medium screens */
+    @media (min-width: 600px) and (max-width: 899px) {
+        .platform-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .platform-card {
         background: #f8f9fa;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .device-image {
-        font-size: 32px;
-        width: 60px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px 15px;
         text-align: center;
-        flex-shrink: 0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
     }
     
-    .device-info {
-        flex: 1;
+    .platform-card:hover {
+        border-color: #007bff;
+        background: #f0f8ff;
+        transform: translateY(-2px);
     }
     
-    .device-name {
-        font-size: 22px;
+    .platform-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .platform-icon img {
+        width: 60px;
+        height: auto;
+        filter: grayscale(30%);
+    }
+    
+    .platform-title {
+        font-size: 18px;
         font-weight: 600;
         color: #333;
         margin-bottom: 8px;
     }
     
+    .platform-subtitle {
+        font-size: 13px;
+        color: #6c757d;
+        margin-bottom: 6px;
+    }
+    
+    .platform-description {
+        font-size: 13px;
+        color: #555;
+        line-height: 1.3;
+    }
+    
+    /* Compatibility status styles */
     .compatibility-status {
         font-size: 16px;
         font-weight: 500;
         padding: 6px 12px;
         border-radius: 12px;
         display: inline-block;
+        margin-top: 10px;
     }
     
     .status-supported {
@@ -142,89 +268,253 @@ permalink: /compatibility/
         color: #721c24;
     }
     
-    .compatibility-legend {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        margin-top: 30px;
-        border: 1px solid #e9ecef;
+    /* Mobile placeholder styles */
+    .mobile-placeholder {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 25px;
+        text-align: center;
+        color: #6c757d;
+        transition: all 0.2s ease;
     }
     
-    .legend-title {
+    .mobile-placeholder:hover {
+        border-color: #007bff;
+        background: #f0f8ff;
+    }
+    
+    .mobile-placeholder h4 {
         font-size: 18px;
-        font-weight: 600;
         color: #333;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
+        font-weight: 600;
     }
     
-    .legend-items {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
+    .mobile-placeholder p {
+        font-size: 14px;
+        line-height: 1.4;
+        margin-bottom: 8px;
     }
     
-    .legend-item {
+    .compatibility-details {
+        margin-top: 15px;
+    }
+    
+    .details-toggle {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
         display: flex;
         align-items: center;
         gap: 10px;
+        width: fit-content;
+        margin: 0 auto;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
     }
     
-    .legend-badge {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
+    .details-toggle::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
     }
     
-    .legend-text {
+    .details-toggle:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .details-toggle:hover::before {
+        left: 100%;
+    }
+    
+    .details-toggle:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+    
+    .details-content {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 20px;
+        margin-top: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .details-content h5 {
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 16px;
+    }
+    
+    .details-content h6 {
+        color: #555;
+        margin-top: 20px;
+        margin-bottom: 10px;
         font-size: 14px;
-        color: #6c757d;
     }
     
-    @media (max-width: 768px) {
+    .details-content p {
+        margin-bottom: 15px;
+        line-height: 1.5;
+        color: #666;
+    }
+    
+    .device-list {
+        margin: 10px 0;
+    }
+    
+    .device-list div {
+        margin-bottom: 5px;
+        color: #666;
+        padding: 2px 0;
+    }
+    
+    .pixel-note {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+    
+    .pixel-note h6 {
+        color: #856404;
+        margin-top: 0;
+    }
+    
+    .pixel-note p {
+        color: #856404;
+        margin-bottom: 0;
+    }
+    
+    .download-button {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        margin: 15px auto 0 auto;
+    }
+    
+    .download-button:hover {
+        background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    }
+    
+    .download-button:active {
+        transform: translateY(0);
+    }
+    
+    .download-icon {
+        font-style: normal;
+    }
+    
+    .android-download-section {
+        margin-top: 15px;
+        text-align: center;
+    }
+    
+    .android-download-section h5 {
+        color: #155724;
+        margin: 0 0 10px 0;
+        font-size: 16px;
+    }
+    
+    .android-download-section p {
+        color: #155724;
+        margin: 0 0 15px 0;
+        font-size: 14px;
+    }
+    
+    .green-info-box {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+    
+    .green-info-box p {
+        color: #155724;
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .ios-notice {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+    
+    /* Mobile/Controller view styles */
+    @media (max-width: 900px) {
         .compatibility-container {
-            padding: 100px 20px 15px 20px;
+            padding: 45px 20px 20px 20px;
         }
         
         .page-title {
-            font-size: 36px;
+            font-size: 32px;
         }
         
         .page-subtitle {
-            font-size: 20px;
-        }
-        
-        .compatibility-grid {
-            grid-template-columns: 1fr;
-            gap: 30px;
-        }
-        
-        .device-section {
-            padding: 25px;
-            min-height: auto;
-        }
-        
-        .section-title {
-            font-size: 28px;
-        }
-        
-        .device-tile {
-            padding: 20px;
-            min-height: 70px;
-        }
-        
-        .device-name {
             font-size: 18px;
         }
         
-        .device-image {
-            font-size: 28px;
-            width: 50px;
+        .section {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 20px 0 !important;
         }
         
-        .compatibility-status {
-            font-size: 14px;
-            padding: 5px 10px;
+        .section-title {
+            font-size: 22px;
+        }
+        
+        .platform-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .platform-card {
+            padding: 15px;
+        }
+        
+        .mobile-placeholder {
+            background: transparent !important;
+            border: none !important;
+            padding: 15px 0 !important;
         }
     }
 </style>
@@ -232,133 +522,590 @@ permalink: /compatibility/
 <div class="compatibility-container">
     <div class="page-header">
         <h1 class="page-title">Eagle Eyes Compatibility</h1>
-        <h2 class="page-subtitle">Eagle Eyes Pilot</h2>
         <p class="page-description">
-            Check the compatibility status of your DJI drone and controller with Eagle Eyes Pilot. 
-            This comprehensive list shows which devices are fully supported, may work with limitations, 
-            or are not currently supported.
+            Select your drone, controller, Android device, or operating system to see detailed compatibility information.
         </p>
     </div>
 
-    <div class="compatibility-grid">
-        <!-- Drone Compatibility Section -->
-        <div class="device-section">
+    <div class="compatibility-sections">
+        <!-- Section 1: Drones and Controllers -->
+        <div class="section">
             <div class="section-header">
-                <div class="section-icon">🚁</div>
-                <h3 class="section-title">DJI Drones</h3>
+                <div class="section-icon">
+                    <img src="{{ '/images/drone_iconEE.png' | relative_url }}" alt="Drone Icon" style="width: 32px; height: auto; margin-right: 8px; object-fit: contain;">
+                    <img src="{{ '/images/djicontroller.png' | relative_url }}" alt="Controller Icon" style="width: 32px; height: 32px;">
+                </div>
+                <h3 class="section-title">Drones and Controllers</h3>
+            </div>
+            <p class="section-description">
+                Select your DJI drone model to see compatible controllers and devices for Eagle Eyes Pilot.
+            </p>
+            
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input type="text" id="drone-search" class="search-input" placeholder="Search for your drone model..." 
+                       oninput="handleSearchInput()" onkeydown="handleSearchKeydown(event)" onfocus="showAutocomplete()" onblur="hideAutocomplete()">
+                <div id="autocomplete-dropdown" class="autocomplete-dropdown">
+                    <!-- Autocomplete suggestions will be populated here -->
+                </div>
             </div>
             
-            <div class="device-list">
-                <div class="device-tile">
-                    <div class="device-image">🚁</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI Mini 3 Pro</div>
-                        <div class="compatibility-status status-supported">Supported</div>
+            <!-- Drone Dropdown -->
+            <div class="dropdown-container">
+                <select id="drone-dropdown" class="drone-dropdown" onchange="selectDroneFromDropdown()">
+                    <option value="">-- Select a drone model --</option>
+                </select>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            
+            <div id="drone-info-container" class="drone-info-container">
+                <!-- Controller compatibility sections will be populated here -->
+            </div>
+        </div>
+
+        <!-- Section 2: Android Mobile Devices -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <img src="{{ '/images/android_smartphone_icon.png' | relative_url }}" alt="Android Phone" style="width: 24px; height: auto; margin-right: 8px; object-fit: contain;">
+                    <img src="{{ '/images/android_tablet.png' | relative_url }}" alt="Android Tablet" style="width: 24px; height: auto; object-fit: contain;">
+                </div>
+                <h3 class="section-title">Android Mobile Devices</h3>
+            </div>
+            <p class="section-description">
+                Eagle Eyes Pilot is compatible with modern Android devices.
+            </p>
+            
+            <div class="mobile-placeholder">
+                <p><strong>Requirements:</strong> Android 7+ with processor comparable to or faster than Snapdragon 855 (Samsung Galaxy S10 level).</p>
+                <p><strong>Note:</strong> Eagle Eyes Pilot currently does not work on Google Pixel 6 / Pixel 7 phones due to a DJI SDK bug.</p>
+                
+                <div class="compatibility-details">
+                    <button class="details-toggle" onclick="toggleCompatibilityDetails()">
+                        <span id="toggle-text">Click here for more info</span>
+                        <span id="toggle-icon">▼</span>
+                    </button>
+                    
+                    <div id="compatibility-details-content" class="details-content" style="display: none;">
+                        <p>EagleEyes runs on Android 7+ and uses the DJI Mobile SDK (v4 and v5 - which limit the drones it is compatible with - see below). To use the computer vision system live, the devices should have a processor comparable to or faster than the Snapdragon 855 that comes with devices like the Samsung Galaxy S10.</p>
+                        
+                        <div class="tested-devices">
+                            <h6>EagleEyes has been tested on the following devices:</h6>
+                            <div class="device-list">
+                                <div>Samsung Galaxy S10</div>
+                                <div>Samsung Galaxy Tab S6</div>
+                                <div>Samsung Galaxy S21-FE</div>
+                                <div>DJI RC-Pro</div>
+                                <div>DJI RC-Pro Enterprise (the M3 controller)</div>
+                                <div>DJI RC-Plus (the M30 Controller)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pixel-note">
+                            <h6>Note for Google Pixel 6/Pixel 7 users:</h6>
+                            <p>Eagle Eyes Pilot currently does not work on Google Pixel 6 / Pixel 7 phones, due to a bug in the DJI SDK. This is expected to be fixed soon, you can track the issue here.</p>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="device-tile">
-                    <div class="device-image">🚁</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI M3T</div>
-                        <div class="compatibility-status status-supported">Supported</div>
+                <div class="ios-notice">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <img src="{{ '/images/apple_fruit_logo.png' | relative_url }}" alt="Apple Logo" style="width: 16px; height: auto; object-fit: contain;">
+                        <span style="font-weight: 600; color: #856404;">iOS Support</span>
                     </div>
+                    <p style="color: #856404; font-size: 14px; line-height: 1.4; margin: 0;">
+                        Eagle Eyes does not support iOS due to <a href="https://dronexl.co/2023/11/30/dji-ios-app-developers-switch-android/" target="_blank" style="color: #dc3545; text-decoration: underline;">DJI dropping iOS SDK support</a>. We do have plans to expand support to Apple iPhone for the AirOps map in the future.
+                    </p>
                 </div>
                 
-                <div class="device-tile">
-                    <div class="device-image">🚁</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI M30T</div>
-                        <div class="compatibility-status status-untested">Untested</div>
-                    </div>
-                </div>
-                
-                <div class="device-tile">
-                    <div class="device-image">🚁</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI Mavic 3</div>
-                        <div class="compatibility-status status-untested">Untested</div>
-                    </div>
-                </div>
-                
-                <div class="device-tile">
-                    <div class="device-image">🚁</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI Air 2S</div>
-                        <div class="compatibility-status status-incompatible">Not Compatible</div>
-                    </div>
-                </div>
-                
-                <div class="device-tile">
-                    <div class="device-image">🚁</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI Mini 3</div>
-                        <div class="compatibility-status status-incompatible">Not Compatible</div>
-                    </div>
+                <div class="android-download-section">
+                    <button class="download-button" onclick="window.location.href='/download/'">
+                        <i class="download-icon">⬇</i> Download Eagle Eyes Pilot on your Android Device for Free Now
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Controller Compatibility Section -->
-        <div class="device-section">
+        <!-- Section 3: Computers for Eagle Eyes Scan -->
+        <div class="section">
             <div class="section-header">
-                <div class="section-icon">🎮</div>
-                <h3 class="section-title">Controllers & Devices</h3>
+                <div class="section-icon">💻</div>
+                <h3 class="section-title">Computers for Eagle Eyes Scan</h3>
             </div>
+            <p class="section-description">
+                The following operating systems are compatible with Eagle Eyes Scan.
+            </p>
             
-            <div class="device-list">
-                <div class="device-tile">
-                    <div class="device-image">🎮</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI RC-N1</div>
-                        <div class="compatibility-status status-supported">Supported</div>
+            <div class="platform-grid">
+                <div class="platform-card" onclick="selectDesktopPlatform('windows')">
+                    <div class="platform-icon">
+                        <img src="{{ '/images/windows_logo.png' | relative_url }}" alt="Windows Logo" style="width: 48px; height: auto; object-fit: contain;">
                     </div>
+                    <h3 class="platform-title">Windows</h3>
+                    <p class="platform-subtitle">Windows 10 or newer</p>
+                    <div class="platform-description">
+                        <p>Compatible with most modern Windows 10 and Windows 11 systems.</p>
+                    </div>
+                    <div class="compatibility-status status-supported">Supported</div>
                 </div>
                 
-                <div class="device-tile">
-                    <div class="device-image">🎮</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI RC Pro</div>
-                        <div class="compatibility-status status-supported">Supported</div>
+                <div class="platform-card" onclick="selectDesktopPlatform('macos-apple')">
+                    <div class="platform-icon">
+                        <img src="{{ '/images/apple_fruit_logo.png' | relative_url }}" alt="Apple Logo" style="width: 20px; height: auto; margin-right: 4px; object-fit: contain;">
+                        <img src="{{ '/images/macos_logo.png' | relative_url }}" alt="macOS Logo" style="width: 20px; height: auto; object-fit: contain;">
                     </div>
+                    <h3 class="platform-title">macOS (Apple silicon)</h3>
+                    <p class="platform-subtitle">M1, M2, M3, M4 chips</p>
+                    <div class="platform-description">
+                        <p>Optimized for Apple's ARM64 architecture. Best performance on modern Macs.</p>
+                    </div>
+                    <div class="compatibility-status status-supported">Supported</div>
                 </div>
                 
-                <div class="device-tile">
-                    <div class="device-image">🎮</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI RC 2</div>
-                        <div class="compatibility-status status-untested">Untested</div>
+                <div class="platform-card" onclick="selectDesktopPlatform('macos-intel')">
+                    <div class="platform-icon">
+                        <img src="{{ '/images/apple_fruit_logo.png' | relative_url }}" alt="Apple Logo" style="width: 20px; height: auto; margin-right: 4px; object-fit: contain;">
+                        <img src="{{ '/images/macos_logo.png' | relative_url }}" alt="macOS Logo" style="width: 20px; height: auto; object-fit: contain;">
                     </div>
-                </div>
-                
-                <div class="device-tile">
-                    <div class="device-image">🎮</div>
-                    <div class="device-info">
-                        <div class="device-name">DJI Smart Controller</div>
-                        <div class="compatibility-status status-incompatible">Not Compatible</div>
+                    <h3 class="platform-title">macOS (Intel)</h3>
+                    <p class="platform-subtitle">Intel-based Macs</p>
+                    <div class="platform-description">
+                        <p>For older Intel-based Mac computers (x86 architecture). Performance may vary.</p>
                     </div>
-                </div>
-                
-                <div class="device-tile">
-                    <div class="device-image">📱</div>
-                    <div class="device-info">
-                        <div class="device-name">Android Mobile Phone</div>
-                        <div class="compatibility-status status-supported">Supported</div>
-                    </div>
-                </div>
-                
-                <div class="device-tile">
-                    <div class="device-image">📟</div>
-                    <div class="device-info">
-                        <div class="device-name">Android Tablet</div>
-                        <div class="compatibility-status status-supported">Supported</div>
-                    </div>
+                    <div class="compatibility-status status-untested">Limited Support</div>
                 </div>
             </div>
         </div>
     </div>
-
 </div>
 
-{% include footer.html %} 
+<script>
+// Global variables for drone data
+let selectedDrone = null;
+let droneModelsData = [];
+let filteredDroneModels = [];
+let currentHighlightIndex = -1;
+
+// Host URL setup (same as download page)
+var hostURL = 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+
+// Load drone models when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadDroneModels();
+});
+
+async function loadDroneModels() {
+    try {
+        const response = await fetch(`${hostURL}/get_drone_models`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch drone models');
+        }
+        
+        const data = await response.json();
+        console.log('Drone models API response:', data);
+        
+        droneModelsData = data.drones || [];
+        displayDroneModels(droneModelsData);
+        
+    } catch (error) {
+        console.error('Error loading drone models:', error);
+        // Fallback to basic drone list
+        populateBasicDroneList();
+    }
+}
+
+function displayDroneModels(drones) {
+    const dropdown = document.getElementById('drone-dropdown');
+    
+    if (!dropdown) {
+        console.error('Drone dropdown element not found');
+        return;
+    }
+    
+    dropdown.innerHTML = '<option value="">-- Select a drone model --</option>';
+    
+    if (!drones || drones.length === 0) {
+        dropdown.innerHTML = '<option value="">No drone models available</option>';
+        return;
+    }
+    
+    // Sort drones alphabetically by display name
+    const sortedDrones = drones.slice().sort((a, b) => {
+        const nameA = `${a.brand} ${a.name}`.toLowerCase();
+        const nameB = `${b.brand} ${b.name}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+    
+    sortedDrones.forEach((drone, index) => {
+        const option = document.createElement('option');
+        const displayName = `${drone.brand} ${drone.name}`;
+        option.value = index;
+        option.textContent = displayName;
+        option.setAttribute('data-drone-data', JSON.stringify(drone));
+        dropdown.appendChild(option);
+    });
+    
+           // Add Autel option in alphabetical order
+       const autelOption = document.createElement('option');
+       autelOption.value = 'autel';
+       autelOption.textContent = 'Autel';
+       autelOption.setAttribute('data-drone-data', JSON.stringify({
+           name: 'Autel',
+           brand: 'Autel',
+           status: 'autel-compatible',
+           footnotes: 'Several Autel models can output a clean HDMI feed for live streaming into Eagle Eyes Scan. Eagle Eyes Scan can also read the .ASS files Autel generates with mp4 recordings to reconstruct the drone\'s GPS track, display it on the map, and enable easy <a href="https://streamable.com/qzfqvu" target="_blank" style="color: #007bff; text-decoration: underline;">export of detections as geolocated photo points for import into CalTopo</a>. Development is ongoing to further improve compatibility with Autel and other drone makes and models.'
+       }));
+       
+       // Insert Autel in alphabetical order
+       let inserted = false;
+       for (let i = 0; i < dropdown.options.length; i++) {
+           if (dropdown.options[i].textContent.localeCompare('Autel') > 0) {
+               dropdown.insertBefore(autelOption, dropdown.options[i]);
+               inserted = true;
+               break;
+           }
+       }
+       if (!inserted) {
+           dropdown.appendChild(autelOption);
+       }
+    
+    // Add "Other drone make or model" option at the end
+    const otherOption = document.createElement('option');
+    otherOption.value = 'other';
+    otherOption.textContent = 'Other drone make or model';
+    otherOption.setAttribute('data-drone-data', JSON.stringify({
+        name: 'Other drone make or model',
+        brand: '',
+        controllers_internally_tested: [],
+        controllers_user_tested: [],
+        controllers_not_tested: [],
+        controllers_incompatible: [],
+        footnotes: 'Compatible with Eagle Eyes Scan (optimized if your drone allows for a clean HDMI livestream output - outputting just the drone imagery with no controls overlayed on the image), but Eagle Eyes Pilot our DJI drone piloting app currently only supports the drone models shown in the above list. See the Computers for Eagle Eyes Scan compatibility section below for more information.'
+    }));
+    dropdown.appendChild(otherOption);
+    
+    // Store sorted drones for consistent access
+    droneModelsData = sortedDrones;
+}
+
+function populateBasicDroneList() {
+    const dropdown = document.getElementById('drone-dropdown');
+    if (!dropdown) return;
+    
+    dropdown.innerHTML = '<option value="">-- Select a drone model --</option>';
+    
+    const basicDrones = [
+        { brand: 'DJI', name: 'Mini 3 Pro' },
+        { brand: 'DJI', name: 'M3T' },
+        { brand: 'DJI', name: 'M30T' },
+        { brand: 'DJI', name: 'Mavic 3' },
+        { brand: 'DJI', name: 'Air 2S' },
+        { brand: 'DJI', name: 'Mini 3' },
+        { brand: 'Autel', name: 'Autel', status: 'autel-compatible', footnotes: 'Several models of Autel are capable of outputting clean HDMI feed and can be used for live streaming into Eagle Eyes Scan. Eagle Eyes Scan is also capable of reading the .ASS files that Autel creates to accompany mp4 files and using that .ASS file to generate the GPS track of the drone during a mission and display the drones GPS track on the map in Eagle Eyes Scan. Eagle Eyes is pursuing ongoing development to continue to improve the compatibility with Autel and several other drone makes and models.' }
+    ];
+    
+    basicDrones.forEach((drone, index) => {
+        const option = document.createElement('option');
+        const displayName = `${drone.brand} ${drone.name}`;
+        option.value = index;
+        option.textContent = displayName;
+        option.setAttribute('data-drone-data', JSON.stringify(drone));
+        dropdown.appendChild(option);
+    });
+}
+
+function selectDroneFromDropdown() {
+    const dropdown = document.getElementById('drone-dropdown');
+    const selectedValue = dropdown.value;
+    
+    if (!selectedValue || selectedValue === '') {
+        document.getElementById('drone-info-container').innerHTML = '';
+        return;
+    }
+    
+    const selectedOption = dropdown.options[dropdown.selectedIndex];
+    const droneDataAttr = selectedOption.getAttribute('data-drone-data');
+    
+    if (!droneDataAttr) {
+        console.error('No drone data found for selected option');
+        return;
+    }
+    
+    try {
+        const droneData = JSON.parse(droneDataAttr);
+        displayDroneInfo(droneData);
+    } catch (error) {
+        console.error('Error parsing drone data:', error);
+    }
+}
+
+function displayDroneInfo(droneData) {
+    const container = document.getElementById('drone-info-container');
+    
+    // Check if this is the "Other drone make or model" option
+    if (droneData.name === 'Other drone make or model') {
+        let html = `
+            <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 12px; padding: 25px; margin-top: 20px;">
+                <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">${droneData.brand} ${droneData.name}</h4>
+                
+                                    <div style="margin-bottom: 20px;">
+                        <p style="color: #856404; line-height: 1.6; margin-bottom: 15px;">
+                            Compatible with Eagle Eyes Scan (<a href="/faq/#pilot-vs-scan" style="color: #007bff; text-decoration: underline;">connecting your drone to Eagle Eyes Scan</a> will be optimized if your drone allows for a clean HDMI livestream output - outputting just the drone imagery with no controls overlayed on the image). <span style="color: #dc3545;">For Eagle Eyes Pilot (our drone piloting app) we currently only support the drone models shown in the above list. If you would like to see support for your drone, please let us know via info@eagleeyessearch.com. We can't promise anything, but we would like to be aware of the demand.</span>
+                        </p>
+                    </div>
+                
+                <div class="green-info-box">
+                    <p><strong>Eagle Eyes Pilot</strong> is available for download on any Android device and offers several free features. See Compatible Android Devices section below.</p>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+        return;
+    }
+    
+    // Check if this is an Autel drone
+    if (droneData.brand === 'Autel') {
+        let html = `
+            <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 12px; padding: 25px; margin-top: 20px;">
+                <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">Autel</h4>
+                
+                <div style="margin-bottom: 20px;">
+                    <p style="color: #856404; line-height: 1.6; margin-bottom: 15px;">
+                        Several Autel models can output a clean HDMI feed for <a href="https://youtu.be/cwZ4tvBRdjA" target="_blank" style="color: #007bff; text-decoration: underline;">live streaming into Eagle Eyes Scan</a>. Eagle Eyes Scan can also read the .ASS files Autel generates with mp4 recordings to reconstruct the drone's GPS track, display it on the map, and enable easy <a href="https://streamable.com/qzfqvu" target="_blank" style="color: #007bff; text-decoration: underline;">export of detections as geolocated photo points for import into CalTopo</a>. Development is ongoing to further improve compatibility with Autel and other drone makes and models.
+                    </p>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+        return;
+    }
+    
+    let html = `
+        <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 25px; margin-top: 20px;">
+            <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">${droneData.brand} ${droneData.name}</h4>
+            
+            <h5 style="margin: 20px 0 15px 0; color: #555; font-size: 16px; font-weight: 600;">
+                <img src="{{ '/images/djicontroller.png' | relative_url }}" alt="Controller Icon" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;">
+                Compatible Controllers:
+            </h5>
+            <div style="display: grid; gap: 12px;">
+    `;
+    
+    // Collect all controllers from different categories
+    const allControllers = [
+        ...(droneData.controllers_internally_tested || []).map(name => ({ name, status: 'supported', category: 'internally_tested' })),
+        ...(droneData.controllers_user_tested || []).map(name => ({ name, status: 'supported', category: 'user_tested' })),
+        ...(droneData.controllers_not_tested || []).map(name => ({ name, status: 'untested', category: 'not_tested' })),
+        ...(droneData.controllers_incompatible || []).map(name => ({ name, status: 'incompatible', category: 'incompatible' }))
+    ];
+    
+    // Add Android device options
+    allControllers.push({ name: 'Android Device', status: 'supported', category: 'general' });
+    allControllers.push({ name: 'Android Tablet', status: 'supported', category: 'general' });
+    
+    if (allControllers.length === 0) {
+        html += '<p style="color: #6c757d; font-style: italic;">No controllers available for this drone.</p>';
+    } else {
+        allControllers.forEach(controller => {
+            let iconSrc, iconAlt;
+            
+            if (controller.name === 'Android Device') {
+                iconSrc = '{{ "/images/android_smartphone_icon.png" | relative_url }}';
+                iconAlt = 'Android Device';
+            } else if (controller.name === 'Android Tablet') {
+                iconSrc = '{{ "/images/android_tablet.png" | relative_url }}';
+                iconAlt = 'Android Tablet';
+            } else {
+                iconSrc = '{{ "/images/djicontroller.png" | relative_url }}';
+                iconAlt = 'Controller';
+            }
+            
+            const statusText = controller.status === 'supported' ? '✅ Fully Supported' : 
+                              controller.status === 'untested' ? '⚠️ May Work' : 
+                              '❌ Not Supported';
+            
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border: 1px solid #e9ecef; border-radius: 8px; transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center;">
+                        <img src="${iconSrc}" alt="${iconAlt}" style="width: 20px; height: 20px; margin-right: 10px;">
+                        <span style="font-weight: 500; color: #333;">${controller.name}</span>
+                    </div>
+                    <span class="compatibility-status status-${controller.status}">
+                        ${statusText}
+                    </span>
+                </div>
+            `;
+        });
+    }
+    
+    // Add footnotes if available
+    if (droneData.footnotes) {
+        html += `
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; font-style: italic; color: #856404; font-size: 13px; line-height: 1.4;">
+                ${droneData.footnotes}
+            </div>
+        `;
+    }
+    
+    // Add download button for Eagle Eyes Pilot
+    html += `
+        <div style="margin-top: 20px; text-align: center;">
+            <button class="download-button" onclick="window.location.href='/download/'">
+                <i class="download-icon">⬇</i> Download Eagle Eyes Pilot Now
+            </button>
+        </div>
+    `;
+    
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function selectDesktopPlatform(platform) {
+    // Remove any existing download buttons
+    const platformCards = document.querySelectorAll('.platform-card');
+    platformCards.forEach(card => {
+        const existingButton = card.querySelector('.download-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+    });
+    
+    // Add download button to the selected platform card
+    const selectedCard = event.currentTarget;
+    const downloadButton = document.createElement('button');
+    downloadButton.className = 'download-button';
+    downloadButton.innerHTML = '<i class="download-icon">⬇</i> Download Scan Now';
+    downloadButton.onclick = function(e) {
+        e.stopPropagation();
+        window.location.href = '/download/';
+    };
+    selectedCard.appendChild(downloadButton);
+}
+
+// Search functionality functions
+function handleSearchInput() {
+    const searchInput = document.getElementById('drone-search');
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    currentHighlightIndex = -1;
+    
+    if (searchTerm.length === 0) {
+        hideAutocomplete();
+        return;
+    }
+    
+    // Filter drone models based on search term
+    filteredDroneModels = droneModelsData.filter(drone => {
+        const displayName = `${drone.brand} ${drone.name}`.toLowerCase();
+        return displayName.includes(searchTerm);
+    });
+    
+    updateAutocompleteDropdown();
+    showAutocomplete();
+}
+
+function updateAutocompleteDropdown() {
+    const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+    autocompleteDropdown.innerHTML = '';
+    
+    filteredDroneModels.forEach(drone => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.textContent = `${drone.brand} ${drone.name}`;
+        item.setAttribute('data-drone-data', JSON.stringify(drone));
+        item.onclick = () => selectDroneFromAutocomplete(drone);
+        autocompleteDropdown.appendChild(item);
+    });
+}
+
+function showAutocomplete() {
+    const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+    if (filteredDroneModels.length > 0) {
+        autocompleteDropdown.style.display = 'block';
+    } else {
+        hideAutocomplete();
+    }
+}
+
+function hideAutocomplete() {
+    setTimeout(() => {
+        const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+        autocompleteDropdown.style.display = 'none';
+    }, 200);
+}
+
+function handleSearchKeydown(event) {
+    const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+    const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+    
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+        const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+        
+        items.forEach(item => item.classList.remove('selected'));
+        if (items[nextIndex]) {
+            items[nextIndex].classList.add('selected');
+        }
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+        
+        items.forEach(item => item.classList.remove('selected'));
+        if (items[prevIndex]) {
+            items[prevIndex].classList.add('selected');
+        }
+    } else if (event.key === 'Enter') {
+        event.preventDefault();
+        const selectedItem = autocompleteDropdown.querySelector('.autocomplete-item.selected');
+        if (selectedItem) {
+            const droneData = JSON.parse(selectedItem.getAttribute('data-drone-data'));
+            selectDroneFromAutocomplete(droneData);
+        }
+    }
+}
+
+function selectDroneFromAutocomplete(droneData) {
+    const searchInput = document.getElementById('drone-search');
+    const dropdown = document.getElementById('drone-dropdown');
+    
+    searchInput.value = `${droneData.brand} ${droneData.name}`;
+    hideAutocomplete();
+    
+    // Find and select the corresponding dropdown option
+    const displayName = `${droneData.brand} ${droneData.name}`;
+    for (let i = 0; i < dropdown.options.length; i++) {
+        if (dropdown.options[i].textContent === displayName) {
+            dropdown.selectedIndex = i;
+            break;
+        }
+    }
+    
+    // Display drone info
+    displayDroneInfo(droneData);
+}
+
+function toggleCompatibilityDetails() {
+    const content = document.getElementById('compatibility-details-content');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleIcon = document.getElementById('toggle-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggleText.textContent = 'Hide details';
+        toggleIcon.textContent = '▲';
+    } else {
+        content.style.display = 'none';
+        toggleText.textContent = 'Click here for more info';
+        toggleIcon.textContent = '▼';
+    }
+}
+</script>
+
 {% include footer.html %} 
