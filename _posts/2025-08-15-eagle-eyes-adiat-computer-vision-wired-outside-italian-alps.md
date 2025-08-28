@@ -16,7 +16,7 @@ During the search, the team used both Eagle Eyes and ADIAT by TexSAR. As the CNS
 ## Location of Monviso in the Italian Alps
 <iframe src="{{ '/monviso-map.html' | relative_url }}" width="100%" height="550" frameborder="0" style="border: none; outline: none; box-shadow: none; margin: 20px 0;"></iframe>
 
-The mission took place on the mountain's rugged north face, in a steep couloir above a hanging glacier. Monviso, also known as Monte Viso, is the highest peak in the Cottian Alps and a striking landmark sometimes mentioned as a possible inspiration for the Paramount Pictures logo. Search teams had previously been unable to locate any sign of the missing man. After launching two drones to capture thousands of images across a 183-hectare area, the CNSAS drone team processed the imagery with Eagle Eyes, which flagged a small cluster of red colored pixels from the mountaineer's helmet hidden among rocks.
+Monviso, also known as Monte Viso, is a striking landmark sometimes mentioned as a possible inspiration for the Paramount Pictures logo. The mission took place on the mountain's rugged north face, in a steep couloir above a hanging glacier. Search teams had previously been unable to locate any sign of the missing man. After launching two drones to capture thousands of images across a 183-hectare area, the CNSAS drone team processed the imagery with Eagle Eyes, which flagged a small cluster of red colored pixels from the mountaineer's helmet hidden among rocks.
 
 ## Example of an Eagle Eyes Color Detection
 
