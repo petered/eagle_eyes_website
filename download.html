@@ -2982,11 +2982,24 @@ permalink: /download/
     // Handle hash navigation (e.g., #step3, #step3&platform=desktop&os=windows)
     function handleHashNavigation() {
         const hash = window.location.hash;
+        console.log('Hash navigation triggered, hash:', hash);
+        
         if (hash.includes('#step3')) {
-            // Parse hash parameters
-            const hashParams = new URLSearchParams(hash.substring(1));
+            // Parse hash parameters - handle both ? and & formats
+            let hashString = hash.substring(1); // Remove the #
+            console.log('Hash string after removing #:', hashString);
+            
+            if (hashString.includes('&') && !hashString.includes('?')) {
+                // Convert & to ? for URLSearchParams
+                hashString = hashString.replace('&', '?');
+                console.log('Converted hash string:', hashString);
+            }
+            
+            const hashParams = new URLSearchParams(hashString);
             const platform = hashParams.get('platform') || 'mobile';
             const os = hashParams.get('os');
+            
+            console.log('Parsed platform:', platform, 'os:', os);
             
             // Set platform and OS
             selectedPlatform = platform;
