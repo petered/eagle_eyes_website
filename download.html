@@ -778,6 +778,15 @@ permalink: /download/
         right: 0;
     }
     
+    .version-header .download-button {
+        margin-top: 10px;
+        display: inline-block;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
     .version-name {
         font-size: 18px;
         font-weight: 600;
@@ -1160,8 +1169,13 @@ permalink: /download/
                 Our software requires an active license to access all features. Get one <a href="{{ '/pricing/' | relative_url }}">here</a>.
             </div>
             
+            <!-- Setup Tip - permanently visible above platform cards -->
+            <div class="compatibility-message compatibility-warning" style="margin-bottom: 20px;">
+                <strong>Setup Tip:</strong> To make setup simple, open this page on the device you'll be installing Eagle Eyes Pilot on.
+            </div>
+            
             <div class="platform-grid">
-                <div class="platform-card" onclick="selectPlatform('mobile')">
+                <div class="platform-card" onclick="selectPlatformAndNext('mobile')">
                     <span class="platform-icon">
                         <img src="{{ '/images/djicontroller.png' | relative_url }}" alt="DJI Controller">
                         &nbsp;&nbsp;&nbsp;<span style="font-size: 38px; transform: translateY(4px); display: inline-block;">📱</span>&nbsp;&nbsp;&nbsp;
@@ -1174,7 +1188,7 @@ permalink: /download/
                     </div>
                 </div>
                 
-                <div class="platform-card" onclick="selectPlatform('desktop')">
+                <div class="platform-card" onclick="selectPlatformAndNext('desktop')">
                     <span class="platform-icon">
                         <img src="{{ '/images/computer_icon.png' | relative_url }}" alt="Computer" style="width: 42px; height: auto; vertical-align: middle;">
                         &nbsp;&nbsp;&nbsp;&nbsp;
@@ -1188,11 +1202,6 @@ permalink: /download/
                         <p>Scan live or pre-recorded drone footage for motion and colour anomalies and share them with your team. <a href="https://www.eagleeyessearch.com/scan/" target="_blank" rel="noopener" style="text-decoration: underline;">More info</a></p>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Mobile Setup Warning - only on Step 1 when Pilot selected -->
-            <div id="mobile-setup-warning" class="compatibility-message compatibility-warning" style="display: none; margin-top: 15px;">
-                <strong>Setup Tip:</strong> To make setup simple, open this page on the device you'll be installing Eagle Eyes Pilot on.
             </div>
         </div>
         
@@ -1244,7 +1253,28 @@ permalink: /download/
         
         <!-- Step 2B: Mobile Device Selection -->
         <div id="step2b-mobile" class="step-content">
-            <h2 class="step-title">Select Your Drone</h2>
+            <h2 class="step-title">Select Device Type</h2>
+            
+            <div class="platform-grid">
+                <div class="platform-card" onclick="selectAndroidDevice()">
+                    <span class="platform-icon">
+                        <span style="font-size: 38px; transform: translateY(4px); display: inline-block;">📱</span>&nbsp;&nbsp;&nbsp;
+                        <img src="{{ '/images/android_tablet.png' | relative_url }}" alt="Android Tablet" style="width: 40px; height: auto; vertical-align: middle;">
+                    </span>
+                    <h3 class="platform-title">Download Eagle Eyes Pilot for your Android mobile device</h3>
+                    <p class="platform-subtitle">(phone or tablet)</p>
+                </div>
+                
+                <div class="platform-card" onclick="selectDroneForController()">
+                    <span class="platform-icon">
+                        <img src="{{ '/images/drone_iconEE.png' | relative_url }}" alt="Drone" style="width: 45px; height: auto; vertical-align: middle;">
+                        &nbsp;&nbsp;&nbsp;
+                        <img src="{{ '/images/djicontroller.png' | relative_url }}" alt="DJI Controller" style="width: 45px; height: auto; vertical-align: middle;">
+                    </span>
+                    <h3 class="platform-title">Select Your Drone</h3>
+                    <p class="platform-subtitle">Choose your drone model below to confirm controller compatibility and proceed with setup.</p>
+                </div>
+            </div>
             
             <!-- Loading State -->
             <div id="drones-loading" class="loading-spinner" style="display: none;">
@@ -1259,7 +1289,7 @@ permalink: /download/
             </div>
             
             <!-- Drone Selection -->
-            <div id="drone-selection-content" class="drone-selection-container" style="display: none;">
+            <div id="drone-selection-content" class="drone-selection-container" style="display: none !important; border: 2px solid #007bff; border-radius: 8px; padding: 20px; margin-top: 20px; background-color: #f8f9fa; box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);">
                 
                 <!-- Search Bar -->
                 <div class="search-container">
@@ -1294,6 +1324,11 @@ permalink: /download/
         <div id="step3-downloads" class="step-content">
             <h2 class="step-title" id="download-title">Download Software</h2>
             <p class="step-description" id="download-description">Choose from available versions</p>
+            
+            <!-- Intel Warning (only shown for macOS Intel) -->
+            <div id="intel-warning-step3" class="compatibility-message compatibility-warning" style="display: none;">
+                When using an Apple machine, we recommend devices with Apple silicon (ARM64 architecture, such as M1, M2, M3, and M4 chipsets). The performance of this Intel-based (x86) distribution may vary.
+            </div>
             
             <!-- Loading State -->
             <div id="downloads-loading" class="loading-spinner" style="display: none;">
@@ -2074,14 +2109,6 @@ permalink: /download/
         // Select current platform
         event.currentTarget.classList.add('selected');
         
-        // Show/hide mobile setup warning
-        const mobileWarning = document.getElementById('mobile-setup-warning');
-        if (platform === 'mobile') {
-            mobileWarning.style.display = 'block';
-        } else {
-            mobileWarning.style.display = 'none';
-        }
-        
         // Enable next button
         document.getElementById('nextButton').disabled = false;
         
@@ -2098,7 +2125,128 @@ permalink: /download/
         console.log('Selected platform:', platform);
     }
     
+    function selectPlatformAndNext(platform) {
+        // Prevent double-clicking from advancing multiple steps
+        if (window.isAdvancingStep) {
+            console.log('Click blocked - step advancement in progress');
+            return;
+        }
+        
+        selectedPlatform = platform;
+        
+        // Remove previous selections
+        document.querySelectorAll('.platform-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Select current platform
+        event.currentTarget.classList.add('selected');
+        
+        console.log('Selected platform and advancing:', platform);
+        
+        // Set flag to prevent double-clicking
+        window.isAdvancingStep = true;
+        
+        // Auto-advance to next step
+        setTimeout(() => {
+            nextStep();
+            // Reset flag after step advancement
+            setTimeout(() => {
+                window.isAdvancingStep = false;
+                console.log('Step advancement flag reset');
+            }, 1500);
+        }, 300);
+    }
+    
+    function selectAndroidDevice() {
+        // Prevent double-clicking from advancing multiple steps
+        if (window.isAdvancingStep) {
+            return;
+        }
+        
+        // Remove previous selections
+        document.querySelectorAll('.platform-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Select current platform
+        event.currentTarget.classList.add('selected');
+        
+        console.log('Selected Android device option');
+        
+        // Set flag to prevent double-clicking
+        window.isAdvancingStep = true;
+        
+        // Go directly to Android downloads
+        goToAndroidDownloads();
+        
+        // Reset flag after step advancement
+        setTimeout(() => {
+            window.isAdvancingStep = false;
+        }, 1000);
+    }
+    
+    function selectDroneForController() {
+        // Prevent double-clicking from advancing multiple steps
+        if (window.isAdvancingStep) {
+            return;
+        }
+        
+        // Remove previous selections
+        document.querySelectorAll('.platform-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Select current platform
+        event.currentTarget.classList.add('selected');
+        
+        console.log('Selected drone for controller option');
+        
+        // Set flag to prevent double-clicking
+        window.isAdvancingStep = true;
+        
+        // Show the drone selection interface
+        showDroneSelection();
+        
+        // Reset flag after interface is shown
+        setTimeout(() => {
+            window.isAdvancingStep = false;
+        }, 500);
+    }
+    
+    function goToAndroidDownloads() {
+        // Go directly to step 3 with mobile downloads
+        currentStep = 3;
+        showStep3();
+        updateProgress();
+        
+        // Scroll to top after step change
+        setTimeout(() => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }, 100);
+    }
+    
+    function showDroneSelection() {
+        // Keep the platform grid visible and show the drone selection interface below it
+        const droneSelection = document.getElementById('drone-selection-content');
+        
+        if (droneSelection) {
+            droneSelection.style.display = 'block !important';
+            // Load drone models if not already loaded
+            loadDroneModels();
+        }
+    }
+    
     function selectDesktopPlatform(osPlatform) {
+        // Prevent double-clicking from advancing multiple steps
+        if (window.isAdvancingStep) {
+            console.log('Click blocked - step advancement in progress');
+            return;
+        }
+        
         selectedOSPlatform = osPlatform;
         
         // Remove previous selections
@@ -2109,18 +2257,20 @@ permalink: /download/
         // Select current platform
         event.currentTarget.classList.add('selected');
         
-        // Show/hide Intel warning
-        const intelWarning = document.getElementById('intel-warning');
-        if (osPlatform === 'macos-intel') {
-            intelWarning.style.display = 'block';
-        } else {
-            intelWarning.style.display = 'none';
-        }
-        
-        // Enable next button
-        document.getElementById('nextButton').disabled = false;
-        
         console.log('Selected OS platform:', osPlatform);
+        
+        // Set flag to prevent double-clicking
+        window.isAdvancingStep = true;
+        
+        // Auto-advance to next step after selection
+        setTimeout(() => {
+            nextStep();
+            // Reset flag after step advancement
+            setTimeout(() => {
+                window.isAdvancingStep = false;
+                console.log('Step advancement flag reset');
+            }, 1500);
+        }, 300);
     }
     
     function downloadSelected(download) {
@@ -2226,6 +2376,14 @@ permalink: /download/
         
         // Show step 3
         document.getElementById('step3-downloads').classList.add('active');
+        
+        // Show/hide Intel warning for desktop downloads
+        const intelWarning = document.getElementById('intel-warning-step3');
+        if (selectedPlatform === 'desktop' && selectedOSPlatform === 'macos-intel') {
+            intelWarning.style.display = 'block';
+        } else {
+            intelWarning.style.display = 'none';
+        }
         
         // Update navigation
         document.getElementById('prevButton').disabled = false;
@@ -2442,14 +2600,10 @@ permalink: /download/
                 <div class="version-name">${release.version}</div>
                 <div class="version-date">Release date: ${formatDate(release.release_date)}</div>
                 <div class="version-badge ${badgeClass}">${versionType}</div>
+                <a href="${downloadUrl}" class="download-button" onclick="trackDownload('${releaseId}'); return true;">
+                    Download
+                </a>
             </div>
-            
-            ${release.release_notes && release.release_notes.trim() ? `
-                <div class="release-notes">
-                    <h4>Release Notes</h4>
-                    ${renderReleaseNotes(parseReleaseNotes(release.release_notes), releaseId)}
-                </div>
-            ` : ''}
             
             ${versionType === 'beta' ? `
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 15px 0; font-style: italic; color: #856404; font-size: 13px; line-height: 1.4;">
@@ -2460,10 +2614,14 @@ permalink: /download/
                 </div>
             ` : ''}
             
+            ${release.release_notes && release.release_notes.trim() ? `
+                <div class="release-notes">
+                    <h4>Release Notes</h4>
+                    ${renderReleaseNotes(parseReleaseNotes(release.release_notes), releaseId)}
+                </div>
+            ` : ''}
+            
             <div class="version-actions">
-                <a href="${downloadUrl}" class="download-button" onclick="trackDownload('${releaseId}'); return true;">
-                    Download
-                </a>
                 ${fileSize ? `<div class="file-info">${fileSize}</div>` : ''}
             </div>
         `;
@@ -2638,9 +2796,10 @@ permalink: /download/
             manualLink.href = 'https://docs.google.com/document/d/12mhRVmhtQUfvJHy7tI7mB_oLd3aRqYJJPWzKlhKnTwY/edit?tab=t.0#heading=h.gid4fjjhiq1p';
         } else {
             steps = [
-                { title: 'Install the APK', text: 'Install the downloaded .apk on your device. If it’s blocked, enable “Install from Unknown Sources” in your settings.' },
-                { title: 'Activate your license', text: `Open Eagle Eyes Pilot. When asked for location access, set it to "While using the app".<br>In the main menu, tap the button next to “No License. Get one here →” and follow the steps.` },
-                { title: 'Configure Your Device and start flying!', text: 'Setup your controller via "..." -> Setup Controller. <br>Once you connect your controller, you are ready to fly!' }
+                { title: 'Locate the downloaded APK file', text: 'Once your download completes on your device, locate the downloaded .APK file which should be in your Downloads folder in the files of your device.' },
+                { title: 'Install the APK', text: 'Open that .APK file and install the APK. If it\'s blocked, enable "Install from Unknown Sources" in your settings.' },
+                { title: 'Open Eagle Eyes Pilot app and allow permissions', text: `Open Eagle Eyes Pilot app once it's finished installing and allow permissions. When asked for location access, set it to "While using the app".` },
+                { title: 'Optional device configuration', text: 'You can configure the app by selecting Setup on Controller in the settings accessible from the three dots (...). Choose a default CalTopo map, a default drone name, and download any offline maps. Then you\'re ready to either start flying or using the AirOps map in Eagle Eyes Pilot!' }
             ];
             tutorialLink.href = 'https://www.eagleeyessearch.com/pilot#tutorial';
             manualLink.href = 'https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#heading=h.vnrae2q60d57';
@@ -2661,6 +2820,37 @@ permalink: /download/
             `;
             setupSteps.appendChild(stepElement);
         });
+        
+        // Add YouTube video links for mobile (Eagle Eyes Pilot) setup
+        if (selectedPlatform === 'mobile') {
+            const videoSection = document.createElement('div');
+            videoSection.style.cssText = 'margin-top: 30px; padding: 25px; background-color: #fff; border-radius: 8px; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+            videoSection.innerHTML = `
+                <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">Video Tutorials</h4>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px; line-height: 1.5;">
+                    The following 3-minute and 5-minute videos walk through the complete download, activation and setup:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <a href="https://www.youtube.com/watch?v=BFPfNqnNWUI" target="_blank" rel="noopener" 
+                       style="display: flex; align-items: center; gap: 12px; padding: 15px 18px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; text-decoration: none; color: #333; transition: all 0.2s ease; hover:background-color: #e9ecef;">
+                        <span style="font-size: 24px;">📺</span>
+                        <div>
+                            <div style="font-weight: 600; color: #007bff; margin-bottom: 2px;">Installing the Eagle Eyes app onto your drone controller or Android device</div>
+                            <div style="font-size: 12px; color: #666;">3-minute tutorial</div>
+                        </div>
+                    </a>
+                    <a href="https://www.youtube.com/watch?v=KYztoarEkoU" target="_blank" rel="noopener" 
+                       style="display: flex; align-items: center; gap: 12px; padding: 15px 18px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; text-decoration: none; color: #333; transition: all 0.2s ease; hover:background-color: #e9ecef;">
+                        <span style="font-size: 24px;">📺</span>
+                        <div>
+                            <div style="font-weight: 600; color: #007bff; margin-bottom: 2px;">Eagle Eyes Pilot license activation and controller setup</div>
+                            <div style="font-size: 12px; color: #666;">5-minute tutorial</div>
+                        </div>
+                    </a>
+                </div>
+            `;
+            setupSteps.appendChild(videoSection);
+        }
     }
     
     // Mobile device selection functionality
@@ -2732,6 +2922,11 @@ permalink: /download/
     function trackDownload(versionId) {
         console.log('Download tracked:', versionId);
         // Add download tracking logic here
+        
+        // Auto-advance to next step after download is initiated
+        setTimeout(() => {
+            nextStep();
+        }, 1000); // 1 second delay to allow download to start
     }
     
     function displayStaticDesktopDownloads(platformFilter) {
@@ -2769,4 +2964,18 @@ permalink: /download/
             </div>
         `;
     }
+    
+    // Global failsafe to reset step advancement flag
+    function resetStepAdvancementFlag() {
+        window.isAdvancingStep = false;
+        console.log('Step advancement flag manually reset');
+    }
+    
+    // Reset flag every 5 seconds as a failsafe
+    setInterval(() => {
+        if (window.isAdvancingStep) {
+            console.log('Failsafe: Resetting stuck step advancement flag');
+            window.isAdvancingStep = false;
+        }
+    }, 5000);
 </script>
