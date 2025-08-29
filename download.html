@@ -2978,4 +2978,44 @@ permalink: /download/
             window.isAdvancingStep = false;
         }
     }, 5000);
+    
+    // Handle hash navigation (e.g., #step3, #step3&platform=desktop&os=windows)
+    function handleHashNavigation() {
+        const hash = window.location.hash;
+        if (hash.includes('#step3')) {
+            // Parse hash parameters
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const platform = hashParams.get('platform') || 'mobile';
+            const os = hashParams.get('os');
+            
+            // Set platform and OS
+            selectedPlatform = platform;
+            if (os) {
+                selectedOSPlatform = os;
+            }
+            
+            // Jump to step 3
+            currentStep = 3;
+            showStep3();
+            updateProgress();
+            
+            // Scroll to top
+            setTimeout(() => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    }
+    
+    // Check hash on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        handleHashNavigation();
+    });
+    
+    // Check hash on hash change
+    window.addEventListener('hashchange', function() {
+        handleHashNavigation();
+    });
 </script>
