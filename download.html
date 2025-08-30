@@ -2431,14 +2431,18 @@ permalink: /download/
     
     async function loadDownloads() {
         try {
+            console.log('loadDownloads called - selectedPlatform:', selectedPlatform, 'selectedOSPlatform:', selectedOSPlatform);
+            
             document.getElementById('downloads-loading').style.display = 'block';
             document.getElementById('downloads-error').style.display = 'none';
             document.getElementById('desktop-downloads').style.display = 'none';
             document.getElementById('mobile-downloads').style.display = 'none';
             
             if (selectedPlatform === 'desktop') {
+                console.log('Loading desktop releases...');
                 await loadDesktopReleases();
             } else if (selectedPlatform === 'mobile') {
+                console.log('Loading mobile releases...');
                 await loadMobileReleases();
             }
             
@@ -2979,12 +2983,13 @@ permalink: /download/
         }
     }, 5000);
     
-    // Handle hash navigation (e.g., #step3, #step3&platform=desktop&os=windows)
-    function handleHashNavigation() {
-        const hash = window.location.hash;
-        console.log('Hash navigation triggered, hash:', hash);
+            // Handle hash navigation (e.g., #step2&platform=desktop, #step3&platform=mobile)
+        function handleHashNavigation() {
+            const hash = window.location.hash;
+            console.log('Hash navigation triggered, hash:', hash);
+            console.log('Current URL:', window.location.href);
         
-        if (hash.includes('#step3')) {
+        if (hash.includes('#step2') || hash.includes('#step3')) {
             // Parse hash parameters - handle both ? and & formats
             let hashString = hash.substring(1); // Remove the #
             console.log('Hash string after removing #:', hashString);
@@ -2998,8 +3003,9 @@ permalink: /download/
             const hashParams = new URLSearchParams(hashString);
             const platform = hashParams.get('platform') || 'mobile';
             const os = hashParams.get('os');
+            const step = hashString.split('?')[0] || hashString.split('&')[0];
             
-            console.log('Parsed platform:', platform, 'os:', os);
+            console.log('Parsed step:', step, 'platform:', platform, 'os:', os);
             
             // Set platform and OS
             selectedPlatform = platform;
@@ -3007,9 +3013,78 @@ permalink: /download/
                 selectedOSPlatform = os;
             }
             
-            // Jump to step 3
-            currentStep = 3;
-            showStep3();
+            console.log('Hash navigation - selectedPlatform:', selectedPlatform, 'selectedOSPlatform:', selectedOSPlatform);
+            
+            // Jump to the specified step
+            if (step === 'step2') {
+                currentStep = 2;
+                if (platform === 'desktop') {
+                    showStep2();
+                } else {
+                    showStep2B();
+                }
+            } else if (step === 'step3') {
+                currentStep = 3;
+                if (platform === 'desktop') {
+                    // For desktop downloads in step 3, set platform and OS, then show step 3
+                    selectedPlatform = 'desktop';
+                    if (os) {
+                        selectedOSPlatform = os;
+                    }
+                    console.log('About to show step 3 for desktop - selectedPlatform:', selectedPlatform, 'selectedOSPlatform:', selectedOSPlatform);
+                    showStep3();
+                } else {
+                    console.log('About to show step 3 for mobile - selectedPlatform:', selectedPlatform);
+                    showStep3();
+                }
+            }
+            
+            updateProgress();
+            
+            // Scroll to top
+            setTimeout(() => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    }
+    
+    // Handle URL parameters (e.g., ?step=3&platform=desktop&os=windows)
+    function handleURLParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const step = urlParams.get('step');
+        const platform = urlParams.get('platform');
+        const os = urlParams.get('os');
+        
+        console.log('URL parameters - step:', step, 'platform:', platform, 'os:', os);
+        
+        if (step && (step === '2' || step === '3')) {
+            // Set platform and OS
+            if (platform) {
+                selectedPlatform = platform;
+            }
+            if (os) {
+                selectedOSPlatform = os;
+            }
+            
+            console.log('URL navigation - selectedPlatform:', selectedPlatform, 'selectedOSPlatform:', selectedOSPlatform);
+            
+            // Jump to the specified step
+            if (step === '2') {
+                currentStep = 2;
+                if (platform === 'desktop') {
+                    showStep2(); // Show desktop OS selection
+                } else {
+                    showStep2B(); // Show mobile device selection
+                }
+            } else if (step === '3') {
+                currentStep = 3;
+                console.log('About to show step 3 from URL - selectedPlatform:', selectedPlatform, 'selectedOSPlatform:', selectedOSPlatform);
+                showStep3();
+            }
+            
             updateProgress();
             
             // Scroll to top
@@ -3025,6 +3100,7 @@ permalink: /download/
     // Check hash on page load
     document.addEventListener('DOMContentLoaded', function() {
         handleHashNavigation();
+        handleURLParameters();
     });
     
     // Check hash on hash change
