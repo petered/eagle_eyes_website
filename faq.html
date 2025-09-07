@@ -23,6 +23,11 @@ permalink: /faq/
     <section class="section-block pt-30 pb-90 bkg-white">
         <div class="row">
             <div class="column width-8 offset-2">
+                <!-- FAQ Search -->
+                <div class="faq-search" role="search" aria-label="Search FAQs">
+                    <input id="faq-search-input" type="search" placeholder="Search FAQs..." aria-label="Search FAQs" />
+                    <div id="faq-search-meta" class="faq-search-meta" aria-live="polite"></div>
+                </div>
                 <div class="faq-container">
                     <!-- FAQ Items -->
                     <div class="faq-item" id="pricing">
@@ -312,7 +317,7 @@ permalink: /faq/
 document.addEventListener('DOMContentLoaded', function() {
     const faqQuestions = document.querySelectorAll('.faq-question');
     
-    // Function to open a specific FAQ item
+    // Function to open a specific FAQ item (without scrolling the page)
     function openFaqItem(faqItem) {
         // Close all other FAQ items first
         faqQuestions.forEach(otherQuestion => {
@@ -321,19 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Open the specified item
         faqItem.classList.add('active');
-
-        // Scroll the item into view
-        setTimeout(() => {
-            const rect = faqItem.getBoundingClientRect();
-            const absoluteTop = window.pageYOffset + rect.top;
-            const headerOffset = 100; // Adjust this value based on your header height
-            const elementPosition = absoluteTop - headerOffset;
-            
-            window.scrollTo({
-                top: elementPosition,
-                behavior: 'smooth'
-            });
-        }, 100);
+        // Do not scroll the page; let content expand in place
     }
 
     // Function to pause all videos in a FAQ item
@@ -394,6 +387,135 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle initial load
     handleHash();
+
+    // --- Client-side FAQ Search ---
+    const searchInput = document.getElementById('faq-search-input');
+    const searchMeta = document.getElementById('faq-search-meta');
+    const faqItems = Array.from(document.querySelectorAll('.faq-item'));
+
+    // Build index of FAQs with normalized text
+    const index = faqItems.map(item => {
+        const id = item.getAttribute('id') || '';
+        const questionEl = item.querySelector('.faq-question');
+        const answerEl = item.querySelector('.faq-answer');
+        const questionText = (questionEl ? questionEl.textContent : '').trim();
+        const answerText = (answerEl ? answerEl.textContent : '').trim();
+        const haystack = (questionText + ' ' + answerText).toLowerCase();
+        const tokens = haystack
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+        return { id, item, questionText, answerText, haystack, tokens };
+    });
+
+    function tokenize(q) {
+        return (q || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+    }
+
+    // Basic Damerau-Levenshtein distance for short words (typo tolerance)
+    function editDistance(a, b) {
+        const al = a.length, bl = b.length;
+        if (al === 0) return bl;
+        if (bl === 0) return al;
+        const dp = Array.from({ length: al + 1 }, () => new Array(bl + 1).fill(0));
+        for (let i = 0; i <= al; i++) dp[i][0] = i;
+        for (let j = 0; j <= bl; j++) dp[0][j] = j;
+        for (let i = 1; i <= al; i++) {
+            for (let j = 1; j <= bl; j++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                );
+                if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+                    dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + cost);
+                }
+            }
+        }
+        return dp[al][bl];
+    }
+
+    function scoreEntry(entry, terms) {
+        if (terms.length === 0) return 0;
+        let score = 0;
+        const questionLower = entry.questionText.toLowerCase();
+        for (const t of terms) {
+            // Direct includes
+            if (entry.haystack.includes(t)) score += 2;
+            if (questionLower.includes(t)) score += 3;
+
+            // Prefix match boost
+            if (entry.tokens.some(tok => tok.startsWith(t))) score += 2;
+
+            // Fuzzy match for typos (only for reasonably short tokens)
+            if (t.length >= 4) {
+                let best = Infinity;
+                for (const tok of entry.tokens) {
+                    if (tok.length < 3) continue;
+                    // Skip exact includes already scored
+                    if (tok.includes(t) || t.includes(tok)) continue;
+                    // Early prune by first letter
+                    if (tok[0] !== t[0]) continue;
+                    // Compare full token distance
+                    const d = editDistance(tok, t);
+                    if (d < best) best = d;
+                    // Also compare distance to the token prefix with the same length as the query
+                    if (tok.length >= t.length) {
+                        const prefix = tok.slice(0, t.length);
+                        const dp = editDistance(prefix, t);
+                        if (dp < best) best = dp;
+                    }
+                    if (best === 1) break;
+                }
+                // Accept distance threshold relative to length
+                if (best <= 2) {
+                    score += (3 - best); // 2 for dist 1, 1 for dist 2
+                }
+            }
+        }
+        return score;
+    }
+
+    function renderResults(query) {
+        const q = (query || '').trim();
+        // Reset URL hash so expanded state doesn't fight filtering
+        history.replaceState(null, null, window.location.pathname);
+
+        if (q.length === 0) {
+            // Show all items when empty query
+            index.forEach(e => {
+                e.item.style.display = '';
+            });
+            searchMeta.textContent = '';
+            return;
+        }
+
+        const terms = tokenize(q);
+        const scored = index
+            .map(e => ({ e, s: scoreEntry(e, terms) }))
+            .filter(x => x.s > 0)
+            .sort((a, b) => b.s - a.s);
+
+        const resultIds = new Set(scored.map(x => x.e.id));
+        // Collapse all items during filtering; do not auto-open any
+        index.forEach(({ id, item }) => {
+            item.classList.remove('active');
+            item.style.display = resultIds.has(id) ? '' : 'none';
+        });
+
+        searchMeta.textContent = `${scored.length} result${scored.length === 1 ? '' : 's'} for "${q}"`;
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            renderResults(e.target.value);
+        });
+    }
 });
 </script>
 
@@ -444,5 +566,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .faq-item.active .faq-answer {
     display: block;
+}
+
+/* FAQ Search */
+.faq-search {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0 25px;
+}
+
+#faq-search-input {
+    width: 100%;
+    max-width: 640px;
+    padding: 12px 14px;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.faq-search-meta {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
 }
 </style> 
