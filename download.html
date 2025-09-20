@@ -1291,6 +1291,12 @@ permalink: /download/
             <!-- Drone Selection -->
             <div id="drone-selection-content" class="drone-selection-container" style="display: none !important; border: 2px solid #007bff; border-radius: 8px; padding: 20px; margin-top: 20px; background-color: #f8f9fa; box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);">
                 
+                <!-- CalTopo Integration Notice -->
+                <div class="compatibility-message compatibility-info" style="margin: 0 0 10px 0; padding: 6px 12px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 11px; line-height: 1.2; white-space: nowrap; max-width: 100%;">
+                    <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;">
+                    <strong>CalTopo Integration:</strong> Eagle Eyes Pilot includes CalTopo integration built-in. No need to install CalTopo app separately on your drone controller.
+                </div>
+                
                 <!-- Search Bar -->
                 <div class="search-container">
                     <input type="text" id="drone-search" class="search-input" placeholder="Search for your drone model..." 
@@ -1324,6 +1330,12 @@ permalink: /download/
         <div id="step3-downloads" class="step-content">
             <h2 class="step-title" id="download-title">Download Software</h2>
             <p class="step-description" id="download-description">Choose from available versions</p>
+            
+            <!-- CalTopo Integration Notice (Eagle Eyes Pilot only) -->
+            <div id="caltopo-notice-step3" class="compatibility-message compatibility-info" style="margin: 0 0 20px 0; padding: 6px 12px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 11px; line-height: 1.2; white-space: nowrap; max-width: 100%; display: none;">
+                <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;">
+                <strong>CalTopo Integration:</strong> Eagle Eyes Pilot includes CalTopo integration built-in. No need to install CalTopo app separately on your drone controller.
+            </div>
             
             <!-- Intel Warning (only shown for macOS Intel) -->
             <div id="intel-warning-step3" class="compatibility-message compatibility-warning" style="display: none;">
@@ -1361,6 +1373,12 @@ permalink: /download/
         <div id="step4-setup" class="step-content">
             <h2 class="step-title">Setup Instructions</h2>
             <p class="step-description" id="setup-description">Follow these steps to activate your Eagle Eyes software</p>
+            
+            <!-- CalTopo Integration Notice (Eagle Eyes Pilot only) -->
+            <div id="caltopo-notice-step4" class="compatibility-message compatibility-info" style="margin: 0 0 20px 0; padding: 6px 12px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 11px; line-height: 1.2; white-space: nowrap; max-width: 100%; display: none;">
+                <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;">
+                <strong>CalTopo Integration:</strong> Eagle Eyes Pilot includes CalTopo integration built-in. No need to install CalTopo app separately on your drone controller.
+            </div>
             
             <div class="setup-guide">
                 <ol class="setup-steps" id="setup-steps">
@@ -2208,6 +2226,19 @@ permalink: /download/
         // Show the drone selection interface
         showDroneSelection();
         
+        // Mobile optimization: Auto-scroll to drone selection box on mobile devices
+        if (window.innerWidth <= 768) { // Mobile breakpoint
+            setTimeout(() => {
+                const droneSelection = document.getElementById('drone-selection-content');
+                if (droneSelection) {
+                    droneSelection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }, 100); // Small delay to ensure the element is visible
+        }
+        
         // Reset flag after interface is shown
         setTimeout(() => {
             window.isAdvancingStep = false;
@@ -2385,6 +2416,14 @@ permalink: /download/
             intelWarning.style.display = 'none';
         }
         
+        // Show/hide CalTopo notice for Eagle Eyes Pilot (mobile platform)
+        const caltopoNotice = document.getElementById('caltopo-notice-step3');
+        if (selectedPlatform === 'mobile') {
+            caltopoNotice.style.display = 'block';
+        } else {
+            caltopoNotice.style.display = 'none';
+        }
+        
         // Update navigation
         document.getElementById('prevButton').disabled = false;
         document.getElementById('nextButton').disabled = false;
@@ -2402,6 +2441,14 @@ permalink: /download/
         
         // Show step 4
         document.getElementById('step4-setup').classList.add('active');
+        
+        // Show/hide CalTopo notice for Eagle Eyes Pilot (mobile platform)
+        const caltopoNotice = document.getElementById('caltopo-notice-step4');
+        if (selectedPlatform === 'mobile') {
+            caltopoNotice.style.display = 'block';
+        } else {
+            caltopoNotice.style.display = 'none';
+        }
         
         // Update navigation
         document.getElementById('prevButton').disabled = false;
@@ -3058,10 +3105,6 @@ permalink: /download/
         const platform = urlParams.get('platform');
         const os = urlParams.get('os');
         
-        console.log('URL parameters - step:', step, 'platform:', platform, 'os:', os);
-        console.log('window.location.search:', window.location.search);
-        console.log('window.location.href:', window.location.href);
-        
         // Only handle URL parameters if we have the specific parameters from compatibility page links
         if (window.location.search && step && platform && (step === '2' || step === '3')) {
             // Set platform and OS
@@ -3077,11 +3120,7 @@ permalink: /download/
             // Jump to the specified step
             if (step === '2') {
                 currentStep = 2;
-                if (platform === 'desktop') {
-                    showStep2(); // Show desktop OS selection
-                } else {
-                    showStep2B(); // Show mobile device selection
-                }
+                showStep2(); // Show appropriate step 2 based on platform
             } else if (step === '3') {
                 currentStep = 3;
                 console.log('About to show step 3 from URL - selectedPlatform:', selectedPlatform, 'selectedOSPlatform:', selectedOSPlatform);
