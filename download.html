@@ -830,6 +830,34 @@ permalink: /download/
         color: white;
     }
     
+    .version-details-line {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .version-badge-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-direction: row;
+    }
+    
+    .version-logo-container {
+        display: flex;
+        justify-content: center;
+        margin: 10px 0;
+    }
+    
+    .version-logo {
+        height: 48px;
+        width: 48px;
+        object-fit: contain;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+    
     .release-notes {
         margin-bottom: 15px;
     }
@@ -841,80 +869,81 @@ permalink: /download/
         margin-bottom: 8px;
     }
     
+    .release-notes-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 0;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .release-notes-toggle:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+    }
+    
+    .dropdown-arrow {
+        font-size: 12px;
+        transition: transform 0.2s ease;
+        color: #6c757d;
+    }
+    
     .release-notes ul {
-        margin: 0;
+        margin: 0 0 15px 0;
         padding-left: 20px;
         color: #6c757d;
         font-size: 14px;
-        line-height: 1.5;
+        line-height: 1.6;
     }
     
     .release-notes-item {
-        margin-bottom: 12px;
+        margin-bottom: 16px;
     }
     
     .release-notes-item strong {
         color: #333;
-        font-weight: normal;
+        font-weight: 600;
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
+        font-size: 15px;
     }
     
     .release-notes-item ul {
-        margin-top: 4px;
+        margin-top: 8px;
         margin-bottom: 0;
         padding-left: 20px;
     }
     
     .release-notes-subitem {
-        margin-bottom: 2px;
+        margin-bottom: 6px;
         margin-left: 0;
+        line-height: 1.5;
     }
     
     .release-notes-container {
         position: relative;
-    }
-    
-    .release-notes-fade {
-        position: relative;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        background: white;
         overflow: hidden;
-        max-height: 180px; /* Further reduced - approximately 5-6 lines visible */
+        max-height: 0;
+        transition: max-height 0.3s ease;
     }
     
-    .release-notes-fade::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 30px;
-        background: linear-gradient(transparent, white);
-        pointer-events: none;
+    .release-notes-container.release-notes-expanded {
+        max-height: 400px; /* Fixed height for scrollability */
+        overflow-y: auto; /* Enable vertical scrolling */
     }
     
-    .release-notes-expanded .release-notes-fade {
-        max-height: none;
-    }
-    
-    .release-notes-expanded .release-notes-fade::after {
-        display: none;
-    }
-    
-    .read-more-btn {
-        background: none;
-        border: none;
-        color: #007bff;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        padding: 5px 0;
-        margin-top: 8px;
-        text-decoration: underline;
-        transition: color 0.2s ease;
-    }
-    
-    .read-more-btn:hover {
-        color: #0056b3;
+    .release-notes-content {
+        padding: 15px;
     }
     
     .version-actions {
@@ -2648,9 +2677,17 @@ permalink: /download/
         card.innerHTML = `
             <div class="version-header">
                 <div class="product-name">${productName}</div>
-                <div class="version-name">${release.version}</div>
-                <div class="version-date">Release date: ${formatDate(release.release_date)}</div>
-                <div class="version-badge ${badgeClass}">${versionType}</div>
+                <div class="version-details-line">
+                    <div class="version-name">${release.version}</div>
+                    <div class="version-date">Release date: ${formatDate(release.release_date)}</div>
+                    <div class="version-badge-container">
+                        <div class="version-badge ${badgeClass}">${versionType}</div>
+                    </div>
+                </div>
+                <div class="version-logo-container">
+                    ${versionType === 'beta' ? '<img src="/images/eagle_eyes_pilot_logo_beta _SDK5.png" alt="Beta Logo" class="version-logo">' : ''}
+                    ${versionType === 'stable' ? '<img src="/images/Eagle Eyes Logo.png" alt="Stable Logo" class="version-logo">' : ''}
+                </div>
                 <a href="${downloadUrl}" class="download-button" onclick="trackDownload('${releaseId}'); return true;">
                     Download
                 </a>
@@ -2659,7 +2696,7 @@ permalink: /download/
             ${versionType === 'beta' ? `
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 15px 0; font-style: italic; color: #856404; font-size: 13px; line-height: 1.4;">
                     ${productName === 'Eagle Eyes Pilot' ? 
-                        'This is a beta release with early access to new features. You may encounter errors. In case that happens during flight, you can always switch to the standard DJI piloting app. We would appreciate any feedback to info@eagleeyessearch.com.' :
+                        'This is a beta release with early access to new features. You may encounter errors. For reliability, we recommend installing both the Stable and Beta versions on your controller. If issues occur during flight, you can always switch to the Stable version or the standard DJI piloting app. Our licensing is per device, so running both versions on the same controller only counts as one license. Feedback is welcome at info@eagleeyessearch.com.' :
                         'This is a beta release with early access to new features. You may encounter errors. We would appreciate any feedback to info@eagleeyessearch.com.'
                     }
                 </div>
@@ -2667,7 +2704,10 @@ permalink: /download/
             
             ${release.release_notes && release.release_notes.trim() ? `
                 <div class="release-notes">
-                    <h4>Release Notes</h4>
+                    <h4 class="release-notes-toggle" onclick="toggleReleaseNotes('release-notes-${releaseId}', this)">
+                        Release Notes
+                        <span class="dropdown-arrow">▼</span>
+                    </h4>
                     ${renderReleaseNotes(parseReleaseNotes(release.release_notes), releaseId)}
                 </div>
             ` : ''}
@@ -2754,9 +2794,9 @@ permalink: /download/
     function renderReleaseNotes(parsedNotes, releaseId) {
         const containerId = `release-notes-${releaseId}`;
         
-        // Always show "Read More" functionality for all releases
-        let html = `<div class="release-notes-container release-notes-truncated">`;
-        html += `<div class="release-notes-content release-notes-fade" id="${containerId}">`;
+        // Create collapsible release notes
+        let html = `<div class="release-notes-container">`;
+        html += `<div class="release-notes-content" id="${containerId}">`;
         
         parsedNotes.forEach(item => {
             if (item.isStandalone) {
@@ -2796,26 +2836,24 @@ permalink: /download/
         
         html += '</div>';
         
-        // Always show "Read More" button for all releases
-        html += `<button class="read-more-btn" onclick="toggleReleaseNotes('${containerId}', this)">Read More</button>`;
-        
         html += '</div>';
         
         return html;
     }
     
-    function toggleReleaseNotes(containerId, buttonElement) {
-        const container = document.getElementById(containerId);
-        const parentContainer = container.closest('.release-notes-container');
+    function toggleReleaseNotes(containerId, titleElement) {
+        const contentDiv = document.getElementById(containerId);
+        const container = contentDiv.closest('.release-notes-container');
+        const arrow = titleElement.querySelector('.dropdown-arrow');
         
-        if (parentContainer.classList.contains('release-notes-expanded')) {
+        if (container.classList.contains('release-notes-expanded')) {
             // Collapse
-            parentContainer.classList.remove('release-notes-expanded');
-            buttonElement.textContent = 'Read More';
+            container.classList.remove('release-notes-expanded');
+            arrow.textContent = '▼';
         } else {
             // Expand
-            parentContainer.classList.add('release-notes-expanded');
-            buttonElement.textContent = 'Read Less';
+            container.classList.add('release-notes-expanded');
+            arrow.textContent = '▲';
         }
     }
     
