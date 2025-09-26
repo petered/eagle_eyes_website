@@ -1557,8 +1557,13 @@ permalink: /download/
             return;
         }
         
-        // Sort drones alphabetically by display name
-        const sortedDrones = drones.slice().sort((a, b) => {
+        // Filter for only Pilot-compatible drones, then sort alphabetically
+        const pilotCompatibleDrones = drones.filter(drone => {
+            const compatibility = drone.compatibility || [];
+            return compatibility.includes('Pilot');
+        });
+        
+        const sortedDrones = pilotCompatibleDrones.slice().sort((a, b) => {
             const nameA = `${a.brand} ${a.name}`.toLowerCase();
             const nameB = `${b.brand} ${b.name}`.toLowerCase();
             return nameA.localeCompare(nameB);
