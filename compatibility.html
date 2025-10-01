@@ -698,83 +698,92 @@ async function loadDroneModels() {
     try {
         const response = await fetch(`${hostURL}/get_drone_models`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch drone models');
-        }
-        
+
+        if (!response.ok) throw new Error('Failed to fetch drone models');
+
         const data = await response.json();
-        console.log('Drone models API response:', data);
-        
-        droneModelsData = data.drones || [];
+        const all = data.drones || [];
+
+        // Keep only drones whose compatibility includes "Pilot" (case-insensitive, supports both keys)
+        const pilotOnly = all.filter(d => {
+            const compat =
+                Array.isArray(d.compatibility) ? d.compatibility :
+                Array.isArray(d.Compatibility) ? d.Compatibility : [];
+            return compat.map(x => String(x).toLowerCase()).includes('pilot');
+        });
+
+        droneModelsData = pilotOnly;
         displayDroneModels(droneModelsData);
-        
+
     } catch (error) {
         console.error('Error loading drone models:', error);
-        // Fallback to basic drone list
+        // Fallback to basic list (DJI examples only; no Autel-as-Pilot here)
         populateBasicDroneList();
     }
 }
 
 function displayDroneModels(drones) {
     const dropdown = document.getElementById('drone-dropdown');
-    
     if (!dropdown) {
         console.error('Drone dropdown element not found');
         return;
     }
-    
+
     dropdown.innerHTML = '<option value="">-- Select a drone model --</option>';
-    
+
     if (!drones || drones.length === 0) {
         dropdown.innerHTML = '<option value="">No drone models available</option>';
         return;
     }
-    
-    // Sort drones alphabetically by display name
-    const sortedDrones = drones.slice().sort((a, b) => {
+
+    // Defensive: ensure Pilot-only again here, then sort A→Z
+    const pilotCompatibleDrones = drones.filter(drone => {
+        const compat =
+            Array.isArray(drone.compatibility) ? drone.compatibility :
+            Array.isArray(drone.Compatibility) ? drone.Compatibility : [];
+        return compat.map(x => String(x).toLowerCase()).includes('pilot');
+    });
+
+    const sortedDrones = pilotCompatibleDrones.slice().sort((a, b) => {
         const nameA = `${a.brand} ${a.name}`.toLowerCase();
         const nameB = `${b.brand} ${b.name}`.toLowerCase();
         return nameA.localeCompare(nameB);
     });
-    
+
+    // Populate dropdown with Pilot-compatible drones
     sortedDrones.forEach((drone, index) => {
         const option = document.createElement('option');
         const displayName = `${drone.brand} ${drone.name}`;
-        option.value = index;
+        option.value = index; // index in the sorted list
         option.textContent = displayName;
         option.setAttribute('data-drone-data', JSON.stringify(drone));
         dropdown.appendChild(option);
     });
-    
-           // Add Autel option in alphabetical order
-       const autelOption = document.createElement('option');
-       autelOption.value = 'autel';
-       autelOption.textContent = 'Autel';
-       autelOption.setAttribute('data-drone-data', JSON.stringify({
-           name: 'Autel',
-           brand: 'Autel',
-           status: 'autel-compatible',
-           footnotes: 'Several Autel models can output a clean HDMI feed for live streaming into Eagle Eyes Scan. Eagle Eyes Scan can also read the .ASS files Autel generates with mp4 recordings to reconstruct the drone\'s GPS track, display it on the map, and enable easy <a href="https://streamable.com/qzfqvu" target="_blank" style="color: #007bff; text-decoration: underline;">export of detections as geolocated photo points for import into CalTopo</a>. Development is ongoing to further improve compatibility with Autel and other drone makes and models.'
-       }));
-       
-       // Insert Autel in alphabetical order
-       let inserted = false;
-       for (let i = 0; i < dropdown.options.length; i++) {
-           if (dropdown.options[i].textContent.localeCompare('Autel') > 0) {
-               dropdown.insertBefore(autelOption, dropdown.options[i]);
-               inserted = true;
-               break;
-           }
-       }
-       if (!inserted) {
-           dropdown.appendChild(autelOption);
-       }
-    
+
+    // === Keep injecting "Autel" (Scan-oriented placeholder), regardless of Pilot support ===
+    const autelOption = document.createElement('option');
+    autelOption.value = 'autel';
+    autelOption.textContent = 'Autel';
+    autelOption.setAttribute('data-drone-data', JSON.stringify({
+        name: 'Autel',
+        brand: 'Autel',
+        status: 'autel-compatible',
+        footnotes: 'Several Autel models can output a clean HDMI feed for live streaming into Eagle Eyes Scan. Eagle Eyes Scan can also read the .ASS files Autel generates with mp4 recordings to reconstruct the drone\'s GPS track, display it on the map, and enable easy <a href="https://streamable.com/qzfqvu" target="_blank" style="color: #007bff; text-decoration: underline;">export of detections as geolocated photo points for import into CalTopo</a>. Development is ongoing to further improve compatibility with Autel and other drone makes and models.'
+    }));
+
+    // Insert Autel in alphabetical order among current options
+    let inserted = false;
+    for (let i = 0; i < dropdown.options.length; i++) {
+        if (dropdown.options[i].textContent.localeCompare('Autel') > 0) {
+            dropdown.insertBefore(autelOption, dropdown.options[i]);
+            inserted = true;
+            break;
+        }
+    }
+    if (!inserted) dropdown.appendChild(autelOption);
+
     // Add "Other drone make or model" option at the end
     const otherOption = document.createElement('option');
     otherOption.value = 'other';
@@ -786,30 +795,29 @@ function displayDroneModels(drones) {
         controllers_user_tested: [],
         controllers_not_tested: [],
         controllers_incompatible: [],
-        footnotes: 'Compatible with Eagle Eyes Scan (optimized if your drone allows for a clean HDMI livestream output - outputting just the drone imagery with no controls overlayed on the image), but Eagle Eyes Pilot our DJI drone piloting app currently only supports the drone models shown in the above list. See the Computers for Eagle Eyes Scan compatibility section below for more information.'
+        footnotes: 'Compatible with Eagle Eyes Scan (optimized if your drone allows for a clean HDMI live stream without on-screen overlays). For Eagle Eyes Pilot (our piloting app), we currently support only the models shown in the list above.'
     }));
     dropdown.appendChild(otherOption);
-    
-    // Store sorted drones for consistent access
+
+    // Store sorted list for autocomplete/search (Autel is intentionally NOT added here)
     droneModelsData = sortedDrones;
 }
 
 function populateBasicDroneList() {
     const dropdown = document.getElementById('drone-dropdown');
     if (!dropdown) return;
-    
+
     dropdown.innerHTML = '<option value="">-- Select a drone model --</option>';
-    
+
+    // Minimal DJI-only fallback marked Pilot-compatible
     const basicDrones = [
-        { brand: 'DJI', name: 'Mini 3 Pro' },
-        { brand: 'DJI', name: 'M3T' },
-        { brand: 'DJI', name: 'M30T' },
-        { brand: 'DJI', name: 'Mavic 3' },
-        { brand: 'DJI', name: 'Air 2S' },
-        { brand: 'DJI', name: 'Mini 3' },
-        { brand: 'Autel', name: 'Autel', status: 'autel-compatible', footnotes: 'Several models of Autel are capable of outputting clean HDMI feed and can be used for live streaming into Eagle Eyes Scan. Eagle Eyes Scan is also capable of reading the .ASS files that Autel creates to accompany mp4 files and using that .ASS file to generate the GPS track of the drone during a mission and display the drones GPS track on the map in Eagle Eyes Scan. Eagle Eyes is pursuing ongoing development to continue to improve the compatibility with Autel and several other drone makes and models.' }
+        { brand: 'DJI', name: 'Mini 3 Pro', compatibility: ['Pilot'] },
+        { brand: 'DJI', name: 'Mavic 3', compatibility: ['Pilot'] },
+        { brand: 'DJI', name: 'Air 2S', compatibility: ['Pilot'] },
+        { brand: 'DJI', name: 'M3T', compatibility: ['Pilot'] },
+        { brand: 'DJI', name: 'M30T', compatibility: ['Pilot'] }
     ];
-    
+
     basicDrones.forEach((drone, index) => {
         const option = document.createElement('option');
         const displayName = `${drone.brand} ${drone.name}`;
@@ -818,25 +826,50 @@ function populateBasicDroneList() {
         option.setAttribute('data-drone-data', JSON.stringify(drone));
         dropdown.appendChild(option);
     });
+
+    // Inject Autel here as well (fallback page should still advertise Scan path)
+    const autelOption = document.createElement('option');
+    autelOption.value = 'autel';
+    autelOption.textContent = 'Autel';
+    autelOption.setAttribute('data-drone-data', JSON.stringify({
+        name: 'Autel',
+        brand: 'Autel',
+        status: 'autel-compatible',
+        footnotes: 'Several Autel models can output a clean HDMI feed for live streaming into Eagle Eyes Scan…'
+    }));
+    dropdown.appendChild(autelOption);
+
+    // "Other…" at end
+    const otherOption = document.createElement('option');
+    otherOption.value = 'other';
+    otherOption.textContent = 'Other drone make or model';
+    otherOption.setAttribute('data-drone-data', JSON.stringify({
+        name: 'Other drone make or model',
+        brand: '',
+        footnotes: 'Compatible with Eagle Eyes Scan. For Eagle Eyes Pilot, we currently support only the models listed above.'
+    }));
+    dropdown.appendChild(otherOption);
+
+    droneModelsData = basicDrones;
 }
 
 function selectDroneFromDropdown() {
     const dropdown = document.getElementById('drone-dropdown');
     const selectedValue = dropdown.value;
-    
+
     if (!selectedValue || selectedValue === '') {
         document.getElementById('drone-info-container').innerHTML = '';
         return;
     }
-    
+
     const selectedOption = dropdown.options[dropdown.selectedIndex];
     const droneDataAttr = selectedOption.getAttribute('data-drone-data');
-    
+
     if (!droneDataAttr) {
         console.error('No drone data found for selected option');
         return;
     }
-    
+
     try {
         const droneData = JSON.parse(droneDataAttr);
         displayDroneInfo(droneData);
@@ -847,37 +880,33 @@ function selectDroneFromDropdown() {
 
 function displayDroneInfo(droneData) {
     const container = document.getElementById('drone-info-container');
-    
-    // Check if this is the "Other drone make or model" option
+
+    // Special card: "Other…"
     if (droneData.name === 'Other drone make or model') {
         let html = `
             <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 12px; padding: 25px; margin-top: 20px;">
-                <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">${droneData.brand} ${droneData.name}</h4>
-                
-                                    <div style="margin-bottom: 20px;">
-                        <p style="color: #856404; line-height: 1.6; margin-bottom: 15px;">
-                            Compatible with Eagle Eyes Scan (<a href="/faq/#pilot-vs-scan" style="color: #007bff; text-decoration: underline;">connecting your drone to Eagle Eyes Scan</a> will be optimized if your drone allows for a clean HDMI livestream output - outputting just the drone imagery with no controls overlayed on the image). <span style="color: #dc3545;">For Eagle Eyes Pilot (our drone piloting app) we currently only support the drone models shown in the above list. If you would like to see support for your drone, please let us know via info@eagleeyessearch.com. We can't promise anything, but we would like to be aware of the demand.</span>
-                        </p>
-                    </div>
-                
-                <div class="green-info-box">
-                    <p><strong>Eagle Eyes Pilot</strong> is available for download on any Android device and offers several free features. See Compatible Android Devices section below.</p>
+                <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">${droneData.name}</h4>
+                <div style="margin-bottom: 20px;">
+                    <p style="color: #856404; line-height: 1.6; margin-bottom: 15px;">
+                        Compatible with <strong>Eagle Eyes Scan</strong> via clean HDMI or file ingest. For <strong>Eagle Eyes Pilot</strong>, we currently support only the models listed in the dropdown above.
+                    </p>
                 </div>
-            </div>
-        `;
+                <div class="green-info-box">
+                    <p><strong>Eagle Eyes Pilot</strong> can be installed on Android and offers several free features. See the Android Devices section below for details.</p>
+                </div>
+            </div>`;
         container.innerHTML = html;
         return;
     }
-    
-    // Check if this is an Autel drone
-    if (droneData.brand === 'Autel') {
+
+    // Special card: injected "Autel" placeholder (Scan info)
+    if (droneData.brand === 'Autel' && droneData.name === 'Autel') {
         let html = `
             <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 12px; padding: 25px; margin-top: 20px;">
                 <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">Autel</h4>
-                
                 <div style="margin-bottom: 20px;">
                     <p style="color: #856404; line-height: 1.6; margin-bottom: 15px;">
-                        Several Autel models can output a clean HDMI feed for <a href="https://youtu.be/cwZ4tvBRdjA" target="_blank" style="color: #007bff; text-decoration: underline;">live streaming into Eagle Eyes Scan</a>. Eagle Eyes Scan can also read the .ASS files Autel generates with mp4 recordings to reconstruct the drone's GPS track, display it on the map, and enable easy <a href="https://streamable.com/qzfqvu" target="_blank" style="color: #007bff; text-decoration: underline;">export of detections as geolocated photo points for import into CalTopo</a>. Development is ongoing to further improve compatibility with Autel and other drone makes and models. We encourage you to <a href="{{ '/download/' | relative_url }}" style="color: #007bff; text-decoration: underline;">download Eagle Eyes Scan</a> and try live streaming a clean HDMI feed from your Autel drone controller into Eagle Eyes Scan on your laptop for real-time computer vision and CalTopo integration. Eagle Eyes Scan is also capable of running computer vision detection on any recorded images or video files.
+                        Several Autel models can output a clean HDMI feed for <a href="https://youtu.be/cwZ4tvBRdjA" target="_blank" style="color: #007bff; text-decoration: underline;">live streaming into Eagle Eyes Scan</a>. Eagle Eyes Scan can also read the .ASS files Autel generates with mp4 recordings to reconstruct the drone’s GPS track, display it on the map, and enable easy <a href="https://streamable.com/qzfqvu" target="_blank" style="color: #007bff; text-decoration: underline;">export of detections as geolocated photo points for CalTopo</a>. Development is ongoing to improve compatibility.
                     </p>
                 </div>
             </div>
@@ -885,36 +914,33 @@ function displayDroneInfo(droneData) {
         container.innerHTML = html;
         return;
     }
-    
+
+    // Regular drone details
     let html = `
         <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 25px; margin-top: 20px;">
-            <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">${droneData.brand} ${droneData.name}</h4>
-            
+            <h4 style="margin-bottom: 15px; color: #333; font-size: 20px; font-weight: 600;">${droneData.brand || ''} ${droneData.name || ''}</h4>
+
             <h5 style="margin: 20px 0 15px 0; color: #555; font-size: 16px; font-weight: 600;">
                 <img src="{{ '/images/djicontroller.png' | relative_url }}" alt="Controller Icon" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;">
                 Compatible Controllers:
             </h5>
             <div style="display: grid; gap: 12px;">
     `;
-    
-    // Collect all controllers from different categories
+
     const allControllers = [
         ...(droneData.controllers_internally_tested || []).map(name => ({ name, status: 'supported', category: 'internally_tested' })),
         ...(droneData.controllers_user_tested || []).map(name => ({ name, status: 'supported', category: 'user_tested' })),
         ...(droneData.controllers_not_tested || []).map(name => ({ name, status: 'untested', category: 'not_tested' })),
-        ...(droneData.controllers_incompatible || []).map(name => ({ name, status: 'incompatible', category: 'incompatible' }))
+        ...(droneData.controllers_incompatible || []).map(name => ({ name, status: 'incompatible', category: 'incompatible' })),
+        { name: 'Android Device', status: 'supported', category: 'general' },
+        { name: 'Android Tablet', status: 'supported', category: 'general' }
     ];
-    
-    // Add Android device options
-    allControllers.push({ name: 'Android Device', status: 'supported', category: 'general' });
-    allControllers.push({ name: 'Android Tablet', status: 'supported', category: 'general' });
-    
+
     if (allControllers.length === 0) {
         html += '<p style="color: #6c757d; font-style: italic;">No controllers available for this drone.</p>';
     } else {
         allControllers.forEach(controller => {
             let iconSrc, iconAlt;
-            
             if (controller.name === 'Android Device') {
                 iconSrc = '{{ "/images/android_smartphone_icon.png" | relative_url }}';
                 iconAlt = 'Android Device';
@@ -925,13 +951,13 @@ function displayDroneInfo(droneData) {
                 iconSrc = '{{ "/images/djicontroller.png" | relative_url }}';
                 iconAlt = 'Controller';
             }
-            
-            const statusText = controller.status === 'supported' ? '✅ Fully Supported' : 
-                              controller.status === 'untested' ? '⚠️ May Work' : 
-                              '❌ Not Supported';
-            
+
+            const statusText = controller.status === 'supported' ? '✅ Fully Supported'
+                              : controller.status === 'untested'  ? '⚠️ May Work'
+                              : '❌ Not Supported';
+
             html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border: 1px solid #e9ecef; border-radius: 8px; transition: all 0.2s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border: 1px solid #e9ecef; border-radius: 8px;">
                     <div style="display: flex; align-items: center;">
                         <img src="${iconSrc}" alt="${iconAlt}" style="width: 20px; height: 20px; margin-right: 10px;">
                         <span style="font-weight: 500; color: #333;">${controller.name}</span>
@@ -943,8 +969,7 @@ function displayDroneInfo(droneData) {
             `;
         });
     }
-    
-    // Add footnotes if available
+
     if (droneData.footnotes) {
         html += `
             <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; font-style: italic; color: #856404; font-size: 13px; line-height: 1.4;">
@@ -952,8 +977,7 @@ function displayDroneInfo(droneData) {
             </div>
         `;
     }
-    
-    // Add download button for Eagle Eyes Pilot
+
     html += `
         <div style="margin-top: 20px; text-align: center;">
             <button class="download-button" onclick="window.location.href=getDownloadUrl('#step3&platform=mobile')">
@@ -961,8 +985,8 @@ function displayDroneInfo(droneData) {
             </button>
         </div>
     `;
-    
-    html += '</div></div>';
+
+    html += '</div>';
     container.innerHTML = html;
 }
 
@@ -971,11 +995,9 @@ function selectDesktopPlatform(platform) {
     const platformCards = document.querySelectorAll('.platform-card');
     platformCards.forEach(card => {
         const existingButton = card.querySelector('.download-button');
-        if (existingButton) {
-            existingButton.remove();
-        }
+        if (existingButton) existingButton.remove();
     });
-    
+
     // Add download button to the selected platform card
     const selectedCard = event.currentTarget;
     const downloadButton = document.createElement('button');
@@ -983,7 +1005,6 @@ function selectDesktopPlatform(platform) {
     downloadButton.innerHTML = '<i class="download-icon">⬇</i> Download Scan Now';
     downloadButton.onclick = function(e) {
         e.stopPropagation();
-        // Pass the selected platform to the download page
         window.location.href = getDownloadUrl('?step=3&platform=desktop&os=windows');
     };
     selectedCard.appendChild(downloadButton);
@@ -991,28 +1012,27 @@ function selectDesktopPlatform(platform) {
 
 // URL helper function for download links
 function getDownloadUrl(hash) {
-    // Get the base URL for the download page
     const baseUrl = '{{ "/download/" | relative_url }}';
     return baseUrl + hash;
 }
 
-// Search functionality functions
+// ===== Search / Autocomplete =====
 function handleSearchInput() {
     const searchInput = document.getElementById('drone-search');
     const searchTerm = searchInput.value.toLowerCase().trim();
     currentHighlightIndex = -1;
-    
+
     if (searchTerm.length === 0) {
         hideAutocomplete();
         return;
     }
-    
-    // Filter drone models based on search term
+
+    // Filter *already Pilot-only* list by name
     filteredDroneModels = droneModelsData.filter(drone => {
         const displayName = `${drone.brand} ${drone.name}`.toLowerCase();
         return displayName.includes(searchTerm);
     });
-    
+
     updateAutocompleteDropdown();
     showAutocomplete();
 }
@@ -1020,7 +1040,7 @@ function handleSearchInput() {
 function updateAutocompleteDropdown() {
     const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
     autocompleteDropdown.innerHTML = '';
-    
+
     filteredDroneModels.forEach(drone => {
         const item = document.createElement('div');
         item.className = 'autocomplete-item';
@@ -1050,25 +1070,23 @@ function hideAutocomplete() {
 function handleSearchKeydown(event) {
     const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
     const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
-    
+
     if (event.key === 'ArrowDown') {
         event.preventDefault();
         const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
         const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
-        
+
         items.forEach(item => item.classList.remove('selected'));
-        if (items[nextIndex]) {
-            items[nextIndex].classList.add('selected');
-        }
+        if (items[nextIndex]) items[nextIndex].classList.add('selected');
+
     } else if (event.key === 'ArrowUp') {
         event.preventDefault();
         const currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
-        
+
         items.forEach(item => item.classList.remove('selected'));
-        if (items[prevIndex]) {
-            items[prevIndex].classList.add('selected');
-        }
+        if (items[prevIndex]) items[prevIndex].classList.add('selected');
+
     } else if (event.key === 'Enter') {
         event.preventDefault();
         const selectedItem = autocompleteDropdown.querySelector('.autocomplete-item.selected');
@@ -1082,10 +1100,10 @@ function handleSearchKeydown(event) {
 function selectDroneFromAutocomplete(droneData) {
     const searchInput = document.getElementById('drone-search');
     const dropdown = document.getElementById('drone-dropdown');
-    
+
     searchInput.value = `${droneData.brand} ${droneData.name}`;
     hideAutocomplete();
-    
+
     // Find and select the corresponding dropdown option
     const displayName = `${droneData.brand} ${droneData.name}`;
     for (let i = 0; i < dropdown.options.length; i++) {
@@ -1094,7 +1112,7 @@ function selectDroneFromAutocomplete(droneData) {
             break;
         }
     }
-    
+
     // Display drone info
     displayDroneInfo(droneData);
 }
@@ -1103,7 +1121,7 @@ function toggleCompatibilityDetails() {
     const content = document.getElementById('compatibility-details-content');
     const toggleText = document.getElementById('toggle-text');
     const toggleIcon = document.getElementById('toggle-icon');
-    
+
     if (content.style.display === 'none') {
         content.style.display = 'block';
         toggleText.textContent = 'Hide details';
