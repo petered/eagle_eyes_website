@@ -49,6 +49,73 @@ class WebRTCViewer {
     this.init();
   }
 
+  validateAndFormatRoomId(input) {
+    // Crockford Base32 valid characters: 0-9, A-Z (excluding I, L, O, U)
+    const validChars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    let result = '';
+    let showToast = false;
+    let toastMessage = '';
+
+    for (let i = 0; i < input.length; i++) {
+      const char = input[i].toUpperCase();
+
+      // Handle special character substitutions per Crockford spec
+      if (char === 'I') {
+        result += '1';
+        if (!showToast) {
+          showToast = true;
+          toastMessage = 'I is not valid, did you mean 1?';
+        }
+      } else if (char === 'L') {
+        result += '1';
+        if (!showToast) {
+          showToast = true;
+          toastMessage = 'L is not valid, did you mean 1?';
+        }
+      } else if (char === 'O') {
+        result += '0';
+        if (!showToast) {
+          showToast = true;
+          toastMessage = 'O is not valid, did you mean 0?';
+        }
+      } else if (char === 'U') {
+        result += 'V';
+        if (!showToast) {
+          showToast = true;
+          toastMessage = 'U is not valid, did you mean V?';
+        }
+      } else if (validChars.includes(char)) {
+        // Valid character, keep it (already uppercase)
+        result += char;
+      }
+      // Invalid characters are silently ignored
+    }
+
+    if (showToast) {
+      this.showToast(toastMessage);
+    }
+
+    return result;
+  }
+
+  showToast(message) {
+    const toast = document.getElementById('roomIdToast');
+    if (!toast) return;
+
+    // Clear any existing timeout
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+
+    toast.textContent = message;
+    toast.style.display = 'block';
+
+    // Auto-hide after 2.5 seconds
+    this.toastTimeout = setTimeout(() => {
+      toast.style.display = 'none';
+    }, 2500);
+  }
+
   async init() {
     // Fetch STUN servers
     await this.fetchStunServers();
@@ -68,9 +135,17 @@ class WebRTCViewer {
       if (e.key === "Enter") this.joinRoom();
     });
 
-    // Sync room inputs
-    this.roomIdInput.addEventListener('input', (e) => this.roomIdInputMobile.value = e.target.value);
-    this.roomIdInputMobile.addEventListener('input', (e) => this.roomIdInput.value = e.target.value);
+    // Sync room inputs with validation
+    this.roomIdInput.addEventListener('input', (e) => {
+      const validated = this.validateAndFormatRoomId(e.target.value);
+      e.target.value = validated;
+      this.roomIdInputMobile.value = validated;
+    });
+    this.roomIdInputMobile.addEventListener('input', (e) => {
+      const validated = this.validateAndFormatRoomId(e.target.value);
+      e.target.value = validated;
+      this.roomIdInput.value = validated;
+    });
 
     // Setup history functionality
     this.setupHistory();
