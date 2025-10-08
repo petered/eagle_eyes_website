@@ -766,9 +766,27 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    // Check for query parameter in URL on page load
+    function checkUrlQuery() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryParam = urlParams.get('query');
+        
+        if (queryParam && searchInput) {
+            // Set the search input value
+            searchInput.value = queryParam;
+            // Trigger search immediately (no debounce on initial load)
+            renderResults(queryParam);
+            // Scroll to search bar
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
     if (searchInput) {
         const debouncedSearch = debounce((value) => renderResults(value), 150);
         searchInput.addEventListener('input', (e) => debouncedSearch(e.target.value));
+        
+        // Check for URL query parameter on page load
+        checkUrlQuery();
     }
 });
 </script>
