@@ -463,6 +463,9 @@ permalink: /faq/
 <script src="js/jquery.tm.avalanche.js"></script>
 <script src="js/timber.master.min.js"></script> -->
 
+<!-- MiniSearch Library for BM25 -->
+<script src="https://cdn.jsdelivr.net/npm/minisearch@6.3.0/dist/umd/index.min.js"></script>
+
 <!-- FAQ Toggle Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -539,133 +542,233 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle initial load
     handleHash();
 
-    // --- Client-side FAQ Search ---
+    // ============================================================
+    // FAQ SEARCH SYSTEM - MiniSearch with BM25 Ranking
+    // ============================================================
+    // When adding new FAQs: Scroll down ~50 lines to the metadata
+    // section and add alternates + tags for optimal search ranking!
+    // Search the file for: "IMPORTANT: When adding NEW FAQs"
+    // ============================================================
+    
     const searchInput = document.getElementById('faq-search-input');
     const searchMeta = document.getElementById('faq-search-meta');
     const faqItems = Array.from(document.querySelectorAll('.faq-item'));
 
-    // Build index of FAQs with normalized text
-    const index = faqItems.map(item => {
-        const id = item.getAttribute('id') || '';
+    // Stopwords to remove from queries
+    const stopwords = new Set([
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been',
+        'can', 'could', 'do', 'does', 'did', 'has', 'have', 'had',
+        'how', 'what', 'when', 'where', 'why', 'who', 'which',
+        'i', 'my', 'me', 'we', 'you', 'your',
+        'if', 'so', 'than', 'that', 'this', 'these', 'those',
+        'will', 'would', 'should', 'there', 'their',
+        'dont', 'doesnt', 'didnt', 'wont', 'wouldnt', 'shouldnt', 'cant', 'couldnt',
+        'it', 'its', 'am', 'not'
+    ]);
+
+    // Concept groups for query expansion
+    const concepts = {
+        connectivity: ['wifi', 'internet', 'network', 'offline', 'online', 'signal'],
+        licensing: ['license', 'key', 'activate', 'activation', 'unlock', 'register', 'trial'],
+        hardware: ['drone', 'controller', 'remote', 'dji', 'computer', 'laptop'],
+        setup: ['install', 'setup', 'download', 'configure'],
+        detection: ['detect', 'detector', 'detection', 'vision', 'ai'],
+        compatibility: ['compatible', 'support', 'works', 'requirements'],
+        versions: ['beta', 'stable', 'version', 'release']
+    };
+
+    // Build reverse map
+    const termToConcepts = {};
+    Object.keys(concepts).forEach(conceptName => {
+        concepts[conceptName].forEach(term => {
+            if (!termToConcepts[term]) termToConcepts[term] = [];
+            termToConcepts[term].push(conceptName);
+        });
+    });
+
+    // Structure FAQ data with metadata
+    const faqData = faqItems.map((item, idx) => {
+        const id = item.getAttribute('id') || `faq-${idx}`;
         const questionEl = item.querySelector('.faq-question');
         const answerEl = item.querySelector('.faq-answer');
         const questionText = (questionEl ? questionEl.textContent : '').trim();
         const answerText = (answerEl ? answerEl.textContent : '').trim();
-        const haystack = (questionText + ' ' + answerText).toLowerCase();
-        const tokens = haystack
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .filter(Boolean);
-        return { id, item, questionText, answerText, haystack, tokens };
+        
+        // ============================================================
+        // IMPORTANT: When adding NEW FAQs, add metadata here for optimal search!
+        // ============================================================
+        // 
+        // For each new FAQ, add an entry below with:
+        //
+        // ALTERNATES: 2-4 common ways users might ask this question
+        //   - Use natural language variations (5-10 words)
+        //   - Think: "How else would someone search for this?"
+        //   - Example: "unlock scan desktop laptop computer machine id"
+        //
+        // TAGS: 3-8 key concepts/keywords from the FAQ
+        //   - Single words or short 2-word phrases
+        //   - Include product names, technical terms, action words
+        //   - Example: "license key activation desktop laptop"
+        //
+        // TEMPLATE:
+        // } else if (id === 'your-faq-id') {
+        //     alternates = 'phrase one phrase two phrase three';
+        //     tags = 'keyword1 keyword2 keyword3 keyword4';
+        // }
+        //
+        // NOTE: FAQs without metadata still work but may rank lower!
+        // ============================================================
+        
+        let alternates = '';
+        let tags = '';
+        
+        if (id === 'beta-stable-same-device') {
+            alternates = 'run two versions same device multiple versions';
+            tags = 'beta stable yellow blue logo dual install';
+        } else if (id === 'activate-scan-license') {
+            alternates = 'unlock scan desktop laptop computer machine id';
+            tags = 'license key activation desktop laptop';
+        } else if (id === 'other-pilot-apps-overlays') {
+            alternates = 'third party apps hdmi input other software';
+            tags = 'hdmi overlay bounding box pilot apps';
+        } else if (id === 'offline-support') {
+            alternates = 'no wifi no internet no connection no signal';
+            tags = 'offline network wifi internet connectivity';
+        } else if (id === 'pricing') {
+            alternates = 'cost price how much money';
+            tags = 'pricing cost trial';
+        } else if (id === 'compatibility-overview') {
+            alternates = 'what drones supported drone types which drones work models';
+            tags = 'compatibility drone types models supported dji mavic';
+        }
+        
+        return {
+            id,
+            item,
+            question: questionText,
+            alternates,
+            tags,
+            answer: answerText.substring(0, 500) // Limit answer length for indexing
+        };
     });
 
-    function tokenize(q) {
-        return (q || '')
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .filter(Boolean);
-    }
-
-    // Basic Damerau-Levenshtein distance for short words (typo tolerance)
-    function editDistance(a, b) {
-        const al = a.length, bl = b.length;
-        if (al === 0) return bl;
-        if (bl === 0) return al;
-        const dp = Array.from({ length: al + 1 }, () => new Array(bl + 1).fill(0));
-        for (let i = 0; i <= al; i++) dp[i][0] = i;
-        for (let j = 0; j <= bl; j++) dp[0][j] = j;
-        for (let i = 1; i <= al; i++) {
-            for (let j = 1; j <= bl; j++) {
-                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-                dp[i][j] = Math.min(
-                    dp[i - 1][j] + 1,
-                    dp[i][j - 1] + 1,
-                    dp[i - 1][j - 1] + cost
-                );
-                if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-                    dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + cost);
-                }
-            }
+    // Initialize MiniSearch with BM25
+    const miniSearch = new MiniSearch({
+        fields: ['question', 'alternates', 'tags', 'answer'],
+        storeFields: ['id'],
+        searchOptions: {
+            boost: { question: 3, alternates: 2, tags: 2, answer: 1 },
+            fuzzy: 0.2,
+            prefix: true
         }
-        return dp[al][bl];
-    }
+    });
 
-    function scoreEntry(entry, terms) {
-        if (terms.length === 0) return 0;
-        let score = 0;
-        const questionLower = entry.questionText.toLowerCase();
-        for (const t of terms) {
-            // Direct includes
-            if (entry.haystack.includes(t)) score += 2;
-            if (questionLower.includes(t)) score += 3;
+    // Add documents to index
+    miniSearch.addAll(faqData);
 
-            // Prefix match boost
-            if (entry.tokens.some(tok => tok.startsWith(t))) score += 2;
-
-            // Fuzzy match for typos (only for reasonably short tokens)
-            if (t.length >= 4) {
-                let best = Infinity;
-                for (const tok of entry.tokens) {
-                    if (tok.length < 3) continue;
-                    // Skip exact includes already scored
-                    if (tok.includes(t) || t.includes(tok)) continue;
-                    // Early prune by first letter
-                    if (tok[0] !== t[0]) continue;
-                    // Compare full token distance
-                    const d = editDistance(tok, t);
-                    if (d < best) best = d;
-                    // Also compare distance to the token prefix with the same length as the query
-                    if (tok.length >= t.length) {
-                        const prefix = tok.slice(0, t.length);
-                        const dp = editDistance(prefix, t);
-                        if (dp < best) best = dp;
-                    }
-                    if (best === 1) break;
-                }
-                // Accept distance threshold relative to length
-                if (best <= 2) {
-                    score += (3 - best); // 2 for dist 1, 1 for dist 2
-                }
-            }
+    // Expand query with concepts (conservative)
+    function expandQuery(queryText) {
+        const tokens = queryText.toLowerCase().split(/\s+/).filter(Boolean);
+        
+        // FIRST: Remove stopwords
+        const meaningfulTokens = tokens.filter(t => !stopwords.has(t));
+        
+        // If no meaningful tokens, return empty (don't search stopwords)
+        if (meaningfulTokens.length === 0) {
+            return '';
         }
-        return score;
+        
+        const expanded = new Set(meaningfulTokens);
+        
+        // THEN: Expand with concepts
+        meaningfulTokens.forEach(token => {
+            if (termToConcepts[token]) {
+                // Add only the first matched concept's terms (not all)
+                const firstConcept = termToConcepts[token][0];
+                concepts[firstConcept].forEach(term => expanded.add(term));
+            }
+        });
+        
+        return Array.from(expanded).join(' ');
     }
 
     function renderResults(query) {
         const q = (query || '').trim();
-        // Reset URL hash so expanded state doesn't fight filtering
         history.replaceState(null, null, window.location.pathname);
 
         if (q.length === 0) {
-            // Show all items when empty query
-            index.forEach(e => {
-                e.item.style.display = '';
-            });
+            faqData.forEach(({ item }) => item.style.display = '');
             searchMeta.textContent = '';
             return;
         }
 
-        const terms = tokenize(q);
-        const scored = index
-            .map(e => ({ e, s: scoreEntry(e, terms) }))
-            .filter(x => x.s > 0)
-            .sort((a, b) => b.s - a.s);
-
-        const resultIds = new Set(scored.map(x => x.e.id));
-        // Collapse all items during filtering; do not auto-open any
-        index.forEach(({ id, item }) => {
-            item.classList.remove('active');
-            item.style.display = resultIds.has(id) ? '' : 'none';
+        // Expand query with concepts (also filters stopwords)
+        const expandedQuery = expandQuery(q);
+        
+        // If query is all stopwords, show all FAQs
+        if (expandedQuery.length === 0) {
+            faqData.forEach(({ item }) => item.style.display = '');
+            searchMeta.textContent = 'Search for specific terms (common words filtered)';
+            return;
+        }
+        
+        // Search with MiniSearch BM25
+        const results = miniSearch.search(expandedQuery, { 
+            boost: { question: 3, alternates: 2, tags: 2, answer: 1 }
         });
 
-        searchMeta.textContent = `${scored.length} result${scored.length === 1 ? '' : 's'} for "${q}"`;
+        // Create a map of id -> rank for sorting
+        const idToRank = {};
+        results.forEach((r, idx) => {
+            idToRank[r.id] = idx;
+        });
+
+        const resultIds = new Set(results.map(r => r.id));
+        
+        // Sort FAQ items by BM25 rank
+        const sortedFaqData = [...faqData].sort((a, b) => {
+            const aHasResult = resultIds.has(a.id);
+            const bHasResult = resultIds.has(b.id);
+            
+            if (!aHasResult && !bHasResult) return 0;
+            if (!aHasResult) return 1;
+            if (!bHasResult) return -1;
+            
+            // Both have results - sort by BM25 rank
+            return idToRank[a.id] - idToRank[b.id];
+        });
+        
+        // Update display in sorted order
+        const container = document.querySelector('.faq-container');
+        sortedFaqData.forEach(({ id, item }) => {
+            item.classList.remove('active');
+            item.style.display = resultIds.has(id) ? '' : 'none';
+            // Re-append to reorder in DOM
+            if (resultIds.has(id)) {
+                container.appendChild(item);
+            }
+        });
+
+        if (results.length === 0) {
+            searchMeta.textContent = `No results for "${q}"`;
+        } else {
+            searchMeta.textContent = `${results.length} result${results.length === 1 ? '' : 's'} for "${q}"`;
+        }
+    }
+
+    // Debounce for smoother typing
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
 
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            renderResults(e.target.value);
-        });
+        const debouncedSearch = debounce((value) => renderResults(value), 150);
+        searchInput.addEventListener('input', (e) => debouncedSearch(e.target.value));
     }
 });
 </script>
