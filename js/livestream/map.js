@@ -48,6 +48,15 @@ class DroneMap {
             }).addTo(this.map);
 
             this.addCustomControls();
+
+            // Add scale bar (top right)
+            L.control.scale({
+                position: 'topright',
+                metric: true,
+                imperial: true,
+                maxWidth: 150
+            }).addTo(this.map);
+
             console.log('Drone map initialized with Leaflet');
 
         } catch (error) {
