@@ -15,8 +15,8 @@ class DroneMap {
         this.currentDroneData = null;
         this.currentDroneName = null;
 
-        this.defaultCenter = [37.7749, -122.4194];
-        this.defaultZoom = 10;
+        this.defaultCenter = [45.0, -100.0];
+        this.defaultZoom = 3;
 
         this.init();
     }
@@ -57,6 +57,9 @@ class DroneMap {
                 maxWidth: 150
             }).addTo(this.map);
 
+            // Add context menu for copying coordinates
+            this.addContextMenu();
+
             console.log('Drone map initialized with Leaflet');
 
         } catch (error) {
@@ -80,14 +83,87 @@ class DroneMap {
                 button.style.display = 'flex';
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
-                
+
                 L.DomEvent.on(button, 'click', L.DomEvent.stop)
                           .on(button, 'click', this.centerOnDrone, this);
-                
+
                 return container;
             }
         });
         this.map.addControl(new centerControl());
+    }
+
+    addContextMenu() {
+        this.contextMenu = null;
+
+        this.map.on('contextmenu', (e) => {
+            // Remove any existing context menu
+            this.removeContextMenu();
+
+            const lat = e.latlng.lat.toFixed(5);
+            const lng = e.latlng.lng.toFixed(5);
+            const coordText = `${lat}, ${lng}`;
+
+            // Create context menu
+            this.contextMenu = L.DomUtil.create('div', 'leaflet-context-menu');
+            this.contextMenu.style.cssText = `
+                position: absolute;
+                background-color: #2c2c2c;
+                border: 1px solid #444;
+                border-radius: 4px;
+                padding: 0;
+                z-index: 1001;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                min-width: 200px;
+            `;
+
+            const menuItem = L.DomUtil.create('div', '', this.contextMenu);
+            menuItem.style.cssText = `
+                padding: 8px 12px;
+                cursor: pointer;
+                color: #fff;
+                font-size: 13px;
+                transition: background-color 0.2s;
+            `;
+            menuItem.innerHTML = `Copy '${coordText}'`;
+            menuItem.title = coordText;
+
+            menuItem.onmouseover = () => {
+                menuItem.style.backgroundColor = '#3c3c3c';
+            };
+            menuItem.onmouseout = () => {
+                menuItem.style.backgroundColor = 'transparent';
+            };
+
+            menuItem.onclick = () => {
+                navigator.clipboard.writeText(coordText).then(() => {
+                    console.log('Coordinates copied:', coordText);
+                }).catch(err => {
+                    console.error('Failed to copy coordinates:', err);
+                });
+                this.removeContextMenu();
+            };
+
+            // Position the menu at the click location
+            const mapContainer = this.map.getContainer();
+            mapContainer.appendChild(this.contextMenu);
+
+            const point = this.map.latLngToContainerPoint(e.latlng);
+            this.contextMenu.style.left = point.x + 'px';
+            this.contextMenu.style.top = point.y + 'px';
+
+            // Close menu on any click outside
+            setTimeout(() => {
+                document.addEventListener('click', this.removeContextMenu.bind(this), { once: true });
+            }, 100);
+        });
+    }
+
+    removeContextMenu() {
+        if (this.contextMenu && this.contextMenu.parentNode) {
+            this.contextMenu.parentNode.removeChild(this.contextMenu);
+            this.contextMenu = null;
+        }
     }
 
     fallbackToStaticMap() {
