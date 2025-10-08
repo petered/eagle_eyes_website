@@ -23,7 +23,9 @@ class DroneMap {
 
     init() {
         try {
-            this.map = L.map('map').setView(this.defaultCenter, this.defaultZoom);
+            this.map = L.map('map', {
+                tap: false  // Fix for iOS Safari popup issues
+            }).setView(this.defaultCenter, this.defaultZoom);
 
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
@@ -141,8 +143,12 @@ class DroneMap {
             }
 
             // Update popup content if it's currently open
+            // Don't use setPopupContent as it breaks iOS touch events
             if (this.droneClickMarker.isPopupOpen()) {
-                this.droneClickMarker.setPopupContent(this.generateDronePopupContent());
+                const popup = this.droneClickMarker.getPopup();
+                if (popup && popup._contentNode) {
+                    popup._contentNode.innerHTML = this.generateDronePopupContent();
+                }
             }
         }
 

@@ -54,7 +54,7 @@ class WebRTCViewer {
     await this.fetchStunServers();
 
     // Connect to signaling server
-    this.socket = io("https://webrtc.simtim.dev");
+    this.socket = io("https://webrtc.eagleeyessearch.com");
     this.setupSocketListeners();
 
     // Check for room ID in URL
@@ -347,6 +347,10 @@ class WebRTCViewer {
           this.cleanup();
           if (window.droneMap) {
             window.droneMap.setDisconnected(true);
+          }
+          // Show connection failed message
+          if (window.showConnectionFailedMessage) {
+            window.showConnectionFailedMessage();
           }
           break;
         case "closed":
