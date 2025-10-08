@@ -588,7 +588,7 @@ class WebRTCViewer {
     const altAhlText = altitude_ahl != null ? altitude_ahl.toFixed(1) + "m" : "N/A";
     const altAslText = altitude_asl != null ? altitude_asl.toFixed(1) + "m" : "N/A";
 
-    const displayText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>AHL:</strong> ${altAhlText} <strong>ASL:</strong> ${altAslText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
+    const displayText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (GPS):</strong> ${altAslText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
 
     // Only update the text content, not the entire structure
     const coordTextMobile = document.getElementById("coordTextMobile");

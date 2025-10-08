@@ -264,8 +264,8 @@ class DroneMap {
                 ${nameHeader}
                 <strong>Latitude:</strong> ${latitude.toFixed(6)}°<br>
                 <strong>Longitude:</strong> ${longitude.toFixed(6)}°<br>
-                <strong>Altitude (AHL):</strong> ${altAhlText}<br>
-                <strong>Altitude (ASL):</strong> ${altAslText}<br>
+                <strong>Altitude (home):</strong> ${altAhlText}<br>
+                <strong>Altitude (GPS):</strong> ${altAslText}<br>
                 <strong>Bearing:</strong> ${bearing.toFixed(1)}°<br>
                 <strong>Pitch:</strong> ${pitchText}<br>
                 <strong>Roll:</strong> ${rollText}
