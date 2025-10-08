@@ -138,6 +138,7 @@ class DroneMap {
             menuItem.onclick = () => {
                 navigator.clipboard.writeText(coordText).then(() => {
                     console.log('Coordinates copied:', coordText);
+                    this.showCopyToast();
                 }).catch(err => {
                     console.error('Failed to copy coordinates:', err);
                 });
@@ -163,6 +164,17 @@ class DroneMap {
         if (this.contextMenu && this.contextMenu.parentNode) {
             this.contextMenu.parentNode.removeChild(this.contextMenu);
             this.contextMenu = null;
+        }
+    }
+
+    showCopyToast() {
+        const toast = document.getElementById('coordsCopiedToast');
+        if (toast) {
+            toast.textContent = 'Coordinates copied to clipboard';
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
         }
     }
 

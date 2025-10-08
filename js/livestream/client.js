@@ -605,6 +605,7 @@ class WebRTCViewer {
   copyCoordinates(coordinates) {
     navigator.clipboard.writeText(coordinates).then(() => {
       console.log('Coordinates copied to clipboard:', coordinates);
+      this.showCopyToast();
     }).catch(err => {
       console.error('Failed to copy coordinates:', err);
       // Fallback for older browsers
@@ -614,7 +615,19 @@ class WebRTCViewer {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
+      this.showCopyToast();
     });
+  }
+
+  showCopyToast() {
+    const toast = document.getElementById('coordsCopiedToast');
+    if (toast) {
+      toast.textContent = 'Coordinates copied to clipboard';
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2000);
+    }
   }
 
   setupResolutionMonitoring() {
