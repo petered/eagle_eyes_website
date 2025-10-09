@@ -219,6 +219,73 @@ permalink: /livestream/
     <!-- Toast notification for coordinates copied -->
     <div id="coordsCopiedToast"></div>
 
+    <!-- Coordinate dialog modal -->
+    <div id="coordinateDialog" style="
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    " onclick="hideCoordinateDialog()">
+      <div style="
+        background-color: #2c2c2c;
+        border-radius: 8px;
+        padding: 20px;
+        max-width: 500px;
+        width: 90%;
+        color: white;
+      " onclick="event.stopPropagation()">
+        <div style="margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <span style="font-weight: 500;">🌐 Location:</span>
+            <span id="dialogLocation" class="font-monospace" style="flex: 1;">Waiting for location data...</span>
+            <button onclick="copyLocationCoordinates()" style="
+              background-color: #465373;
+              color: white;
+              border: none;
+              padding: 6px 12px;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 13px;
+              white-space: nowrap;
+            " onmouseover="this.style.backgroundColor='#556382'" onmouseout="this.style.backgroundColor='#465373'">
+              <i class="bi bi-clipboard"></i> Copy
+            </button>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <span style="font-weight: 500;">⬆🏠 Altitude (home):</span>
+            <span id="dialogAltHome" class="font-monospace">N/A</span>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <span style="font-weight: 500;">⬆🛰️ Altitude (GPS):</span>
+            <span id="dialogAltGPS" class="font-monospace">N/A</span>
+          </div>
+          <div>
+            <span style="font-weight: 500;">🧭 Bearing:</span>
+            <span id="dialogBearing" class="font-monospace">N/A</span>
+          </div>
+        </div>
+        <button onclick="hideCoordinateDialog()" style="
+          background-color: #465373;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          width: 100%;
+        " onmouseover="this.style.backgroundColor='#556382'" onmouseout="this.style.backgroundColor='#465373'">
+          OK
+        </button>
+      </div>
+    </div>
+
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div class="container-fluid">
@@ -569,6 +636,15 @@ permalink: /livestream/
       </div>
 
       <div id="video-panel" class="col-lg-8">
+        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-bottom border-secondary d-flex" style="flex: 0 0 auto; cursor: pointer;" onclick="showCoordinateDialog()">
+          <div
+            id="coordinateStrip"
+            class="font-monospace small"
+            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+          >
+            Waiting for location data...
+          </div>
+        </div>
         <div id="videoContainer">
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
@@ -590,14 +666,6 @@ permalink: /livestream/
             </a>
           </div>
           <video id="remoteVideo" autoplay playsinline muted controls></video>
-        </div>
-        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary d-flex" style="flex: 0 0 auto;">
-          <div
-            id="coordinateStrip"
-            class="font-monospace small"
-          >
-            Waiting for location data...
-          </div>
         </div>
       </div>
       <div id="map-panel" class="col-lg-4">
@@ -702,6 +770,62 @@ permalink: /livestream/
         if (overlay) {
           overlay.style.display = 'flex';
         }
+      }
+
+      function showCoordinateDialog() {
+        const dialog = document.getElementById('coordinateDialog');
+
+        // Get current location data from the viewer
+        if (window.viewer && window.viewer.currentLocation) {
+          const loc = window.viewer.currentLocation;
+
+          // Format with N/S/E/W for display
+          const latDir = loc.latitude >= 0 ? 'N' : 'S';
+          const lonDir = loc.longitude >= 0 ? 'E' : 'W';
+          const latFormatted = `${Math.abs(loc.latitude).toFixed(5)}°${latDir}`;
+          const lonFormatted = `${Math.abs(loc.longitude).toFixed(5)}°${lonDir}`;
+
+          document.getElementById('dialogLocation').textContent = `${latFormatted}, ${lonFormatted}`;
+          // Store plain coordinates for copying
+          document.getElementById('dialogLocation').setAttribute('data-plain', `${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`);
+
+          document.getElementById('dialogAltHome').textContent =
+            loc.altitude_ahl != null ? `${loc.altitude_ahl.toFixed(1)}m` : 'N/A';
+
+          document.getElementById('dialogAltGPS').textContent =
+            loc.altitude_asl != null ? `${loc.altitude_asl.toFixed(1)}m` : 'N/A';
+
+          document.getElementById('dialogBearing').textContent =
+            `${loc.bearing.toFixed(1)}° from True North`;
+        }
+
+        if (dialog) {
+          dialog.style.display = 'flex';
+        }
+      }
+
+      function hideCoordinateDialog() {
+        const dialog = document.getElementById('coordinateDialog');
+        if (dialog) {
+          dialog.style.display = 'none';
+        }
+      }
+
+      function copyLocationCoordinates() {
+        const locationElement = document.getElementById('dialogLocation');
+        const plainText = locationElement.getAttribute('data-plain');
+        navigator.clipboard.writeText(plainText).then(() => {
+          const toast = document.getElementById('coordsCopiedToast');
+          if (toast) {
+            toast.textContent = `Copied '${plainText}' to clipboard`;
+            toast.style.display = 'block';
+            setTimeout(() => {
+              toast.style.display = 'none';
+            }, 2000);
+          }
+        }).catch(err => {
+          console.error('Failed to copy coordinates:', err);
+        });
       }
     </script>
   </body>

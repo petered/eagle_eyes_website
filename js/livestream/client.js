@@ -558,26 +558,7 @@ class WebRTCViewer {
     // Initialize desktop coordinate display
     const coordStrip = document.getElementById("coordinateStrip");
     if (coordStrip) {
-      coordStrip.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
-          <div id="coordTextDesktop" class="flex-grow-1" style="word-break: break-all;">Waiting for location data...</div>
-          <button id="copyBtnDesktop" class="btn btn-sm btn-outline-light ms-2" title="Copy coordinates">
-            <i class="bi bi-clipboard"></i>
-          </button>
-        </div>
-      `;
-      
-      // Add click handler once
-      const desktopBtn = document.getElementById("copyBtnDesktop");
-      if (desktopBtn) {
-        desktopBtn.addEventListener('click', () => {
-          if (this.currentLocation) {
-            const { latitude, longitude } = this.currentLocation;
-            const copyText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-            this.copyCoordinates(copyText);
-          }
-        });
-      }
+      coordStrip.innerHTML = `<div id="coordTextDesktop">Waiting for location data...</div>`;
     }
   }
 
@@ -588,17 +569,28 @@ class WebRTCViewer {
     const altAhlText = altitude_ahl != null ? altitude_ahl.toFixed(1) + "m" : "N/A";
     const altAslText = altitude_asl != null ? altitude_asl.toFixed(1) + "m" : "N/A";
 
-    const displayText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (GPS):</strong> ${altAslText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
+    // Format latitude/longitude with N/S/E/W
+    const latDir = latitude >= 0 ? 'N' : 'S';
+    const lonDir = longitude >= 0 ? 'E' : 'W';
+    const latFormatted = `${Math.abs(latitude).toFixed(5)}°${latDir}`;
+    const lonFormatted = `${Math.abs(longitude).toFixed(5)}°${lonDir}`;
 
-    // Only update the text content, not the entire structure
+    // Compact display for coordinate strip
+    const compactText = `🌐 ${latFormatted},${lonFormatted}  ⬆🏠 ${altAhlText}  ⬆🛰️ ${altAslText}  🧭${bearing.toFixed(0)}°`;
+
+    // Detailed display for mobile sidebar
+    const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (GPS):</strong> ${altAslText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
+
+    // Update mobile display (in sidebar)
     const coordTextMobile = document.getElementById("coordTextMobile");
     if (coordTextMobile) {
-      coordTextMobile.innerHTML = displayText;
+      coordTextMobile.innerHTML = detailedText;
     }
 
+    // Update desktop coordinate strip (compact format)
     const coordTextDesktop = document.getElementById("coordTextDesktop");
     if (coordTextDesktop) {
-      coordTextDesktop.innerHTML = displayText;
+      coordTextDesktop.innerHTML = compactText;
     }
   }
 
@@ -885,4 +877,5 @@ function copyCurrentCoordinates() {
 
 document.addEventListener("DOMContentLoaded", () => {
   viewer = new WebRTCViewer();
+  window.viewer = viewer; // Expose globally for coordinate dialog
 });
