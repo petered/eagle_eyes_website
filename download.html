@@ -2660,7 +2660,86 @@ permalink: /download/
             container.appendChild(versionCard);
         });
     }
-    
+
+    function parseSimpleMarkdown(text) {
+        if (!text) return '';
+
+        // Helper function to apply inline formatting
+        function applyInlineFormatting(str) {
+            // Escape HTML first to prevent XSS
+            let formatted = str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Bold: **text** or __text__
+            formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+            // Italic: *text* or _text_ (but not inside words)
+            formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            formatted = formatted.replace(/\b_(.+?)_\b/g, '<em>$1</em>');
+
+            // Code: `code`
+            formatted = formatted.replace(/`(.+?)`/g, '<code style="background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>');
+
+            // Links: [text](url)
+            formatted = formatted.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color: #007bff; text-decoration: underline;">$1</a>');
+
+            return formatted;
+        }
+
+        const lines = text.split('\n');
+        const result = [];
+        let listType = null; // 'ul' or 'ol' or null
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            if (!line) {
+                // Empty line - close list if open
+                if (listType) {
+                    result.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    listType = null;
+                }
+                result.push('<br>');
+                continue;
+            }
+
+            // Check for bullet point
+            if (line.startsWith('- ')) {
+                if (!listType) {
+                    result.push('<ul style="margin: 0; padding-left: 20px;">');
+                    listType = 'ul';
+                }
+                const content = line.substring(2).trim();
+                result.push(`<li>${applyInlineFormatting(content)}</li>`);
+            } else if (/^\d+\.\s/.test(line)) {
+                // Numbered list
+                if (!listType) {
+                    result.push('<ol style="margin: 0; padding-left: 20px;">');
+                    listType = 'ol';
+                }
+                const content = line.replace(/^\d+\.\s/, '').trim();
+                result.push(`<li>${applyInlineFormatting(content)}</li>`);
+            } else {
+                // Regular line - close list if open
+                if (listType) {
+                    result.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    listType = null;
+                }
+                result.push(applyInlineFormatting(line) + '<br>');
+            }
+        }
+
+        // Close list if still open at end
+        if (listType) {
+            result.push(listType === 'ul' ? '</ul>' : '</ol>');
+        }
+
+        return result.join('');
+    }
+
     function createVersionCard(release) {
         const card = document.createElement('div');
         card.className = 'version-card';
@@ -2689,6 +2768,13 @@ permalink: /download/
                         <div class="version-badge ${badgeClass}">${versionType}</div>
                     </div>
                 </div>
+
+                ${release.urgent_remarks && (typeof release.urgent_remarks === 'string' ? release.urgent_remarks.trim() : (release.urgent_remarks[1] && release.urgent_remarks[1].trim())) ? `
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 15px 0; font-style: italic; color: #856404; font-size: 13px; line-height: 1.4;">
+                        ${parseSimpleMarkdown(typeof release.urgent_remarks === 'string' ? release.urgent_remarks : release.urgent_remarks[1])}
+                    </div>
+                ` : ''}
+
                 <div class="version-logo-container">
                     ${versionType === 'beta' ? '<img src="/images/eagle_eyes_pilot_logo_beta _SDK5.png" alt="Beta Logo" class="version-logo">' : ''}
                     ${versionType === 'stable' ? '<img src="/images/Eagle Eyes Logo.png" alt="Stable Logo" class="version-logo">' : ''}
@@ -2697,16 +2783,7 @@ permalink: /download/
                     Download
                 </a>
             </div>
-            
-            ${versionType === 'beta' ? `
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 15px 0; font-style: italic; color: #856404; font-size: 13px; line-height: 1.4;">
-                    ${productName === 'Eagle Eyes Pilot' ? 
-                        'This is a beta release with early access to new features. You may encounter errors. For reliability, we recommend installing both the Stable and Beta versions on your controller. If issues occur during flight, you can always switch to the Stable version or the standard DJI piloting app. Our licensing is per device, so running both versions on the same controller only counts as one license. Feedback is welcome at info@eagleeyessearch.com.' :
-                        'This is a beta release with early access to new features. You may encounter errors. We would appreciate any feedback to info@eagleeyessearch.com.'
-                    }
-                </div>
-            ` : ''}
-            
+
             ${release.release_notes && release.release_notes.trim() ? `
                 <div class="release-notes">
                     <h4 class="release-notes-toggle" onclick="toggleReleaseNotes('release-notes-${releaseId}', this)">
