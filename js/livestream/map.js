@@ -204,7 +204,7 @@ class DroneMap {
 
         if (!this.droneMarker) {
             const droneIcon = L.divIcon({
-                html: `<img src="/images/livestream/map_drone_flyer.png" style="width: 32px; height: 32px; transform: rotate(${bearing}deg); transform-origin: center;">`,
+                html: `<img src="../../images/livestream/map_drone_flyer.png" style="width: 32px; height: 32px; transform: rotate(${bearing}deg); transform-origin: center;">`,
                 className: 'drone-marker',
                 iconSize: [32, 32],
                 iconAnchor: [16, 16]
