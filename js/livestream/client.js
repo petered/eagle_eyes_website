@@ -509,9 +509,9 @@ class WebRTCViewer {
             window.droneMap.setDisconnected(true);
           }
           // Show connection failed message only if we were streaming
-          if (this.wasStreaming && window.showConnectionFailedMessage) {
-            window.showConnectionFailedMessage();
-          }
+          // if (this.wasStreaming && window.showConnectionFailedMessage) {
+          //   window.showConnectionFailedMessage();
+          // }
           break;
         case "closed":
           this.updateStatus("waiting", "Not streaming");
