@@ -152,6 +152,84 @@ class WebRTCViewer {
 
     // Initialize coordinate displays once
     this.initializeCoordinateDisplays();
+
+    // Setup page visibility handling for mobile reconnection
+    this.setupVisibilityHandling();
+  }
+
+  setupVisibilityHandling() {
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.currentRoomId) {
+        // Page is coming back to foreground and we're in a room
+        console.log('Page became visible. Room:', this.currentRoomId);
+        console.log('Socket connected:', this.socket.connected);
+        console.log('Peer connection state:', this.peerConnection?.connectionState);
+
+        // Wait for browser to fully resume
+        setTimeout(() => {
+          this.attemptReconnect();
+        }, 1000);
+      }
+    });
+
+    // Also listen for socket disconnect events
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      // Mark that we were disconnected if we're in a room
+      if (this.currentRoomId) {
+        console.log('Marking as disconnected, will reconnect when possible');
+        this.wasDisconnected = true;
+      }
+    });
+
+    this.socket.on('connect', () => {
+      console.log('Socket reconnected');
+      // If we were disconnected and we're in a room, try to reconnect after a delay
+      if (this.wasDisconnected && this.currentRoomId) {
+        console.log('Was disconnected, will attempt to rejoin room...');
+        this.wasDisconnected = false;
+        setTimeout(() => {
+          this.attemptReconnect();
+        }, 500);
+      }
+    });
+  }
+
+  attemptReconnect() {
+    if (!this.currentRoomId) return;
+
+    console.log('Attempting reconnect...');
+    console.log('Socket connected:', this.socket.connected);
+    console.log('Peer state:', this.peerConnection?.connectionState);
+
+    // If socket is not connected, reconnect it first
+    if (!this.socket.connected) {
+      console.log('Reconnecting socket...');
+      this.socket.connect();
+      return; // Wait for socket to connect, then it will trigger this again
+    }
+
+    // Check if peer connection needs reconnecting
+    const needsReconnect = !this.peerConnection ||
+                           this.peerConnection.connectionState === 'disconnected' ||
+                           this.peerConnection.connectionState === 'failed' ||
+                           this.peerConnection.connectionState === 'closed';
+
+    if (needsReconnect) {
+      console.log('Reconnecting peer connection...');
+      this.updateStatus("connecting", "Reconnecting...");
+
+      // Clean up old peer connection
+      if (this.peerConnection) {
+        this.peerConnection.close();
+        this.peerConnection = null;
+      }
+
+      // Rejoin the room (this will trigger stream request)
+      this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
+    } else {
+      console.log('Connection still active, no reconnect needed');
+    }
   }
 
   async fetchStunServers() {
