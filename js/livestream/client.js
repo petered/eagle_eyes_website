@@ -159,21 +159,7 @@ class WebRTCViewer {
   }
 
   setupVisibilityHandling() {
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && this.currentRoomId) {
-        // Page is coming back to foreground and we're in a room
-        console.log('Page became visible. Room:', this.currentRoomId);
-        console.log('Socket connected:', this.socket.connected);
-        console.log('Peer connection state:', this.peerConnection?.connectionState);
-
-        // Wait for browser to fully resume
-        setTimeout(() => {
-          this.attemptReconnect();
-        }, 1000);
-      }
-    });
-
-    // Also listen for socket disconnect events
+    // Listen for socket disconnect events
     this.socket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
       // Mark that we were disconnected if we're in a room
@@ -197,7 +183,9 @@ class WebRTCViewer {
   }
 
   attemptReconnect() {
-    if (!this.currentRoomId) return;
+    if (!this.currentRoomId) {
+      return;
+    }
 
     console.log('Attempting reconnect...');
     console.log('Socket connected:', this.socket.connected);
@@ -492,26 +480,30 @@ class WebRTCViewer {
           this.wasStreaming = true; // Mark that we were actually streaming
           break;
         case "disconnected":
-          this.updateStatus("waiting", "Stream disconnected");
-          this.updateConnectionStatus("Connection lost");
-          this.cleanup();
-          // Only show disconnected message if we were actually streaming
-          if (this.wasStreaming && window.droneMap) {
-            window.droneMap.setDisconnected(true);
-          }
+          console.log("Peer connection disconnected, attempting reconnect...");
+          this.updateStatus("connecting", "Reconnecting...");
+          this.updateConnectionStatus("Reconnecting...");
+
+          // Attempt to reconnect automatically
+          setTimeout(() => {
+            if (this.currentRoomId && this.peerConnection?.connectionState !== 'connected') {
+              console.log("Attempting to reconnect after disconnect...");
+              this.attemptReconnect();
+            }
+          }, 1000);
           break;
         case "failed":
-          this.updateStatus("error", "Connection failed");
-          this.updateConnectionStatus("Connection failed");
-          this.cleanup();
-          // Only show disconnected message if we were actually streaming
-          if (this.wasStreaming && window.droneMap) {
-            window.droneMap.setDisconnected(true);
-          }
-          // Show connection failed message only if we were streaming
-          // if (this.wasStreaming && window.showConnectionFailedMessage) {
-          //   window.showConnectionFailedMessage();
-          // }
+          console.log("Peer connection failed, attempting reconnect...");
+          this.updateStatus("connecting", "Reconnecting...");
+          this.updateConnectionStatus("Reconnecting...");
+
+          // Attempt to reconnect automatically
+          setTimeout(() => {
+            if (this.currentRoomId && this.peerConnection?.connectionState !== 'connected') {
+              console.log("Attempting to reconnect after failure...");
+              this.attemptReconnect();
+            }
+          }, 1000);
           break;
         case "closed":
           this.updateStatus("waiting", "Not streaming");
