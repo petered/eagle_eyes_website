@@ -76,7 +76,7 @@ class DroneMap {
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                 const button = L.DomUtil.create('a', 'leaflet-control-center', container);
-                button.innerHTML = '<img src="../../images/livestream/map_drone_flyer.png" style="width: 20px; height: 20px; display: block; margin: auto;">';
+                button.innerHTML = '<img src="/images/livestream/map_drone_flyer.png" style="width: 20px; height: 20px; display: block; margin: auto;">';
                 button.href = '#';
                 button.role = 'button';
                 button.title = 'Center on Drone';
