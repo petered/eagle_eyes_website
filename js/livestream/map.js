@@ -76,7 +76,7 @@ class DroneMap {
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                 const button = L.DomUtil.create('a', 'leaflet-control-center', container);
-                button.innerHTML = '<img src="/images/livestream/map_drone_flyer.png" style="width: 20px; height: 20px; display: block; margin: auto;">';
+                button.innerHTML = '<img src="../../images/livestream/map_drone_flyer.png" style="width: 20px; height: 20px; display: block; margin: auto;">';
                 button.href = '#';
                 button.role = 'button';
                 button.title = 'Center on Drone';
@@ -204,7 +204,7 @@ class DroneMap {
 
         if (!this.droneMarker) {
             const droneIcon = L.divIcon({
-                html: `<img src="/images/livestream/map_drone_flyer.png" style="width: 32px; height: 32px; transform: rotate(${bearing}deg); transform-origin: center;">`,
+                html: `<img src="../../images/livestream/map_drone_flyer.png" style="width: 32px; height: 32px; transform: rotate(${bearing}deg); transform-origin: center;">`,
                 className: 'drone-marker',
                 iconSize: [32, 32],
                 iconAnchor: [16, 16]
