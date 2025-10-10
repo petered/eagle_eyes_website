@@ -5,13 +5,14 @@ class WebRTCViewer {
     this.currentRoomId = null;
     this.currentPublisherName = null;
     this.isConnected = false;
+    this.wasStreaming = false; // Track if we were actually streaming
 
     this.remoteVideo = document.getElementById("remoteVideo");
     this.statusElement = document.getElementById("status");
     this.roomIdInput = document.getElementById("roomIdInput");
     this.roomIdInputMobile = document.getElementById("roomIdInputMobile");
     this.videoContainer = document.getElementById("videoContainer");
-    
+
     this.leaveBtn = document.getElementById("leaveBtn");
     this.leaveBtnMobile = document.getElementById("leaveBtnMobile");
 
@@ -280,7 +281,8 @@ class WebRTCViewer {
       this.updateStatus("error", "Disconnected from server");
       this.updateConnectionStatus("Disconnected");
       this.cleanup();
-      if (window.droneMap) {
+      // Only show disconnected message if we were actually streaming
+      if (this.wasStreaming && window.droneMap) {
         window.droneMap.setDisconnected(true);
       }
     });
@@ -322,7 +324,8 @@ class WebRTCViewer {
       console.log("Publisher left the room");
       this.updateStatus("waiting", "Publisher disconnected");
       this.cleanup();
-      if (window.droneMap) {
+      // Only show disconnected message if we were actually streaming
+      if (this.wasStreaming && window.droneMap) {
         window.droneMap.setDisconnected(true);
       }
     });
@@ -377,6 +380,7 @@ class WebRTCViewer {
     this.cleanup(false);
     this.currentRoomId = null;
     this.currentPublisherName = null;
+    this.wasStreaming = false; // Reset streaming flag
     this.updateRoomId("Not connected");
     this.updateStatus("waiting", "Not streaming");
     this.updateViewerCount(0);
@@ -485,12 +489,14 @@ class WebRTCViewer {
         case "connected":
           this.updateStatus("connected", "Streaming");
           this.updateConnectionStatus("Streaming");
+          this.wasStreaming = true; // Mark that we were actually streaming
           break;
         case "disconnected":
           this.updateStatus("waiting", "Stream disconnected");
           this.updateConnectionStatus("Connection lost");
           this.cleanup();
-          if (window.droneMap) {
+          // Only show disconnected message if we were actually streaming
+          if (this.wasStreaming && window.droneMap) {
             window.droneMap.setDisconnected(true);
           }
           break;
@@ -498,11 +504,12 @@ class WebRTCViewer {
           this.updateStatus("error", "Connection failed");
           this.updateConnectionStatus("Connection failed");
           this.cleanup();
-          if (window.droneMap) {
+          // Only show disconnected message if we were actually streaming
+          if (this.wasStreaming && window.droneMap) {
             window.droneMap.setDisconnected(true);
           }
-          // Show connection failed message
-          if (window.showConnectionFailedMessage) {
+          // Show connection failed message only if we were streaming
+          if (this.wasStreaming && window.showConnectionFailedMessage) {
             window.showConnectionFailedMessage();
           }
           break;
