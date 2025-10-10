@@ -21,6 +21,7 @@ permalink: /livestream/
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
       body,
       html {
@@ -300,7 +301,7 @@ permalink: /livestream/
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="#">
-          <img src="{{ '/images/eagle_eyes_icon_rounded_filtered.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
+          <img src="{{ '/images/livestream/eagle_eyes_beta_logo.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
           <span>Eagle Eyes Livestream Viewer</span>
           <span class="beta-badge">BETA</span>
         </a>
@@ -434,6 +435,16 @@ permalink: /livestream/
               </ul>
             </div>
 
+            <button
+              class="btn btn-outline-secondary me-3"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#shareModal"
+              title="Share Livestream"
+            >
+              <i class="bi bi-share"></i>
+            </button>
+
             <div class="text-white me-3">
               <i class="bi bi-people"></i> <span id="viewerCount">0</span>
             </div>
@@ -441,6 +452,37 @@ permalink: /livestream/
         </div>
       </div>
     </nav>
+
+    <!-- Share Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="shareModalLabel">Share Livestream</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="mb-3">Scan the QR code to view this livestream on another device</p>
+            <div id="qrcode" class="d-flex justify-content-center mb-3" style="background: white; padding: 15px; border-radius: 8px; display: inline-block; margin: 0 auto;"></div>
+            <button class="btn btn-primary w-100" onclick="shareLivestream()">
+              <i class="bi bi-share"></i> Share Livestream Link
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification - Below share button -->
+    <div class="toast-container position-fixed" id="toastContainer" style="display: none;">
+      <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="width: auto; min-width: fit-content;">
+        <div class="d-flex align-items-center justify-content-center">
+          <div class="toast-body text-center" style="padding: 8px 16px;">
+            <i class="bi bi-check-circle"></i> URL copied to clipboard
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
 
     <!-- Mobile Offcanvas Sidebar -->
     <div
@@ -534,6 +576,11 @@ permalink: /livestream/
         <div class="d-grid gap-2 mb-3">
           <button class="btn btn-secondary" onclick="centerOnDrone()">
             <i class="bi bi-bullseye"></i> Center on Drone
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#shareModal">
+            <i class="bi bi-share"></i> Share Livestream
           </button>
         </div>
         <hr />
@@ -835,6 +882,110 @@ permalink: /livestream/
           }
         }).catch(err => {
           console.error('Failed to copy coordinates:', err);
+        });
+      }
+
+      // Share functionality
+      let qrCodeGenerated = false;
+
+      // Generate QR code when modal is shown
+      const shareModal = document.getElementById('shareModal');
+      shareModal.addEventListener('show.bs.modal', function () {
+        if (!qrCodeGenerated) {
+          const qrcodeContainer = document.getElementById('qrcode');
+          qrcodeContainer.innerHTML = ''; // Clear any existing QR code
+          const currentUrl = window.location.href;
+          new QRCode(qrcodeContainer, {
+            text: currentUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+          qrCodeGenerated = true;
+        }
+      });
+
+      async function shareLivestream() {
+        const currentUrl = window.location.href;
+        
+        // Check if device is mobile and Web Share API is available
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile && navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Eagle Eyes Livestream',
+              text: 'Join this Eagle Eyes livestream',
+              url: currentUrl
+            });
+          } catch (err) {
+            // User cancelled share or error occurred
+            if (err.name !== 'AbortError') {
+              console.error('Error sharing:', err);
+              copyToClipboard(currentUrl);
+            }
+          }
+        } else {
+          // Desktop or fallback: always copy to clipboard
+          copyToClipboard(currentUrl);
+        }
+      }
+
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          // Position toast below the share button
+          const shareButton = document.querySelector('#shareModal .btn-primary');
+          const toastContainer = document.getElementById('toastContainer');
+          const modalDialog = document.querySelector('#shareModal .modal-dialog');
+          
+          if (shareButton && toastContainer && modalDialog) {
+            const buttonRect = shareButton.getBoundingClientRect();
+            const modalRect = modalDialog.getBoundingClientRect();
+            
+            // Position toast below the button, aligned horizontally with modal
+            toastContainer.style.left = `${modalRect.left}px`;
+            toastContainer.style.top = `${buttonRect.bottom + 10}px`;
+            toastContainer.style.display = 'block';
+          }
+          
+          // Show toast notification
+          const toastEl = document.getElementById('copyToast');
+          const toast = new bootstrap.Toast(toastEl);
+          toast.show();
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            
+            // Position toast below the share button (fallback)
+            const shareButton = document.querySelector('#shareModal .btn-primary');
+            const toastContainer = document.getElementById('toastContainer');
+            const modalDialog = document.querySelector('#shareModal .modal-dialog');
+            
+            if (shareButton && toastContainer && modalDialog) {
+              const buttonRect = shareButton.getBoundingClientRect();
+              const modalRect = modalDialog.getBoundingClientRect();
+              toastContainer.style.left = `${modalRect.left}px`;
+              toastContainer.style.top = `${buttonRect.bottom + 10}px`;
+              toastContainer.style.display = 'block';
+            }
+            
+            const toastEl = document.getElementById('copyToast');
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+          } catch (err) {
+            console.error('Fallback copy failed:', err);
+          }
+          document.body.removeChild(textArea);
         });
       }
     </script>
