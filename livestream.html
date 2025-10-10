@@ -568,19 +568,10 @@ permalink: /livestream/
         ></button>
       </div>
       <div class="offcanvas-body">
-        <div class="mb-3">
-          <label for="roomIdInputMobile" class="form-label">Room ID</label>
-          <div class="input-group">
-            <input
-              type="text"
-              id="roomIdInputMobile"
-              class="form-control"
-              placeholder="Room ID"
-            />
-            <button class="btn" type="button" onclick="joinRoom()" style="background-color: #314268; border-color: #314268; color: white;">
-              <i class="bi bi-box-arrow-in-right"></i>
-            </button>
-          </div>
+        <div class="d-grid gap-2 mb-3">
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#joinModal">
+            <i class="bi bi-box-arrow-in-right"></i> Join a Livestream
+          </button>
         </div>
         <div class="d-grid gap-2 mb-3">
           <button
@@ -659,9 +650,6 @@ permalink: /livestream/
           </div>
         </div>
         <hr />
-        <p>
-          <strong>Room:</strong> <span id="roomIdDisplay">Not connected</span>
-        </p>
         <p>
           <strong>Connection:</strong>
           <span id="connectionStatus">Disconnected</span>
@@ -1093,36 +1081,47 @@ permalink: /livestream/
         const modalRoomIdInput = document.getElementById('modalRoomIdInput');
         let roomId = modalRoomIdInput.value.trim();
         
-        if (roomId) {
-          // Extract room ID from URL if user pasted a full URL
-          try {
-            const url = new URL(roomId);
-            const urlRoomId = url.searchParams.get('room');
-            if (urlRoomId) {
-              roomId = urlRoomId;
-            }
-          } catch (e) {
-            // Not a URL, use as-is
+        if (!roomId) {
+          alert("Please enter a room ID");
+          return;
+        }
+        
+        // Extract room ID from URL if user pasted a full URL
+        try {
+          const url = new URL(roomId);
+          const urlRoomId = url.searchParams.get('room');
+          if (urlRoomId) {
+            roomId = urlRoomId;
           }
-          
-          // Normalize to lowercase for consistency
-          roomId = roomId.toLowerCase();
-          
-          // Close the modal
-          const joinModal = bootstrap.Modal.getInstance(document.getElementById('joinModal'));
-          if (joinModal) {
-            joinModal.hide();
-          }
-          
-          // Stop QR scanner if active
-          if (qrScannerActive) {
-            stopQRScanner();
-          }
-          
-          // Navigate to the livestream with the room ID
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set('room', roomId);
-          window.location.href = currentUrl.toString();
+        } catch (e) {
+          // Not a URL, use as-is
+        }
+        
+        // Normalize to lowercase for consistency
+        roomId = roomId.toLowerCase();
+        
+        // Close the modal
+        const joinModal = bootstrap.Modal.getInstance(document.getElementById('joinModal'));
+        if (joinModal) {
+          joinModal.hide();
+        }
+        
+        // Stop QR scanner if active
+        if (qrScannerActive) {
+          stopQRScanner();
+        }
+        
+        // Update the hidden roomIdInput field so the original joinRoom() function can use it
+        const hiddenRoomIdInput = document.getElementById('roomIdInput');
+        if (hiddenRoomIdInput) {
+          hiddenRoomIdInput.value = roomId;
+        }
+        
+        // Call the original joinRoom function to maintain the same functionality
+        if (window.viewer && window.viewer.joinRoom) {
+          window.viewer.joinRoom();
+        } else if (window.joinRoom) {
+          window.joinRoom();
         }
       }
 
@@ -1177,10 +1176,18 @@ permalink: /livestream/
                 joinModal.hide();
               }
               
-              // Navigate to the livestream
-              const currentUrl = new URL(window.location.href);
-              currentUrl.searchParams.set('room', roomId);
-              window.location.href = currentUrl.toString();
+              // Update the hidden roomIdInput field so the original joinRoom() function can use it
+              const hiddenRoomIdInput = document.getElementById('roomIdInput');
+              if (hiddenRoomIdInput) {
+                hiddenRoomIdInput.value = roomId;
+              }
+              
+              // Call the original joinRoom function to maintain the same functionality
+              if (window.viewer && window.viewer.joinRoom) {
+                window.viewer.joinRoom();
+              } else if (window.joinRoom) {
+                window.joinRoom();
+              }
             },
             (errorMessage) => {
               // QR code parsing error (usually means no QR code in view)

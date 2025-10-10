@@ -129,12 +129,13 @@ class WebRTCViewer {
     this.checkURLForRoomId();
 
     // Setup UI event listeners
-    this.roomIdInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.joinRoom();
-    });
-    this.roomIdInputMobile.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.joinRoom();
-    });
+    // Note: Keypress listeners removed - now using modal-based join functionality
+    // this.roomIdInput.addEventListener("keypress", (e) => {
+    //   if (e.key === "Enter") this.joinRoom();
+    // });
+    // this.roomIdInputMobile.addEventListener("keypress", (e) => {
+    //   if (e.key === "Enter") this.joinRoom();
+    // });
 
     // Sync room inputs with validation
     this.roomIdInput.addEventListener('input', (e) => {
