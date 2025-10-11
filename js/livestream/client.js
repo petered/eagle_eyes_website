@@ -6,6 +6,8 @@ class WebRTCViewer {
     this.currentPublisherName = null;
     this.isConnected = false;
     this.wasStreaming = false; // Track if we were actually streaming
+    this.streamTimeout = null; // Track timeout for no stream notification
+    this.streamReceived = false; // Track if we've received a stream
 
     this.remoteVideo = document.getElementById("remoteVideo");
     this.statusElement = document.getElementById("status");
@@ -294,6 +296,10 @@ class WebRTCViewer {
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
 
+      // Reset stream received flag and start timeout
+      this.streamReceived = false;
+      this.startStreamTimeout();
+
       if (data.hasPublisher) {
         this.updateStatus("waiting", "Connecting to stream...");
         this.requestStream();
@@ -366,16 +372,53 @@ class WebRTCViewer {
     this.socket.emit("join-as-viewer", { roomId });
   }
 
+  startStreamTimeout() {
+    // Clear any existing timeout
+    this.clearStreamTimeout();
+    
+    // Set a 15 second timeout to show notification if no stream arrives
+    this.streamTimeout = setTimeout(() => {
+      if (!this.streamReceived && this.currentRoomId) {
+        console.log('No stream received after timeout, showing notification');
+        this.showNoStreamNotification();
+      }
+    }, 15000); // 15 seconds
+  }
+
+  clearStreamTimeout() {
+    if (this.streamTimeout) {
+      clearTimeout(this.streamTimeout);
+      this.streamTimeout = null;
+    }
+  }
+
+  showNoStreamNotification() {
+    if (window.showNoStreamNotification) {
+      window.showNoStreamNotification();
+    }
+  }
+
+  hideNoStreamNotification() {
+    if (window.hideNoStreamNotification) {
+      window.hideNoStreamNotification();
+    }
+  }
+
   leaveRoom() {
     if (this.currentRoomId) {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
+
+    // Clear stream timeout and hide notification
+    this.clearStreamTimeout();
+    this.hideNoStreamNotification();
 
     // Clear all state and UI (don't keep last frame on manual leave)
     this.cleanup(false);
     this.currentRoomId = null;
     this.currentPublisherName = null;
     this.wasStreaming = false; // Reset streaming flag
+    this.streamReceived = false; // Reset stream received flag
     this.updateRoomId("Not connected");
     this.updateStatus("waiting", "Not streaming");
     this.updateViewerCount(0);
@@ -448,6 +491,11 @@ class WebRTCViewer {
 
     this.peerConnection.ontrack = (event) => {
       console.log("Received remote stream");
+
+      // Mark that we've received a stream and clear timeout
+      this.streamReceived = true;
+      this.clearStreamTimeout();
+      this.hideNoStreamNotification();
 
       // Remove old canvas if exists
       const oldCanvas = document.getElementById('lastFrameCanvas');
