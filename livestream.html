@@ -539,7 +539,7 @@ permalink: /livestream/
             </button>
             <div class="text-muted small">
               <div class="mb-1">Or</div>
-              <div class="mb-2">Share this Room ID for others to enter in "Join a Livestream":</div>
+              <div class="mb-2">Share this Room ID for others to enter in <i class="bi bi-box-arrow-in-right"></i> "Join a Livestream":</div>
               <div class="font-monospace text-white fs-5" id="modalRoomId" onclick="copyRoomId()" style="cursor: pointer; user-select: all;" title="Click to copy">-</div>
               <div id="roomIdCopiedMessage" style="color: #28a745; font-size: 12px; margin-top: 8px; display: none;">Copied to clipboard</div>
             </div>
@@ -772,9 +772,29 @@ permalink: /livestream/
         <div id="videoContainer">
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
-            <p>No video stream</p>
-            <small class="text-muted">Enter a room ID and join to start</small>
-            <a href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
+            <p id="placeholderTitle">No video stream</p>
+            <small id="placeholderText" class="text-muted">Enter a room ID and join to start</small>
+            <div id="noStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px;">
+              <div style="margin-bottom: 1rem;">
+                <strong>You have attempted to join Room ID:</strong><br>
+                <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              </div>
+              <div style="margin-bottom: 0.75rem; font-weight: 600;">
+                No video stream is available.
+              </div>
+              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5;">
+                This may be due to no stream being available in this room currently or issues with your Internet connection. To share this Room ID with another device, open the <strong>Join a Livestream</strong> window (<i class="bi bi-box-arrow-in-right"></i>) on that device and either enter the Room ID listed above or scan the QR code available when you click Share below:
+              </div>
+              <button 
+                class="btn btn-primary mb-3" 
+                data-bs-toggle="modal" 
+                data-bs-target="#shareModal"
+                style="padding: 10px 24px; font-weight: 500;"
+              >
+                <i class="bi bi-share"></i> Share Livestream
+              </button>
+            </div>
+            <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
               margin-top: 1rem;
               display: inline-block;
               background-color: #465373;
@@ -886,6 +906,34 @@ permalink: /livestream/
         const overlay = document.getElementById('connectionFailedOverlay');
         if (overlay) {
           overlay.style.display = 'none';
+        }
+      }
+
+      function hideNoStreamNotification() {
+        const placeholderTitle = document.getElementById('placeholderTitle');
+        const placeholderText = document.getElementById('placeholderText');
+        const noStreamDetails = document.getElementById('noStreamDetails');
+        
+        if (placeholderTitle) placeholderTitle.style.display = 'block';
+        if (placeholderText) placeholderText.style.display = 'block';
+        if (noStreamDetails) noStreamDetails.style.display = 'none';
+      }
+
+      function showNoStreamNotification() {
+        const placeholderTitle = document.getElementById('placeholderTitle');
+        const placeholderText = document.getElementById('placeholderText');
+        const noStreamDetails = document.getElementById('noStreamDetails');
+        const attemptedRoomId = document.getElementById('attemptedRoomId');
+        
+        // Get the current room ID from the viewer
+        const roomId = window.viewer ? window.viewer.currentRoomId : null;
+        
+        if (roomId && noStreamDetails && placeholderText && attemptedRoomId) {
+          // Hide the title and default text, show the no stream details
+          if (placeholderTitle) placeholderTitle.style.display = 'none';
+          placeholderText.style.display = 'none';
+          attemptedRoomId.textContent = roomId;
+          noStreamDetails.style.display = 'block';
         }
       }
 

@@ -6,6 +6,7 @@ class WebRTCViewer {
     this.currentPublisherName = null;
     this.isConnected = false;
     this.wasStreaming = false; // Track if we were actually streaming
+    this.streamReceived = false; // Track if we've received a stream
 
     this.remoteVideo = document.getElementById("remoteVideo");
     this.statusElement = document.getElementById("status");
@@ -294,6 +295,10 @@ class WebRTCViewer {
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
 
+      // Reset stream received flag and show notification immediately
+      this.streamReceived = false;
+      this.showNoStreamNotification();
+
       if (data.hasPublisher) {
         this.updateStatus("waiting", "Connecting to stream...");
         this.requestStream();
@@ -366,16 +371,32 @@ class WebRTCViewer {
     this.socket.emit("join-as-viewer", { roomId });
   }
 
+  showNoStreamNotification() {
+    if (window.showNoStreamNotification) {
+      window.showNoStreamNotification();
+    }
+  }
+
+  hideNoStreamNotification() {
+    if (window.hideNoStreamNotification) {
+      window.hideNoStreamNotification();
+    }
+  }
+
   leaveRoom() {
     if (this.currentRoomId) {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
+
+    // Hide notification
+    this.hideNoStreamNotification();
 
     // Clear all state and UI (don't keep last frame on manual leave)
     this.cleanup(false);
     this.currentRoomId = null;
     this.currentPublisherName = null;
     this.wasStreaming = false; // Reset streaming flag
+    this.streamReceived = false; // Reset stream received flag
     this.updateRoomId("Not connected");
     this.updateStatus("waiting", "Not streaming");
     this.updateViewerCount(0);
@@ -448,6 +469,10 @@ class WebRTCViewer {
 
     this.peerConnection.ontrack = (event) => {
       console.log("Received remote stream");
+
+      // Mark that we've received a stream and hide notification
+      this.streamReceived = true;
+      this.hideNoStreamNotification();
 
       // Remove old canvas if exists
       const oldCanvas = document.getElementById('lastFrameCanvas');
