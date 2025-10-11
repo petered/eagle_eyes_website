@@ -284,7 +284,12 @@ class WebRTCViewer {
       this.updateViewerCount(data.viewerCount);
       this.leaveBtn.disabled = false;
       this.leaveBtnMobile.disabled = false;
-      if (this.leaveBtnDesktop) this.leaveBtnDesktop.disabled = false;
+      if (this.leaveBtnDesktop) {
+        console.log('Enabling desktop leave button');
+        this.leaveBtnDesktop.disabled = false;
+      } else {
+        console.warn('Desktop leave button not found!');
+      }
 
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
