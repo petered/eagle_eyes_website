@@ -770,67 +770,31 @@ permalink: /livestream/
           </div>
         </div>
         <div id="videoContainer">
-          <!-- No stream available notification overlay -->
-          <div id="noStreamNotification" style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(40, 44, 52, 0.95);
-            color: white;
-            padding: 24px 32px;
-            border-radius: 12px;
-            font-size: 14px;
-            z-index: 1050;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            display: none;
-            flex-direction: column;
-            gap: 16px;
-            max-width: 90%;
-            width: 400px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-          ">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-              <i class="bi bi-exclamation-circle" style="font-size: 48px; color: #ffc107;"></i>
-              <div style="font-weight: 600; font-size: 16px;">Livestream Room ID Registered</div>
-            </div>
-            <div style="line-height: 1.6; color: rgba(255, 255, 255, 0.85);">
-              No video stream is available. This may be due to your specific Internet connection.
-            </div>
-            <div style="line-height: 1.6; color: rgba(255, 255, 255, 0.85); font-size: 13px;">
-              To share this Room ID with someone on another device that may have an appropriate Internet connection, click the button below:
-            </div>
-            <button 
-              class="btn btn-primary w-100" 
-              data-bs-toggle="modal" 
-              data-bs-target="#shareModal"
-              onclick="hideNoStreamNotification()"
-              style="padding: 10px 20px; font-weight: 500;"
-            >
-              <i class="bi bi-share"></i> Share Livestream
-            </button>
-            <button 
-              onclick="hideNoStreamNotification()" 
-              style="
-                background: none;
-                border: none;
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 12px;
-                cursor: pointer;
-                padding: 4px;
-                text-decoration: underline;
-              "
-            >
-              Dismiss
-            </button>
-          </div>
-
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
-            <p>No video stream</p>
-            <small class="text-muted">Enter a room ID and join to start</small>
-            <a href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
+            <p id="placeholderTitle">No video stream</p>
+            <small id="placeholderText" class="text-muted">Enter a room ID and join to start</small>
+            <div id="noStreamDetails" style="display: none; margin-top: 1rem; max-width: 500px;">
+              <div style="margin-bottom: 1rem;">
+                <strong>You have attempted to join Room ID:</strong><br>
+                <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              </div>
+              <div style="margin-bottom: 1rem;">
+                No video stream is available. This may be due to your specific Internet connection.
+              </div>
+              <div style="margin-bottom: 1rem;">
+                To share this Room ID with someone on another device that may have an appropriate Internet connection:
+              </div>
+              <button 
+                class="btn btn-primary mb-3" 
+                data-bs-toggle="modal" 
+                data-bs-target="#shareModal"
+                style="padding: 10px 24px; font-weight: 500;"
+              >
+                <i class="bi bi-share"></i> Share Livestream
+              </button>
+            </div>
+            <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
               margin-top: 1rem;
               display: inline-block;
               background-color: #465373;
@@ -946,16 +910,26 @@ permalink: /livestream/
       }
 
       function hideNoStreamNotification() {
-        const notification = document.getElementById('noStreamNotification');
-        if (notification) {
-          notification.style.display = 'none';
-        }
+        const placeholderText = document.getElementById('placeholderText');
+        const noStreamDetails = document.getElementById('noStreamDetails');
+        
+        if (placeholderText) placeholderText.style.display = 'block';
+        if (noStreamDetails) noStreamDetails.style.display = 'none';
       }
 
       function showNoStreamNotification() {
-        const notification = document.getElementById('noStreamNotification');
-        if (notification) {
-          notification.style.display = 'flex';
+        const placeholderText = document.getElementById('placeholderText');
+        const noStreamDetails = document.getElementById('noStreamDetails');
+        const attemptedRoomId = document.getElementById('attemptedRoomId');
+        
+        // Get the current room ID from the viewer
+        const roomId = window.viewer ? window.viewer.currentRoomId : null;
+        
+        if (roomId && noStreamDetails && placeholderText && attemptedRoomId) {
+          // Hide the default text and show the no stream details
+          placeholderText.style.display = 'none';
+          attemptedRoomId.textContent = roomId;
+          noStreamDetails.style.display = 'block';
         }
       }
 
