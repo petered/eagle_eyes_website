@@ -376,13 +376,13 @@ class WebRTCViewer {
     // Clear any existing timeout
     this.clearStreamTimeout();
     
-    // Set a 15 second timeout to show notification if no stream arrives
+    // Set a 5 second timeout to show notification if no stream arrives
     this.streamTimeout = setTimeout(() => {
       if (!this.streamReceived && this.currentRoomId) {
         console.log('No stream received after timeout, showing notification');
         this.showNoStreamNotification();
       }
-    }, 15000); // 15 seconds
+    }, 5000); // 5 seconds
   }
 
   clearStreamTimeout() {
