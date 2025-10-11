@@ -1204,9 +1204,10 @@ permalink: /livestream/
           html5QrCode = new Html5Qrcode("qrReader");
           
           const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
+            fps: 30, 
+            qrbox: { width: 200, height: 200 },
+            aspectRatio: 1.0,
+            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
           };
           
           await html5QrCode.start(
@@ -1233,9 +1234,9 @@ permalink: /livestream/
                 console.log('Not a valid URL, using raw text as room ID:', roomId);
               }
               
-              // Normalize to lowercase for consistency
-              roomId = roomId.toLowerCase();
-              console.log('Final room ID (normalized):', roomId);
+              // Keep room ID in uppercase (don't normalize to lowercase)
+              roomId = roomId.toUpperCase();
+              console.log('Final room ID (uppercase):', roomId);
               
               // Stop scanner and join
               stopQRScanner();
@@ -1264,6 +1265,10 @@ permalink: /livestream/
             (errorMessage) => {
               // QR code parsing error (usually means no QR code in view)
               // This is called frequently, so we don't show errors here
+              // Only log if it's not a common "No QR code found" message
+              if (!errorMessage.includes('No QR code found') && !errorMessage.includes('NotFoundException')) {
+                console.log('QR scan error:', errorMessage);
+              }
             }
           );
           
