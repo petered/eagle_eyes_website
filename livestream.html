@@ -1155,6 +1155,21 @@ permalink: /livestream/
         }
       });
 
+      // Add room ID validation to modal input (same as navbar inputs)
+      document.getElementById('modalRoomIdInput').addEventListener('input', function(e) {
+        // Use the same validation function as the navbar inputs
+        if (window.viewer && window.viewer.validateAndFormatRoomId) {
+          const validated = window.viewer.validateAndFormatRoomId(e.target.value);
+          e.target.value = validated;
+          
+          // Also sync with hidden navbar inputs
+          const roomIdInput = document.getElementById('roomIdInput');
+          const roomIdInputMobile = document.getElementById('roomIdInputMobile');
+          if (roomIdInput) roomIdInput.value = validated;
+          if (roomIdInputMobile) roomIdInputMobile.value = validated;
+        }
+      });
+
       // Pre-populate join modal with current room ID when opened
       document.getElementById('joinModal').addEventListener('show.bs.modal', function () {
         const roomIdInput = document.getElementById('roomIdInput');
