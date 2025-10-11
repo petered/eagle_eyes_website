@@ -251,7 +251,8 @@ class WebRTCViewer {
 
   checkURLForRoomId() {
     const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get("room") || urlParams.get("r");
+    // Support 'stream' as primary, but also accept 'room' and 'r' for backwards compatibility
+    const roomId = urlParams.get("stream") || urlParams.get("room") || urlParams.get("r");
 
     if (roomId) {
       this.roomIdInput.value = roomId;
@@ -356,14 +357,17 @@ class WebRTCViewer {
   async joinRoom() {
     const roomId = this.roomIdInput.value.trim();
     if (!roomId) {
-      alert("Please enter a room ID");
+      alert("Please enter a stream ID");
       return;
     }
 
     // If already connected to a different room, reload page for clean state
     if (this.currentRoomId && this.currentRoomId !== roomId) {
       const url = new URL(window.location);
-      url.searchParams.set("room", roomId);
+      // Remove old 'room' parameter for clean URLs
+      url.searchParams.delete("room");
+      url.searchParams.delete("r");
+      url.searchParams.set("stream", roomId);
       window.location.href = url.toString();
       return;
     }
@@ -828,7 +832,10 @@ class WebRTCViewer {
     document.getElementById("roomIdDisplay").textContent = roomId;
     if (roomId && roomId !== "Not connected") {
       const url = new URL(window.location);
-      url.searchParams.set("room", roomId);
+      // Remove old 'room' parameter for clean URLs
+      url.searchParams.delete("room");
+      url.searchParams.delete("r");
+      url.searchParams.set("stream", roomId);
       window.history.replaceState({}, document.title, url);
     }
   }
@@ -911,7 +918,7 @@ class WebRTCViewer {
         <div class="d-flex align-items-center justify-content-between px-3 py-1 ${bgClass} rounded mx-2 mb-1">
           <button class="btn btn-link text-start p-0 flex-grow-1 text-decoration-none ${textClass}"
                   onclick="viewer.joinFromHistory('${item.roomId}')"
-                  title="Join ${item.name}"
+                  title="Connect to ${item.name}"
                   ${isCurrent ? 'disabled' : ''}>
             <div>
               <div class="text-truncate">${item.name}</div>
@@ -943,7 +950,7 @@ class WebRTCViewer {
         <div class="d-flex align-items-center justify-content-between mb-2 p-2 ${bgClass} rounded">
           <button class="btn btn-link text-start p-0 flex-grow-1 text-decoration-none ${textClass}"
                   onclick="viewer.joinFromHistory('${item.roomId}')"
-                  title="Join ${item.name}"
+                  title="Connect to ${item.name}"
                   ${isCurrent ? 'disabled' : ''}>
             <div>
               <div class="text-truncate">${item.name}</div>
@@ -963,7 +970,10 @@ class WebRTCViewer {
   joinFromHistory(roomId) {
     // Always reload page when joining from history for clean state
     const url = new URL(window.location);
-    url.searchParams.set("room", roomId);
+    // Remove old 'room' parameter for clean URLs
+    url.searchParams.delete("room");
+    url.searchParams.delete("r");
+    url.searchParams.set("stream", roomId);
     window.location.href = url.toString();
   }
 }

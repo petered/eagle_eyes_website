@@ -430,7 +430,7 @@ permalink: /livestream/
               type="button"
               data-bs-toggle="modal"
               data-bs-target="#joinModal"
-              title="Join a Livestream"
+              title="Connect to a Stream"
               style="background-color: #314268; border-color: #314268; color: white;"
             >
               <i class="bi bi-box-arrow-in-right"></i>
@@ -452,7 +452,7 @@ permalink: /livestream/
               type="button"
               id="leaveBtnDesktop"
               onclick="leaveRoom()"
-              title="Leave Room"
+              title="Disconnect"
               style="background-color: #dc3545; border-color: #dc3545; color: white;"
               disabled
             >
@@ -467,24 +467,24 @@ permalink: /livestream/
       </div>
     </nav>
 
-    <!-- Join Livestream Modal -->
+    <!-- Connect to Stream Modal -->
     <div class="modal fade" id="joinModal" tabindex="-1" aria-labelledby="joinModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white">
           <div class="modal-header border-secondary">
-            <h5 class="modal-title" id="joinModalLabel">Join a Livestream</h5>
+            <h5 class="modal-title" id="joinModalLabel">Connect to a Stream</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <!-- Manual Room ID Entry -->
+            <!-- Manual Stream ID Entry -->
             <div class="mb-4">
-              <label for="modalRoomIdInput" class="form-label">Enter Room ID</label>
+              <label for="modalRoomIdInput" class="form-label">Enter Stream ID</label>
               <div class="input-group">
                 <input
                   type="text"
                   id="modalRoomIdInput"
                   class="form-control"
-                  placeholder="Room ID"
+                  placeholder="Stream ID"
                 />
                 <button
                   class="btn"
@@ -492,7 +492,7 @@ permalink: /livestream/
                   onclick="joinRoomFromModal()"
                   style="background-color: #314268; border-color: #314268; color: white;"
                 >
-                  <i class="bi bi-box-arrow-in-right"></i> Join
+                  <i class="bi bi-box-arrow-in-right"></i> Connect
                 </button>
               </div>
             </div>
@@ -550,7 +550,7 @@ permalink: /livestream/
             </button>
             <div class="text-muted small">
               <div class="mb-1">Or</div>
-              <div class="mb-2">Share this Room ID for others to enter in <i class="bi bi-box-arrow-in-right"></i> "Join a Livestream":</div>
+              <div class="mb-2">Share this Stream ID for others to enter in <i class="bi bi-box-arrow-in-right"></i> "Connect to a Stream":</div>
               <div class="font-monospace text-white fs-5" id="modalRoomId" onclick="copyRoomId()" style="cursor: pointer; user-select: all;" title="Click to copy">-</div>
               <div id="roomIdCopiedMessage" style="color: #28a745; font-size: 12px; margin-top: 8px; display: none;">Copied to clipboard</div>
             </div>
@@ -589,7 +589,7 @@ permalink: /livestream/
       <div class="offcanvas-body">
         <div class="d-grid gap-2 mb-3">
           <button class="btn" data-bs-toggle="modal" data-bs-target="#joinModal" style="background-color: #314268; border-color: #314268; color: white;">
-            <i class="bi bi-box-arrow-in-right"></i> Join a Livestream
+            <i class="bi bi-box-arrow-in-right"></i> Connect to a Stream
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
@@ -599,7 +599,7 @@ permalink: /livestream/
             onclick="leaveRoom()"
             disabled
           >
-            <i class="bi bi-stop-fill"></i> Leave Room
+            <i class="bi bi-stop-fill"></i> Disconnect
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
@@ -670,7 +670,7 @@ permalink: /livestream/
         </div>
         <hr />
         <p>
-          <strong>Room:</strong> <span id="roomIdDisplay">Not connected</span>
+          <strong>Stream:</strong> <span id="roomIdDisplay">Not connected</span>
         </p>
         <p>
           <strong>Connection:</strong>
@@ -797,23 +797,29 @@ permalink: /livestream/
             </button>
             <div id="noStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
               <div style="margin-bottom: 1rem; word-break: break-all;">
-                <strong>You have attempted to join Room ID:</strong><br>
-                <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+                <strong>Stream ID:</strong> <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
               </div>
-              <div style="margin-bottom: 0.75rem; font-weight: 600;">
-                No video stream is available.
+              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5;">
+                Unable to load this stream on your device. This may be due to your internet connection (some mobile data plans do not allow P2P streaming), or a mis-typed stream ID. You can still try to share this stream link with another device.
               </div>
-              <div style="margin-bottom: 1rem; font-size: 0.9em; line-height: 1.5;">
-                This may be due to a typo in your Room ID, no stream currently available, or connection issues. To share this Room ID with another device, open <strong>Join a Livestream</strong> (<i class="bi bi-box-arrow-in-right"></i>) and enter the Room ID above or scan the QR code from Share below:
+              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+                <button
+                  class="btn btn-primary w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#shareModal"
+                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-share"></i> Share Livestream
+                </button>
+                <button
+                  class="btn w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#joinModal"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
+                </button>
               </div>
-              <button 
-                class="btn btn-primary mb-3 w-100" 
-                data-bs-toggle="modal" 
-                data-bs-target="#shareModal"
-                style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
-              >
-                <i class="bi bi-share"></i> Share Livestream
-              </button>
             </div>
             <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
               margin-top: 1rem;
@@ -1029,9 +1035,10 @@ permalink: /livestream/
         const qrcodeContainer = document.getElementById('qrcode');
         qrcodeContainer.innerHTML = ''; // Clear any existing QR code
         const currentUrl = window.location.href;
-        
-        // Only generate if there's a room in the URL
-        if (currentUrl.includes('?room=') || currentUrl.includes('&room=')) {
+
+        // Only generate if there's a stream in the URL
+        if (currentUrl.includes('?stream=') || currentUrl.includes('&stream=') ||
+            currentUrl.includes('?room=') || currentUrl.includes('&room=')) {
           console.log('Generating QR code for URL:', currentUrl);
           new QRCode(qrcodeContainer, {
             text: currentUrl,
@@ -1043,37 +1050,39 @@ permalink: /livestream/
           });
           console.log('QR code generated successfully');
         } else {
-          // Show message if no room is active
-          console.log('No room in URL, cannot generate QR code');
-          qrcodeContainer.innerHTML = '<div style="padding: 20px; color: #6c757d;">Join a room first to generate QR code</div>';
+          // Show message if no stream is active
+          console.log('No stream in URL, cannot generate QR code');
+          qrcodeContainer.innerHTML = '<div style="padding: 20px; color: #6c757d;">Connect to a stream first to generate QR code</div>';
         }
         
-        // Update Room ID display in share modal
+        // Update Stream ID display in share modal
         const roomIdInput = document.getElementById('roomIdInput');
         const modalRoomId = document.getElementById('modalRoomId');
         if (roomIdInput && modalRoomId) {
           let currentRoomId = roomIdInput.value.trim();
-          
+
           // If roomIdInput is empty, try to get it from URL
           if (!currentRoomId) {
             const urlParams = new URLSearchParams(window.location.search);
-            currentRoomId = urlParams.get('room') || '';
+            // Try 'stream' first, then 'room' for backwards compatibility
+            currentRoomId = urlParams.get('stream') || urlParams.get('room') || '';
           }
-          
-          // If it's a URL, extract just the room ID
+
+          // If it's a URL, extract just the stream ID
           if (currentRoomId.includes('http://') || currentRoomId.includes('https://') || currentRoomId.includes('?')) {
             try {
               const url = new URL(currentRoomId);
-              currentRoomId = url.searchParams.get('room') || '';
+              // Try 'stream' first, then 'room' for backwards compatibility
+              currentRoomId = url.searchParams.get('stream') || url.searchParams.get('room') || '';
             } catch (e) {
               // Try to extract from query string manually
-              const match = currentRoomId.match(/[?&]room=([^&]+)/);
+              const match = currentRoomId.match(/[?&](stream|room)=([^&]+)/);
               if (match) {
-                currentRoomId = match[1];
+                currentRoomId = match[2];
               }
             }
           }
-          
+
           modalRoomId.textContent = currentRoomId || '-';
         }
       });
@@ -1083,9 +1092,9 @@ permalink: /livestream/
         const roomIdInput = document.getElementById('roomIdInput');
         const roomIdInputMobile = document.getElementById('roomIdInputMobile');
         const roomId = modalRoomIdInput.value.trim();
-        
+
         if (!roomId) {
-          alert("Please enter a room ID");
+          alert("Please enter a stream ID");
           return;
         }
         
@@ -1251,7 +1260,7 @@ permalink: /livestream/
         }
       });
 
-      // Pre-populate join modal with current room ID when opened
+      // Pre-populate modal with current stream ID when opened
       document.getElementById('joinModal').addEventListener('show.bs.modal', function () {
         const roomIdInput = document.getElementById('roomIdInput');
         const modalRoomIdInput = document.getElementById('modalRoomIdInput');
@@ -1259,9 +1268,9 @@ permalink: /livestream/
           const currentRoomId = roomIdInput.value.trim();
           if (currentRoomId) {
             modalRoomIdInput.value = currentRoomId;
-            modalRoomIdInput.placeholder = 'Enter a different Room ID or use current';
+            modalRoomIdInput.placeholder = 'Enter a different Stream ID or use current';
           } else {
-            modalRoomIdInput.placeholder = 'Room ID';
+            modalRoomIdInput.placeholder = 'Stream ID';
           }
         }
       });
@@ -1299,20 +1308,21 @@ permalink: /livestream/
               console.log('QR Code scanned! Raw text:', decodedText);
               qrScanResult.textContent = 'QR Code detected! Joining livestream...';
               
-              // Extract room ID from URL if it's a full URL, or use as-is if it's just an ID
+              // Extract stream ID from URL if it's a full URL, or use as-is if it's just an ID
               let roomId = decodedText;
               try {
                 const url = new URL(decodedText);
-                const urlRoomId = url.searchParams.get('room');
+                // Try 'stream' first, then 'room' for backwards compatibility
+                const urlRoomId = url.searchParams.get('stream') || url.searchParams.get('room');
                 if (urlRoomId) {
                   roomId = urlRoomId;
-                  console.log('Extracted room ID from URL:', roomId);
+                  console.log('Extracted stream ID from URL:', roomId);
                 } else {
-                  console.log('No room parameter in URL, using full URL as room ID');
+                  console.log('No stream parameter in URL, using full URL as stream ID');
                 }
               } catch (e) {
                 // Not a URL, use as-is
-                console.log('Not a valid URL, using raw text as room ID:', roomId);
+                console.log('Not a valid URL, using raw text as stream ID:', roomId);
               }
               
               // Keep room ID in uppercase (don't normalize to lowercase)
