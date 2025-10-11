@@ -90,12 +90,17 @@ permalink: /livestream/
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
       }
       #remoteVideo {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
         object-fit: contain;
         display: none;
+        z-index: 2;
       }
       .placeholder {
         width: 100%;
@@ -107,6 +112,8 @@ permalink: /livestream/
         align-items: center;
         justify-content: center;
         background-color: #050505;
+        position: relative;
+        z-index: 1;
       }
       .status-dot {
         width: 10px;
@@ -944,6 +951,12 @@ permalink: /livestream/
         if (placeholderTitle) placeholderTitle.style.display = 'block';
         if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'inline-block';
         if (noStreamDetails) noStreamDetails.style.display = 'none';
+
+        // Show map panel and restore normal layout when hiding notification
+        const mapPanel = document.getElementById('map-panel');
+        const videoPanel = document.getElementById('video-panel');
+        if (mapPanel) mapPanel.style.display = 'block';
+        if (videoPanel) videoPanel.classList.remove('col-12');
       }
 
       function showNoStreamNotification() {
@@ -961,6 +974,12 @@ permalink: /livestream/
           placeholderConnectBtn.style.display = 'none';
           attemptedRoomId.textContent = roomId;
           noStreamDetails.style.display = 'block';
+
+          // Hide map panel and expand video panel when unable to load stream
+          const mapPanel = document.getElementById('map-panel');
+          const videoPanel = document.getElementById('video-panel');
+          if (mapPanel) mapPanel.style.display = 'none';
+          if (videoPanel) videoPanel.classList.add('col-12');
         }
       }
 

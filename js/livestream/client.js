@@ -437,6 +437,12 @@ class WebRTCViewer {
       placeholder.style.display = "flex";
     }
 
+    // Hide map panel and expand video panel when not connected
+    const mapPanel = document.getElementById("map-panel");
+    const videoPanel = document.getElementById("video-panel");
+    if (mapPanel) mapPanel.style.display = "none";
+    if (videoPanel) videoPanel.classList.add("col-12");
+
     // Remove canvas if exists
     const oldCanvas = document.getElementById('lastFrameCanvas');
     if (oldCanvas) {
@@ -496,6 +502,12 @@ class WebRTCViewer {
       this.videoContainer.querySelector(".placeholder").style.display = "none";
       this.updateStatus("connected", "Streaming");
       this.updateConnectionStatus("Streaming");
+
+      // Show map panel when streaming
+      const mapPanel = document.getElementById("map-panel");
+      const videoPanel = document.getElementById("video-panel");
+      if (mapPanel) mapPanel.style.display = "block";
+      if (videoPanel) videoPanel.classList.remove("col-12");
 
       // Clear disconnected overlay when reconnecting
       if (window.droneMap) {
