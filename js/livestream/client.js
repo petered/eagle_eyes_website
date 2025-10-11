@@ -6,7 +6,6 @@ class WebRTCViewer {
     this.currentPublisherName = null;
     this.isConnected = false;
     this.wasStreaming = false; // Track if we were actually streaming
-    this.streamTimeout = null; // Track timeout for no stream notification
     this.streamReceived = false; // Track if we've received a stream
 
     this.remoteVideo = document.getElementById("remoteVideo");
@@ -296,9 +295,9 @@ class WebRTCViewer {
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
 
-      // Reset stream received flag and start timeout
+      // Reset stream received flag and show notification immediately
       this.streamReceived = false;
-      this.startStreamTimeout();
+      this.showNoStreamNotification();
 
       if (data.hasPublisher) {
         this.updateStatus("waiting", "Connecting to stream...");
@@ -372,26 +371,6 @@ class WebRTCViewer {
     this.socket.emit("join-as-viewer", { roomId });
   }
 
-  startStreamTimeout() {
-    // Clear any existing timeout
-    this.clearStreamTimeout();
-    
-    // Set a 5 second timeout to show notification if no stream arrives
-    this.streamTimeout = setTimeout(() => {
-      if (!this.streamReceived && this.currentRoomId) {
-        console.log('No stream received after timeout, showing notification');
-        this.showNoStreamNotification();
-      }
-    }, 5000); // 5 seconds
-  }
-
-  clearStreamTimeout() {
-    if (this.streamTimeout) {
-      clearTimeout(this.streamTimeout);
-      this.streamTimeout = null;
-    }
-  }
-
   showNoStreamNotification() {
     if (window.showNoStreamNotification) {
       window.showNoStreamNotification();
@@ -409,8 +388,7 @@ class WebRTCViewer {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
 
-    // Clear stream timeout and hide notification
-    this.clearStreamTimeout();
+    // Hide notification
     this.hideNoStreamNotification();
 
     // Clear all state and UI (don't keep last frame on manual leave)
@@ -492,9 +470,8 @@ class WebRTCViewer {
     this.peerConnection.ontrack = (event) => {
       console.log("Received remote stream");
 
-      // Mark that we've received a stream and clear timeout
+      // Mark that we've received a stream and hide notification
       this.streamReceived = true;
-      this.clearStreamTimeout();
       this.hideNoStreamNotification();
 
       // Remove old canvas if exists
