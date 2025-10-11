@@ -779,7 +779,7 @@ permalink: /livestream/
                 <strong>You have attempted to join Room ID:</strong><br>
                 <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
               </div>
-              <div style="margin-bottom: 0.75rem; font-weight: 600; color: #ffc107;">
+              <div style="margin-bottom: 0.75rem; font-weight: 600;">
                 No video stream is available.
               </div>
               <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5;">
@@ -910,14 +910,17 @@ permalink: /livestream/
       }
 
       function hideNoStreamNotification() {
+        const placeholderTitle = document.getElementById('placeholderTitle');
         const placeholderText = document.getElementById('placeholderText');
         const noStreamDetails = document.getElementById('noStreamDetails');
         
+        if (placeholderTitle) placeholderTitle.style.display = 'block';
         if (placeholderText) placeholderText.style.display = 'block';
         if (noStreamDetails) noStreamDetails.style.display = 'none';
       }
 
       function showNoStreamNotification() {
+        const placeholderTitle = document.getElementById('placeholderTitle');
         const placeholderText = document.getElementById('placeholderText');
         const noStreamDetails = document.getElementById('noStreamDetails');
         const attemptedRoomId = document.getElementById('attemptedRoomId');
@@ -926,7 +929,8 @@ permalink: /livestream/
         const roomId = window.viewer ? window.viewer.currentRoomId : null;
         
         if (roomId && noStreamDetails && placeholderText && attemptedRoomId) {
-          // Hide the default text and show the no stream details
+          // Hide the title and default text, show the no stream details
+          if (placeholderTitle) placeholderTitle.style.display = 'none';
           placeholderText.style.display = 'none';
           attemptedRoomId.textContent = roomId;
           noStreamDetails.style.display = 'block';
