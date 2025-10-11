@@ -15,6 +15,7 @@ class WebRTCViewer {
 
     this.leaveBtn = document.getElementById("leaveBtn");
     this.leaveBtnMobile = document.getElementById("leaveBtnMobile");
+    this.leaveBtnDesktop = document.getElementById("leaveBtnDesktop");
 
     // History elements
     this.historyList = document.getElementById("historyList");
@@ -283,6 +284,7 @@ class WebRTCViewer {
       this.updateViewerCount(data.viewerCount);
       this.leaveBtn.disabled = false;
       this.leaveBtnMobile.disabled = false;
+      if (this.leaveBtnDesktop) this.leaveBtnDesktop.disabled = false;
 
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
@@ -376,6 +378,7 @@ class WebRTCViewer {
 
     this.leaveBtn.disabled = true;
     this.leaveBtnMobile.disabled = true;
+    if (this.leaveBtnDesktop) this.leaveBtnDesktop.disabled = true;
 
     this.roomIdInput.value = "";
     this.roomIdInputMobile.value = "";
