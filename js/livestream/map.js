@@ -86,15 +86,7 @@ class DroneMap {
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                 const button = L.DomUtil.create('a', 'leaflet-control-center', container);
-<<<<<<< HEAD
-                // Construct the image path relative to the current page
-                const imagePath = window.location.pathname.includes('/eagle_eyes_website_staging/') 
-                    ? '/eagle_eyes_website_staging/images/livestream/map_drone_flyer.png'
-                    : '/images/livestream/map_drone_flyer.png';
-                button.innerHTML = `<img src="${imagePath}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
-=======
                 button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/map_drone_flyer.png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
->>>>>>> 910fea1ad599871a4aaccf6efa8538346001a70d
                 button.href = '#';
                 button.role = 'button';
                 button.title = 'Center on Drone';

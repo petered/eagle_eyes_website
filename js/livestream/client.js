@@ -424,6 +424,12 @@ class WebRTCViewer {
       coordTextDesktop.innerHTML = "Waiting for location data...";
     }
 
+    // Remove pointer cursor when no location data
+    const coordStripContainer = document.getElementById("coordinateStripContainer");
+    if (coordStripContainer) {
+      coordStripContainer.style.cursor = "default";
+    }
+
     // Clear video and show placeholder
     this.remoteVideo.style.display = "none";
     const placeholder = this.videoContainer.querySelector(".placeholder");
@@ -706,6 +712,12 @@ class WebRTCViewer {
     const coordTextDesktop = document.getElementById("coordTextDesktop");
     if (coordTextDesktop) {
       coordTextDesktop.innerHTML = compactText;
+    }
+
+    // Enable pointer cursor when we have location data
+    const coordStripContainer = document.getElementById("coordinateStripContainer");
+    if (coordStripContainer) {
+      coordStripContainer.style.cursor = "pointer";
     }
   }
 
