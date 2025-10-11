@@ -1023,4 +1023,10 @@ function copyCurrentCoordinates() {
 document.addEventListener("DOMContentLoaded", () => {
   viewer = new WebRTCViewer();
   window.viewer = viewer; // Expose globally for coordinate dialog
+
+  // Hide map panel on initial load (before connecting to any stream)
+  const mapPanel = document.getElementById('map-panel');
+  const videoPanel = document.getElementById('video-panel');
+  if (mapPanel) mapPanel.style.display = 'none';
+  if (videoPanel) videoPanel.classList.add('col-12');
 });
