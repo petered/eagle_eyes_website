@@ -5,15 +5,18 @@ class WebRTCViewer {
     this.currentRoomId = null;
     this.currentPublisherName = null;
     this.isConnected = false;
+    this.wasStreaming = false; // Track if we were actually streaming
+    this.streamReceived = false; // Track if we've received a stream
 
     this.remoteVideo = document.getElementById("remoteVideo");
     this.statusElement = document.getElementById("status");
     this.roomIdInput = document.getElementById("roomIdInput");
     this.roomIdInputMobile = document.getElementById("roomIdInputMobile");
     this.videoContainer = document.getElementById("videoContainer");
-    
+
     this.leaveBtn = document.getElementById("leaveBtn");
     this.leaveBtnMobile = document.getElementById("leaveBtnMobile");
+    this.leaveBtnDesktop = document.getElementById("leaveBtnDesktop");
 
     // History elements
     this.historyList = document.getElementById("historyList");
@@ -152,6 +155,72 @@ class WebRTCViewer {
 
     // Initialize coordinate displays once
     this.initializeCoordinateDisplays();
+
+    // Setup page visibility handling for mobile reconnection
+    this.setupVisibilityHandling();
+  }
+
+  setupVisibilityHandling() {
+    // Listen for socket disconnect events
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      // Mark that we were disconnected if we're in a room
+      if (this.currentRoomId) {
+        console.log('Marking as disconnected, will reconnect when possible');
+        this.wasDisconnected = true;
+      }
+    });
+
+    this.socket.on('connect', () => {
+      console.log('Socket reconnected');
+      // If we were disconnected and we're in a room, try to reconnect after a delay
+      if (this.wasDisconnected && this.currentRoomId) {
+        console.log('Was disconnected, will attempt to rejoin room...');
+        this.wasDisconnected = false;
+        setTimeout(() => {
+          this.attemptReconnect();
+        }, 500);
+      }
+    });
+  }
+
+  attemptReconnect() {
+    if (!this.currentRoomId) {
+      return;
+    }
+
+    console.log('Attempting reconnect...');
+    console.log('Socket connected:', this.socket.connected);
+    console.log('Peer state:', this.peerConnection?.connectionState);
+
+    // If socket is not connected, reconnect it first
+    if (!this.socket.connected) {
+      console.log('Reconnecting socket...');
+      this.socket.connect();
+      return; // Wait for socket to connect, then it will trigger this again
+    }
+
+    // Check if peer connection needs reconnecting
+    const needsReconnect = !this.peerConnection ||
+                           this.peerConnection.connectionState === 'disconnected' ||
+                           this.peerConnection.connectionState === 'failed' ||
+                           this.peerConnection.connectionState === 'closed';
+
+    if (needsReconnect) {
+      console.log('Reconnecting peer connection...');
+      this.updateStatus("connecting", "Reconnecting...");
+
+      // Clean up old peer connection
+      if (this.peerConnection) {
+        this.peerConnection.close();
+        this.peerConnection = null;
+      }
+
+      // Rejoin the room (this will trigger stream request)
+      this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
+    } else {
+      console.log('Connection still active, no reconnect needed');
+    }
   }
 
   async fetchStunServers() {
@@ -202,7 +271,8 @@ class WebRTCViewer {
       this.updateStatus("error", "Disconnected from server");
       this.updateConnectionStatus("Disconnected");
       this.cleanup();
-      if (window.droneMap) {
+      // Only show disconnected message if we were actually streaming
+      if (this.wasStreaming && window.droneMap) {
         window.droneMap.setDisconnected(true);
       }
     });
@@ -215,9 +285,19 @@ class WebRTCViewer {
       this.updateViewerCount(data.viewerCount);
       this.leaveBtn.disabled = false;
       this.leaveBtnMobile.disabled = false;
+      if (this.leaveBtnDesktop) {
+        console.log('Enabling desktop leave button');
+        this.leaveBtnDesktop.disabled = false;
+      } else {
+        console.warn('Desktop leave button not found!');
+      }
 
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
+
+      // Reset stream received flag and show notification immediately
+      this.streamReceived = false;
+      this.showNoStreamNotification();
 
       if (data.hasPublisher) {
         this.updateStatus("waiting", "Connecting to stream...");
@@ -244,7 +324,8 @@ class WebRTCViewer {
       console.log("Publisher left the room");
       this.updateStatus("waiting", "Publisher disconnected");
       this.cleanup();
-      if (window.droneMap) {
+      // Only show disconnected message if we were actually streaming
+      if (this.wasStreaming && window.droneMap) {
         window.droneMap.setDisconnected(true);
       }
     });
@@ -290,15 +371,32 @@ class WebRTCViewer {
     this.socket.emit("join-as-viewer", { roomId });
   }
 
+  showNoStreamNotification() {
+    if (window.showNoStreamNotification) {
+      window.showNoStreamNotification();
+    }
+  }
+
+  hideNoStreamNotification() {
+    if (window.hideNoStreamNotification) {
+      window.hideNoStreamNotification();
+    }
+  }
+
   leaveRoom() {
     if (this.currentRoomId) {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
 
+    // Hide notification
+    this.hideNoStreamNotification();
+
     // Clear all state and UI (don't keep last frame on manual leave)
     this.cleanup(false);
     this.currentRoomId = null;
     this.currentPublisherName = null;
+    this.wasStreaming = false; // Reset streaming flag
+    this.streamReceived = false; // Reset stream received flag
     this.updateRoomId("Not connected");
     this.updateStatus("waiting", "Not streaming");
     this.updateViewerCount(0);
@@ -306,6 +404,7 @@ class WebRTCViewer {
 
     this.leaveBtn.disabled = true;
     this.leaveBtnMobile.disabled = true;
+    if (this.leaveBtnDesktop) this.leaveBtnDesktop.disabled = true;
 
     this.roomIdInput.value = "";
     this.roomIdInputMobile.value = "";
@@ -371,6 +470,10 @@ class WebRTCViewer {
     this.peerConnection.ontrack = (event) => {
       console.log("Received remote stream");
 
+      // Mark that we've received a stream and hide notification
+      this.streamReceived = true;
+      this.hideNoStreamNotification();
+
       // Remove old canvas if exists
       const oldCanvas = document.getElementById('lastFrameCanvas');
       if (oldCanvas) {
@@ -407,26 +510,33 @@ class WebRTCViewer {
         case "connected":
           this.updateStatus("connected", "Streaming");
           this.updateConnectionStatus("Streaming");
+          this.wasStreaming = true; // Mark that we were actually streaming
           break;
         case "disconnected":
-          this.updateStatus("waiting", "Stream disconnected");
-          this.updateConnectionStatus("Connection lost");
-          this.cleanup();
-          if (window.droneMap) {
-            window.droneMap.setDisconnected(true);
-          }
+          console.log("Peer connection disconnected, attempting reconnect...");
+          this.updateStatus("connecting", "Reconnecting...");
+          this.updateConnectionStatus("Reconnecting...");
+
+          // Attempt to reconnect automatically
+          setTimeout(() => {
+            if (this.currentRoomId && this.peerConnection?.connectionState !== 'connected') {
+              console.log("Attempting to reconnect after disconnect...");
+              this.attemptReconnect();
+            }
+          }, 1000);
           break;
         case "failed":
-          this.updateStatus("error", "Connection failed");
-          this.updateConnectionStatus("Connection failed");
-          this.cleanup();
-          if (window.droneMap) {
-            window.droneMap.setDisconnected(true);
-          }
-          // Show connection failed message
-          if (window.showConnectionFailedMessage) {
-            window.showConnectionFailedMessage();
-          }
+          console.log("Peer connection failed, attempting reconnect...");
+          this.updateStatus("connecting", "Reconnecting...");
+          this.updateConnectionStatus("Reconnecting...");
+
+          // Attempt to reconnect automatically
+          setTimeout(() => {
+            if (this.currentRoomId && this.peerConnection?.connectionState !== 'connected') {
+              console.log("Attempting to reconnect after failure...");
+              this.attemptReconnect();
+            }
+          }, 1000);
           break;
         case "closed":
           this.updateStatus("waiting", "Not streaming");

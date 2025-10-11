@@ -6,8 +6,8 @@ permalink: /livestream/
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/images/eagle_eyes_icon_rounded_filtered.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="/images/eagle_eyes_icon_rounded_filtered.ico" type="image/x-icon">
+    <link rel="icon" href="{{ '/images/eagle_eyes_icon_rounded_filtered.ico' | relative_url }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ '/images/eagle_eyes_icon_rounded_filtered.ico' | relative_url }}" type="image/x-icon">
     <title>Eagle Eyes Livestream Viewer</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -21,6 +21,8 @@ permalink: /livestream/
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
       body,
       html {
@@ -217,8 +219,17 @@ permalink: /livestream/
         }
       }
     </style>
+
+    <!-- Eruda Mobile Console for debugging -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script> -->
   </head>
   <body>
+    <!-- Hidden elements required by client.js -->
+    <input type="hidden" id="roomIdInput" />
+    <input type="hidden" id="roomIdInputMobile" />
+    <button type="button" id="leaveBtn" style="display: none;" onclick="leaveRoom()"></button>
+    
     <!-- Toast notification for room ID validation -->
     <div id="roomIdToast"></div>
 
@@ -296,7 +307,7 @@ permalink: /livestream/
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="#">
-          <img src="/images/eagle_eyes_icon_rounded_filtered.png" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
+          <img src="{{ '/images/eagle_eyes_icon_rounded_filtered.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
           <span>Eagle Eyes Livestream Viewer</span>
           <span class="beta-badge">BETA</span>
         </a>
@@ -320,33 +331,6 @@ permalink: /livestream/
         </button>
 
         <div class="collapse navbar-collapse">
-          <div class="d-flex gap-2 mx-auto">
-            <div class="input-group w-auto">
-              <input
-                type="text"
-                id="roomIdInput"
-                class="form-control"
-                placeholder="Room ID"
-              />
-              <button
-                class="btn"
-                type="button"
-                onclick="joinRoom()"
-                style="background-color: #314268; border-color: #314268; color: white;"
-              >
-                <i class="bi bi-box-arrow-in-right"></i> Join
-              </button>
-            </div>
-            <button
-              id="leaveBtn"
-              class="btn btn-dark"
-              onclick="leaveRoom()"
-              disabled
-            >
-              <i class="bi bi-stop-fill"></i> Leave
-            </button>
-          </div>
-
           <div class="d-flex align-items-center ms-auto">
             <button
               id="caltopoBtn"
@@ -356,7 +340,7 @@ permalink: /livestream/
               title="Open CalTopo Map"
             >
               <div style="font-size: 0.85rem; white-space: nowrap;">View <span id="caltopoMapName"></span> on</div>
-              <img src="/images/livestream/caltopo-full-logo.svg" alt="CalTopo" style="height: 18px; width: auto;">
+              <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 18px; width: auto;">
             </button>
 
             <div class="btn-group me-3" role="group">
@@ -430,6 +414,40 @@ permalink: /livestream/
               </ul>
             </div>
 
+            <button
+              class="btn me-3"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#joinModal"
+              title="Join a Livestream"
+              style="background-color: #314268; border-color: #314268; color: white;"
+            >
+              <i class="bi bi-box-arrow-in-right"></i>
+            </button>
+
+            <button
+              class="btn me-3"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#shareModal"
+              title="Share Livestream"
+              style="background-color: #314268; border-color: #314268; color: white;"
+            >
+              <i class="bi bi-share"></i>
+            </button>
+
+            <button
+              class="btn me-3 d-none d-lg-inline-block"
+              type="button"
+              id="leaveBtnDesktop"
+              onclick="leaveRoom()"
+              title="Leave Room"
+              style="background-color: #dc3545; border-color: #dc3545; color: white;"
+              disabled
+            >
+              <i class="bi bi-stop-fill"></i>
+            </button>
+
             <div class="text-white me-3">
               <i class="bi bi-people"></i> <span id="viewerCount">0</span>
             </div>
@@ -437,6 +455,110 @@ permalink: /livestream/
         </div>
       </div>
     </nav>
+
+    <!-- Join Livestream Modal -->
+    <div class="modal fade" id="joinModal" tabindex="-1" aria-labelledby="joinModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="joinModalLabel">Join a Livestream</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Manual Room ID Entry -->
+            <div class="mb-4">
+              <label for="modalRoomIdInput" class="form-label">Enter Room ID</label>
+              <div class="input-group">
+                <input
+                  type="text"
+                  id="modalRoomIdInput"
+                  class="form-control"
+                  placeholder="Room ID"
+                />
+                <button
+                  class="btn"
+                  type="button"
+                  onclick="joinRoomFromModal()"
+                  style="background-color: #314268; border-color: #314268; color: white;"
+                >
+                  <i class="bi bi-box-arrow-in-right"></i> Join
+                </button>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="text-center text-muted mb-4">
+              <hr class="my-2">
+              <small>Or</small>
+              <hr class="my-2">
+            </div>
+
+            <!-- QR Code Scanner -->
+            <div class="text-center">
+              <h6 class="mb-3">Scan a QR Code on this device</h6>
+              <div id="qrScannerContainer" style="display: none; margin: 0 auto;">
+                <div id="qrReader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
+                <div id="qrScanResult" class="mt-2 text-success"></div>
+              </div>
+              <button
+                id="activateCameraBtn"
+                class="btn btn-primary w-100"
+                type="button"
+                onclick="activateQRScanner()"
+              >
+                <i class="bi bi-camera"></i> Activate Camera
+              </button>
+              <button
+                id="stopCameraBtn"
+                class="btn btn-danger w-100 mt-2"
+                type="button"
+                onclick="stopQRScanner()"
+                style="display: none;"
+              >
+                <i class="bi bi-camera-video-off"></i> Stop Camera
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="shareModalLabel">Share Livestream</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="mb-3">Scan the QR code to view this livestream on another device</p>
+            <div id="qrcode" class="d-flex justify-content-center mb-3" style="background: white; padding: 15px; border-radius: 8px; display: inline-block; margin: 0 auto;"></div>
+            <button class="btn btn-primary w-100 mb-3" onclick="shareLivestream()">
+              <i class="bi bi-share"></i> Share Livestream Link
+            </button>
+            <div class="text-muted small">
+              <div class="mb-1">Or</div>
+              <div class="mb-2">Share this Room ID for others to enter in <i class="bi bi-box-arrow-in-right"></i> "Join a Livestream":</div>
+              <div class="font-monospace text-white fs-5" id="modalRoomId" onclick="copyRoomId()" style="cursor: pointer; user-select: all;" title="Click to copy">-</div>
+              <div id="roomIdCopiedMessage" style="color: #28a745; font-size: 12px; margin-top: 8px; display: none;">Copied to clipboard</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification - Below share button -->
+    <div class="toast-container position-fixed" id="toastContainer" style="display: none;">
+      <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="width: auto; min-width: fit-content;">
+        <div class="d-flex align-items-center justify-content-center">
+          <div class="toast-body text-center" style="padding: 8px 16px;">
+            <i class="bi bi-check-circle"></i> URL copied to clipboard
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
 
     <!-- Mobile Offcanvas Sidebar -->
     <div
@@ -454,19 +576,10 @@ permalink: /livestream/
         ></button>
       </div>
       <div class="offcanvas-body">
-        <div class="mb-3">
-          <label for="roomIdInputMobile" class="form-label">Room ID</label>
-          <div class="input-group">
-            <input
-              type="text"
-              id="roomIdInputMobile"
-              class="form-control"
-              placeholder="Room ID"
-            />
-            <button class="btn" type="button" onclick="joinRoom()" style="background-color: #314268; border-color: #314268; color: white;">
-              <i class="bi bi-box-arrow-in-right"></i>
-            </button>
-          </div>
+        <div class="d-grid gap-2 mb-3">
+          <button class="btn" data-bs-toggle="modal" data-bs-target="#joinModal" style="background-color: #314268; border-color: #314268; color: white;">
+            <i class="bi bi-box-arrow-in-right"></i> Join a Livestream
+          </button>
         </div>
         <div class="d-grid gap-2 mb-3">
           <button
@@ -487,7 +600,7 @@ permalink: /livestream/
             title="Open CalTopo Map"
           >
             <div style="font-size: 0.85rem;">View <span id="caltopoMapNameMobile"></span> on</div>
-            <img src="/images/livestream/caltopo-full-logo.svg" alt="CalTopo" style="height: 18px; width: auto;">
+            <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 18px; width: auto;">
           </button>
         </div>
         <hr />
@@ -530,6 +643,11 @@ permalink: /livestream/
         <div class="d-grid gap-2 mb-3">
           <button class="btn btn-secondary" onclick="centerOnDrone()">
             <i class="bi bi-bullseye"></i> Center on Drone
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
+            <i class="bi bi-share"></i> Share Livestream
           </button>
         </div>
         <hr />
@@ -642,7 +760,7 @@ permalink: /livestream/
       </div>
 
       <div id="video-panel" class="col-lg-8">
-        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-bottom border-secondary d-flex" style="flex: 0 0 auto; cursor: pointer;" onclick="showCoordinateDialog()">
+        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary d-flex" style="flex: 0 0 auto; cursor: pointer;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
             class="font-monospace small"
@@ -654,9 +772,29 @@ permalink: /livestream/
         <div id="videoContainer">
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
-            <p>No video stream</p>
-            <small class="text-muted">Enter a room ID and join to start</small>
-            <a href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
+            <p id="placeholderTitle">No video stream</p>
+            <small id="placeholderText" class="text-muted">Enter a room ID and join to start</small>
+            <div id="noStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
+              <div style="margin-bottom: 1rem; word-break: break-all;">
+                <strong>You have attempted to join Room ID:</strong><br>
+                <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              </div>
+              <div style="margin-bottom: 0.75rem; font-weight: 600;">
+                No video stream is available.
+              </div>
+              <div style="margin-bottom: 1rem; font-size: 0.9em; line-height: 1.5;">
+                This may be due to a typo in your Room ID, no stream currently available, or connection issues. To share this Room ID with another device, open <strong>Join a Livestream</strong> (<i class="bi bi-box-arrow-in-right"></i>) and enter the Room ID above or scan the QR code from Share below:
+              </div>
+              <button 
+                class="btn btn-primary mb-3 w-100" 
+                data-bs-toggle="modal" 
+                data-bs-target="#shareModal"
+                style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+              >
+                <i class="bi bi-share"></i> Share Livestream
+              </button>
+            </div>
+            <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
               margin-top: 1rem;
               display: inline-block;
               background-color: #465373;
@@ -682,8 +820,8 @@ permalink: /livestream/
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/js/livestream/map.js"></script>
-    <script src="/js/livestream/client.js"></script>
+    <script src="{{ '/js/livestream/map.js' | relative_url }}"></script>
+    <script src="{{ '/js/livestream/client.js' | relative_url }}"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const videoPanel = document.getElementById("video-panel");
@@ -771,6 +909,34 @@ permalink: /livestream/
         }
       }
 
+      function hideNoStreamNotification() {
+        const placeholderTitle = document.getElementById('placeholderTitle');
+        const placeholderText = document.getElementById('placeholderText');
+        const noStreamDetails = document.getElementById('noStreamDetails');
+        
+        if (placeholderTitle) placeholderTitle.style.display = 'block';
+        if (placeholderText) placeholderText.style.display = 'block';
+        if (noStreamDetails) noStreamDetails.style.display = 'none';
+      }
+
+      function showNoStreamNotification() {
+        const placeholderTitle = document.getElementById('placeholderTitle');
+        const placeholderText = document.getElementById('placeholderText');
+        const noStreamDetails = document.getElementById('noStreamDetails');
+        const attemptedRoomId = document.getElementById('attemptedRoomId');
+        
+        // Get the current room ID from the viewer
+        const roomId = window.viewer ? window.viewer.currentRoomId : null;
+        
+        if (roomId && noStreamDetails && placeholderText && attemptedRoomId) {
+          // Hide the title and default text, show the no stream details
+          if (placeholderTitle) placeholderTitle.style.display = 'none';
+          placeholderText.style.display = 'none';
+          attemptedRoomId.textContent = roomId;
+          noStreamDetails.style.display = 'block';
+        }
+      }
+
       function showConnectionFailedMessage() {
         const overlay = document.getElementById('connectionFailedOverlay');
         if (overlay) {
@@ -833,6 +999,380 @@ permalink: /livestream/
           console.error('Failed to copy coordinates:', err);
         });
       }
+
+      // Share functionality
+      // Generate QR code when modal is shown
+      const shareModal = document.getElementById('shareModal');
+      shareModal.addEventListener('show.bs.modal', function () {
+        // Always regenerate QR code to ensure it reflects current URL
+        const qrcodeContainer = document.getElementById('qrcode');
+        qrcodeContainer.innerHTML = ''; // Clear any existing QR code
+        const currentUrl = window.location.href;
+        
+        // Only generate if there's a room in the URL
+        if (currentUrl.includes('?room=') || currentUrl.includes('&room=')) {
+          console.log('Generating QR code for URL:', currentUrl);
+          new QRCode(qrcodeContainer, {
+            text: currentUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+          console.log('QR code generated successfully');
+        } else {
+          // Show message if no room is active
+          console.log('No room in URL, cannot generate QR code');
+          qrcodeContainer.innerHTML = '<div style="padding: 20px; color: #6c757d;">Join a room first to generate QR code</div>';
+        }
+        
+        // Update Room ID display in share modal
+        const roomIdInput = document.getElementById('roomIdInput');
+        const modalRoomId = document.getElementById('modalRoomId');
+        if (roomIdInput && modalRoomId) {
+          let currentRoomId = roomIdInput.value.trim();
+          
+          // If roomIdInput is empty, try to get it from URL
+          if (!currentRoomId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentRoomId = urlParams.get('room') || '';
+          }
+          
+          // If it's a URL, extract just the room ID
+          if (currentRoomId.includes('http://') || currentRoomId.includes('https://') || currentRoomId.includes('?')) {
+            try {
+              const url = new URL(currentRoomId);
+              currentRoomId = url.searchParams.get('room') || '';
+            } catch (e) {
+              // Try to extract from query string manually
+              const match = currentRoomId.match(/[?&]room=([^&]+)/);
+              if (match) {
+                currentRoomId = match[1];
+              }
+            }
+          }
+          
+          modalRoomId.textContent = currentRoomId || '-';
+        }
+      });
+
+      function joinRoomFromModal() {
+        const modalRoomIdInput = document.getElementById('modalRoomIdInput');
+        const roomIdInput = document.getElementById('roomIdInput');
+        const roomIdInputMobile = document.getElementById('roomIdInputMobile');
+        const roomId = modalRoomIdInput.value.trim();
+        
+        if (!roomId) {
+          alert("Please enter a room ID");
+          return;
+        }
+        
+        // Update both hidden room ID inputs with the modal value
+        if (roomIdInput) {
+          roomIdInput.value = roomId;
+          console.log('Updated hidden roomIdInput with:', roomId);
+        } else {
+          console.error('roomIdInput element not found!');
+        }
+        
+        if (roomIdInputMobile) {
+          roomIdInputMobile.value = roomId;
+          console.log('Updated hidden roomIdInputMobile with:', roomId);
+        }
+        
+        // Close the modal
+        const joinModalElement = document.getElementById('joinModal');
+        const joinModalInstance = bootstrap.Modal.getInstance(joinModalElement);
+        if (joinModalInstance) {
+          joinModalInstance.hide();
+        } else {
+          // If no instance exists yet, create one and hide it
+          const modal = new bootstrap.Modal(joinModalElement);
+          modal.hide();
+        }
+        
+        // Call the main joinRoom function
+        console.log('Calling joinRoom()...');
+        if (window.joinRoom) {
+          joinRoom();
+        } else {
+          console.error('joinRoom function not found!');
+        }
+      }
+
+      function copyRoomId() {
+        const roomIdElement = document.getElementById('modalRoomId');
+        const roomId = roomIdElement.textContent.trim();
+        
+        // Don't copy if it's just a dash (no room ID)
+        if (roomId === '-') {
+          return;
+        }
+        
+        navigator.clipboard.writeText(roomId).then(() => {
+          // Show the "Copied to clipboard" message
+          const copiedMessage = document.getElementById('roomIdCopiedMessage');
+          if (copiedMessage) {
+            copiedMessage.style.display = 'block';
+            
+            // Hide the message after 2 seconds
+            setTimeout(() => {
+              copiedMessage.style.display = 'none';
+            }, 2000);
+          }
+        }).catch(err => {
+          console.error('Failed to copy room ID:', err);
+        });
+      }
+
+      async function shareLivestream() {
+        const currentUrl = window.location.href;
+        
+        // Check if device is mobile and Web Share API is available
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile && navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Eagle Eyes Livestream',
+              text: 'Join this Eagle Eyes livestream',
+              url: currentUrl
+            });
+          } catch (err) {
+            // User cancelled share or error occurred
+            if (err.name !== 'AbortError') {
+              console.error('Error sharing:', err);
+              copyToClipboard(currentUrl);
+            }
+          }
+        } else {
+          // Desktop or fallback: always copy to clipboard
+          copyToClipboard(currentUrl);
+        }
+      }
+
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          // Position toast below the share button
+          const shareButton = document.querySelector('#shareModal .btn-primary');
+          const toastContainer = document.getElementById('toastContainer');
+          const modalDialog = document.querySelector('#shareModal .modal-dialog');
+          
+          if (shareButton && toastContainer && modalDialog) {
+            const buttonRect = shareButton.getBoundingClientRect();
+            const modalRect = modalDialog.getBoundingClientRect();
+            
+            // Position toast below the button, aligned horizontally with modal
+            toastContainer.style.left = `${modalRect.left}px`;
+            toastContainer.style.top = `${buttonRect.bottom + 10}px`;
+            toastContainer.style.display = 'block';
+          }
+          
+          // Show toast notification
+          const toastEl = document.getElementById('copyToast');
+          const toast = new bootstrap.Toast(toastEl);
+          toast.show();
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            
+            // Position toast below the share button (fallback)
+            const shareButton = document.querySelector('#shareModal .btn-primary');
+            const toastContainer = document.getElementById('toastContainer');
+            const modalDialog = document.querySelector('#shareModal .modal-dialog');
+            
+            if (shareButton && toastContainer && modalDialog) {
+              const buttonRect = shareButton.getBoundingClientRect();
+              const modalRect = modalDialog.getBoundingClientRect();
+              toastContainer.style.left = `${modalRect.left}px`;
+              toastContainer.style.top = `${buttonRect.bottom + 10}px`;
+              toastContainer.style.display = 'block';
+            }
+            
+            const toastEl = document.getElementById('copyToast');
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+          } catch (err) {
+            console.error('Fallback copy failed:', err);
+          }
+          document.body.removeChild(textArea);
+        });
+      }
+
+      // Handle Enter key in join modal input
+      document.getElementById('modalRoomIdInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          joinRoomFromModal();
+        }
+      });
+
+      // Add room ID validation to modal input (same as navbar inputs)
+      document.getElementById('modalRoomIdInput').addEventListener('input', function(e) {
+        // Use the same validation function as the navbar inputs
+        if (window.viewer && window.viewer.validateAndFormatRoomId) {
+          const validated = window.viewer.validateAndFormatRoomId(e.target.value);
+          e.target.value = validated;
+          
+          // Also sync with hidden navbar inputs
+          const roomIdInput = document.getElementById('roomIdInput');
+          const roomIdInputMobile = document.getElementById('roomIdInputMobile');
+          if (roomIdInput) roomIdInput.value = validated;
+          if (roomIdInputMobile) roomIdInputMobile.value = validated;
+        }
+      });
+
+      // Pre-populate join modal with current room ID when opened
+      document.getElementById('joinModal').addEventListener('show.bs.modal', function () {
+        const roomIdInput = document.getElementById('roomIdInput');
+        const modalRoomIdInput = document.getElementById('modalRoomIdInput');
+        if (roomIdInput && modalRoomIdInput) {
+          const currentRoomId = roomIdInput.value.trim();
+          if (currentRoomId) {
+            modalRoomIdInput.value = currentRoomId;
+            modalRoomIdInput.placeholder = 'Enter a different Room ID or use current';
+          } else {
+            modalRoomIdInput.placeholder = 'Room ID';
+          }
+        }
+      });
+
+      // QR Code Scanner functionality
+      let html5QrCode = null;
+      let qrScannerActive = false;
+
+      async function activateQRScanner() {
+        const qrScannerContainer = document.getElementById('qrScannerContainer');
+        const activateBtn = document.getElementById('activateCameraBtn');
+        const stopBtn = document.getElementById('stopCameraBtn');
+        const qrScanResult = document.getElementById('qrScanResult');
+
+        try {
+          qrScannerContainer.style.display = 'block';
+          activateBtn.style.display = 'none';
+          stopBtn.style.display = 'block';
+          qrScanResult.textContent = 'Point your camera at a QR code...';
+
+          html5QrCode = new Html5Qrcode("qrReader");
+          
+          const config = { 
+            fps: 30, 
+            qrbox: { width: 200, height: 200 },
+            aspectRatio: 1.0,
+            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+          };
+          
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText, decodedResult) => {
+              // QR code successfully scanned
+              console.log('QR Code scanned! Raw text:', decodedText);
+              qrScanResult.textContent = 'QR Code detected! Joining livestream...';
+              
+              // Extract room ID from URL if it's a full URL, or use as-is if it's just an ID
+              let roomId = decodedText;
+              try {
+                const url = new URL(decodedText);
+                const urlRoomId = url.searchParams.get('room');
+                if (urlRoomId) {
+                  roomId = urlRoomId;
+                  console.log('Extracted room ID from URL:', roomId);
+                } else {
+                  console.log('No room parameter in URL, using full URL as room ID');
+                }
+              } catch (e) {
+                // Not a URL, use as-is
+                console.log('Not a valid URL, using raw text as room ID:', roomId);
+              }
+              
+              // Keep room ID in uppercase (don't normalize to lowercase)
+              roomId = roomId.toUpperCase();
+              console.log('Final room ID (uppercase):', roomId);
+              
+              // Stop scanner and join
+              stopQRScanner();
+              
+              // Close modal
+              const joinModal = bootstrap.Modal.getInstance(document.getElementById('joinModal'));
+              if (joinModal) {
+                joinModal.hide();
+              }
+              
+              // Update the hidden roomIdInput field
+              const hiddenRoomIdInput = document.getElementById('roomIdInput');
+              const hiddenRoomIdInputMobile = document.getElementById('roomIdInputMobile');
+              if (hiddenRoomIdInput) {
+                hiddenRoomIdInput.value = roomId;
+              }
+              if (hiddenRoomIdInputMobile) {
+                hiddenRoomIdInputMobile.value = roomId;
+              }
+              
+              // Call the joinRoom function
+              if (window.joinRoom) {
+                joinRoom();
+              }
+            },
+            (errorMessage) => {
+              // QR code parsing error (usually means no QR code in view)
+              // This is called frequently, so we don't show errors here
+              // Only log if it's not a common "No QR code found" message
+              if (!errorMessage.includes('No QR code found') && !errorMessage.includes('NotFoundException')) {
+                console.log('QR scan error:', errorMessage);
+              }
+            }
+          );
+          
+          qrScannerActive = true;
+        } catch (err) {
+          console.error('Error starting QR scanner:', err);
+          qrScanResult.textContent = 'Error: Could not access camera. Please check permissions.';
+          qrScanResult.classList.remove('text-success');
+          qrScanResult.classList.add('text-danger');
+          activateBtn.style.display = 'block';
+          stopBtn.style.display = 'none';
+          qrScannerContainer.style.display = 'none';
+        }
+      }
+
+      function stopQRScanner() {
+        if (html5QrCode && qrScannerActive) {
+          html5QrCode.stop().then(() => {
+            const qrScannerContainer = document.getElementById('qrScannerContainer');
+            const activateBtn = document.getElementById('activateCameraBtn');
+            const stopBtn = document.getElementById('stopCameraBtn');
+            const qrScanResult = document.getElementById('qrScanResult');
+            
+            qrScannerContainer.style.display = 'none';
+            activateBtn.style.display = 'block';
+            stopBtn.style.display = 'none';
+            qrScanResult.textContent = '';
+            qrScanResult.classList.remove('text-danger');
+            qrScanResult.classList.add('text-success');
+            
+            qrScannerActive = false;
+          }).catch(err => {
+            console.error('Error stopping QR scanner:', err);
+          });
+        }
+      }
+
+      // Clean up QR scanner when modal is closed
+      document.getElementById('joinModal').addEventListener('hidden.bs.modal', function () {
+        if (qrScannerActive) {
+          stopQRScanner();
+        }
+      });
+
     </script>
   </body>
 </html>
