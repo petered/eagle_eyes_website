@@ -2,17 +2,20 @@ class WebRTCViewer {
   constructor() {
     this.socket = null;
     this.peerConnection = null;
-    this.currentRoomId = null;
+    this.currentRoomId = null; // Also used as streamId
     this.currentPublisherName = null;
-    this.isConnected = false;
     this.wasStreaming = false; // Track if we were actually streaming
     this.streamReceived = false; // Track if we've received a stream
-    this.noDataTimeout = null; // Timeout to detect connected but no data
-    this.connectionAttemptStartTime = null; // Track when connection attempt begins
-    this.CONNECTION_TIMEOUT = 5000; // 5 seconds timeout for connection attempts
-    this.connectionTimeoutInterval = null; // Interval to check for timeout
-    this.videoLoadingStartTime = null; // Track when video loading begins
-    this.VIDEO_LOADING_TIMEOUT = 5000; // 5 seconds timeout for video loading
+    this.isStreamOpen = false; // Track if stream is open (stays true during disconnects)
+    this.lastVideoDataTime = null; // Track when we last received video data
+
+    // State machine timing
+    this.signallingConnectionStartTime = null; // When we started signalling connection
+    this.streamingConnectionStartTime = null; // When we started streaming connection
+    this.stateCheckInterval = null; // Interval to check state every 500ms
+    this.SIGNALLING_TIMEOUT = 5000; // 5 seconds timeout for signalling
+    this.STREAMING_TIMEOUT = 5000; // 5 seconds timeout for streaming
+    this.VIDEO_STALL_TIMEOUT = 5000; // 5 seconds timeout for video stall detection
 
     this.remoteVideo = document.getElementById("remoteVideo");
     this.statusElement = document.getElementById("status");
@@ -163,14 +166,43 @@ class WebRTCViewer {
     // Initialize coordinate displays once
     this.initializeCoordinateDisplays();
 
-    // Listen for video playing event to clear loading timeout
+    // Listen for video playing event
     this.remoteVideo.addEventListener('playing', () => {
       console.log('Video started playing');
-      this.videoLoadingStartTime = null;
+      this.isStreamOpen = true; // Mark stream as open
+      this.lastVideoDataTime = Date.now(); // Track when video data started
       this.updateStatus("connected", "Streaming");
       this.updateConnectionStatus("Streaming");
       this.updateUIState();
     });
+
+    // Monitor video data flow with timeupdate
+    this.remoteVideo.addEventListener('timeupdate', () => {
+      if (this.isStreamOpen && !this.remoteVideo.paused) {
+        this.lastVideoDataTime = Date.now();
+      }
+    });
+
+    // Start state check interval
+    this.stateCheckInterval = setInterval(() => {
+      this.updateUIState();
+
+      // Check if video has stalled (no data for 5+ seconds while stream is open)
+      if (this.isStreamOpen && this.lastVideoDataTime) {
+        const timeSinceLastData = Date.now() - this.lastVideoDataTime;
+        if (timeSinceLastData > this.VIDEO_STALL_TIMEOUT) {
+          // Video has stalled, show disconnect banner
+          if (this.wasStreaming && window.droneMap) {
+            window.droneMap.setDisconnected(true);
+          }
+        } else {
+          // Video is flowing, hide disconnect banner
+          if (window.droneMap) {
+            window.droneMap.setDisconnected(false);
+          }
+        }
+      }
+    }, 500);
 
     // Setup page visibility handling for mobile reconnection
     this.setupVisibilityHandling();
@@ -232,7 +264,9 @@ class WebRTCViewer {
         this.peerConnection = null;
       }
 
-      // Rejoin the room (this will trigger stream request)
+      // Reset timers and rejoin the room
+      this.signallingConnectionStartTime = Date.now();
+      this.streamingConnectionStartTime = null;
       this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
     } else {
       console.log('Connection still active, no reconnect needed');
@@ -277,69 +311,84 @@ class WebRTCViewer {
   }
 
   // State detection methods
-  isStreamIdSpecified() {
-    return this.currentRoomId !== null && this.currentRoomId !== "";
-  }
-
   isSignallingConnected() {
-    return this.isStreamIdSpecified() && this.peerConnection !== null;
+    return this.peerConnection !== null;
   }
 
-  hasConnectionTimedOut() {
-    if (!this.connectionAttemptStartTime) return false;
-    return (Date.now() - this.connectionAttemptStartTime) > this.CONNECTION_TIMEOUT;
-  }
-
-  isVideoLoading() {
-    // Check if we're in the video loading phase
-    if (!this.videoLoadingStartTime) return false;
-    const loadingTimeElapsed = Date.now() - this.videoLoadingStartTime;
-    const hasTimedOut = loadingTimeElapsed > this.VIDEO_LOADING_TIMEOUT;
-
-    return this.streamReceived &&
-           this.isSignallingConnected() &&
-           !this.isDataStreaming() &&
-           !hasTimedOut;
-  }
-
-  isDataStreaming() {
+  isStreaming() {
     // Check if video is actually playing with data
     const hasVideoSrc = this.remoteVideo.srcObject !== null;
     const isPlaying = !this.remoteVideo.paused && !this.remoteVideo.ended && this.remoteVideo.readyState > 2;
+    return this.streamReceived && hasVideoSrc && isPlaying;
+  }
 
-    return this.streamReceived &&
-           hasVideoSrc &&
-           isPlaying &&
-           this.isSignallingConnected();
+  timeSince(startTime) {
+    if (!startTime) return Infinity;
+    return Date.now() - startTime;
+  }
+
+  getState() {
+    // If stream is open, always stay in STREAMING state (even during disconnects)
+    if (this.isStreamOpen) {
+      return 'STREAMING';
+    }
+
+    if (!this.currentRoomId) {
+      return 'NO_STREAM';
+    }
+
+    if (!this.isSignallingConnected()) {
+      if (this.timeSince(this.signallingConnectionStartTime) < this.SIGNALLING_TIMEOUT) {
+        return 'ATTEMPTING_SIGNALLING_CONNECTION';
+      }
+      return 'NO_SIGNALLING_CONNECTION';
+    }
+
+    if (!this.isStreaming()) {
+      if (this.timeSince(this.streamingConnectionStartTime) < this.STREAMING_TIMEOUT) {
+        return 'ATTEMPTING_STREAM_CONNECTION';
+      }
+      return 'NO_STREAM_CONNECTION';
+    }
+
+    return 'STREAMING';
   }
 
   // Centralized UI state management
   updateUIState() {
-    console.log('Updating UI state:', {
-      streamId: this.isStreamIdSpecified(),
+    const state = this.getState();
+    console.log('Current state:', state, {
+      streamId: this.currentRoomId,
       signallingConnected: this.isSignallingConnected(),
-      timedOut: this.hasConnectionTimedOut(),
-      videoLoading: this.isVideoLoading(),
-      streaming: this.isDataStreaming()
+      streaming: this.isStreaming(),
+      signallingTime: this.timeSince(this.signallingConnectionStartTime),
+      streamingTime: this.timeSince(this.streamingConnectionStartTime)
     });
 
-    if (!this.isStreamIdSpecified()) {
-      this.showLandingPage();
-    } else if (!this.isSignallingConnected() && !this.hasConnectionTimedOut()) {
-      this.showConnecting();
-    } else if (!this.isSignallingConnected()) {
-      this.showConnectionFailed();
-    } else if (this.isVideoLoading()) {
-      this.showVideoLoading();
-    } else if (!this.isDataStreaming()) {
-      this.showConnectedNoStream();
-    } else {
-      this.showStreamingUI();
+    switch(state) {
+      case 'NO_STREAM':
+        this.showNoStream();
+        break;
+      case 'ATTEMPTING_SIGNALLING_CONNECTION':
+        this.showAttemptingSignalling();
+        break;
+      case 'NO_SIGNALLING_CONNECTION':
+        this.showNoSignallingConnection();
+        break;
+      case 'ATTEMPTING_STREAM_CONNECTION':
+        this.showAttemptingStream();
+        break;
+      case 'NO_STREAM_CONNECTION':
+        this.showNoStreamConnection();
+        break;
+      case 'STREAMING':
+        this.showStreaming();
+        break;
     }
   }
 
-  showLandingPage() {
-    console.log('Showing landing page');
+  showNoStream() {
+    console.log('State: NO_STREAM');
 
     // Show placeholder elements
     const placeholderTitle = document.getElementById('placeholderTitle');
@@ -372,8 +421,8 @@ class WebRTCViewer {
     if (coordStripContainer) coordStripContainer.style.display = 'none';
   }
 
-  showConnecting() {
-    console.log('Showing connecting state');
+  showAttemptingSignalling() {
+    console.log('State: ATTEMPTING_SIGNALLING_CONNECTION');
 
     // Hide landing page elements
     const placeholderTitle = document.getElementById('placeholderTitle');
@@ -384,9 +433,25 @@ class WebRTCViewer {
     // Show connecting details
     const connectingDetails = document.getElementById('connectingDetails');
     const connectingRoomId = document.getElementById('connectingRoomId');
+    const connectingRoomIdInline = document.getElementById('connectingRoomIdInline');
+    const connectingTimeoutWarning = document.getElementById('connectingTimeoutWarning');
+
     if (connectingDetails && connectingRoomId && this.currentRoomId) {
       connectingRoomId.textContent = this.currentRoomId;
+      if (connectingRoomIdInline) {
+        connectingRoomIdInline.textContent = this.currentRoomId;
+      }
       connectingDetails.style.display = 'block';
+
+      // Show timeout warning if connection is taking longer than 5 seconds
+      if (connectingTimeoutWarning) {
+        const timeElapsed = this.timeSince(this.signallingConnectionStartTime);
+        if (timeElapsed > 5000) {
+          connectingTimeoutWarning.style.display = 'block';
+        } else {
+          connectingTimeoutWarning.style.display = 'none';
+        }
+      }
     }
 
     // Hide other messages
@@ -414,8 +479,8 @@ class WebRTCViewer {
     if (coordStripContainer) coordStripContainer.style.display = 'none';
   }
 
-  showVideoLoading() {
-    console.log('Showing video loading state');
+  showAttemptingStream() {
+    console.log('State: ATTEMPTING_STREAM_CONNECTION');
 
     // Hide landing page, connecting state, and error states
     const placeholderTitle = document.getElementById('placeholderTitle');
@@ -454,8 +519,8 @@ class WebRTCViewer {
     if (coordStripContainer) coordStripContainer.style.display = 'none';
   }
 
-  showConnectionFailed() {
-    console.log('Showing connection failed');
+  showNoSignallingConnection() {
+    console.log('State: NO_SIGNALLING_CONNECTION');
 
     // Hide landing page and connecting state
     const placeholderTitle = document.getElementById('placeholderTitle');
@@ -496,8 +561,8 @@ class WebRTCViewer {
     if (coordStripContainer) coordStripContainer.style.display = 'none';
   }
 
-  showConnectedNoStream() {
-    console.log('Showing connected but no stream');
+  showNoStreamConnection() {
+    console.log('State: NO_STREAM_CONNECTION');
 
     // Hide landing page, connecting state, and connection error
     const placeholderTitle = document.getElementById('placeholderTitle');
@@ -519,6 +584,13 @@ class WebRTCViewer {
       connectedNoStreamDetails.style.display = 'block';
     }
 
+    // Make sure retry button is enabled
+    const retryBtn = document.getElementById('connectedNoStreamRetryBtn');
+    if (retryBtn) {
+      retryBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Retry Connection';
+      retryBtn.disabled = false;
+    }
+
     // Hide video, show placeholder
     this.remoteVideo.style.display = 'none';
     const placeholder = this.videoContainer.querySelector('.placeholder');
@@ -536,8 +608,8 @@ class WebRTCViewer {
     if (coordStripContainer) coordStripContainer.style.display = 'none';
   }
 
-  showStreamingUI() {
-    console.log('Showing streaming UI');
+  showStreaming() {
+    console.log('State: STREAMING');
 
     // Hide all error messages and states
     const placeholderTitle = document.getElementById('placeholderTitle');
@@ -553,8 +625,17 @@ class WebRTCViewer {
     if (noStreamDetails) noStreamDetails.style.display = 'none';
     if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
 
-    // Show video, hide placeholder
-    this.remoteVideo.style.display = 'block';
+    // Show video or last frame canvas if it exists
+    const lastFrameCanvas = document.getElementById('lastFrameCanvas');
+    if (lastFrameCanvas) {
+      // Show canvas with last frame, keep video hidden
+      lastFrameCanvas.style.display = 'block';
+      this.remoteVideo.style.display = 'none';
+    } else {
+      // Show live video
+      this.remoteVideo.style.display = 'block';
+    }
+
     const placeholder = this.videoContainer.querySelector('.placeholder');
     if (placeholder) placeholder.style.display = 'none';
 
@@ -602,22 +683,15 @@ class WebRTCViewer {
       this.peerConnection = null;
     }
 
-    // Reset state
+    // Reset state and timers
     this.streamReceived = false;
-    this.connectionAttemptStartTime = Date.now();
+    this.signallingConnectionStartTime = Date.now();
+    this.streamingConnectionStartTime = null;
 
-    // Clear any existing timeouts
-    if (this.noDataTimeout) {
-      clearTimeout(this.noDataTimeout);
-      this.noDataTimeout = null;
-    }
-
-    // Show connecting state
-    this.updateUIState();
-
-    // Request stream again
+    // Rejoin the room from scratch to get fresh signaling and ICE candidates
+    // This is important when network changes (e.g., switching WiFi)
     if (this.currentRoomId) {
-      this.requestStream();
+      this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
     }
   }
 
@@ -661,21 +735,15 @@ class WebRTCViewer {
       this.streamReceived = false;
 
       if (data.hasPublisher) {
+        // Start streaming connection timer
+        this.streamingConnectionStartTime = Date.now();
         this.updateStatus("waiting", "Connecting to stream...");
         this.requestStream();
-        // Update UI state
-        this.updateUIState();
       } else {
-        // No publisher - treat as immediate connection failure
+        // No publisher - clear timers and show failure
+        this.signallingConnectionStartTime = null;
+        this.streamingConnectionStartTime = null;
         this.updateStatus("error", "Stream not found");
-        // Clear timeout timer and interval since we're failing immediately
-        this.connectionAttemptStartTime = null;
-        if (this.connectionTimeoutInterval) {
-          clearInterval(this.connectionTimeoutInterval);
-          this.connectionTimeoutInterval = null;
-        }
-        // Show connection failed immediately
-        this.showConnectionFailed();
       }
     });
 
@@ -754,19 +822,30 @@ class WebRTCViewer {
       return;
     }
 
-    // Start connection timeout timer
-    this.connectionAttemptStartTime = Date.now();
-
-    // Start checking for timeout every 500ms
-    if (this.connectionTimeoutInterval) {
-      clearInterval(this.connectionTimeoutInterval);
-    }
-    this.connectionTimeoutInterval = setInterval(() => {
-      this.updateUIState();
-    }, 500);
+    // Set stream ID and start signalling connection timer
+    this.currentRoomId = roomId;
+    this.signallingConnectionStartTime = Date.now();
+    this.streamingConnectionStartTime = null; // Reset streaming timer
 
     this.updateStatus("connecting", "Joining...");
     this.socket.emit("join-as-viewer", { roomId });
+  }
+
+  closeStream() {
+    console.log('Closing stream');
+    // Close stream sets isStreamOpen to false and clears room ID
+    // This returns us to the NO_STREAM state
+    this.isStreamOpen = false;
+    this.currentRoomId = null;
+    this.lastVideoDataTime = null;
+
+    // Hide disconnect message
+    if (window.hideDisconnectedMessage) {
+      window.hideDisconnectedMessage();
+    }
+
+    // Let leaveRoom handle the rest
+    this.leaveRoom();
   }
 
   leaveRoom() {
@@ -774,12 +853,11 @@ class WebRTCViewer {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
 
-    // Clear connection timeout timer and interval
-    this.connectionAttemptStartTime = null;
-    if (this.connectionTimeoutInterval) {
-      clearInterval(this.connectionTimeoutInterval);
-      this.connectionTimeoutInterval = null;
-    }
+    // Clear state timers and stream open flag
+    this.signallingConnectionStartTime = null;
+    this.streamingConnectionStartTime = null;
+    this.isStreamOpen = false;
+    this.lastVideoDataTime = null;
 
     // Clear all state and UI (don't keep last frame on manual leave)
     this.cleanup(false);
@@ -865,27 +943,11 @@ class WebRTCViewer {
   createPeerConnection() {
     this.peerConnection = new RTCPeerConnection(this.rtcConfig);
 
-    // Clear connection timeout timer and interval once peer connection is created
-    this.connectionAttemptStartTime = null;
-    if (this.connectionTimeoutInterval) {
-      clearInterval(this.connectionTimeoutInterval);
-      this.connectionTimeoutInterval = null;
-    }
-
     this.peerConnection.ontrack = (event) => {
       console.log("Received remote stream");
 
       // Mark that we've received a stream
       this.streamReceived = true;
-
-      // Start video loading timeout (5 seconds)
-      this.videoLoadingStartTime = Date.now();
-
-      // Clear no-data timeout since we received data
-      if (this.noDataTimeout) {
-        clearTimeout(this.noDataTimeout);
-        this.noDataTimeout = null;
-      }
 
       // Remove old canvas if exists
       const oldCanvas = document.getElementById('lastFrameCanvas');
@@ -904,18 +966,6 @@ class WebRTCViewer {
 
       this.updateStatus("connected", "Loading video...");
       this.updateConnectionStatus("Loading video...");
-
-      // Update UI state to show video loading
-      this.updateUIState();
-
-      // Start checking for video loading timeout every 500ms
-      const videoLoadingInterval = setInterval(() => {
-        this.updateUIState();
-        // Stop checking once video starts playing or timeout occurs
-        if (this.isDataStreaming() || !this.isVideoLoading()) {
-          clearInterval(videoLoadingInterval);
-        }
-      }, 500);
 
       // Clear disconnected overlay when reconnecting
       if (window.droneMap) {
@@ -1348,6 +1398,9 @@ class WebRTCViewer {
   renderHistory(history) {
     if (history.length === 0) {
       this.historyList.innerHTML = '<div class="text-muted text-center px-3">No recent streams</div>';
+      // Clear datalist
+      const datalist = document.getElementById('streamHistoryDatalist');
+      if (datalist) datalist.innerHTML = '';
       return;
     }
 
@@ -1375,11 +1428,22 @@ class WebRTCViewer {
         </div>
       `;
     }).join('');
+
+    // Update datalist for autocomplete in modal
+    const datalist = document.getElementById('streamHistoryDatalist');
+    if (datalist) {
+      datalist.innerHTML = history.map(item =>
+        `<option value="${item.roomId}">${item.name}</option>`
+      ).join('');
+    }
   }
 
   renderHistoryMobile(history) {
     if (history.length === 0) {
       this.historyListMobile.innerHTML = '<div class="text-muted text-center">No recent streams</div>';
+      // Clear datalist
+      const datalist = document.getElementById('streamHistoryDatalist');
+      if (datalist) datalist.innerHTML = '';
       return;
     }
 
@@ -1407,6 +1471,14 @@ class WebRTCViewer {
         </div>
       `;
     }).join('');
+
+    // Update datalist for autocomplete in modal
+    const datalist = document.getElementById('streamHistoryDatalist');
+    if (datalist) {
+      datalist.innerHTML = history.map(item =>
+        `<option value="${item.roomId}">${item.name}</option>`
+      ).join('');
+    }
   }
 
   joinFromHistory(roomId) {

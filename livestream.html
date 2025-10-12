@@ -496,7 +496,11 @@ permalink: /livestream/
                   id="modalRoomIdInput"
                   class="form-control"
                   placeholder="Stream ID"
+                  list="streamHistoryDatalist"
                 />
+                <datalist id="streamHistoryDatalist">
+                  <!-- Populated dynamically by JavaScript -->
+                </datalist>
                 <button
                   class="btn"
                   type="button"
@@ -706,7 +710,7 @@ permalink: /livestream/
         transform: translateX(-50%);
         background-color: rgba(220, 53, 69, 0.95);
         color: white;
-        padding: 8px 12px;
+        padding: 10px 14px;
         border-radius: 6px;
         font-size: 13px;
         font-weight: 600;
@@ -714,26 +718,25 @@ permalink: /livestream/
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         display: none;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         width: fit-content;
         white-space: nowrap;
       ">
         <i class="bi bi-wifi-off"></i>
-        <span>Stream disconnected</span>
-        <button onclick="hideDisconnectedMessage()" style="
-          background: none;
-          border: none;
+        <span>Stream disconnected. Attempting to reconnect...</span>
+        <button onclick="if(window.viewer) window.viewer.closeStream()" style="
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.4);
           color: white;
-          font-size: 16px;
+          font-size: 12px;
+          font-weight: 600;
           cursor: pointer;
-          padding: 0 0 0 4px;
-          margin: 0;
-          line-height: 1;
-          opacity: 0.9;
-          display: flex;
-          align-items: center;
-        " title="Hide message">
-          <i class="bi bi-x-lg"></i>
+          padding: 4px 10px;
+          margin: 0 0 0 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+        " title="Close this stream" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
+          Close this stream
         </button>
       </div>
 
@@ -814,7 +817,10 @@ permalink: /livestream/
                 <div class="spinner-border spinner-border-sm text-primary" role="status" style="margin-right: 0.5rem;">
                   <span class="visually-hidden">Connecting...</span>
                 </div>
-                Connecting to stream...
+                Attempting to connect to <span id="connectingRoomIdInline" style="font-family: monospace; color: #ffc107;"></span>...
+              </div>
+              <div id="connectingTimeoutWarning" style="display: none; margin-top: 0.5rem; font-size: 0.9em; line-height: 1.4; color: #ffc107;">
+                This is taking longer than expected. Check your internet connection.
               </div>
             </div>
             <div id="videoLoadingDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
@@ -855,6 +861,7 @@ permalink: /livestream/
               </div>
               <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
                 <button
+                  id="connectedNoStreamRetryBtn"
                   class="btn btn-warning w-100"
                   onclick="window.viewer.retryConnection()"
                   style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
