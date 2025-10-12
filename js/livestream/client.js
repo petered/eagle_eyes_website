@@ -6,8 +6,12 @@ class WebRTCViewer {
     this.currentPublisherName = null;
     this.wasStreaming = false; // Track if we were actually streaming
     this.streamReceived = false; // Track if we've received a stream
-    this.isStreamOpen = false; // Track if stream is open (stays true during disconnects)
-    this.lastVideoDataTime = null; // Track when we last received video data
+
+    // WebRTC stats tracking for reliable video data detection
+    this.lastBytesReceived = 0; // Track bytes from previous stats check
+    this.lastStatsCheckTime = null; // Timestamp of last stats check
+    this.isReceivingData = false; // True if bytes are actively increasing (ground truth from WebRTC)
+    this.isStreamOpen = false; // True when user has entered streaming view (persists during disconnects)
 
     // State machine timing
     this.signallingConnectionStartTime = null; // When we started signalling connection
@@ -166,40 +170,24 @@ class WebRTCViewer {
     // Initialize coordinate displays once
     this.initializeCoordinateDisplays();
 
-    // Listen for video playing event
-    this.remoteVideo.addEventListener('playing', () => {
-      console.log('Video started playing');
-      this.isStreamOpen = true; // Mark stream as open
-      this.lastVideoDataTime = Date.now(); // Track when video data started
-      this.updateStatus("connected", "Streaming");
-      this.updateConnectionStatus("Streaming");
-      this.updateUIState();
-    });
+    // Start state check interval - check stats and update UI
+    this.stateCheckInterval = setInterval(async () => {
+      // Check video data flow using WebRTC stats
+      await this.checkVideoDataFlow();
 
-    // Monitor video data flow with timeupdate
-    this.remoteVideo.addEventListener('timeupdate', () => {
-      if (this.isStreamOpen && !this.remoteVideo.paused) {
-        this.lastVideoDataTime = Date.now();
-      }
-    });
-
-    // Start state check interval
-    this.stateCheckInterval = setInterval(() => {
+      // Update UI based on current state
       this.updateUIState();
 
-      // Check if video has stalled (no data for 5+ seconds while stream is open)
-      if (this.isStreamOpen && this.lastVideoDataTime) {
-        const timeSinceLastData = Date.now() - this.lastVideoDataTime;
-        if (timeSinceLastData > this.VIDEO_STALL_TIMEOUT) {
-          // Video has stalled, show disconnect banner
-          if (this.wasStreaming && window.droneMap) {
-            window.droneMap.setDisconnected(true);
-          }
-        } else {
-          // Video is flowing, hide disconnect banner
-          if (window.droneMap) {
-            window.droneMap.setDisconnected(false);
-          }
+      // Check if video has stalled (user is in streaming view but data stopped)
+      if (this.isStreamOpen && !this.isReceivingData) {
+        // Video has stalled, show disconnect banner
+        if (window.droneMap) {
+          window.droneMap.setDisconnected(true);
+        }
+      } else if (this.isStreamOpen && this.isReceivingData) {
+        // Video is flowing, hide disconnect banner
+        if (window.droneMap) {
+          window.droneMap.setDisconnected(false);
         }
       }
     }, 500);
@@ -315,17 +303,50 @@ class WebRTCViewer {
     return this.peerConnection !== null;
   }
 
-  isStreaming() {
-    // Only consider streaming if video has actually started playing
-    // The 'playing' event is the authoritative signal
-    if (!this.isStreamOpen) {
+  async checkVideoDataFlow() {
+    // Use WebRTC stats to reliably detect if video data is flowing
+    if (!this.peerConnection) {
+      this.isReceivingData = false;
       return false;
     }
 
-    // Additional checks for ongoing streaming
-    const hasVideoSrc = this.remoteVideo.srcObject !== null;
-    const isPlaying = !this.remoteVideo.paused && !this.remoteVideo.ended && this.remoteVideo.readyState > 2;
-    return this.streamReceived && hasVideoSrc && isPlaying;
+    try {
+      const stats = await this.peerConnection.getStats();
+      let currentBytesReceived = 0;
+
+      // Find inbound video track stats
+      stats.forEach(report => {
+        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+          currentBytesReceived = report.bytesReceived || 0;
+        }
+      });
+
+      const now = Date.now();
+
+      // Check if bytes have increased since last check
+      if (this.lastStatsCheckTime && currentBytesReceived > this.lastBytesReceived) {
+        this.isReceivingData = true;
+        this.wasStreaming = true; // Mark that we've successfully received video data
+        this.isStreamOpen = true; // User has entered the streaming view
+      } else if (this.lastStatsCheckTime) {
+        // No new bytes received
+        this.isReceivingData = false;
+      }
+
+      this.lastBytesReceived = currentBytesReceived;
+      this.lastStatsCheckTime = now;
+
+      return this.isReceivingData;
+    } catch (error) {
+      console.error('Error checking video data flow:', error);
+      this.isReceivingData = false;
+      return false;
+    }
+  }
+
+  isStreaming() {
+    // Use WebRTC stats to determine if we're actually receiving video data
+    return this.streamReceived && this.isReceivingData;
   }
 
   timeSince(startTime) {
@@ -334,7 +355,7 @@ class WebRTCViewer {
   }
 
   getState() {
-    // If stream is open, always stay in STREAMING state (even during disconnects)
+    // If user has entered streaming view, keep showing it even during disconnects
     if (this.isStreamOpen) {
       return 'STREAMING';
     }
@@ -689,10 +710,18 @@ class WebRTCViewer {
       this.peerConnection = null;
     }
 
-    // Reset state and timers
+    // Clear video srcObject to prevent spurious events
+    if (this.remoteVideo.srcObject) {
+      this.remoteVideo.srcObject = null;
+    }
+
+    // Reset state, timers, and stats tracking
     this.streamReceived = false;
     this.signallingConnectionStartTime = Date.now();
     this.streamingConnectionStartTime = null;
+    this.lastBytesReceived = 0;
+    this.lastStatsCheckTime = null;
+    this.isReceivingData = false;
 
     // Rejoin the room from scratch to get fresh signaling and ICE candidates
     // This is important when network changes (e.g., switching WiFi)
@@ -839,11 +868,9 @@ class WebRTCViewer {
 
   closeStream() {
     console.log('Closing stream');
-    // Close stream sets isStreamOpen to false and clears room ID
-    // This returns us to the NO_STREAM state
+    // Exit streaming view and clear room ID to return to NO_STREAM state
     this.isStreamOpen = false;
     this.currentRoomId = null;
-    this.lastVideoDataTime = null;
 
     // Hide disconnect message
     if (window.hideDisconnectedMessage) {
@@ -859,11 +886,13 @@ class WebRTCViewer {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
 
-    // Clear state timers and stream open flag
+    // Clear state timers and stats tracking
     this.signallingConnectionStartTime = null;
     this.streamingConnectionStartTime = null;
-    this.isStreamOpen = false;
-    this.lastVideoDataTime = null;
+    this.lastBytesReceived = 0;
+    this.lastStatsCheckTime = null;
+    this.isReceivingData = false;
+    this.isStreamOpen = false; // Exit streaming view
 
     // Clear all state and UI (don't keep last frame on manual leave)
     this.cleanup(false);
@@ -997,7 +1026,7 @@ class WebRTCViewer {
         case "connected":
           this.updateStatus("connected", "Streaming");
           this.updateConnectionStatus("Streaming");
-          this.wasStreaming = true; // Mark that we were actually streaming
+          // Note: wasStreaming will be set to true when we actually receive data
 
           // Start timeout to detect if no video data arrives
           if (this.noDataTimeout) clearTimeout(this.noDataTimeout);
