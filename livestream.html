@@ -90,12 +90,17 @@ permalink: /livestream/
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
       }
       #remoteVideo {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
         object-fit: contain;
         display: none;
+        z-index: 2;
       }
       .placeholder {
         width: 100%;
@@ -107,6 +112,8 @@ permalink: /livestream/
         align-items: center;
         justify-content: center;
         background-color: #050505;
+        position: relative;
+        z-index: 1;
       }
       .status-dot {
         width: 10px;
@@ -228,6 +235,10 @@ permalink: /livestream/
         .navbar-brand span:not(.beta-badge) {
           display: none;
         }
+      }
+      /* Force default cursor everywhere to prevent loading spinner cursor */
+      body, #videoContainer, .placeholder {
+        cursor: default !important;
       }
     </style>
 
@@ -430,7 +441,7 @@ permalink: /livestream/
               type="button"
               data-bs-toggle="modal"
               data-bs-target="#joinModal"
-              title="Join a Livestream"
+              title="Connect to a Stream"
               style="background-color: #314268; border-color: #314268; color: white;"
             >
               <i class="bi bi-box-arrow-in-right"></i>
@@ -452,7 +463,7 @@ permalink: /livestream/
               type="button"
               id="leaveBtnDesktop"
               onclick="leaveRoom()"
-              title="Leave Room"
+              title="Disconnect"
               style="background-color: #dc3545; border-color: #dc3545; color: white;"
               disabled
             >
@@ -467,32 +478,36 @@ permalink: /livestream/
       </div>
     </nav>
 
-    <!-- Join Livestream Modal -->
+    <!-- Connect to Stream Modal -->
     <div class="modal fade" id="joinModal" tabindex="-1" aria-labelledby="joinModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white">
           <div class="modal-header border-secondary">
-            <h5 class="modal-title" id="joinModalLabel">Join a Livestream</h5>
+            <h5 class="modal-title" id="joinModalLabel">Connect to a Stream</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <!-- Manual Room ID Entry -->
+            <!-- Manual Stream ID Entry -->
             <div class="mb-4">
-              <label for="modalRoomIdInput" class="form-label">Enter Room ID</label>
+              <label for="modalRoomIdInput" class="form-label">Enter Stream ID</label>
               <div class="input-group">
                 <input
                   type="text"
                   id="modalRoomIdInput"
                   class="form-control"
-                  placeholder="Room ID"
+                  placeholder="Stream ID"
+                  list="streamHistoryDatalist"
                 />
+                <datalist id="streamHistoryDatalist">
+                  <!-- Populated dynamically by JavaScript -->
+                </datalist>
                 <button
                   class="btn"
                   type="button"
                   onclick="joinRoomFromModal()"
                   style="background-color: #314268; border-color: #314268; color: white;"
                 >
-                  <i class="bi bi-box-arrow-in-right"></i> Join
+                  <i class="bi bi-box-arrow-in-right"></i> Connect
                 </button>
               </div>
             </div>
@@ -550,7 +565,7 @@ permalink: /livestream/
             </button>
             <div class="text-muted small">
               <div class="mb-1">Or</div>
-              <div class="mb-2">Share this Room ID for others to enter in <i class="bi bi-box-arrow-in-right"></i> "Join a Livestream":</div>
+              <div class="mb-2">Share this Stream ID for others to enter in <i class="bi bi-box-arrow-in-right"></i> "Connect to a Stream":</div>
               <div class="font-monospace text-white fs-5" id="modalRoomId" onclick="copyRoomId()" style="cursor: pointer; user-select: all;" title="Click to copy">-</div>
               <div id="roomIdCopiedMessage" style="color: #28a745; font-size: 12px; margin-top: 8px; display: none;">Copied to clipboard</div>
             </div>
@@ -589,7 +604,7 @@ permalink: /livestream/
       <div class="offcanvas-body">
         <div class="d-grid gap-2 mb-3">
           <button class="btn" data-bs-toggle="modal" data-bs-target="#joinModal" style="background-color: #314268; border-color: #314268; color: white;">
-            <i class="bi bi-box-arrow-in-right"></i> Join a Livestream
+            <i class="bi bi-box-arrow-in-right"></i> Connect to a Stream
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
@@ -599,7 +614,7 @@ permalink: /livestream/
             onclick="leaveRoom()"
             disabled
           >
-            <i class="bi bi-stop-fill"></i> Leave Room
+            <i class="bi bi-stop-fill"></i> Disconnect
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
@@ -670,7 +685,7 @@ permalink: /livestream/
         </div>
         <hr />
         <p>
-          <strong>Room:</strong> <span id="roomIdDisplay">Not connected</span>
+          <strong>Stream:</strong> <span id="roomIdDisplay">Not connected</span>
         </p>
         <p>
           <strong>Connection:</strong>
@@ -695,7 +710,7 @@ permalink: /livestream/
         transform: translateX(-50%);
         background-color: rgba(220, 53, 69, 0.95);
         color: white;
-        padding: 8px 12px;
+        padding: 10px 14px;
         border-radius: 6px;
         font-size: 13px;
         font-weight: 600;
@@ -703,27 +718,40 @@ permalink: /livestream/
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         display: none;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         width: fit-content;
         white-space: nowrap;
       ">
         <i class="bi bi-wifi-off"></i>
-        <span>Stream disconnected</span>
-        <button onclick="hideDisconnectedMessage()" style="
-          background: none;
-          border: none;
-          color: white;
-          font-size: 16px;
-          cursor: pointer;
-          padding: 0 0 0 4px;
-          margin: 0;
-          line-height: 1;
-          opacity: 0.9;
-          display: flex;
-          align-items: center;
-        " title="Hide message">
-          <i class="bi bi-x-lg"></i>
-        </button>
+        <span>Stream disconnected. Attempting to reconnect...</span>
+        <div style="display: flex; gap: 6px; margin-left: 8px;">
+          <button onclick="if(window.viewer) window.viewer.retryConnection()" style="
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+          " title="Try to reconnect now" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
+            Try Again
+          </button>
+          <button onclick="if(window.viewer) window.viewer.closeStream()" style="
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+          " title="Close this stream" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
+            Close this stream
+          </button>
+        </div>
       </div>
 
       <!-- Connection failed overlay -->
@@ -771,7 +799,7 @@ permalink: /livestream/
       </div>
 
       <div id="video-panel" class="col-lg-8">
-        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary d-flex" style="flex: 0 0 auto; cursor: pointer;" onclick="showCoordinateDialog()">
+        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
             class="font-monospace small"
@@ -784,26 +812,118 @@ permalink: /livestream/
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
             <p id="placeholderTitle">No video stream</p>
-            <small id="placeholderText" class="text-muted">Enter a room ID and join to start</small>
+            <button
+              id="placeholderConnectBtn"
+              class="btn btn-lg"
+              data-bs-toggle="modal"
+              data-bs-target="#joinModal"
+              style="background-color: #314268; border-color: #314268; color: white; padding: 12px 24px; font-weight: 500; margin-top: 1rem;"
+              onmouseover="this.style.backgroundColor='#3d5282'"
+              onmouseout="this.style.backgroundColor='#314268'"
+            >
+              <i class="bi bi-box-arrow-in-right"></i> Connect to a Stream
+            </button>
+            <div id="connectingDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
+              <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
+                <strong>Stream ID:</strong> <span id="connectingRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              </div>
+              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
+                <div class="spinner-border spinner-border-sm text-primary" role="status" style="margin-right: 0.5rem;">
+                  <span class="visually-hidden">Connecting...</span>
+                </div>
+                Attempting to connect to <span id="connectingRoomIdInline" style="font-family: monospace; color: #ffc107;"></span>...
+              </div>
+              <div id="connectingTimeoutWarning" style="display: none; margin-top: 0.5rem; font-size: 0.9em; line-height: 1.4; color: #ffc107;">
+                This is taking longer than expected. Check your internet connection.
+              </div>
+            </div>
+            <div id="videoLoadingDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
+              <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
+                <strong>Stream ID:</strong> <span id="videoLoadingRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              </div>
+              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
+                <div class="spinner-border spinner-border-sm text-primary" role="status" style="margin-right: 0.5rem;">
+                  <span class="visually-hidden">Loading video...</span>
+                </div>
+                Found stream, attempting to load video...
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+                <button
+                  class="btn btn-primary w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#shareModal"
+                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-share"></i> Share Livestream
+                </button>
+                <button
+                  class="btn w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#joinModal"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
+                </button>
+              </div>
+            </div>
+            <div id="connectedNoStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
+              <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
+                <strong>Stream ID:</strong> <span id="noDataRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              </div>
+              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
+                You've connected to the stream but video is not loading. This is likely due to your internet connection type (some mobile data plans do not allow P2P streaming). Try switching to WiFi or share this stream with a device on a different connection.
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+                <button
+                  id="connectedNoStreamRetryBtn"
+                  class="btn btn-warning w-100"
+                  onclick="window.viewer.retryConnection()"
+                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-arrow-clockwise"></i> Retry Connection
+                </button>
+                <button
+                  class="btn btn-primary w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#shareModal"
+                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-share"></i> Share Livestream
+                </button>
+                <button
+                  class="btn w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#joinModal"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
+                </button>
+              </div>
+            </div>
             <div id="noStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
-              <div style="margin-bottom: 1rem; word-break: break-all;">
-                <strong>You have attempted to join Room ID:</strong><br>
-                <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
+              <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
+                <strong>Stream ID:</strong> <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
               </div>
-              <div style="margin-bottom: 0.75rem; font-weight: 600;">
-                No video stream is available.
+              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
+                Unable to load this stream. The publisher may have stopped streaming, or the Stream ID may have been mistyped.
               </div>
-              <div style="margin-bottom: 1rem; font-size: 0.9em; line-height: 1.5;">
-                This may be due to a typo in your Room ID, no stream currently available, or connection issues. To share this Room ID with another device, open <strong>Join a Livestream</strong> (<i class="bi bi-box-arrow-in-right"></i>) and enter the Room ID above or scan the QR code from Share below:
+              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+                <button
+                  class="btn btn-warning w-100"
+                  onclick="window.viewer.retryConnection()"
+                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-arrow-clockwise"></i> Retry Connection
+                </button>
+                <button
+                  class="btn w-100"
+                  data-bs-toggle="modal"
+                  data-bs-target="#joinModal"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                >
+                  <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
+                </button>
               </div>
-              <button 
-                class="btn btn-primary mb-3 w-100" 
-                data-bs-toggle="modal" 
-                data-bs-target="#shareModal"
-                style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
-              >
-                <i class="bi bi-share"></i> Share Livestream
-              </button>
             </div>
             <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
               margin-top: 1rem;
@@ -922,29 +1042,45 @@ permalink: /livestream/
 
       function hideNoStreamNotification() {
         const placeholderTitle = document.getElementById('placeholderTitle');
-        const placeholderText = document.getElementById('placeholderText');
+        const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
         const noStreamDetails = document.getElementById('noStreamDetails');
-        
+
         if (placeholderTitle) placeholderTitle.style.display = 'block';
-        if (placeholderText) placeholderText.style.display = 'block';
+        if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'inline-block';
         if (noStreamDetails) noStreamDetails.style.display = 'none';
+
+        // Show map panel, coordinate strip, and restore normal layout when hiding notification
+        const mapPanel = document.getElementById('map-panel');
+        const videoPanel = document.getElementById('video-panel');
+        const coordStripContainer = document.getElementById('coordinateStripContainer');
+        if (mapPanel) mapPanel.style.display = 'block';
+        if (videoPanel) videoPanel.classList.remove('col-12');
+        if (coordStripContainer) coordStripContainer.style.display = 'flex';
       }
 
       function showNoStreamNotification() {
         const placeholderTitle = document.getElementById('placeholderTitle');
-        const placeholderText = document.getElementById('placeholderText');
+        const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
         const noStreamDetails = document.getElementById('noStreamDetails');
         const attemptedRoomId = document.getElementById('attemptedRoomId');
-        
+
         // Get the current room ID from the viewer
         const roomId = window.viewer ? window.viewer.currentRoomId : null;
-        
-        if (roomId && noStreamDetails && placeholderText && attemptedRoomId) {
-          // Hide the title and default text, show the no stream details
+
+        if (roomId && noStreamDetails && placeholderConnectBtn && attemptedRoomId) {
+          // Hide the title and connect button, show the no stream details
           if (placeholderTitle) placeholderTitle.style.display = 'none';
-          placeholderText.style.display = 'none';
+          placeholderConnectBtn.style.display = 'none';
           attemptedRoomId.textContent = roomId;
           noStreamDetails.style.display = 'block';
+
+          // Hide map panel, coordinate strip, and expand video panel when unable to load stream
+          const mapPanel = document.getElementById('map-panel');
+          const videoPanel = document.getElementById('video-panel');
+          const coordStripContainer = document.getElementById('coordinateStripContainer');
+          if (mapPanel) mapPanel.style.display = 'none';
+          if (videoPanel) videoPanel.classList.add('col-12');
+          if (coordStripContainer) coordStripContainer.style.display = 'none';
         }
       }
 
@@ -1019,9 +1155,10 @@ permalink: /livestream/
         const qrcodeContainer = document.getElementById('qrcode');
         qrcodeContainer.innerHTML = ''; // Clear any existing QR code
         const currentUrl = window.location.href;
-        
-        // Only generate if there's a room in the URL
-        if (currentUrl.includes('?room=') || currentUrl.includes('&room=')) {
+
+        // Only generate if there's a stream in the URL
+        if (currentUrl.includes('?stream=') || currentUrl.includes('&stream=') ||
+            currentUrl.includes('?room=') || currentUrl.includes('&room=')) {
           console.log('Generating QR code for URL:', currentUrl);
           new QRCode(qrcodeContainer, {
             text: currentUrl,
@@ -1033,37 +1170,39 @@ permalink: /livestream/
           });
           console.log('QR code generated successfully');
         } else {
-          // Show message if no room is active
-          console.log('No room in URL, cannot generate QR code');
-          qrcodeContainer.innerHTML = '<div style="padding: 20px; color: #6c757d;">Join a room first to generate QR code</div>';
+          // Show message if no stream is active
+          console.log('No stream in URL, cannot generate QR code');
+          qrcodeContainer.innerHTML = '<div style="padding: 20px; color: #6c757d;">Connect to a stream first to generate QR code</div>';
         }
         
-        // Update Room ID display in share modal
+        // Update Stream ID display in share modal
         const roomIdInput = document.getElementById('roomIdInput');
         const modalRoomId = document.getElementById('modalRoomId');
         if (roomIdInput && modalRoomId) {
           let currentRoomId = roomIdInput.value.trim();
-          
+
           // If roomIdInput is empty, try to get it from URL
           if (!currentRoomId) {
             const urlParams = new URLSearchParams(window.location.search);
-            currentRoomId = urlParams.get('room') || '';
+            // Try 'stream' first, then 'room' for backwards compatibility
+            currentRoomId = urlParams.get('stream') || urlParams.get('room') || '';
           }
-          
-          // If it's a URL, extract just the room ID
+
+          // If it's a URL, extract just the stream ID
           if (currentRoomId.includes('http://') || currentRoomId.includes('https://') || currentRoomId.includes('?')) {
             try {
               const url = new URL(currentRoomId);
-              currentRoomId = url.searchParams.get('room') || '';
+              // Try 'stream' first, then 'room' for backwards compatibility
+              currentRoomId = url.searchParams.get('stream') || url.searchParams.get('room') || '';
             } catch (e) {
               // Try to extract from query string manually
-              const match = currentRoomId.match(/[?&]room=([^&]+)/);
+              const match = currentRoomId.match(/[?&](stream|room)=([^&]+)/);
               if (match) {
-                currentRoomId = match[1];
+                currentRoomId = match[2];
               }
             }
           }
-          
+
           modalRoomId.textContent = currentRoomId || '-';
         }
       });
@@ -1073,9 +1212,9 @@ permalink: /livestream/
         const roomIdInput = document.getElementById('roomIdInput');
         const roomIdInputMobile = document.getElementById('roomIdInputMobile');
         const roomId = modalRoomIdInput.value.trim();
-        
+
         if (!roomId) {
-          alert("Please enter a room ID");
+          alert("Please enter a stream ID");
           return;
         }
         
@@ -1241,7 +1380,7 @@ permalink: /livestream/
         }
       });
 
-      // Pre-populate join modal with current room ID when opened
+      // Pre-populate modal with current stream ID when opened
       document.getElementById('joinModal').addEventListener('show.bs.modal', function () {
         const roomIdInput = document.getElementById('roomIdInput');
         const modalRoomIdInput = document.getElementById('modalRoomIdInput');
@@ -1249,9 +1388,9 @@ permalink: /livestream/
           const currentRoomId = roomIdInput.value.trim();
           if (currentRoomId) {
             modalRoomIdInput.value = currentRoomId;
-            modalRoomIdInput.placeholder = 'Enter a different Room ID or use current';
+            modalRoomIdInput.placeholder = 'Enter a different Stream ID or use current';
           } else {
-            modalRoomIdInput.placeholder = 'Room ID';
+            modalRoomIdInput.placeholder = 'Stream ID';
           }
         }
       });
@@ -1289,20 +1428,21 @@ permalink: /livestream/
               console.log('QR Code scanned! Raw text:', decodedText);
               qrScanResult.textContent = 'QR Code detected! Joining livestream...';
               
-              // Extract room ID from URL if it's a full URL, or use as-is if it's just an ID
+              // Extract stream ID from URL if it's a full URL, or use as-is if it's just an ID
               let roomId = decodedText;
               try {
                 const url = new URL(decodedText);
-                const urlRoomId = url.searchParams.get('room');
+                // Try 'stream' first, then 'room' for backwards compatibility
+                const urlRoomId = url.searchParams.get('stream') || url.searchParams.get('room');
                 if (urlRoomId) {
                   roomId = urlRoomId;
-                  console.log('Extracted room ID from URL:', roomId);
+                  console.log('Extracted stream ID from URL:', roomId);
                 } else {
-                  console.log('No room parameter in URL, using full URL as room ID');
+                  console.log('No stream parameter in URL, using full URL as stream ID');
                 }
               } catch (e) {
                 // Not a URL, use as-is
-                console.log('Not a valid URL, using raw text as room ID:', roomId);
+                console.log('Not a valid URL, using raw text as stream ID:', roomId);
               }
               
               // Keep room ID in uppercase (don't normalize to lowercase)

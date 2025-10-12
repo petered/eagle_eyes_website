@@ -2,11 +2,24 @@ class WebRTCViewer {
   constructor() {
     this.socket = null;
     this.peerConnection = null;
-    this.currentRoomId = null;
+    this.currentRoomId = null; // Also used as streamId
     this.currentPublisherName = null;
-    this.isConnected = false;
     this.wasStreaming = false; // Track if we were actually streaming
     this.streamReceived = false; // Track if we've received a stream
+
+    // WebRTC stats tracking for reliable video data detection
+    this.lastBytesReceived = 0; // Track bytes from previous stats check
+    this.lastStatsCheckTime = null; // Timestamp of last stats check
+    this.isReceivingData = false; // True if bytes are actively increasing (ground truth from WebRTC)
+    this.isStreamOpen = false; // True when user has entered streaming view (persists during disconnects)
+
+    // State machine timing
+    this.signallingConnectionStartTime = null; // When we started signalling connection
+    this.streamingConnectionStartTime = null; // When we started streaming connection
+    this.stateCheckInterval = null; // Interval to check state every 500ms
+    this.SIGNALLING_TIMEOUT = 5000; // 5 seconds timeout for signalling
+    this.STREAMING_TIMEOUT = 5000; // 5 seconds timeout for streaming
+    this.VIDEO_STALL_TIMEOUT = 5000; // 5 seconds timeout for video stall detection
 
     this.remoteVideo = document.getElementById("remoteVideo");
     this.statusElement = document.getElementById("status");
@@ -131,12 +144,13 @@ class WebRTCViewer {
     this.checkURLForRoomId();
 
     // Setup UI event listeners
-    this.roomIdInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.joinRoom();
-    });
-    this.roomIdInputMobile.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.joinRoom();
-    });
+    // Note: Keypress listeners removed - now using modal-based join functionality
+    // this.roomIdInput.addEventListener("keypress", (e) => {
+    //   if (e.key === "Enter") this.joinRoom();
+    // });
+    // this.roomIdInputMobile.addEventListener("keypress", (e) => {
+    //   if (e.key === "Enter") this.joinRoom();
+    // });
 
     // Sync room inputs with validation
     this.roomIdInput.addEventListener('input', (e) => {
@@ -155,6 +169,28 @@ class WebRTCViewer {
 
     // Initialize coordinate displays once
     this.initializeCoordinateDisplays();
+
+    // Start state check interval - check stats and update UI
+    this.stateCheckInterval = setInterval(async () => {
+      // Check video data flow using WebRTC stats
+      await this.checkVideoDataFlow();
+
+      // Update UI based on current state
+      this.updateUIState();
+
+      // Check if video has stalled (user is in streaming view but data stopped)
+      if (this.isStreamOpen && !this.isReceivingData) {
+        // Video has stalled, show disconnect banner
+        if (window.droneMap) {
+          window.droneMap.setDisconnected(true);
+        }
+      } else if (this.isStreamOpen && this.isReceivingData) {
+        // Video is flowing, hide disconnect banner
+        if (window.droneMap) {
+          window.droneMap.setDisconnected(false);
+        }
+      }
+    }, 500);
 
     // Setup page visibility handling for mobile reconnection
     this.setupVisibilityHandling();
@@ -216,7 +252,9 @@ class WebRTCViewer {
         this.peerConnection = null;
       }
 
-      // Rejoin the room (this will trigger stream request)
+      // Reset timers and rejoin the room
+      this.signallingConnectionStartTime = Date.now();
+      this.streamingConnectionStartTime = null;
       this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
     } else {
       console.log('Connection still active, no reconnect needed');
@@ -250,12 +288,445 @@ class WebRTCViewer {
 
   checkURLForRoomId() {
     const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get("room") || urlParams.get("r");
+    // Support 'stream' as primary, but also accept 'room' and 'r' for backwards compatibility
+    const roomId = urlParams.get("stream") || urlParams.get("room") || urlParams.get("r");
 
     if (roomId) {
       this.roomIdInput.value = roomId;
       this.roomIdInputMobile.value = roomId;
       setTimeout(() => this.joinRoom(), 1000);
+    }
+  }
+
+  // State detection methods
+  isSignallingConnected() {
+    return this.peerConnection !== null;
+  }
+
+  async checkVideoDataFlow() {
+    // Use WebRTC stats to reliably detect if video data is flowing
+    if (!this.peerConnection) {
+      this.isReceivingData = false;
+      return false;
+    }
+
+    try {
+      const stats = await this.peerConnection.getStats();
+      let currentBytesReceived = 0;
+
+      // Find inbound video track stats
+      stats.forEach(report => {
+        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+          currentBytesReceived = report.bytesReceived || 0;
+        }
+      });
+
+      const now = Date.now();
+
+      // Check if bytes have increased since last check
+      if (this.lastStatsCheckTime && currentBytesReceived > this.lastBytesReceived) {
+        this.isReceivingData = true;
+        this.wasStreaming = true; // Mark that we've successfully received video data
+        this.isStreamOpen = true; // User has entered the streaming view
+      } else if (this.lastStatsCheckTime) {
+        // No new bytes received
+        this.isReceivingData = false;
+      }
+
+      this.lastBytesReceived = currentBytesReceived;
+      this.lastStatsCheckTime = now;
+
+      return this.isReceivingData;
+    } catch (error) {
+      console.error('Error checking video data flow:', error);
+      this.isReceivingData = false;
+      return false;
+    }
+  }
+
+  isStreaming() {
+    // Use WebRTC stats to determine if we're actually receiving video data
+    return this.streamReceived && this.isReceivingData;
+  }
+
+  timeSince(startTime) {
+    if (!startTime) return Infinity;
+    return Date.now() - startTime;
+  }
+
+  getState() {
+    // If user has entered streaming view, keep showing it even during disconnects
+    if (this.isStreamOpen) {
+      return 'STREAMING';
+    }
+
+    if (!this.currentRoomId) {
+      return 'NO_STREAM';
+    }
+
+    if (!this.isSignallingConnected()) {
+      if (this.timeSince(this.signallingConnectionStartTime) < this.SIGNALLING_TIMEOUT) {
+        return 'ATTEMPTING_SIGNALLING_CONNECTION';
+      }
+      return 'NO_SIGNALLING_CONNECTION';
+    }
+
+    if (!this.isStreaming()) {
+      if (this.timeSince(this.streamingConnectionStartTime) < this.STREAMING_TIMEOUT) {
+        return 'ATTEMPTING_STREAM_CONNECTION';
+      }
+      return 'NO_STREAM_CONNECTION';
+    }
+
+    return 'STREAMING';
+  }
+
+  // Centralized UI state management
+  updateUIState() {
+    const state = this.getState();
+    console.log('Current state:', state, {
+      streamId: this.currentRoomId,
+      signallingConnected: this.isSignallingConnected(),
+      streaming: this.isStreaming(),
+      signallingTime: this.timeSince(this.signallingConnectionStartTime),
+      streamingTime: this.timeSince(this.streamingConnectionStartTime)
+    });
+
+    switch(state) {
+      case 'NO_STREAM':
+        this.showNoStream();
+        break;
+      case 'ATTEMPTING_SIGNALLING_CONNECTION':
+        this.showAttemptingSignalling();
+        break;
+      case 'NO_SIGNALLING_CONNECTION':
+        this.showNoSignallingConnection();
+        break;
+      case 'ATTEMPTING_STREAM_CONNECTION':
+        this.showAttemptingStream();
+        break;
+      case 'NO_STREAM_CONNECTION':
+        this.showNoStreamConnection();
+        break;
+      case 'STREAMING':
+        this.showStreaming();
+        break;
+    }
+  }
+
+  showNoStream() {
+    console.log('State: NO_STREAM');
+
+    // Show placeholder elements
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    if (placeholderTitle) placeholderTitle.style.display = 'block';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'inline-block';
+
+    // Hide all error messages and connection states
+    const connectingDetails = document.getElementById('connectingDetails');
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    if (connectingDetails) connectingDetails.style.display = 'none';
+    if (noStreamDetails) noStreamDetails.style.display = 'none';
+    if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+
+    // Hide video, show placeholder
+    this.remoteVideo.style.display = 'none';
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Hide map panel, coordinate strip, expand video panel
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+    if (mapPanel) mapPanel.style.display = 'none';
+    if (videoPanel) {
+      videoPanel.classList.remove('col-lg-8');
+      videoPanel.classList.add('col-12');
+    }
+    if (coordStripContainer) coordStripContainer.style.display = 'none';
+  }
+
+  showAttemptingSignalling() {
+    console.log('State: ATTEMPTING_SIGNALLING_CONNECTION');
+
+    // Hide landing page elements
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    if (placeholderTitle) placeholderTitle.style.display = 'none';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
+
+    // Show connecting details
+    const connectingDetails = document.getElementById('connectingDetails');
+    const connectingRoomId = document.getElementById('connectingRoomId');
+    const connectingRoomIdInline = document.getElementById('connectingRoomIdInline');
+    const connectingTimeoutWarning = document.getElementById('connectingTimeoutWarning');
+
+    if (connectingDetails && connectingRoomId && this.currentRoomId) {
+      connectingRoomId.textContent = this.currentRoomId;
+      if (connectingRoomIdInline) {
+        connectingRoomIdInline.textContent = this.currentRoomId;
+      }
+      connectingDetails.style.display = 'block';
+
+      // Show timeout warning if connection is taking longer than 5 seconds
+      if (connectingTimeoutWarning) {
+        const timeElapsed = this.timeSince(this.signallingConnectionStartTime);
+        if (timeElapsed > 5000) {
+          connectingTimeoutWarning.style.display = 'block';
+        } else {
+          connectingTimeoutWarning.style.display = 'none';
+        }
+      }
+    }
+
+    // Hide other messages
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    if (noStreamDetails) noStreamDetails.style.display = 'none';
+    if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+    if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+
+    // Hide video, show placeholder
+    this.remoteVideo.style.display = 'none';
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Hide map panel, coordinate strip, expand video panel
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+    if (mapPanel) mapPanel.style.display = 'none';
+    if (videoPanel) {
+      videoPanel.classList.remove('col-lg-8');
+      videoPanel.classList.add('col-12');
+    }
+    if (coordStripContainer) coordStripContainer.style.display = 'none';
+  }
+
+  showAttemptingStream() {
+    console.log('State: ATTEMPTING_STREAM_CONNECTION');
+
+    // Hide landing page, connecting state, and error states
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    const connectingDetails = document.getElementById('connectingDetails');
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    if (placeholderTitle) placeholderTitle.style.display = 'none';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
+    if (connectingDetails) connectingDetails.style.display = 'none';
+    if (noStreamDetails) noStreamDetails.style.display = 'none';
+    if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+
+    // Show video loading details
+    const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    const videoLoadingRoomId = document.getElementById('videoLoadingRoomId');
+    if (videoLoadingDetails && videoLoadingRoomId && this.currentRoomId) {
+      videoLoadingRoomId.textContent = this.currentRoomId;
+      videoLoadingDetails.style.display = 'block';
+    }
+
+    // Hide video, show placeholder
+    this.remoteVideo.style.display = 'none';
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Hide map panel, coordinate strip, expand video panel
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+    if (mapPanel) mapPanel.style.display = 'none';
+    if (videoPanel) {
+      videoPanel.classList.remove('col-lg-8');
+      videoPanel.classList.add('col-12');
+    }
+    if (coordStripContainer) coordStripContainer.style.display = 'none';
+  }
+
+  showNoSignallingConnection() {
+    console.log('State: NO_SIGNALLING_CONNECTION');
+
+    // Hide landing page and connecting state
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    const connectingDetails = document.getElementById('connectingDetails');
+    const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    if (placeholderTitle) placeholderTitle.style.display = 'none';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
+    if (connectingDetails) connectingDetails.style.display = 'none';
+    if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+
+    // Show connection failed details
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    const attemptedRoomId = document.getElementById('attemptedRoomId');
+    if (noStreamDetails && attemptedRoomId && this.currentRoomId) {
+      attemptedRoomId.textContent = this.currentRoomId;
+      noStreamDetails.style.display = 'block';
+    }
+
+    // Hide connected-no-stream warning
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+
+    // Hide video, show placeholder
+    this.remoteVideo.style.display = 'none';
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Hide map panel, coordinate strip, expand video panel
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+    if (mapPanel) mapPanel.style.display = 'none';
+    if (videoPanel) {
+      videoPanel.classList.remove('col-lg-8');
+      videoPanel.classList.add('col-12');
+    }
+    if (coordStripContainer) coordStripContainer.style.display = 'none';
+  }
+
+  showNoStreamConnection() {
+    console.log('State: NO_STREAM_CONNECTION');
+
+    // Hide landing page, connecting state, and connection error
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    const connectingDetails = document.getElementById('connectingDetails');
+    const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    if (placeholderTitle) placeholderTitle.style.display = 'none';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
+    if (connectingDetails) connectingDetails.style.display = 'none';
+    if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+    if (noStreamDetails) noStreamDetails.style.display = 'none';
+
+    // Show connected-no-stream warning
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    const noDataRoomId = document.getElementById('noDataRoomId');
+    if (connectedNoStreamDetails && noDataRoomId && this.currentRoomId) {
+      noDataRoomId.textContent = this.currentRoomId;
+      connectedNoStreamDetails.style.display = 'block';
+    }
+
+    // Make sure retry button is enabled
+    const retryBtn = document.getElementById('connectedNoStreamRetryBtn');
+    if (retryBtn) {
+      retryBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Retry Connection';
+      retryBtn.disabled = false;
+    }
+
+    // Hide video, show placeholder
+    this.remoteVideo.style.display = 'none';
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Hide map panel, coordinate strip, expand video panel
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+    if (mapPanel) mapPanel.style.display = 'none';
+    if (videoPanel) {
+      videoPanel.classList.remove('col-lg-8');
+      videoPanel.classList.add('col-12');
+    }
+    if (coordStripContainer) coordStripContainer.style.display = 'none';
+  }
+
+  showStreaming() {
+    console.log('State: STREAMING');
+
+    // Hide all error messages and states
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    const connectingDetails = document.getElementById('connectingDetails');
+    const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    if (placeholderTitle) placeholderTitle.style.display = 'none';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
+    if (connectingDetails) connectingDetails.style.display = 'none';
+    if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+    if (noStreamDetails) noStreamDetails.style.display = 'none';
+    if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+
+    // Show video or last frame canvas if it exists
+    const lastFrameCanvas = document.getElementById('lastFrameCanvas');
+    if (lastFrameCanvas) {
+      // Show canvas with last frame, keep video hidden
+      lastFrameCanvas.style.display = 'block';
+      this.remoteVideo.style.display = 'none';
+    } else {
+      // Show live video
+      this.remoteVideo.style.display = 'block';
+    }
+
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+
+    // Show map panel, coordinate strip, restore normal layout
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+
+    console.log('Map panel element:', mapPanel);
+    console.log('Showing map panel');
+    if (mapPanel) {
+      mapPanel.style.display = '';  // Remove inline style to use CSS default (flex)
+      console.log('Map panel display after setting:', mapPanel.style.display);
+    }
+
+    if (videoPanel) {
+      videoPanel.classList.remove('col-12');
+      // Ensure the original column class is present
+      if (!videoPanel.classList.contains('col-lg-8')) {
+        videoPanel.classList.add('col-lg-8');
+      }
+      console.log('Removed col-12 from video panel, added col-lg-8');
+    }
+
+    if (coordStripContainer) {
+      coordStripContainer.style.display = 'flex';
+      console.log('Set coordinate strip to flex');
+    }
+
+    // Force map resize after showing
+    if (window.droneMap && window.droneMap.map) {
+      setTimeout(() => {
+        console.log('Resizing map');
+        window.droneMap.resize();
+      }, 100);
+    }
+  }
+
+  retryConnection() {
+    console.log('Retrying connection to:', this.currentRoomId);
+
+    // Clear existing peer connection
+    if (this.peerConnection) {
+      this.peerConnection.close();
+      this.peerConnection = null;
+    }
+
+    // Clear video srcObject to prevent spurious events
+    if (this.remoteVideo.srcObject) {
+      this.remoteVideo.srcObject = null;
+    }
+
+    // Reset state, timers, and stats tracking
+    this.streamReceived = false;
+    this.signallingConnectionStartTime = Date.now();
+    this.streamingConnectionStartTime = null;
+    this.lastBytesReceived = 0;
+    this.lastStatsCheckTime = null;
+    this.isReceivingData = false;
+
+    // Rejoin the room from scratch to get fresh signaling and ICE candidates
+    // This is important when network changes (e.g., switching WiFi)
+    if (this.currentRoomId) {
+      this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
     }
   }
 
@@ -295,15 +766,19 @@ class WebRTCViewer {
       // Add to history
       this.addToHistory(data.roomId, data.publisherName);
 
-      // Reset stream received flag and show notification immediately
+      // Reset stream received flag
       this.streamReceived = false;
-      this.showNoStreamNotification();
 
       if (data.hasPublisher) {
+        // Start streaming connection timer
+        this.streamingConnectionStartTime = Date.now();
         this.updateStatus("waiting", "Connecting to stream...");
         this.requestStream();
       } else {
-        this.updateStatus("waiting", "Waiting for publisher...");
+        // No publisher - clear timers and show failure
+        this.signallingConnectionStartTime = null;
+        this.streamingConnectionStartTime = null;
+        this.updateStatus("error", "Stream not found");
       }
     });
 
@@ -349,38 +824,61 @@ class WebRTCViewer {
     this.socket.on("error", (error) => {
       console.error("Server error:", error);
       this.updateStatus("error", `Error: ${error.message}`);
+
+      // If error is "No publisher available", show connection failed
+      if (error.message === "No publisher available") {
+        // Clear timeout timer and interval
+        this.connectionAttemptStartTime = null;
+        if (this.connectionTimeoutInterval) {
+          clearInterval(this.connectionTimeoutInterval);
+          this.connectionTimeoutInterval = null;
+        }
+        // Show connection failed
+        this.showConnectionFailed();
+      }
     });
   }
 
   async joinRoom() {
     const roomId = this.roomIdInput.value.trim();
     if (!roomId) {
-      alert("Please enter a room ID");
+      alert("Please enter a stream ID");
       return;
     }
 
     // If already connected to a different room, reload page for clean state
     if (this.currentRoomId && this.currentRoomId !== roomId) {
       const url = new URL(window.location);
-      url.searchParams.set("room", roomId);
+      // Remove old 'room' parameter for clean URLs
+      url.searchParams.delete("room");
+      url.searchParams.delete("r");
+      url.searchParams.set("stream", roomId);
       window.location.href = url.toString();
       return;
     }
+
+    // Set stream ID and start signalling connection timer
+    this.currentRoomId = roomId;
+    this.signallingConnectionStartTime = Date.now();
+    this.streamingConnectionStartTime = null; // Reset streaming timer
 
     this.updateStatus("connecting", "Joining...");
     this.socket.emit("join-as-viewer", { roomId });
   }
 
-  showNoStreamNotification() {
-    if (window.showNoStreamNotification) {
-      window.showNoStreamNotification();
-    }
-  }
+  closeStream() {
+    console.log('Closing stream');
+    // Exit streaming view and clear room ID to return to NO_STREAM state
+    this.isStreamOpen = false;
+    this.currentRoomId = null;
 
-  hideNoStreamNotification() {
-    if (window.hideNoStreamNotification) {
-      window.hideNoStreamNotification();
+    // Hide disconnect message
+    if (window.hideDisconnectedMessage) {
+      window.hideDisconnectedMessage();
     }
+
+    // Let leaveRoom handle the rest
+    this.leaveRoom();
   }
 
   leaveRoom() {
@@ -388,8 +886,13 @@ class WebRTCViewer {
       this.socket.emit("leave-room", { roomId: this.currentRoomId });
     }
 
-    // Hide notification
-    this.hideNoStreamNotification();
+    // Clear state timers and stats tracking
+    this.signallingConnectionStartTime = null;
+    this.streamingConnectionStartTime = null;
+    this.lastBytesReceived = 0;
+    this.lastStatsCheckTime = null;
+    this.isReceivingData = false;
+    this.isStreamOpen = false; // Exit streaming view
 
     // Clear all state and UI (don't keep last frame on manual leave)
     this.cleanup(false);
@@ -419,11 +922,10 @@ class WebRTCViewer {
       coordTextDesktop.innerHTML = "Waiting for location data...";
     }
 
-    // Clear video and show placeholder
-    this.remoteVideo.style.display = "none";
-    const placeholder = this.videoContainer.querySelector(".placeholder");
-    if (placeholder) {
-      placeholder.style.display = "flex";
+    // Remove pointer cursor when no location data
+    const coordStripContainer = document.getElementById("coordinateStripContainer");
+    if (coordStripContainer) {
+      coordStripContainer.style.cursor = "default";
     }
 
     // Remove canvas if exists
@@ -449,6 +951,15 @@ class WebRTCViewer {
     this.lastCoordinateTime = null;
     this.currentGeojson = null;
 
+    // Clear no-data timeout
+    if (this.noDataTimeout) {
+      clearTimeout(this.noDataTimeout);
+      this.noDataTimeout = null;
+    }
+
+    // Update UI state
+    this.updateUIState();
+
     // Refresh history lists to remove highlight
     const history = this.getHistory();
     this.renderHistory(history);
@@ -470,9 +981,8 @@ class WebRTCViewer {
     this.peerConnection.ontrack = (event) => {
       console.log("Received remote stream");
 
-      // Mark that we've received a stream and hide notification
+      // Mark that we've received a stream
       this.streamReceived = true;
-      this.hideNoStreamNotification();
 
       // Remove old canvas if exists
       const oldCanvas = document.getElementById('lastFrameCanvas');
@@ -481,10 +991,16 @@ class WebRTCViewer {
       }
 
       this.remoteVideo.srcObject = event.streams[0];
-      this.remoteVideo.style.display = "block";
-      this.videoContainer.querySelector(".placeholder").style.display = "none";
-      this.updateStatus("connected", "Streaming");
-      this.updateConnectionStatus("Streaming");
+
+      // Explicitly play the video
+      this.remoteVideo.play().then(() => {
+        console.log('Video play() succeeded');
+      }).catch(err => {
+        console.error('Video play() failed:', err);
+      });
+
+      this.updateStatus("connected", "Loading video...");
+      this.updateConnectionStatus("Loading video...");
 
       // Clear disconnected overlay when reconnecting
       if (window.droneMap) {
@@ -510,7 +1026,17 @@ class WebRTCViewer {
         case "connected":
           this.updateStatus("connected", "Streaming");
           this.updateConnectionStatus("Streaming");
-          this.wasStreaming = true; // Mark that we were actually streaming
+          // Note: wasStreaming will be set to true when we actually receive data
+
+          // Start timeout to detect if no video data arrives
+          if (this.noDataTimeout) clearTimeout(this.noDataTimeout);
+          this.noDataTimeout = setTimeout(() => {
+            console.log("No video data received within 10 seconds");
+            this.updateUIState();
+          }, 10000);
+
+          // Update UI state
+          this.updateUIState();
           break;
         case "disconnected":
           console.log("Peer connection disconnected, attempting reconnect...");
@@ -702,6 +1228,12 @@ class WebRTCViewer {
     if (coordTextDesktop) {
       coordTextDesktop.innerHTML = compactText;
     }
+
+    // Enable pointer cursor when we have location data
+    const coordStripContainer = document.getElementById("coordinateStripContainer");
+    if (coordStripContainer) {
+      coordStripContainer.style.cursor = "pointer";
+    }
   }
 
   copyCoordinates(coordinates) {
@@ -827,7 +1359,10 @@ class WebRTCViewer {
     document.getElementById("roomIdDisplay").textContent = roomId;
     if (roomId && roomId !== "Not connected") {
       const url = new URL(window.location);
-      url.searchParams.set("room", roomId);
+      // Remove old 'room' parameter for clean URLs
+      url.searchParams.delete("room");
+      url.searchParams.delete("r");
+      url.searchParams.set("stream", roomId);
       window.history.replaceState({}, document.title, url);
     }
   }
@@ -898,6 +1433,9 @@ class WebRTCViewer {
   renderHistory(history) {
     if (history.length === 0) {
       this.historyList.innerHTML = '<div class="text-muted text-center px-3">No recent streams</div>';
+      // Clear datalist
+      const datalist = document.getElementById('streamHistoryDatalist');
+      if (datalist) datalist.innerHTML = '';
       return;
     }
 
@@ -910,7 +1448,7 @@ class WebRTCViewer {
         <div class="d-flex align-items-center justify-content-between px-3 py-1 ${bgClass} rounded mx-2 mb-1">
           <button class="btn btn-link text-start p-0 flex-grow-1 text-decoration-none ${textClass}"
                   onclick="viewer.joinFromHistory('${item.roomId}')"
-                  title="Join ${item.name}"
+                  title="Connect to ${item.name}"
                   ${isCurrent ? 'disabled' : ''}>
             <div>
               <div class="text-truncate">${item.name}</div>
@@ -925,11 +1463,22 @@ class WebRTCViewer {
         </div>
       `;
     }).join('');
+
+    // Update datalist for autocomplete in modal
+    const datalist = document.getElementById('streamHistoryDatalist');
+    if (datalist) {
+      datalist.innerHTML = history.map(item =>
+        `<option value="${item.roomId}">${item.name}</option>`
+      ).join('');
+    }
   }
 
   renderHistoryMobile(history) {
     if (history.length === 0) {
       this.historyListMobile.innerHTML = '<div class="text-muted text-center">No recent streams</div>';
+      // Clear datalist
+      const datalist = document.getElementById('streamHistoryDatalist');
+      if (datalist) datalist.innerHTML = '';
       return;
     }
 
@@ -942,7 +1491,7 @@ class WebRTCViewer {
         <div class="d-flex align-items-center justify-content-between mb-2 p-2 ${bgClass} rounded">
           <button class="btn btn-link text-start p-0 flex-grow-1 text-decoration-none ${textClass}"
                   onclick="viewer.joinFromHistory('${item.roomId}')"
-                  title="Join ${item.name}"
+                  title="Connect to ${item.name}"
                   ${isCurrent ? 'disabled' : ''}>
             <div>
               <div class="text-truncate">${item.name}</div>
@@ -957,12 +1506,23 @@ class WebRTCViewer {
         </div>
       `;
     }).join('');
+
+    // Update datalist for autocomplete in modal
+    const datalist = document.getElementById('streamHistoryDatalist');
+    if (datalist) {
+      datalist.innerHTML = history.map(item =>
+        `<option value="${item.roomId}">${item.name}</option>`
+      ).join('');
+    }
   }
 
   joinFromHistory(roomId) {
     // Always reload page when joining from history for clean state
     const url = new URL(window.location);
-    url.searchParams.set("room", roomId);
+    // Remove old 'room' parameter for clean URLs
+    url.searchParams.delete("room");
+    url.searchParams.delete("r");
+    url.searchParams.set("stream", roomId);
     window.location.href = url.toString();
   }
 }
@@ -988,4 +1548,7 @@ function copyCurrentCoordinates() {
 document.addEventListener("DOMContentLoaded", () => {
   viewer = new WebRTCViewer();
   window.viewer = viewer; // Expose globally for coordinate dialog
+
+  // Set initial UI state (will show landing page)
+  viewer.updateUIState();
 });
