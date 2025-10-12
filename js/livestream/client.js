@@ -316,7 +316,13 @@ class WebRTCViewer {
   }
 
   isStreaming() {
-    // Check if video is actually playing with data
+    // Only consider streaming if video has actually started playing
+    // The 'playing' event is the authoritative signal
+    if (!this.isStreamOpen) {
+      return false;
+    }
+
+    // Additional checks for ongoing streaming
     const hasVideoSrc = this.remoteVideo.srcObject !== null;
     const isPlaying = !this.remoteVideo.paused && !this.remoteVideo.ended && this.remoteVideo.readyState > 2;
     return this.streamReceived && hasVideoSrc && isPlaying;
