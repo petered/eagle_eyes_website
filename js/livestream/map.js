@@ -14,6 +14,7 @@ class DroneMap {
         this.isDisconnected = false;
         this.currentDroneData = null;
         this.currentDroneName = null;
+        this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
 
         this.defaultCenter = [45.0, -100.0];
         this.defaultZoom = 3;
@@ -70,6 +71,15 @@ class DroneMap {
             // Add context menu for copying coordinates
             this.addContextMenu();
 
+            // Add drag event listener to disable continuous centering when user pans
+            this.map.on('dragstart', () => {
+                if (this.droneMapCenteringState === 'CONTINUOUS') {
+                    this.droneMapCenteringState = 'OFF';
+                    console.log('Map centering disabled due to user drag');
+                    this.updateRecenterButtonStyle();
+                }
+            });
+
             console.log('Drone map initialized with Leaflet');
 
         } catch (error) {
@@ -94,6 +104,9 @@ class DroneMap {
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
 
+                // Store reference to button for later styling updates
+                this.recenterButton = button;
+
                 L.DomEvent.on(button, 'click', L.DomEvent.stop)
                           .on(button, 'click', this.centerOnDrone, this);
 
@@ -101,6 +114,21 @@ class DroneMap {
             }
         });
         this.map.addControl(new centerControl());
+    }
+
+    updateRecenterButtonStyle() {
+        if (!this.recenterButton) return;
+
+        if (this.droneMapCenteringState === 'CONTINUOUS') {
+            // Active state: add outline
+            this.recenterButton.style.outline = '1px solid #3b82f6';
+            this.recenterButton.style.outlineOffset = '-1px';
+            this.recenterButton.title = 'Continuous Centering Active (click to disable)';
+        } else {
+            // Inactive state: remove outline
+            this.recenterButton.style.outline = 'none';
+            this.recenterButton.title = 'Center on Drone';
+        }
     }
 
     addContextMenu() {
@@ -263,7 +291,14 @@ class DroneMap {
         }
 
         if (this.trailCoordinates.length === 0) {
+            // First position: center map and enable continuous centering
             this.map.setView(this.currentLocation, 15);
+            this.droneMapCenteringState = 'CONTINUOUS';
+            console.log('First drone position received, enabling CONTINUOUS centering');
+            this.updateRecenterButtonStyle();
+        } else if (this.droneMapCenteringState === 'CONTINUOUS') {
+            // Continuously center on drone when in CONTINUOUS mode
+            this.map.panTo(this.currentLocation);
         }
     }
 
@@ -497,7 +532,19 @@ class DroneMap {
 
     centerOnDrone() {
         if (!this.map || !this.currentLocation) return;
-        this.map.panTo(this.currentLocation);
+
+        // Toggle state
+        if (this.droneMapCenteringState === 'CONTINUOUS') {
+            this.droneMapCenteringState = 'OFF';
+            console.log('Map centering disabled (OFF mode)');
+        } else {
+            this.droneMapCenteringState = 'CONTINUOUS';
+            this.map.panTo(this.currentLocation);
+            console.log('Map centering enabled (CONTINUOUS mode)');
+        }
+
+        // Update button visual state
+        this.updateRecenterButtonStyle();
     }
 
     clearTrail() {
