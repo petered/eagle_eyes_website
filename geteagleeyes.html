@@ -427,15 +427,25 @@ permalink: /geteagleeyes/
                     throw new Error(data.error || 'Failed to process request');
                 }
 
+                // Track successful form submission in Fathom Analytics
+                if (typeof fathom !== 'undefined') {
+                    fathom.trackEvent('Free Pilot Form Submitted');
+                    console.log('Fathom: Tracked Free Pilot Form Submitted');
+                }
+
                 // Success! Show success message and redirect
                 submitButton.classList.remove('processing');
-                successMessage.innerHTML = `You will now be redirected to the download page. Redirect not working? Access the download page <a href="${data.download_url}">here</a>.`;
+
+                // Add source parameter to track free pilot flow
+                const redirectUrl = data.download_url + (data.download_url.includes('?') ? '&' : '?') + 'source=free_pilot';
+
+                successMessage.innerHTML = `You will now be redirected to the download page. Redirect not working? Access the download page <a href="${redirectUrl}">here</a>.`;
                 successMessage.style.display = 'block';
                 successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
                 // Redirect after a short delay
                 setTimeout(() => {
-                    window.location.href = data.download_url;
+                    window.location.href = redirectUrl;
                 }, 2000);
 
             } catch (error) {
