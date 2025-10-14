@@ -2183,17 +2183,28 @@ permalink: /download/
             console.log('Click blocked - step advancement in progress');
             return;
         }
-        
+
         selectedPlatform = platform;
-        
+
+        // Track product selection in Fathom Analytics
+        if (typeof fathom !== 'undefined') {
+            if (platform === 'mobile') {
+                fathom.trackEvent('Pilot Selected');
+                console.log('Fathom: Tracked Pilot Selected');
+            } else if (platform === 'desktop') {
+                fathom.trackEvent('Scan Selected');
+                console.log('Fathom: Tracked Scan Selected');
+            }
+        }
+
         // Remove previous selections
         document.querySelectorAll('.platform-card').forEach(card => {
             card.classList.remove('selected');
         });
-        
+
         // Select current platform
         event.currentTarget.classList.add('selected');
-        
+
         console.log('Selected platform and advancing:', platform);
         
         // Set flag to prevent double-clicking
@@ -2779,7 +2790,7 @@ permalink: /download/
                     ${versionType === 'beta' ? '<img src="/images/eagle_eyes_pilot_logo_beta _SDK5.png" alt="Beta Logo" class="version-logo">' : ''}
                     ${versionType === 'stable' ? '<img src="/images/Eagle Eyes Logo.png" alt="Stable Logo" class="version-logo">' : ''}
                 </div>
-                <a href="${downloadUrl}" class="download-button" onclick="trackDownload('${releaseId}'); return true;">
+                <a href="${downloadUrl}" class="download-button" onclick="trackDownload('${releaseId}', '${productName}'); return true;">
                     Download
                 </a>
             </div>
@@ -3090,10 +3101,20 @@ permalink: /download/
         }
     }
     
-    function trackDownload(versionId) {
-        console.log('Download tracked:', versionId);
-        // Add download tracking logic here
-        
+    function trackDownload(versionId, productName) {
+        console.log('Download tracked:', versionId, 'Product:', productName);
+
+        // Track download in Fathom Analytics
+        if (typeof fathom !== 'undefined' && productName) {
+            if (productName.includes('Pilot')) {
+                fathom.trackEvent('Pilot Downloaded');
+                console.log('Fathom: Tracked Pilot Downloaded');
+            } else if (productName.includes('Scan')) {
+                fathom.trackEvent('Scan Downloaded');
+                console.log('Fathom: Tracked Scan Downloaded');
+            }
+        }
+
         // Auto-advance to next step after download is initiated
         setTimeout(() => {
             nextStep();
@@ -3263,6 +3284,15 @@ permalink: /download/
     document.addEventListener('DOMContentLoaded', function() {
         handleHashNavigation();
         handleURLParameters();
+
+        // Track free pilot download flow entry
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('source') === 'free_pilot') {
+            if (typeof fathom !== 'undefined') {
+                fathom.trackEvent('Free Pilot Flow Entered');
+                console.log('Fathom: Tracked Free Pilot Flow Entered');
+            }
+        }
     });
     
     // Check hash on hash change

@@ -303,11 +303,17 @@ permalink: /user-form/
                 success: function(data) {
                     console.log("Success", data);
                     submitButton.classList.remove('processing');
-                    
+
+                    // Track successful trial request in Fathom Analytics
+                    if (currentFormType === 'trial' && typeof fathom !== 'undefined') {
+                        fathom.trackEvent('Trial Requested');
+                        console.log('Fathom: Tracked Trial Requested');
+                    }
+
                     // Hide form and sign-in elements
                     $("#form-container").hide();
                     $("#signin").hide();
-                    
+
                     // Display a different success message based on the form type
                     if (currentFormType === 'purchase') {
                         $("#post-form").html(
