@@ -3,6 +3,7 @@ class DroneMap {
         this.map = null;
         this.droneMarker = null;
         this.droneClickMarker = null;
+        this.otherDroneMarkers = {}; // Map of droneId -> { marker, telemetryData }
         this.trailPolyline = null;
         this.geojsonLayer = null;
         this.currentLocation = null;
@@ -14,6 +15,7 @@ class DroneMap {
         this.isDisconnected = false;
         this.currentDroneData = null;
         this.currentDroneName = null;
+        this.currentLivestreamId = null; // Current drone's livestream ID
         this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
 
         this.defaultCenter = [45.0, -100.0];
@@ -240,9 +242,14 @@ class DroneMap {
         this.currentDroneData = location;
         this.currentDroneName = droneName;
 
+        // Add red dot indicator if livestreaming
+        const redDot = this.currentLivestreamId ?
+            '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 6px; height: 6px; background-color: red; border-radius: 50%; border: 1px solid white;"></div>' :
+            '';
+
         if (!this.droneMarker) {
             const droneIcon = L.divIcon({
-                html: `<img src="${this.getAssetPath('/images/livestream/map_drone_flyer.png')}" style="width: 32px; height: 32px; transform: rotate(${bearing}deg); transform-origin: center;">`,
+                html: `<div style="position: relative; width: 32px; height: 32px;"><img src="${this.getAssetPath('/images/livestream/map_drone_flyer.png')}" style="width: 32px; height: 32px; transform: rotate(${bearing}deg); transform-origin: center;">${redDot}</div>`,
                 className: 'drone-marker',
                 iconSize: [32, 32],
                 iconAnchor: [16, 16]
@@ -271,12 +278,25 @@ class DroneMap {
             this.droneMarker.setLatLng(this.currentLocation);
             this.droneClickMarker.setLatLng(this.currentLocation);
 
-            // Update rotation by directly manipulating the existing image element
+            // Update rotation and red dot by directly manipulating the existing elements
             const markerElement = this.droneMarker.getElement();
             if (markerElement) {
-                const img = markerElement.querySelector('img');
-                if (img) {
-                    img.style.transform = `rotate(${bearing}deg)`;
+                const container = markerElement.querySelector('div');
+                if (container) {
+                    const img = container.querySelector('img');
+                    if (img) {
+                        img.style.transform = `rotate(${bearing}deg)`;
+                    }
+
+                    // Update red dot visibility
+                    let existingDot = container.querySelector('div[style*="background-color: red"]');
+                    if (this.currentLivestreamId && !existingDot) {
+                        // Add red dot
+                        container.innerHTML += redDot;
+                    } else if (!this.currentLivestreamId && existingDot) {
+                        // Remove red dot
+                        existingDot.remove();
+                    }
                 }
             }
 
@@ -302,19 +322,31 @@ class DroneMap {
         }
     }
 
-    generateDronePopupContent() {
-        if (!this.currentDroneData) return 'Loading...';
+    generateDronePopupContent(droneData = null, droneName = null, livestreamId = null) {
+        // Use parameters if provided, otherwise fall back to current drone data
+        const data = droneData || this.currentDroneData;
+        const name = droneName || this.currentDroneName;
+        const streamId = livestreamId !== null ? livestreamId : this.currentLivestreamId;
 
-        const { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll } = this.currentDroneData;
+        if (!data) return 'Loading...';
+
+        const { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll } = data;
 
         const altAhlText = altitude_ahl != null ? altitude_ahl.toFixed(1) + 'm' : 'N/A';
         const altAslText = altitude_asl != null ? altitude_asl.toFixed(1) + 'm' : 'N/A';
         const pitchText = pitch != null ? pitch.toFixed(1) + '°' : 'N/A';
         const rollText = roll != null ? roll.toFixed(1) + '°' : 'N/A';
 
-        const nameHeader = this.currentDroneName
-            ? `<strong style="font-size: 1.1em;">${this.currentDroneName}</strong><br><br>`
+        const nameHeader = name
+            ? `<strong style="font-size: 1.1em;">${name}</strong><br><br>`
             : `<strong style="font-size: 1.1em;">Drone Position</strong><br><br>`;
+
+        // Add "View Livestream" button if this drone is streaming and it's not the current stream
+        const currentViewingStream = window.viewer?.currentRoomId;
+        const showLivestreamButton = streamId && streamId !== currentViewingStream;
+        const livestreamButton = showLivestreamButton ?
+            `<br><br><button onclick="window.viewer.switchToStream('${streamId}')" style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;">View Livestream</button>` :
+            '';
 
         return `
             <div style="min-width: 200px;">
@@ -325,7 +357,7 @@ class DroneMap {
                 <strong>Altitude (GPS):</strong> ${altAslText}<br>
                 <strong>Bearing:</strong> ${bearing.toFixed(1)}°<br>
                 <strong>Pitch:</strong> ${pitchText}<br>
-                <strong>Roll:</strong> ${rollText}
+                <strong>Roll:</strong> ${rollText}${livestreamButton}
             </div>
         `;
     }
@@ -565,6 +597,7 @@ class DroneMap {
         }
 
         this.clearTrail();
+        this.clearOtherDrones();
 
         if (this.geojsonLayer) {
             this.geojsonLayer.clearLayers();
@@ -662,6 +695,113 @@ class DroneMap {
         if (window.hideDisconnectedMessage) {
             window.hideDisconnectedMessage();
         }
+    }
+
+    updateOtherDrones(otherDronesData) {
+        if (!this.map) return;
+
+        const currentDroneIds = new Set(Object.keys(otherDronesData));
+
+        // Remove markers for drones that no longer exist
+        for (const droneId in this.otherDroneMarkers) {
+            if (!currentDroneIds.has(droneId)) {
+                this.map.removeLayer(this.otherDroneMarkers[droneId].marker);
+                delete this.otherDroneMarkers[droneId];
+            }
+        }
+
+        // Update or create markers for each drone
+        for (const [droneId, telemetryData] of Object.entries(otherDronesData)) {
+            const location = telemetryData.state?.drone_gps_location;
+            const pose = telemetryData.state?.drone_pose;
+
+            if (!location || !pose) continue;
+
+            const latLng = [location.lat, location.lng];
+
+            // Convert telemetry data to format expected by generateDronePopupContent
+            const droneData = {
+                latitude: location.lat,
+                longitude: location.lng,
+                altitude_ahl: location.altitude_ahl_m,
+                altitude_asl: location.altitude_asl_m,
+                bearing: pose.yaw_deg,
+                pitch: pose.pitch_deg,
+                roll: pose.roll_deg
+            };
+
+            const droneName = telemetryData.drone_name || telemetryData.drone_id || 'Other Drone';
+            const livestreamId = telemetryData.livestream_id || null;
+
+            // Add red dot indicator if this drone is livestreaming
+            const redDot = livestreamId ?
+                '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 6px; height: 6px; background-color: red; border-radius: 50%; border: 1px solid white;"></div>' :
+                '';
+
+            if (!this.otherDroneMarkers[droneId]) {
+                // Create new marker
+                const otherDroneIcon = L.divIcon({
+                    html: `<div style="position: relative; width: 28px; height: 28px;"><img src="${this.getAssetPath('/images/livestream/map_other_drone_flyer_2.png')}" style="width: 28px; height: 28px; transform: rotate(${pose.yaw_deg}deg); transform-origin: center;">${redDot}</div>`,
+                    className: 'other-drone-marker',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker(latLng, { icon: otherDroneIcon }).addTo(this.map);
+
+                // Add popup using shared popup generation
+                marker.bindPopup(() => this.generateDronePopupContent(droneData, droneName, livestreamId), {
+                    maxWidth: 300,
+                    className: 'drone-popup'
+                });
+
+                this.otherDroneMarkers[droneId] = { marker, telemetryData };
+            } else {
+                // Update existing marker
+                const markerInfo = this.otherDroneMarkers[droneId];
+                markerInfo.marker.setLatLng(latLng);
+                markerInfo.telemetryData = telemetryData;
+
+                // Update rotation and red dot
+                const markerElement = markerInfo.marker.getElement();
+                if (markerElement) {
+                    const container = markerElement.querySelector('div');
+                    if (container) {
+                        const img = container.querySelector('img');
+                        if (img) {
+                            img.style.transform = `rotate(${pose.yaw_deg}deg)`;
+                        }
+
+                        // Update red dot visibility
+                        let existingDot = container.querySelector('div[style*="background-color: red"]');
+                        if (livestreamId && !existingDot) {
+                            // Add red dot
+                            container.innerHTML += redDot;
+                        } else if (!livestreamId && existingDot) {
+                            // Remove red dot
+                            existingDot.remove();
+                        }
+                    }
+                }
+
+                // Update popup if open
+                if (markerInfo.marker.isPopupOpen()) {
+                    const popup = markerInfo.marker.getPopup();
+                    if (popup && popup._contentNode) {
+                        popup._contentNode.innerHTML = this.generateDronePopupContent(droneData, droneName, livestreamId);
+                    }
+                }
+            }
+        }
+    }
+
+    clearOtherDrones() {
+        if (!this.map) return;
+
+        for (const droneId in this.otherDroneMarkers) {
+            this.map.removeLayer(this.otherDroneMarkers[droneId].marker);
+        }
+        this.otherDroneMarkers = {};
     }
 
     resize() {
