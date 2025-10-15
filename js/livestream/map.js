@@ -330,12 +330,39 @@ class DroneMap {
 
         if (!data) return 'Loading...';
 
-        const { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll } = data;
+        const { latitude, longitude, altitude_ahl, altitude_asl, altitude_ellipsoid, bearing, pitch, battery_percent } = data;
 
+        // Format altitude displays with deltas (only for other drones)
+        const isOtherDrone = droneData !== null;
+        const currentDrone = this.currentDroneData;
+
+        // Home altitude (no delta)
         const altAhlText = altitude_ahl != null ? altitude_ahl.toFixed(1) + 'm' : 'N/A';
-        const altAslText = altitude_asl != null ? altitude_asl.toFixed(1) + 'm' : 'N/A';
+
+        // Sea level altitude (with delta if both drones have ASL)
+        let altAslText = 'N/A';
+        if (altitude_asl != null) {
+            altAslText = altitude_asl.toFixed(1) + 'm';
+            if (isOtherDrone && currentDrone?.altitude_asl != null) {
+                const delta = altitude_asl - currentDrone.altitude_asl;
+                const deltaStr = delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+                altAslText += ` (${deltaStr}m)`;
+            }
+        }
+
+        // GPS/Ellipsoid altitude (with delta if both drones have Ellipsoid)
+        let altEllipsoidText = 'N/A';
+        if (altitude_ellipsoid != null) {
+            altEllipsoidText = altitude_ellipsoid.toFixed(1) + 'm';
+            if (isOtherDrone && currentDrone?.altitude_ellipsoid != null) {
+                const delta = altitude_ellipsoid - currentDrone.altitude_ellipsoid;
+                const deltaStr = delta >= 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1);
+                altEllipsoidText += ` (${deltaStr}m)`;
+            }
+        }
+
         const pitchText = pitch != null ? pitch.toFixed(1) + '°' : 'N/A';
-        const rollText = roll != null ? roll.toFixed(1) + '°' : 'N/A';
+        const batteryText = battery_percent != null ? battery_percent + '%' : 'N/A';
 
         const nameHeader = name
             ? `<strong style="font-size: 1.1em;">${name}</strong><br><br>`
@@ -353,11 +380,12 @@ class DroneMap {
                 ${nameHeader}
                 <strong>Latitude:</strong> ${latitude.toFixed(6)}°<br>
                 <strong>Longitude:</strong> ${longitude.toFixed(6)}°<br>
-                <strong>Altitude (home):</strong> ${altAhlText}<br>
-                <strong>Altitude (GPS):</strong> ${altAslText}<br>
+                <strong>↑🏠 Altitude (home):</strong> ${altAhlText}<br>
+                <strong>↑🌊 Altitude (sea):</strong> ${altAslText}<br>
+                <strong>↑🛰️ Altitude (GPS):</strong> ${altEllipsoidText}<br>
                 <strong>Bearing:</strong> ${bearing.toFixed(1)}°<br>
                 <strong>Pitch:</strong> ${pitchText}<br>
-                <strong>Roll:</strong> ${rollText}${livestreamButton}
+                <strong>🔋 Battery:</strong> ${batteryText}${livestreamButton}
             </div>
         `;
     }
@@ -725,9 +753,10 @@ class DroneMap {
                 longitude: location.lng,
                 altitude_ahl: location.altitude_ahl_m,
                 altitude_asl: location.altitude_asl_m,
+                altitude_ellipsoid: location.altitude_ellipsoid_m,
                 bearing: pose.yaw_deg,
                 pitch: pose.pitch_deg,
-                roll: pose.roll_deg
+                battery_percent: telemetryData.state?.misc?.battery_percent
             };
 
             const droneName = telemetryData.drone_name || telemetryData.drone_id || 'Other Drone';

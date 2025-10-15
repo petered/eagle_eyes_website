@@ -1189,9 +1189,11 @@ class WebRTCViewer {
         longitude: droneLocation.lng,
         altitude_ahl: droneLocation.altitude_ahl_m,
         altitude_asl: droneLocation.altitude_asl_m,
+        altitude_ellipsoid: droneLocation.altitude_ellipsoid_m,
         bearing: dronePose.yaw_deg,
         pitch: dronePose.pitch_deg,
         roll: dronePose.roll_deg,
+        battery_percent: telemetryData.state?.misc?.battery_percent,
         timestamp: telemetryData.timestamp_epoch_ms
       };
     } else if (data.pose) {
@@ -1295,10 +1297,22 @@ class WebRTCViewer {
 
   updateLocationDisplay() {
     if (!this.currentLocation) return;
-    const { latitude, longitude, altitude_ahl, altitude_asl, bearing } = this.currentLocation;
+    const { latitude, longitude, altitude_ahl, altitude_asl, altitude_ellipsoid, bearing } = this.currentLocation;
 
     const altAhlText = altitude_ahl != null ? altitude_ahl.toFixed(1) + "m" : "N/A";
-    const altAslText = altitude_asl != null ? altitude_asl.toFixed(1) + "m" : "N/A";
+
+    // Show ASL if available, otherwise show Ellipsoid with GPS label
+    let altSecondText, altSecondLabel;
+    if (altitude_asl != null) {
+      altSecondText = altitude_asl.toFixed(1) + "m";
+      altSecondLabel = "🌊";  // Wave emoji for sea level
+    } else if (altitude_ellipsoid != null) {
+      altSecondText = altitude_ellipsoid.toFixed(1) + "m";
+      altSecondLabel = "🛰️";  // Satellite for GPS/Ellipsoid
+    } else {
+      altSecondText = "N/A";
+      altSecondLabel = "🌊";
+    }
 
     // Format latitude/longitude with N/S/E/W
     const latDir = latitude >= 0 ? 'N' : 'S';
@@ -1307,10 +1321,10 @@ class WebRTCViewer {
     const lonFormatted = `${Math.abs(longitude).toFixed(5)}°${lonDir}`;
 
     // Compact display for coordinate strip
-    const compactText = `🌐 ${latFormatted},${lonFormatted}  ⬆🏠 ${altAhlText}  ⬆🛰️ ${altAslText}  🧭${bearing.toFixed(0)}°`;
+    const compactText = `🌐 ${latFormatted},${lonFormatted}  ↑🏠 ${altAhlText}  ↑${altSecondLabel} ${altSecondText}  🧭${bearing.toFixed(0)}°`;
 
     // Detailed display for mobile sidebar
-    const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (GPS):</strong> ${altAslText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
+    const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (${altitude_asl != null ? 'sea' : 'GPS'}):</strong> ${altSecondText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
 
     // Update mobile display (in sidebar)
     const coordTextMobile = document.getElementById("coordTextMobile");
