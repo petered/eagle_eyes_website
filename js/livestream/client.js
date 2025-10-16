@@ -38,8 +38,10 @@ class WebRTCViewer {
     // Data channels
     this.coordinatesChannel = null;
     this.geojsonChannel = null;
+    this.otherDronesChannel = null;
 
     // Location data tracking
+    this.otherDrones = {}; // Map of droneId -> telemetry data
     this.coordinateHistory = [];
     this.currentLocation = null;
     this.lastCoordinateTime = null;
@@ -866,6 +868,18 @@ class WebRTCViewer {
     this.socket.emit("join-as-viewer", { roomId });
   }
 
+  switchToStream(streamId) {
+    console.log('Switching to stream:', streamId);
+
+    // Always reload page when switching streams for clean state
+    const url = new URL(window.location);
+    // Remove old 'room' parameter for clean URLs
+    url.searchParams.delete("room");
+    url.searchParams.delete("r");
+    url.searchParams.set("stream", streamId);
+    window.location.href = url.toString();
+  }
+
   closeStream() {
     console.log('Closing stream');
     // Exit streaming view and clear room ID to return to NO_STREAM state
@@ -950,6 +964,7 @@ class WebRTCViewer {
     this.currentLocation = null;
     this.lastCoordinateTime = null;
     this.currentGeojson = null;
+    this.otherDrones = {};
 
     // Clear no-data timeout
     if (this.noDataTimeout) {
@@ -1075,6 +1090,7 @@ class WebRTCViewer {
       const channel = event.channel;
       if (channel.label === "drone_data") this.setupCoordinatesChannel(channel);
       if (channel.label === "geojson_data") this.setupGeojsonChannel(channel);
+      if (channel.label === "telemetry_drone_data") this.setupOtherDronesChannel(channel);
     };
   }
 
@@ -1121,15 +1137,96 @@ class WebRTCViewer {
     };
   }
 
-  handleLocationData(locationData) {
-    const { pose, lastGPSTime } = locationData;
-    const { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll } = pose;
+  setupOtherDronesChannel(channel) {
+    this.otherDronesChannel = channel;
+    channel.onopen = () => console.log("Other drones data channel opened");
+    channel.onmessage = (event) => {
+      try {
+        this.handleOtherDronesData(JSON.parse(event.data));
+      } catch (error) {
+        console.error("Error parsing other drones data:", error);
+      }
+    };
+    channel.onclose = () => {
+      console.log("Other drones channel closed");
+      this.otherDrones = {};
+      if (window.droneMap) {
+        window.droneMap.clearOtherDrones();
+      }
+    };
+  }
 
-    this.currentLocation = { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll, timestamp: lastGPSTime };
-    this.lastCoordinateTime = Date.now();
-    this.coordinateHistory.push({ longitude, latitude, timestamp: lastGPSTime });
+  handleOtherDronesData(data) {
+    // Data is a JSON object with droneId keys mapping to DroneTelemetryData
+    this.otherDrones = data;
 
     if (window.droneMap) {
+      window.droneMap.updateOtherDrones(data);
+    }
+  }
+
+  handleLocationData(data) {
+    // Support both old LocationData format and new DroneTelemetryData format
+    let locationData;
+    let livestreamId = null;
+
+    if (data.type === 'drone_telemetry') {
+      // New DroneTelemetryData format
+      const telemetryData = data;
+      const droneLocation = telemetryData.state.drone_gps_location;
+      const dronePose = telemetryData.state.drone_pose;
+
+      if (!droneLocation || !dronePose) {
+        console.warn('Telemetry data missing location or pose');
+        return;
+      }
+
+      // Extract livestream ID if present
+      livestreamId = telemetryData.livestream_id || null;
+
+      locationData = {
+        latitude: droneLocation.lat,
+        longitude: droneLocation.lng,
+        altitude_ahl: droneLocation.altitude_ahl_m,
+        altitude_asl: droneLocation.altitude_asl_m,
+        altitude_ellipsoid: droneLocation.altitude_ellipsoid_m,
+        bearing: dronePose.yaw_deg,
+        pitch: dronePose.pitch_deg,
+        roll: dronePose.roll_deg,
+        battery_percent: telemetryData.state?.misc?.battery_percent,
+        timestamp: telemetryData.timestamp_epoch_ms
+      };
+    } else if (data.pose) {
+      // Old LocationData format (backward compatibility)
+      const { pose, lastGPSTime } = data;
+      const { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll } = pose;
+      locationData = {
+        latitude,
+        longitude,
+        altitude_ahl,
+        altitude_asl,
+        bearing,
+        pitch,
+        roll,
+        timestamp: lastGPSTime
+      };
+    } else {
+      console.error('Unknown location data format:', data);
+      return;
+    }
+
+    this.currentLocation = locationData;
+    this.lastCoordinateTime = Date.now();
+    this.coordinateHistory.push({
+      longitude: locationData.longitude,
+      latitude: locationData.latitude,
+      timestamp: locationData.timestamp
+    });
+
+    if (window.droneMap) {
+      // Update livestream ID in map
+      window.droneMap.currentLivestreamId = livestreamId;
+
       window.droneMap.updateDronePosition(this.currentLocation, this.currentPublisherName);
       window.droneMap.updateTrail(this.coordinateHistory);
       window.droneMap.setDataStale(false);
@@ -1200,10 +1297,22 @@ class WebRTCViewer {
 
   updateLocationDisplay() {
     if (!this.currentLocation) return;
-    const { latitude, longitude, altitude_ahl, altitude_asl, bearing } = this.currentLocation;
+    const { latitude, longitude, altitude_ahl, altitude_asl, altitude_ellipsoid, bearing } = this.currentLocation;
 
     const altAhlText = altitude_ahl != null ? altitude_ahl.toFixed(1) + "m" : "N/A";
-    const altAslText = altitude_asl != null ? altitude_asl.toFixed(1) + "m" : "N/A";
+
+    // Show ASL if available, otherwise show Ellipsoid with GPS label
+    let altSecondText, altSecondLabel;
+    if (altitude_asl != null) {
+      altSecondText = altitude_asl.toFixed(1) + "m";
+      altSecondLabel = "🌊";  // Wave emoji for sea level
+    } else if (altitude_ellipsoid != null) {
+      altSecondText = altitude_ellipsoid.toFixed(1) + "m";
+      altSecondLabel = "🛰️";  // Satellite for GPS/Ellipsoid
+    } else {
+      altSecondText = "N/A";
+      altSecondLabel = "🌊";
+    }
 
     // Format latitude/longitude with N/S/E/W
     const latDir = latitude >= 0 ? 'N' : 'S';
@@ -1212,10 +1321,10 @@ class WebRTCViewer {
     const lonFormatted = `${Math.abs(longitude).toFixed(5)}°${lonDir}`;
 
     // Compact display for coordinate strip
-    const compactText = `🌐 ${latFormatted},${lonFormatted}  ⬆🏠 ${altAhlText}  ⬆🛰️ ${altAslText}  🧭${bearing.toFixed(0)}°`;
+    const compactText = `🌐 ${latFormatted},${lonFormatted}  ↑🏠 ${altAhlText}  ↑${altSecondLabel} ${altSecondText}  🧭${bearing.toFixed(0)}°`;
 
     // Detailed display for mobile sidebar
-    const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (GPS):</strong> ${altAslText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
+    const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (${altitude_asl != null ? 'sea' : 'GPS'}):</strong> ${altSecondText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
 
     // Update mobile display (in sidebar)
     const coordTextMobile = document.getElementById("coordTextMobile");
@@ -1335,6 +1444,7 @@ class WebRTCViewer {
     // Now close everything
     if (this.coordinatesChannel) this.coordinatesChannel.close();
     if (this.geojsonChannel) this.geojsonChannel.close();
+    if (this.otherDronesChannel) this.otherDronesChannel.close();
     if (this.peerConnection) this.peerConnection.close();
     if (this.resolutionMonitor) clearInterval(this.resolutionMonitor);
     this.stopStaleDataCheck();
@@ -1343,6 +1453,7 @@ class WebRTCViewer {
 
     // Keep location data and map state on disconnect (unless explicitly cleared)
     this.lastCoordinateTime = null;
+    this.otherDrones = {};
     this.geojsonChunks.clear();
   }
 
