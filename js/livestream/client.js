@@ -47,6 +47,10 @@ class WebRTCViewer {
     this.lastCoordinateTime = null;
     this.staleDataCheckInterval = null;
 
+    // Viewer tracking
+    this.viewerList = []; // Array of {name: String | undefined, email: String | undefined}
+    this.currentViewerInfo = { name: undefined, email: undefined }; // Store current viewer's info for reconnection
+
     // GeoJSON chunking
     this.geojsonChunks = new Map(); // chunkId -> {chunks: [], total: number}
     this.currentGeojson = null;
@@ -140,6 +144,7 @@ class WebRTCViewer {
 
     // Connect to signaling server
     this.socket = io("https://webrtc.eagleeyessearch.com");
+    // this.socket = io("http://localhost:3000");
     this.setupSocketListeners();
 
     // Check for room ID in URL
@@ -254,10 +259,14 @@ class WebRTCViewer {
         this.peerConnection = null;
       }
 
-      // Reset timers and rejoin the room
+      // Reset timers and rejoin the room with stored viewer info
       this.signallingConnectionStartTime = Date.now();
       this.streamingConnectionStartTime = null;
-      this.socket.emit("join-as-viewer", { roomId: this.currentRoomId });
+      this.socket.emit("join-as-viewer", {
+        roomId: this.currentRoomId,
+        name: this.currentViewerInfo.name,
+        email: this.currentViewerInfo.email
+      });
     } else {
       console.log('Connection still active, no reconnect needed');
     }
@@ -755,7 +764,7 @@ class WebRTCViewer {
       this.currentRoomId = data.roomId;
       this.currentPublisherName = data.publisherName;
       this.updateRoomId(data.roomId);
-      this.updateViewerCount(data.viewerCount);
+      this.updateViewerList(data.viewers || []);
       this.leaveBtn.disabled = false;
       this.leaveBtnMobile.disabled = false;
       if (this.leaveBtnDesktop) {
@@ -807,8 +816,9 @@ class WebRTCViewer {
       }
     });
 
-    this.socket.on("viewer-count-updated", (data) => {
-      this.updateViewerCount(data.count);
+    this.socket.on("viewers-updated", (data) => {
+      // data is now an array of viewer objects: [{name, email}, ...]
+      this.updateViewerList(data);
     });
 
     this.socket.on("offer", async (data) => {
@@ -859,13 +869,31 @@ class WebRTCViewer {
       return;
     }
 
+    // If currently in a room, leave it first (without reloading page)
+    if (this.currentRoomId) {
+      this.socket.emit("leave-room", { roomId: this.currentRoomId });
+    }
+
+    // Show viewer info dialog and wait for user input
+    const viewerInfo = await this.showViewerInfoDialog();
+
+    // Store viewer info for reconnection
+    this.currentViewerInfo = {
+      name: viewerInfo.name,
+      email: viewerInfo.email
+    };
+
     // Set stream ID and start signalling connection timer
     this.currentRoomId = roomId;
     this.signallingConnectionStartTime = Date.now();
     this.streamingConnectionStartTime = null; // Reset streaming timer
 
     this.updateStatus("connecting", "Joining...");
-    this.socket.emit("join-as-viewer", { roomId });
+    this.socket.emit("join-as-viewer", {
+      roomId,
+      name: viewerInfo.name,
+      email: viewerInfo.email
+    });
   }
 
   switchToStream(streamId) {
@@ -916,7 +944,7 @@ class WebRTCViewer {
     this.streamReceived = false; // Reset stream received flag
     this.updateRoomId("Not connected");
     this.updateStatus("waiting", "Not streaming");
-    this.updateViewerCount(0);
+    this.updateViewerList([]);
     this.updateConnectionStatus("Not connected");
 
     this.leaveBtn.disabled = true;
@@ -1468,7 +1496,11 @@ class WebRTCViewer {
     document.getElementById("connectionStatus").textContent = status;
   }
 
-  updateViewerCount(count) {
+  updateViewerList(viewerList) {
+    // viewerList is an array of {name: String | undefined, email: String | undefined}
+    this.viewerList = viewerList || [];
+    console.log('Viewer list updated:', this.viewerList);
+    const count = this.viewerList.length;
     document.getElementById("viewerCount").textContent = count;
   }
 
@@ -1621,6 +1653,121 @@ class WebRTCViewer {
     url.searchParams.delete("r");
     url.searchParams.set("stream", roomId);
     window.location.href = url.toString();
+  }
+
+  showViewerInfoDialog() {
+    return new Promise((resolve) => {
+      const dialog = document.getElementById('viewerInfoDialog');
+      const form = document.getElementById('viewerInfoForm');
+      const nameInput = document.getElementById('viewerNameInput');
+      const emailInput = document.getElementById('viewerEmailInput');
+
+      if (!dialog || !form || !nameInput || !emailInput) {
+        // If dialog elements not found, resolve with empty values
+        resolve({ name: undefined, email: undefined });
+        return;
+      }
+
+      // Load saved viewer info from localStorage
+      try {
+        const savedInfo = localStorage.getItem('viewerInfo');
+        if (savedInfo) {
+          const { name, email } = JSON.parse(savedInfo);
+          nameInput.value = name || '';
+          emailInput.value = email || '';
+        } else {
+          nameInput.value = '';
+          emailInput.value = '';
+        }
+      } catch (e) {
+        console.error('Failed to load viewer info from localStorage:', e);
+        nameInput.value = '';
+        emailInput.value = '';
+      }
+
+      // Show dialog
+      dialog.style.display = 'flex';
+
+      // Focus on name input
+      setTimeout(() => nameInput.focus(), 100);
+
+      // Handle form submit
+      const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Check if fields have values (empty fields are optional)
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+
+        // Only validate if fields have values
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+
+        // Save to localStorage for next time
+        try {
+          localStorage.setItem('viewerInfo', JSON.stringify({
+            name: name || undefined,
+            email: email || undefined
+          }));
+        } catch (e) {
+          console.error('Failed to save viewer info to localStorage:', e);
+        }
+
+        // Hide dialog
+        dialog.style.display = 'none';
+
+        // Send null/undefined for empty or whitespace-only values
+        resolve({
+          name: name || undefined,
+          email: email || undefined
+        });
+
+        // Clean up event listener
+        form.removeEventListener('submit', handleSubmit);
+      };
+
+      form.addEventListener('submit', handleSubmit);
+    });
+  }
+
+  showViewerListDialog() {
+    const dialog = document.getElementById('viewerListDialog');
+    if (!dialog) return;
+
+    // Populate viewer list
+    const listContainer = document.getElementById('viewerListContainer');
+    if (!listContainer) return;
+
+    console.log('Showing viewer list dialog. Current viewers:', JSON.stringify(this.viewerList));
+
+    if (this.viewerList.length === 0) {
+      listContainer.innerHTML = '<div class="text-muted text-center">No viewers</div>';
+    } else {
+      listContainer.innerHTML = this.viewerList.map((viewer) => {
+        console.log('Processing viewer:', JSON.stringify(viewer));
+        const name = viewer.name || 'Anonymous';
+        const email = viewer.email || '';
+        const emailText = email ? `<div class="text-muted small">${email}</div>` : '';
+
+        return `
+          <div class="viewer-item" style="padding: 12px; border-bottom: 1px solid #444;">
+            <div style="font-weight: 500;">${name}</div>
+            ${emailText}
+          </div>
+        `;
+      }).join('');
+    }
+
+    dialog.style.display = 'flex';
+  }
+
+  hideViewerListDialog() {
+    const dialog = document.getElementById('viewerListDialog');
+    if (dialog) {
+      dialog.style.display = 'none';
+    }
   }
 }
 
