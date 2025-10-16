@@ -64,18 +64,56 @@ permalink: /livestream/
         background-color: #000;
         min-height: 0;
       }
-      @media (min-width: 992px) {
+      /* Mobile: Give more space to video, less to map */
+      @media (max-width: 991px) {
         #video-panel {
-          flex: 0 0 66.666667%;
+          flex: 0 0 70%;
         }
         #map-panel {
-          flex: 0 0 33.333333%;
+          flex: 0 0 30%;
+        }
+      }
+      @media (min-width: 992px) {
+        #video-panel {
+          flex: 0 0 60%; /* Optimized for 16:9 video mode */
+        }
+        #map-panel {
+          flex: 0 0 40%; /* More map space for better balance */
+        }
+      }
+      /* Dynamic sizing for photo mode - eliminates black bars */
+      @media (min-width: 992px) {
+        #video-panel.dynamic-sized {
+          flex: 0 0 auto !important;
+          max-width: none !important;
+        }
+        #map-panel.dynamic-sized {
+          flex: 1 1 auto !important;
+        }
+      }
+      
+      /* Mobile vertical optimization for photo mode */
+      @media (max-width: 991px) {
+        #video-panel.dynamic-sized {
+          flex: 0 0 auto !important;
+          max-height: none !important;
+        }
+        #map-panel.dynamic-sized {
+          flex: 1 1 auto !important;
         }
       }
       /* Full size for single-view modes */
       #video-panel.full-view,
       #map-panel.full-view {
-        flex: 1 1 100%;
+        flex: 1 1 100% !important;
+        min-width: 0;
+      }
+      /* Override media query restrictions for fullscreen modes */
+      @media (min-width: 992px) {
+        #video-panel.full-view,
+        #map-panel.full-view {
+          flex: 1 1 100% !important;
+        }
       }
       #map-panel {
         background-color: #181818;
@@ -91,6 +129,7 @@ permalink: /livestream/
         align-items: center;
         justify-content: center;
         position: relative;
+        overflow: hidden;
       }
       #remoteVideo {
         position: absolute;
@@ -98,9 +137,46 @@ permalink: /livestream/
         left: 0;
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
         display: none;
         z-index: 2;
+      }
+      /* Smart video fitting based on view mode */
+      #remoteVideo {
+        object-fit: contain; /* Default: show full video without cropping */
+      }
+      
+      /* Video fullscreen mode: use cover to fill space */
+      #video-panel.full-view #remoteVideo {
+        object-fit: cover;
+      }
+      
+      /* Mobile landscape optimization: 50/50 split */
+      @media (max-width: 991px) and (orientation: landscape) {
+        #video-panel {
+          flex: 0 0 50% !important;
+        }
+        #map-panel {
+          flex: 0 0 50% !important;
+        }
+        #remoteVideo {
+          object-fit: cover; /* Fill space in landscape mobile */
+        }
+      }
+      
+      /* Mobile portrait: keep current proportions */
+      @media (max-width: 991px) and (orientation: portrait) {
+        #remoteVideo {
+          object-fit: cover; /* Fill space in portrait mobile */
+        }
+      }
+      
+      /* Additional mobile optimizations */
+      @media (max-width: 991px) {
+        /* Ensure panels take full height in mobile */
+        #main-content {
+          height: calc(100vh - 120px); /* Account for navbar height */
+        }
       }
       .placeholder {
         width: 100%;
@@ -613,7 +689,7 @@ permalink: /livestream/
         <div class="d-grid gap-2 mb-3">
           <button class="btn" data-bs-toggle="modal" data-bs-target="#joinModal" style="background-color: #314268; border-color: #314268; color: white;">
             <i class="bi bi-box-arrow-in-right"></i> Connect to a Stream
-          </button>
+            </button>
         </div>
         <div class="d-grid gap-2 mb-3">
           <button
@@ -736,10 +812,10 @@ permalink: /livestream/
           <button onclick="if(window.viewer) window.viewer.retryConnection()" style="
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.4);
-            color: white;
+          color: white;
             font-size: 12px;
             font-weight: 600;
-            cursor: pointer;
+          cursor: pointer;
             padding: 4px 10px;
             border-radius: 4px;
             white-space: nowrap;
@@ -758,7 +834,7 @@ permalink: /livestream/
             white-space: nowrap;
           " title="Close this stream" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
             Close this stream
-          </button>
+        </button>
         </div>
       </div>
 
@@ -968,24 +1044,182 @@ permalink: /livestream/
 
         function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");
+          const remoteVideo = document.getElementById("remoteVideo");
 
           if (mode === "video") {
-            videoPanel.className = "col-12";
+            // Video fullscreen mode - always use cover to fill space
+            videoPanel.className = "col-12 full-view";
             mapPanel.className = "d-none";
+            if (remoteVideo) remoteVideo.style.objectFit = "cover";
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
           } else if (mode === "map") {
+            // Map fullscreen mode
             videoPanel.className = "d-none";
-            mapPanel.className = "col-12";
+            mapPanel.className = "col-12 full-view";
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
           } else {
-            // split
-            videoPanel.className = "col-lg-8";
+            // Split view mode - restore optimized proportions
+            videoPanel.className = "col-lg-8"; // Will be overridden by CSS classes if photo mode
             mapPanel.className = "col-lg-4";
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            
+            // Re-run optimization to apply correct fitting and proportions
+            setTimeout(() => optimizeVideoFitting(), 100);
           }
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);
           }
+        }
+
+        // Function to optimize video fitting based on actual drone modes
+        function optimizeVideoFitting() {
+          const remoteVideo = document.getElementById("remoteVideo");
+          const videoPanel = document.getElementById("video-panel");
+          const mapPanel = document.getElementById("map-panel");
+          
+          if (!remoteVideo || !remoteVideo.videoWidth || !remoteVideo.videoHeight) return;
+          
+          const videoWidth = remoteVideo.videoWidth;
+          const videoHeight = remoteVideo.videoHeight;
+          const videoAspectRatio = videoWidth / videoHeight;
+          const containerWidth = videoPanel.clientWidth;
+          const containerHeight = videoPanel.clientHeight;
+          const containerAspectRatio = containerWidth / containerHeight;
+          
+          console.log(`Video resolution: ${videoWidth}x${videoHeight} (${videoAspectRatio.toFixed(2)}:1)`);
+          console.log(`Container: ${containerWidth}x${containerHeight} (${containerAspectRatio.toFixed(2)}:1)`);
+          console.log(`Window: ${window.innerWidth}x${window.innerHeight}`);
+          
+          // Detect video mode vs photo mode based on resolution
+          const isVideoMode = (videoWidth === 1920 && videoHeight === 1080);
+          const isPhotoMode = (videoWidth > 1920 || videoHeight > 1080);
+          const isSplitView = !videoPanel.classList.contains('full-view') && !mapPanel.classList.contains('full-view');
+          
+          // Remove existing mode classes and custom sizing
+          videoPanel.classList.remove('photo-mode', 'dynamic-sized');
+          mapPanel.classList.remove('photo-mode', 'dynamic-sized');
+          videoPanel.style.flexBasis = '';
+          mapPanel.style.flexBasis = '';
+          
+          if (isVideoMode) {
+            console.log("Detected: Video Mode (1920x1080)");
+            // Video mode: 16:9 aspect ratio, use contain to show full video
+            remoteVideo.style.objectFit = "contain";
+            
+            // Check if video mode has black bars due to container aspect ratio mismatch
+            if (isSplitView && containerAspectRatio < 1.5) { // Container is too tall for 16:9 video
+              console.log("Video mode with black bars detected - optimizing layout");
+              
+              // Calculate effective video dimensions for 16:9 video in this container
+              const effectiveWidth = containerHeight * (16/9); // 16:9 aspect ratio
+              const totalScreenWidth = window.innerWidth;
+              const videoPanelWidthPercent = (effectiveWidth / totalScreenWidth) * 100;
+              
+              console.log(`Effective 16:9 video width: ${effectiveWidth.toFixed(0)}px`);
+              console.log(`Optimized video panel: ${videoPanelWidthPercent.toFixed(1)}%`);
+              
+              // Apply dynamic sizing to eliminate black bars
+              videoPanel.style.flexBasis = `${videoPanelWidthPercent}%`;
+              mapPanel.style.flexBasis = `${100 - videoPanelWidthPercent}%`;
+              videoPanel.classList.add('dynamic-sized');
+              mapPanel.classList.add('dynamic-sized');
+            }
+          } else if (isPhotoMode && isSplitView) {
+            console.log("Detected: Photo/Camera Mode (High Resolution) - Split View");
+            // Photo mode in split view: calculate effective dimensions to eliminate black bars
+            remoteVideo.style.objectFit = "contain";
+            
+            // Calculate effective video dimensions within container
+            let effectiveWidth, effectiveHeight;
+            
+            if (videoAspectRatio > containerAspectRatio) {
+              // Video is wider than container - limited by width
+              effectiveWidth = containerWidth;
+              effectiveHeight = containerWidth / videoAspectRatio;
+            } else {
+              // Video is taller than container - limited by height  
+              effectiveHeight = containerHeight;
+              effectiveWidth = containerHeight * videoAspectRatio;
+            }
+            
+            // Calculate optimal panel sizing based on screen orientation
+            const isMobile = window.innerWidth <= 991;
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            if (isMobile && !isLandscape) {
+              // Mobile portrait: optimize vertical stacking
+              const totalScreenHeight = window.innerHeight - 120; // Account for navbar
+              const videoPanelHeightPercent = (effectiveHeight / totalScreenHeight) * 100;
+              
+              console.log(`Mobile portrait - Effective video: ${effectiveWidth.toFixed(0)}x${effectiveHeight.toFixed(0)}`);
+              console.log(`Video panel height: ${videoPanelHeightPercent.toFixed(1)}%`);
+              
+              // Apply vertical sizing for mobile
+              videoPanel.style.flexBasis = `${videoPanelHeightPercent}%`;
+              mapPanel.style.flexBasis = `${100 - videoPanelHeightPercent}%`;
+            } else {
+              // Desktop or mobile landscape: optimize horizontal layout
+              const totalScreenWidth = window.innerWidth;
+              const videoPanelWidthPercent = (effectiveWidth / totalScreenWidth) * 100;
+              
+              console.log(`Desktop/landscape - Effective video: ${effectiveWidth.toFixed(0)}x${effectiveHeight.toFixed(0)}`);
+              console.log(`Video panel: ${videoPanelWidthPercent.toFixed(1)}%, Map panel: ${(100 - videoPanelWidthPercent).toFixed(1)}%`);
+              
+              // Apply horizontal sizing
+              videoPanel.style.flexBasis = `${videoPanelWidthPercent}%`;
+              mapPanel.style.flexBasis = `${100 - videoPanelWidthPercent}%`;
+            }
+            
+            videoPanel.classList.add('dynamic-sized');
+            mapPanel.classList.add('dynamic-sized');
+            
+          } else if (isPhotoMode) {
+            console.log("Detected: Photo/Camera Mode (High Resolution) - Fullscreen");
+            // Photo mode in fullscreen: use cover to fill space
+            remoteVideo.style.objectFit = "cover";
+          } else {
+            console.log("Unknown mode - using fallback");
+            // Fallback: use container aspect ratio comparison
+            if (videoAspectRatio > containerAspectRatio * 1.2) {
+              remoteVideo.style.objectFit = "cover";
+            } else {
+              remoteVideo.style.objectFit = "contain";
+            }
+          }
+          
+          // Trigger map resize after layout changes
+          if (window.droneMap) {
+            setTimeout(() => window.droneMap.resize(), 100);
+          }
+        }
+
+        // Make optimization function globally accessible for debugging
+        window.optimizeVideoFitting = optimizeVideoFitting;
+        window.manualOptimize = () => {
+          console.log("Manual optimization triggered...");
+          optimizeVideoFitting();
+        };
+
+        // Monitor video load and resize events
+        const remoteVideo = document.getElementById("remoteVideo");
+        if (remoteVideo) {
+          remoteVideo.addEventListener("loadedmetadata", () => {
+            console.log("Video metadata loaded, running optimization...");
+            setTimeout(optimizeVideoFitting, 500); // Delay to ensure container is sized
+          });
+          remoteVideo.addEventListener("resize", () => {
+            console.log("Video resized, running optimization...");
+            setTimeout(optimizeVideoFitting, 100);
+          });
+          window.addEventListener("resize", optimizeVideoFitting);
+          
+          // Also run optimization when view mode changes
+          document.querySelectorAll('input[name="view-mode"], input[name="view-mode-mobile"]').forEach(radio => {
+            radio.addEventListener("change", () => {
+              console.log("View mode changed, running optimization...");
+              setTimeout(optimizeVideoFitting, 200);
+            });
+          });
         }
 
         document
