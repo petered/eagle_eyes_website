@@ -1,3 +1,6 @@
+// Global constants
+const POLYGON_FILL_OPACITY = 0.05;
+
 class DroneMap {
     constructor() {
         this.map = null;
@@ -54,7 +57,7 @@ class DroneMap {
             this.geojsonLayer = L.geoJSON(null, {
                 style: {
                     fillColor: '#f59e0b',
-                    fillOpacity: 0.3,
+                    fillOpacity: POLYGON_FILL_OPACITY,
                     color: '#f59e0b',
                     weight: 2
                 }
@@ -520,7 +523,7 @@ class DroneMap {
         const props = feature.properties || {};
         const defaultStyle = {
             fillColor: '#f59e0b',
-            fillOpacity: 0.3,
+            fillOpacity: POLYGON_FILL_OPACITY,
             color: '#f59e0b',
             weight: 2
         };

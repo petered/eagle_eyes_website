@@ -6,6 +6,7 @@ class WebRTCViewer {
     this.currentPublisherName = null;
     this.wasStreaming = false; // Track if we were actually streaming
     this.streamReceived = false; // Track if we've received a stream
+    this.isRoomFull = false; // Track if room is full (viewer limit reached)
 
     // WebRTC stats tracking for reliable video data detection
     this.lastBytesReceived = 0; // Track bytes from previous stats check
@@ -375,6 +376,11 @@ class WebRTCViewer {
       return 'NO_STREAM';
     }
 
+    // Check if room is full before other state checks
+    if (this.isRoomFull) {
+      return 'ROOM_FULL';
+    }
+
     if (!this.isSignallingConnected()) {
       if (this.timeSince(this.signallingConnectionStartTime) < this.SIGNALLING_TIMEOUT) {
         return 'ATTEMPTING_SIGNALLING_CONNECTION';
@@ -407,6 +413,9 @@ class WebRTCViewer {
       case 'NO_STREAM':
         this.showNoStream();
         break;
+      case 'ROOM_FULL':
+        this.showRoomFull();
+        break;
       case 'ATTEMPTING_SIGNALLING_CONNECTION':
         this.showAttemptingSignalling();
         break;
@@ -425,6 +434,48 @@ class WebRTCViewer {
     }
   }
 
+  showRoomFull() {
+    console.log('State: ROOM_FULL');
+
+    // Hide landing page, connecting state, and other error states
+    const placeholderTitle = document.getElementById('placeholderTitle');
+    const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
+    const connectingDetails = document.getElementById('connectingDetails');
+    const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    const noStreamDetails = document.getElementById('noStreamDetails');
+    const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    if (placeholderTitle) placeholderTitle.style.display = 'none';
+    if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
+    if (connectingDetails) connectingDetails.style.display = 'none';
+    if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+    if (noStreamDetails) noStreamDetails.style.display = 'none';
+    if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+
+    // Show room full details
+    const roomFullDetails = document.getElementById('roomFullDetails');
+    const roomFullRoomId = document.getElementById('roomFullRoomId');
+    if (roomFullDetails && roomFullRoomId && this.currentRoomId) {
+      roomFullRoomId.textContent = this.currentRoomId;
+      roomFullDetails.style.display = 'block';
+    }
+
+    // Hide video, show placeholder
+    this.remoteVideo.style.display = 'none';
+    const placeholder = this.videoContainer.querySelector('.placeholder');
+    if (placeholder) placeholder.style.display = 'flex';
+
+    // Hide map panel, coordinate strip, expand video panel
+    const mapPanel = document.getElementById('map-panel');
+    const videoPanel = document.getElementById('video-panel');
+    const coordStripContainer = document.getElementById('coordinateStripContainer');
+    if (mapPanel) mapPanel.style.display = 'none';
+    if (videoPanel) {
+      videoPanel.classList.remove('col-lg-8');
+      videoPanel.classList.add('col-12');
+    }
+    if (coordStripContainer) coordStripContainer.style.display = 'none';
+  }
+
   showNoStream() {
     console.log('State: NO_STREAM');
 
@@ -438,9 +489,11 @@ class WebRTCViewer {
     const connectingDetails = document.getElementById('connectingDetails');
     const noStreamDetails = document.getElementById('noStreamDetails');
     const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    const roomFullDetails = document.getElementById('roomFullDetails');
     if (connectingDetails) connectingDetails.style.display = 'none';
     if (noStreamDetails) noStreamDetails.style.display = 'none';
     if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+    if (roomFullDetails) roomFullDetails.style.display = 'none';
 
     // Hide video, show placeholder
     this.remoteVideo.style.display = 'none';
@@ -496,9 +549,11 @@ class WebRTCViewer {
     const noStreamDetails = document.getElementById('noStreamDetails');
     const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
     const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    const roomFullDetails = document.getElementById('roomFullDetails');
     if (noStreamDetails) noStreamDetails.style.display = 'none';
     if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
     if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+    if (roomFullDetails) roomFullDetails.style.display = 'none';
 
     // Hide video, show placeholder
     this.remoteVideo.style.display = 'none';
@@ -526,11 +581,13 @@ class WebRTCViewer {
     const connectingDetails = document.getElementById('connectingDetails');
     const noStreamDetails = document.getElementById('noStreamDetails');
     const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    const roomFullDetails = document.getElementById('roomFullDetails');
     if (placeholderTitle) placeholderTitle.style.display = 'none';
     if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
     if (connectingDetails) connectingDetails.style.display = 'none';
     if (noStreamDetails) noStreamDetails.style.display = 'none';
     if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+    if (roomFullDetails) roomFullDetails.style.display = 'none';
 
     // Show video loading details
     const videoLoadingDetails = document.getElementById('videoLoadingDetails');
@@ -565,10 +622,12 @@ class WebRTCViewer {
     const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
     const connectingDetails = document.getElementById('connectingDetails');
     const videoLoadingDetails = document.getElementById('videoLoadingDetails');
+    const roomFullDetails = document.getElementById('roomFullDetails');
     if (placeholderTitle) placeholderTitle.style.display = 'none';
     if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
     if (connectingDetails) connectingDetails.style.display = 'none';
     if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
+    if (roomFullDetails) roomFullDetails.style.display = 'none';
 
     // Show connection failed details
     const noStreamDetails = document.getElementById('noStreamDetails');
@@ -608,11 +667,13 @@ class WebRTCViewer {
     const connectingDetails = document.getElementById('connectingDetails');
     const videoLoadingDetails = document.getElementById('videoLoadingDetails');
     const noStreamDetails = document.getElementById('noStreamDetails');
+    const roomFullDetails = document.getElementById('roomFullDetails');
     if (placeholderTitle) placeholderTitle.style.display = 'none';
     if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
     if (connectingDetails) connectingDetails.style.display = 'none';
     if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
     if (noStreamDetails) noStreamDetails.style.display = 'none';
+    if (roomFullDetails) roomFullDetails.style.display = 'none';
 
     // Show connected-no-stream warning
     const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
@@ -656,12 +717,14 @@ class WebRTCViewer {
     const videoLoadingDetails = document.getElementById('videoLoadingDetails');
     const noStreamDetails = document.getElementById('noStreamDetails');
     const connectedNoStreamDetails = document.getElementById('connectedNoStreamDetails');
+    const roomFullDetails = document.getElementById('roomFullDetails');
     if (placeholderTitle) placeholderTitle.style.display = 'none';
     if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'none';
     if (connectingDetails) connectingDetails.style.display = 'none';
     if (videoLoadingDetails) videoLoadingDetails.style.display = 'none';
     if (noStreamDetails) noStreamDetails.style.display = 'none';
     if (connectedNoStreamDetails) connectedNoStreamDetails.style.display = 'none';
+    if (roomFullDetails) roomFullDetails.style.display = 'none';
 
     // Show video or last frame canvas if it exists
     const lastFrameCanvas = document.getElementById('lastFrameCanvas');
@@ -728,6 +791,7 @@ class WebRTCViewer {
 
     // Reset state, timers, and stats tracking
     this.streamReceived = false;
+    this.isRoomFull = false; // Reset room full flag on retry
     this.signallingConnectionStartTime = Date.now();
     this.streamingConnectionStartTime = null;
     this.lastBytesReceived = 0;
@@ -848,6 +912,19 @@ class WebRTCViewer {
         // Show connection failed
         this.showConnectionFailed();
       }
+
+      // If error code is ROOM_FULL, show room full state
+      if (error.code === "ROOM_FULL") {
+        // Clear timeout timer and interval
+        this.connectionAttemptStartTime = null;
+        if (this.connectionTimeoutInterval) {
+          clearInterval(this.connectionTimeoutInterval);
+          this.connectionTimeoutInterval = null;
+        }
+        // Set room full flag and update UI state
+        this.isRoomFull = true;
+        this.updateUIState();
+      }
     });
   }
 
@@ -885,6 +962,7 @@ class WebRTCViewer {
 
     // Set stream ID and start signalling connection timer
     this.currentRoomId = roomId;
+    this.isRoomFull = false; // Reset room full flag when joining new room
     this.signallingConnectionStartTime = Date.now();
     this.streamingConnectionStartTime = null; // Reset streaming timer
 
