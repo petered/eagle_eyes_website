@@ -1201,6 +1201,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (q.length === 0) {
             faqData.forEach(({ item }) => item.style.display = '');
             searchMeta.textContent = '';
+            // Show contact section when search is cleared
+            const contactSection = document.querySelector('.faq-contact-section');
+            if (contactSection) contactSection.style.display = 'block';
             return;
         }
 
@@ -1211,6 +1214,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (expandedQuery.length === 0) {
             faqData.forEach(({ item }) => item.style.display = '');
             searchMeta.textContent = 'Search for specific terms (common words filtered)';
+            // Show contact section when showing all FAQs
+            const contactSection = document.querySelector('.faq-contact-section');
+            if (contactSection) contactSection.style.display = 'block';
             return;
         }
         
@@ -1251,10 +1257,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // Get the contact section
+        const contactSection = document.querySelector('.faq-contact-section');
+        
         if (results.length === 0) {
-            searchMeta.innerHTML = `<span style="font-size: 1.6rem; line-height: 1.6;">We're updating our FAQ resources and don't have an answer available for your specific question at this time. Please reach out to <span class="faq-email-link" onclick="copyEmailToClipboard()" style="color: #1e90ff; cursor: pointer; text-decoration: underline; font-weight: 500; font-size: 1.6rem;">info@EagleEyesSearch.com</span> with your question and we'll get back to you with an answer.</span>`;
+            searchMeta.innerHTML = `<span style="font-size: 1.6rem; line-height: 1.6;">We're updating our FAQ resources and don't have an answer available for your specific question at this time. Please reach out to us at <span class="faq-email-link" onclick="copyEmailToClipboard()" style="color: #1e90ff; cursor: pointer; text-decoration: underline; font-weight: 500; font-size: 1.6rem;">info@EagleEyesSearch.com</span> with your question and we'll be happy to get back to you with an answer.</span>`;
+            // Hide contact section when no results (it's redundant)
+            if (contactSection) contactSection.style.display = 'none';
         } else {
             searchMeta.innerHTML = `<span style="font-size: 1.2rem;">${results.length} result${results.length === 1 ? '' : 's'} for "${q}"</span>`;
+            // Show contact section when there are results
+            if (contactSection) contactSection.style.display = 'block';
         }
     }
 
@@ -1595,4 +1608,145 @@ function showEmailCopyNotification() {
     font-size: 14px;
     text-align: center;
 }
-</style> 
+</style>
+
+<!-- FAQ Analytics Tracking -->
+<script>
+(function() {
+    'use strict';
+    
+    const TRACKING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwoF1eGxs1D2BCYIoWZfkgwzSEKfCy4EYxj3SFlnylOVGoVKyR8ivo4BUzdKzXpzxZF/exec';
+    
+    // Generate or retrieve persistent session ID
+    function getSessionId() {
+        let sessionId = localStorage.getItem('faq_session_id');
+        if (!sessionId) {
+            sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('faq_session_id', sessionId);
+        }
+        return sessionId;
+    }
+    
+    // Common event data
+    function getCommonData() {
+        return {
+            page_path: location.pathname + location.search,
+            session_id: getSessionId(),
+            user_agent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+        };
+    }
+    
+    // Send event to tracking endpoint
+    function sendEvent(eventData) {
+        const fullData = { ...getCommonData(), ...eventData };
+        const payload = JSON.stringify(fullData);
+        
+        // Send to Google Apps Script endpoint
+        fetch(TRACKING_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+            body: payload
+        }).catch(err => {
+            // Silently fail - don't interrupt user experience
+            console.error('Analytics tracking error:', err);
+        });
+    }
+    
+    // Track search events
+    let searchStartTime = null;
+    
+    function trackSearch() {
+        const searchInput = document.getElementById('faq-search-input');
+        if (!searchInput) return;
+        
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            if (query.length > 2) { // Only track searches with 3+ characters
+                // Debounce search tracking
+                clearTimeout(window.searchTrackTimeout);
+                window.searchTrackTimeout = setTimeout(() => {
+                    // Count visible FAQ items as results
+                    const visibleResults = document.querySelectorAll('.faq-item:not([style*="display: none"])').length;
+                    
+                    sendEvent({
+                        event_type: 'search',
+                        search_query: query,
+                        results_count: visibleResults
+                    });
+                    
+                    searchStartTime = Date.now();
+                }, 1000); // Wait 1 second after typing stops
+            }
+        });
+    }
+    
+    // Track question clicks
+    function trackQuestionClicks() {
+        document.addEventListener('click', function(e) {
+            // Find if click was on a FAQ question
+            const faqQuestion = e.target.closest('.faq-question');
+            if (!faqQuestion) return;
+            
+            const faqItem = faqQuestion.closest('.faq-item');
+            if (!faqItem) return;
+            
+            const questionId = faqItem.id;
+            const questionText = faqQuestion.querySelector('.faq-question-text');
+            const questionTitle = questionText ? questionText.textContent.trim() : '';
+            
+            // Calculate time to click if this was from a search
+            const timeToClick = searchStartTime ? Date.now() - searchStartTime : null;
+            
+            sendEvent({
+                event_type: 'question_click',
+                question_id: questionId,
+                question_title: questionTitle,
+                time_to_click_ms: timeToClick
+            });
+        });
+    }
+    
+    // Track links clicked inside FAQ answers
+    function trackAnswerLinkClicks() {
+        document.addEventListener('click', function(e) {
+            // Check if clicked element is a link
+            if (e.target.tagName !== 'A') return;
+            
+            // Check if link is inside a FAQ answer
+            const faqAnswer = e.target.closest('.faq-answer');
+            if (!faqAnswer) return;
+            
+            const faqItem = faqAnswer.closest('.faq-item');
+            if (!faqItem) return;
+            
+            const questionId = faqItem.id;
+            const questionTitle = faqItem.querySelector('.faq-question-text')?.textContent.trim() || '';
+            const linkUrl = e.target.href;
+            
+            sendEvent({
+                event_type: 'answer_link_click',
+                link_url: linkUrl,
+                question_id: questionId,
+                question_title: questionTitle
+            });
+        });
+    }
+    
+    // Initialize tracking when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            trackSearch();
+            trackQuestionClicks();
+            trackAnswerLinkClicks();
+        });
+    } else {
+        trackSearch();
+        trackQuestionClicks();
+        trackAnswerLinkClicks();
+    }
+})();
+</script> 
