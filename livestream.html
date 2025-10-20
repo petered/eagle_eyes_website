@@ -829,6 +829,17 @@ permalink: /livestream/
         </div>
         <div class="d-grid gap-2 mb-3">
           <button
+            id="viewersBtnMobile"
+            class="btn btn-dark"
+            style="padding: 0.5rem 0.75rem;"
+            onclick="if(window.viewer) window.viewer.showViewerListDialog()"
+            title="Show Viewers"
+          >
+            <i class="bi bi-people-fill"></i> Viewers (<span id="viewerCountMobile">0</span>)
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button
             id="caltopoBtnMobile"
             class="btn"
             style="display: none; flex-direction: column; align-items: center; gap: 0.25rem; border: 1px solid #cc5e31; color: #cc5e31; background-color: transparent; padding: 0.5rem 0.75rem;"
@@ -1926,6 +1937,28 @@ permalink: /livestream/
           stopQRScanner();
         }
       });
+
+      // Mobile viewers button visibility and count control
+      function syncMobileViewersButton() {
+        const mobileViewersBtn = document.getElementById('viewersBtnMobile');
+        const mobileViewerCount = document.getElementById('viewerCountMobile');
+        const desktopViewerCount = document.getElementById('viewerCount');
+        
+        if (mobileViewersBtn) {
+          // Always show the viewers button
+          mobileViewersBtn.style.display = 'block';
+        }
+        
+        // Sync viewer count with desktop
+        if (mobileViewerCount && desktopViewerCount) {
+          mobileViewerCount.textContent = desktopViewerCount.textContent;
+        }
+      }
+
+      // Monitor for changes to stream state and sync mobile viewers button
+      setInterval(syncMobileViewersButton, 1000);
+      setTimeout(syncMobileViewersButton, 500); // Initial check
+
 
     </script>
   </body>
