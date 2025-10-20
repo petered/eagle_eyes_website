@@ -327,6 +327,16 @@ permalink: /livestream/
         .navbar-brand span:not(.beta-badge) {
           display: none;
         }
+        
+        /* Hide status text on mobile to make space for share button */
+        #status .status-text {
+          display: none !important;
+        }
+        
+        /* Show mobile share button */
+        #mobileShareBtn {
+          display: block !important;
+        }
       }
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
@@ -370,6 +380,15 @@ permalink: /livestream/
           font-size: 12px !important;
           padding: 6px 10px !important;
         }
+      }
+
+      /* Fullscreen exit button styles */
+      #fullscreenExitBtn {
+        display: none !important;
+      }
+      
+      #fullscreenExitBtn.show {
+        display: flex !important;
       }
     </style>
 
@@ -614,6 +633,17 @@ permalink: /livestream/
           <span class="status-dot"></span>
           <span class="status-text small"></span>
         </div>
+
+        <button
+          id="mobileShareBtn"
+          class="btn btn-outline-light btn-sm me-2"
+          data-bs-toggle="modal"
+          data-bs-target="#shareModal"
+          title="Share Stream"
+          style="display: none;"
+        >
+          <i class="bi bi-share"></i>
+        </button>
 
         <button
           class="navbar-toggler"
@@ -1047,7 +1077,6 @@ permalink: /livestream/
         bottom: 20px;
         right: 20px;
         z-index: 1050;
-        display: none;
         background: rgba(0, 0, 0, 0.7);
         color: white;
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -1060,7 +1089,6 @@ permalink: /livestream/
         transition: all 0.3s ease;
         width: 48px;
         height: 48px;
-        display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
@@ -1539,7 +1567,7 @@ permalink: /livestream/
             // Hide the navbar when in fullscreen
             if (navbar) navbar.style.display = 'none';
             // Show the exit button
-            if (exitBtn) exitBtn.style.display = 'block';
+            if (exitBtn) exitBtn.classList.add('show');
             document.getElementById('fullscreenBtn').innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
             document.getElementById('fullscreenBtn').title = 'Exit Fullscreen';
           }).catch(err => {
@@ -1551,7 +1579,7 @@ permalink: /livestream/
             // Show the navbar when exiting fullscreen
             if (navbar) navbar.style.display = 'flex';
             // Hide the exit button
-            if (exitBtn) exitBtn.style.display = 'none';
+            if (exitBtn) exitBtn.classList.remove('show');
             document.getElementById('fullscreenBtn').innerHTML = '<i class="bi bi-fullscreen"></i>';
             document.getElementById('fullscreenBtn').title = 'Toggle Fullscreen';
           }).catch(err => {
@@ -1559,6 +1587,7 @@ permalink: /livestream/
           });
         }
       }
+
 
       function openCaltopoMap() {
         if (window.droneMap && window.droneMap.caltopoInfo) {
