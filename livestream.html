@@ -64,13 +64,13 @@ permalink: /livestream/
         background-color: #000;
         min-height: 0;
       }
-      /* Mobile: Give more space to video, less to map */
+      /* Mobile: Optimized split screen layout */
       @media (max-width: 991px) {
         #video-panel {
-          flex: 0 0 70%;
+          flex: 0 0 60%; /* Better balance for mobile */
         }
         #map-panel {
-          flex: 0 0 30%;
+          flex: 0 0 40%; /* More map space for better usability */
         }
       }
       @media (min-width: 992px) {
@@ -153,21 +153,37 @@ permalink: /livestream/
       
       /* Mobile landscape optimization: 50/50 split */
       @media (max-width: 991px) and (orientation: landscape) {
+        #main-content {
+          flex-direction: row !important; /* Video left, map right */
+        }
         #video-panel {
           flex: 0 0 50% !important;
+          min-width: 0;
         }
         #map-panel {
           flex: 0 0 50% !important;
+          min-width: 0;
         }
         #remoteVideo {
-          object-fit: cover; /* Fill space in landscape mobile */
+          object-fit: contain; /* Show full video without cropping */
         }
       }
       
-      /* Mobile portrait: keep current proportions */
+      /* Mobile portrait: video top, map bottom layout */
       @media (max-width: 991px) and (orientation: portrait) {
+        #main-content {
+          flex-direction: column !important;
+        }
+        #video-panel {
+          flex: 0 0 50% !important;
+          min-height: 0;
+        }
+        #map-panel {
+          flex: 0 0 50% !important;
+          min-height: 0;
+        }
         #remoteVideo {
-          object-fit: cover; /* Fill space in portrait mobile */
+          object-fit: contain; /* Show full video without cropping */
         }
       }
       
@@ -1958,6 +1974,19 @@ permalink: /livestream/
       // Monitor for changes to stream state and sync mobile viewers button
       setInterval(syncMobileViewersButton, 1000);
       setTimeout(syncMobileViewersButton, 500); // Initial check
+
+      // Handle mobile orientation changes
+      window.addEventListener('orientationchange', () => {
+        console.log('Orientation changed, updating layout...');
+        setTimeout(() => {
+          if (window.optimizeVideoFitting) {
+            window.optimizeVideoFitting();
+          }
+          if (window.droneMap) {
+            setTimeout(() => window.droneMap.resize(), 100);
+          }
+        }, 100);
+      });
 
 
     </script>
