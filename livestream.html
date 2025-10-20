@@ -1505,6 +1505,24 @@ permalink: /livestream/
               document.getElementById(mode + "-view").checked = true;
             });
           });
+
+        // Initialize with split view mode on page load
+        setTimeout(() => {
+          setViewMode("split");
+        }, 100);
+
+        // Ensure split view is maintained when stream connects
+        const originalJoinRoom = window.joinRoom;
+        if (originalJoinRoom) {
+          window.joinRoom = function() {
+            const result = originalJoinRoom.apply(this, arguments);
+            // Ensure split view after stream connects
+            setTimeout(() => {
+              setViewMode("split");
+            }, 500);
+            return result;
+          };
+        }
       });
 
       function centerOnDrone() {
