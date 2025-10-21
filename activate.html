@@ -885,7 +885,15 @@ permalink: /activate/
             console.log('URL parameters cleared after successful activation');
         }
     }
-    
+
+    // Helper function to sanitize JSON response containing Infinity values
+    function sanitizeAndParseResponse(response) {
+        let jsonString = typeof response === 'string' ? response : JSON.stringify(response);
+        // Replace Infinity with null to allow JSON.parse to succeed
+        jsonString = jsonString.replace(/:\s*Infinity\b/g, ': null');
+        return JSON.parse(jsonString);
+    }
+
     $(document).ready(function() {
         // Check for URL activation code on page load
         urlActivationCode = getUrlActivationCode();
@@ -1284,7 +1292,7 @@ permalink: /activate/
                     try {
                         let licenseData;
                         if (typeof response === 'string') {
-                            licenseData = JSON.parse(response);
+                            licenseData = sanitizeAndParseResponse(response);
                         } else {
                             licenseData = response;
                         }
