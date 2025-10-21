@@ -1201,6 +1201,11 @@ permalink: /livestream/
             </button>
         </div>
         <div class="d-grid gap-2 mb-3">
+          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
+            <i class="bi bi-share"></i> Share Livestream
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
           <button
             id="leaveBtnMobile"
             class="btn btn-dark"
@@ -1270,6 +1275,12 @@ permalink: /livestream/
             >Map</label
           >
         </div>
+        
+        <div class="d-grid gap-2 mb-3">
+          <button id="pipBtn" class="btn btn-outline-secondary" onclick="togglePictureInPicture()">
+            <i class="bi bi-picture-in-picture"></i> Picture-in-Picture
+          </button>
+        </div>
         <div class="d-grid gap-2 mb-3">
           <button class="btn btn-secondary" onclick="centerOnDrone()">
             <i class="bi bi-bullseye"></i> Center on Drone
@@ -1278,11 +1289,6 @@ permalink: /livestream/
         <div class="d-grid gap-2 mb-3">
           <button id="showMyLocationBtn" class="btn btn-outline-secondary" onclick="toggleMyLocation()">
             <i class="bi bi-geo-alt"></i> Show My Location
-          </button>
-        </div>
-        <div class="d-grid gap-2 mb-3">
-          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
-            <i class="bi bi-share"></i> Share Livestream
           </button>
         </div>
         <hr />
@@ -1832,6 +1838,20 @@ permalink: /livestream/
         // Initialize with split view mode on page load
         setTimeout(() => {
           setViewMode("split");
+          
+          // Ensure mobile layout is properly initialized
+          if (window.innerWidth <= 991) {
+            const videoPanel = document.getElementById('video-panel');
+            const mapPanel = document.getElementById('map-panel');
+            
+            if (videoPanel && mapPanel) {
+              // Force mobile layout classes
+              videoPanel.classList.remove('d-none');
+              mapPanel.classList.remove('d-none');
+              videoPanel.classList.add('col-lg-8');
+              mapPanel.classList.add('col-lg-4');
+            }
+          }
         }, 100);
 
         // Ensure split view is maintained when stream connects
@@ -1841,7 +1861,30 @@ permalink: /livestream/
             const result = originalJoinRoom.apply(this, arguments);
             // Ensure split view after stream connects
             setTimeout(() => {
+              // Force split view and ensure proper layout
+              const splitViewRadio = document.getElementById('split-view-mobile');
+              if (splitViewRadio) {
+                splitViewRadio.checked = true;
+              }
               setViewMode("split");
+              
+              // Force layout recalculation for mobile
+              if (window.innerWidth <= 991) {
+                const mainContent = document.getElementById('main-content');
+                const videoPanel = document.getElementById('video-panel');
+                const mapPanel = document.getElementById('map-panel');
+                
+                if (mainContent && videoPanel && mapPanel) {
+                  // Force reapplication of mobile layout
+                  mainContent.style.display = 'none';
+                  setTimeout(() => {
+                    mainContent.style.display = 'flex';
+                    // Ensure both panels are visible
+                    videoPanel.classList.remove('d-none');
+                    mapPanel.classList.remove('d-none');
+                  }, 100);
+                }
+              }
             }, 500);
             return result;
           };
@@ -2433,12 +2476,33 @@ permalink: /livestream/
           const splitViewRadio = document.getElementById('split-view-mobile');
           if (splitViewRadio && splitViewRadio.checked) {
             console.log('Maintaining split view after orientation change');
-            // Force the CSS media queries to apply correctly
+            
+            // Force proper mobile layout based on orientation
             const mainContent = document.getElementById('main-content');
-            if (mainContent) {
+            const videoPanel = document.getElementById('video-panel');
+            const mapPanel = document.getElementById('map-panel');
+            
+            if (mainContent && videoPanel && mapPanel) {
+              // Force layout refresh
               mainContent.style.display = 'none';
               setTimeout(() => {
                 mainContent.style.display = 'flex';
+                
+                // Ensure both panels are visible in split view
+                videoPanel.classList.remove('d-none');
+                mapPanel.classList.remove('d-none');
+                
+                // Force correct mobile layout classes
+                if (window.innerWidth <= 991) {
+                  // Mobile - let CSS media queries handle the layout
+                  videoPanel.className = '';
+                  mapPanel.className = '';
+                  setTimeout(() => {
+                    // Reapply appropriate classes
+                    videoPanel.classList.add('col-lg-8');
+                    mapPanel.classList.add('col-lg-4');
+                  }, 50);
+                }
               }, 50);
             }
           }
@@ -2449,7 +2513,7 @@ permalink: /livestream/
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 100);
           }
-        }, 100);
+        }, 200); // Increased timeout for better orientation detection
       });
 
       // Handle window resize to maintain split view
@@ -2483,10 +2547,77 @@ permalink: /livestream/
         }, 100);
       });
 
+      // Picture-in-Picture variables
+      let pipEnabled = false;
+
       // Location tracking variables
       let myLocationEnabled = false;
       let myLocationMarker = null;
       let myLocationWatchId = null;
+
+      function togglePictureInPicture() {
+        const button = document.getElementById('pipBtn');
+        const video = document.getElementById('remoteVideo');
+        
+        if (!video) {
+          alert('No video stream available for Picture-in-Picture');
+          return;
+        }
+
+        if (!pipEnabled) {
+          // Check if Picture-in-Picture is supported
+          if (!document.pictureInPictureEnabled) {
+            alert('Picture-in-Picture is not supported by this browser');
+            return;
+          }
+
+          // Request Picture-in-Picture
+          video.requestPictureInPicture().then(() => {
+            pipEnabled = true;
+            button.innerHTML = '<i class="bi bi-picture-in-picture-exit"></i> Exit PiP';
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-secondary');
+            console.log('Picture-in-Picture enabled');
+          }).catch(err => {
+            console.error('Error entering Picture-in-Picture:', err);
+            alert('Failed to enter Picture-in-Picture mode');
+          });
+        } else {
+          // Exit Picture-in-Picture
+          if (document.pictureInPictureElement) {
+            document.exitPictureInPicture().then(() => {
+              pipEnabled = false;
+              button.innerHTML = '<i class="bi bi-picture-in-picture"></i> Picture-in-Picture';
+              button.classList.remove('btn-secondary');
+              button.classList.add('btn-outline-secondary');
+              console.log('Picture-in-Picture disabled');
+            }).catch(err => {
+              console.error('Error exiting Picture-in-Picture:', err);
+            });
+          }
+        }
+      }
+
+      // Listen for Picture-in-Picture events
+      document.addEventListener('enterpictureinpicture', () => {
+        pipEnabled = true;
+        const button = document.getElementById('pipBtn');
+        if (button) {
+          button.innerHTML = '<i class="bi bi-picture-in-picture-exit"></i> Exit PiP';
+          button.classList.remove('btn-outline-secondary');
+          button.classList.add('btn-secondary');
+        }
+      });
+
+      document.addEventListener('leavepictureinpicture', () => {
+        pipEnabled = false;
+        const button = document.getElementById('pipBtn');
+        if (button) {
+          button.innerHTML = '<i class="bi bi-picture-in-picture"></i> Picture-in-Picture';
+          button.classList.remove('btn-secondary');
+          button.classList.add('btn-outline-secondary');
+        }
+      });
 
       function toggleMyLocation() {
         const button = document.getElementById('showMyLocationBtn');
