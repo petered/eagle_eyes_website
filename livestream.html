@@ -10,7 +10,26 @@ permalink: /livestream/
     <!-- Beta Logo for Livestream Page Only -->
     <link rel="icon" href="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}" type="image/png">
     <link rel="shortcut icon" href="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}" type="image/png">
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="{{ '/manifest.json' | relative_url }}">
+    <meta name="theme-color" content="#314268">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Eagle Eyes">
+    
+    <!-- iOS Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Eagle Eyes">
     <link rel="apple-touch-icon" href="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ '/images/eagle_eyes_flat_logo_2.png' | relative_url }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}">
+    <link rel="apple-touch-icon" sizes="167x167" href="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}">
+    
+    <!-- Android/Chrome -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-status-bar-style" content="black">
+    <meta name="mobile-web-app-title" content="Eagle Eyes">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:image" content="{{ '/images/eagle-eyes-beta-logo.png' | absolute_url }}">
@@ -414,6 +433,7 @@ permalink: /livestream/
         justify-content: center;
         position: relative;
         overflow: hidden;
+        touch-action: pan-x pan-y pinch-zoom;
       }
       #remoteVideo {
         position: absolute;
@@ -424,6 +444,82 @@ permalink: /livestream/
         object-fit: cover;
         display: none;
         z-index: 2;
+        transform-origin: center center;
+        transition: transform 0.2s ease-out;
+        cursor: grab;
+      }
+      
+      #remoteVideo:active {
+        cursor: grabbing;
+      }
+      
+      /* Video zoom controls */
+      .video-zoom-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      #videoContainer:hover .video-zoom-controls {
+        opacity: 1;
+      }
+      
+      .video-zoom-btn {
+        width: 40px;
+        height: 40px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        user-select: none;
+      }
+      
+      .video-zoom-btn:hover {
+        background-color: rgba(0, 0, 0, 0.9);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+      
+      .video-zoom-btn:active {
+        transform: scale(0.95);
+      }
+      
+      .video-zoom-reset {
+        width: 40px;
+        height: 25px;
+        font-size: 10px;
+        font-weight: normal;
+      }
+      
+      /* Mobile zoom controls */
+      @media (max-width: 768px) {
+        .video-zoom-controls {
+          opacity: 1;
+          top: 50px;
+          right: 5px;
+        }
+        
+        .video-zoom-btn {
+          width: 36px;
+          height: 36px;
+          font-size: 16px;
+        }
+        
+        .video-zoom-reset {
+          height: 22px;
+          font-size: 9px;
+        }
       }
       /* Smart video fitting based on view mode */
       #remoteVideo {
@@ -2162,6 +2258,14 @@ permalink: /livestream/
             </div>
 
           </div>
+          
+          <!-- Video zoom controls -->
+          <div class="video-zoom-controls">
+            <div class="video-zoom-btn" onclick="zoomVideo(0.2)" title="Zoom In">+</div>
+            <div class="video-zoom-btn" onclick="zoomVideo(-0.2)" title="Zoom Out">−</div>
+            <div class="video-zoom-btn video-zoom-reset" onclick="resetVideoZoom()" title="Reset Zoom">1:1</div>
+          </div>
+          
           <video id="remoteVideo" autoplay playsinline muted controls></video>
         </div>
       </div>
@@ -3827,6 +3931,166 @@ permalink: /livestream/
           console.log('User location enabled:', lat, lon, 'heading:', heading);
         }
       }
+
+      // Video zoom functionality
+      let videoZoom = 1;
+      let videoTranslateX = 0;
+      let videoTranslateY = 0;
+      let isDragging = false;
+      let lastTouchDistance = 0;
+      let lastMouseX = 0;
+      let lastMouseY = 0;
+
+      function zoomVideo(delta) {
+        const video = document.getElementById('remoteVideo');
+        if (!video) return;
+
+        videoZoom += delta;
+        videoZoom = Math.max(1, Math.min(5, videoZoom)); // Clamp between 1x and 5x
+
+        if (videoZoom === 1) {
+          videoTranslateX = 0;
+          videoTranslateY = 0;
+        }
+
+        updateVideoTransform();
+      }
+
+      function resetVideoZoom() {
+        videoZoom = 1;
+        videoTranslateX = 0;
+        videoTranslateY = 0;
+        updateVideoTransform();
+      }
+
+      function updateVideoTransform() {
+        const video = document.getElementById('remoteVideo');
+        if (!video) return;
+
+        video.style.transform = `scale(${videoZoom}) translate(${videoTranslateX}px, ${videoTranslateY}px)`;
+      }
+
+      // Touch gesture support for mobile pinch-to-zoom
+      function setupVideoTouchEvents() {
+        const video = document.getElementById('remoteVideo');
+        const container = document.getElementById('videoContainer');
+        if (!video || !container) return;
+
+        // Pinch-to-zoom for mobile
+        container.addEventListener('touchstart', function(e) {
+          if (e.touches.length === 2) {
+            e.preventDefault();
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            lastTouchDistance = Math.hypot(
+              touch1.clientX - touch2.clientX,
+              touch1.clientY - touch2.clientY
+            );
+          }
+        }, { passive: false });
+
+        container.addEventListener('touchmove', function(e) {
+          if (e.touches.length === 2) {
+            e.preventDefault();
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = Math.hypot(
+              touch1.clientX - touch2.clientX,
+              touch1.clientY - touch2.clientY
+            );
+
+            if (lastTouchDistance > 0) {
+              const delta = (currentDistance - lastTouchDistance) * 0.01;
+              zoomVideo(delta);
+            }
+
+            lastTouchDistance = currentDistance;
+          } else if (e.touches.length === 1 && videoZoom > 1) {
+            e.preventDefault();
+            if (isDragging) {
+              const touch = e.touches[0];
+              const deltaX = touch.clientX - lastMouseX;
+              const deltaY = touch.clientY - lastMouseY;
+              
+              videoTranslateX += deltaX / videoZoom;
+              videoTranslateY += deltaY / videoZoom;
+              
+              // Constrain movement
+              const maxTranslate = 50 * (videoZoom - 1);
+              videoTranslateX = Math.max(-maxTranslate, Math.min(maxTranslate, videoTranslateX));
+              videoTranslateY = Math.max(-maxTranslate, Math.min(maxTranslate, videoTranslateY));
+              
+              updateVideoTransform();
+              lastMouseX = touch.clientX;
+              lastMouseY = touch.clientY;
+            }
+          }
+        }, { passive: false });
+
+        container.addEventListener('touchend', function(e) {
+          lastTouchDistance = 0;
+          isDragging = false;
+        });
+
+        // Mouse wheel zoom for desktop
+        container.addEventListener('wheel', function(e) {
+          e.preventDefault();
+          const delta = e.deltaY > 0 ? -0.1 : 0.1;
+          zoomVideo(delta);
+        }, { passive: false });
+
+        // Mouse drag for panning when zoomed
+        container.addEventListener('mousedown', function(e) {
+          if (videoZoom > 1) {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            e.preventDefault();
+          }
+        });
+
+        container.addEventListener('mousemove', function(e) {
+          if (isDragging && videoZoom > 1) {
+            const deltaX = e.clientX - lastMouseX;
+            const deltaY = e.clientY - lastMouseY;
+            
+            videoTranslateX += deltaX / videoZoom;
+            videoTranslateY += deltaY / videoZoom;
+            
+            // Constrain movement
+            const maxTranslate = 50 * (videoZoom - 1);
+            videoTranslateX = Math.max(-maxTranslate, Math.min(maxTranslate, videoTranslateX));
+            videoTranslateY = Math.max(-maxTranslate, Math.min(maxTranslate, videoTranslateY));
+            
+            updateVideoTransform();
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+          }
+        });
+
+        container.addEventListener('mouseup', function(e) {
+          isDragging = false;
+        });
+
+        container.addEventListener('mouseleave', function(e) {
+          isDragging = false;
+        });
+
+        // Touch drag start
+        container.addEventListener('touchstart', function(e) {
+          if (e.touches.length === 1 && videoZoom > 1) {
+            isDragging = true;
+            const touch = e.touches[0];
+            lastMouseX = touch.clientX;
+            lastMouseY = touch.clientY;
+          }
+        }, { passive: true });
+      }
+
+      // Initialize video touch events when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        setupVideoTouchEvents();
+      });
 
 
     </script>
