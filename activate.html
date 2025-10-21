@@ -1327,7 +1327,13 @@ permalink: /activate/
                                     
                                     // Check if this license already has a key for this machine
                                     license.has_existing_key = existingKeysForMachine.includes(licenseId);
-                                    
+
+                                    // Skip licenses with invalid expiry (Infinity was converted to null)
+                                    if (license.expiry_timestamp === null) {
+                                        console.log('Skipping license with invalid expiry:', licenseId);
+                                        continue;
+                                    }
+
                                     // Include all active licenses (even if no remaining keys)
                                     // This allows users to see all their licenses, including those that are fully utilized
                                     userLicenses.push(license);
@@ -1563,7 +1569,7 @@ permalink: /activate/
                     let responseData;
                     try {
                         if (typeof response === 'string') {
-                            responseData = JSON.parse(response);
+                            responseData = sanitizeAndParseResponse(response);
                         } else {
                             responseData = response;
                         }
@@ -1884,14 +1890,20 @@ permalink: /activate/
                     
                     // Check if this license already has a key for this machine
                     license.has_existing_key = existingKeysForMachine.includes(licenseId);
-                    
+
+                    // Skip licenses with invalid expiry (Infinity was converted to null)
+                    if (license.expiry_timestamp === null) {
+                        console.log('Skipping license with invalid expiry:', licenseId);
+                        continue;
+                    }
+
                     console.log('Adding license to array from add response:', {
                         id: licenseId,
                         name: license.license_name,
                         remaining_keys: license.remaining_keys,
                         has_existing_key: license.has_existing_key
                     });
-                    
+
                     userLicenses.push(license);
                 }
             }
