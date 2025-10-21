@@ -51,10 +51,46 @@ permalink: /livestream/
         flex-direction: column;
         min-height: 0;
       }
-      /* Desktop: Video left, map right */
-      @media (min-width: 992px) {
+      
+      /* Landscape layout (aspect ratio >= 1:1) - Video left, map right */
+      @media (min-aspect-ratio: 1/1) {
         #main-content {
           flex-direction: row !important;
+        }
+        #video-panel {
+          flex: 0 0 60% !important;
+          min-width: 0;
+          display: flex !important;
+        }
+        #map-panel {
+          flex: 0 0 40% !important;
+          min-width: 0;
+          display: flex !important;
+        }
+        #remoteVideo {
+          object-fit: contain !important;
+        }
+      }
+      
+      /* Portrait layout (aspect ratio < 1:1) - Video top, map bottom */
+      @media (max-aspect-ratio: 1/1) {
+        #main-content {
+          flex-direction: column !important;
+        }
+        #video-panel {
+          flex: 0 0 60% !important;
+          min-height: 0;
+          display: flex !important;
+          width: 100% !important;
+        }
+        #map-panel {
+          flex: 0 0 40% !important;
+          min-height: 0;
+          display: flex !important;
+          width: 100% !important;
+        }
+        #remoteVideo {
+          object-fit: contain !important;
         }
       }
       
@@ -281,7 +317,12 @@ permalink: /livestream/
       #video-panel.full-view,
       #map-panel.full-view {
         flex: 1 1 100% !important;
+        width: 100% !important;
+        height: 100% !important;
         min-width: 0;
+        min-height: 0;
+        max-width: 100% !important;
+        max-height: 100% !important;
       }
       /* Override media query restrictions for fullscreen modes */
       @media (min-width: 992px) {
@@ -515,19 +556,19 @@ permalink: /livestream/
         
         /* Mobile responsive error displays - make text and buttons smaller */
         #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
-          font-size: 10px !important;
+          font-size: clamp(1rem, 3vw, 1.2rem) !important;
           max-width: calc(100vw - 20px) !important;
           width: calc(100vw - 20px) !important;
-          padding: 8px !important;
+          padding: clamp(10px, 2.5vw, 20px) !important;
           margin: 0.3rem auto !important;
           word-wrap: break-word !important;
-          line-height: 1.3 !important;
+          line-height: 1.4 !important;
         }
         
         #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
-          font-size: 8px !important;
-          padding: 3px 6px !important;
-          max-width: 150px !important;
+          font-size: clamp(0.9rem, 2.5vw, 1.1rem) !important;
+          padding: clamp(6px, 2vw, 12px) clamp(8px, 2.5vw, 16px) !important;
+          max-width: 180px !important;
           width: auto !important;
           margin: 0.2rem 0 !important;
           white-space: normal !important;
@@ -540,7 +581,7 @@ permalink: /livestream/
         }
         
         #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
-          font-size: 6px !important;
+          font-size: clamp(0.8rem, 2vw, 1rem) !important;
         }
         
         #getHelpLink {
@@ -554,32 +595,6 @@ permalink: /livestream/
           word-wrap: break-word !important;
         }
         
-        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
-          font-size: 10px !important;
-          padding: 4px 8px !important;
-          max-width: 200px !important;
-          width: auto !important;
-          margin: 0.2rem 0 !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          display: inline-block !important;
-        }
-        
-        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
-          font-size: 8px !important;
-        }
-        
-        #getHelpLink {
-          font-size: 8px !important;
-          padding: 3px 6px !important;
-          max-width: 150px !important;
-          width: auto !important;
-          margin: 0.2rem auto !important;
-          display: inline-block !important;
-          text-align: center !important;
-          line-height: 1.2 !important;
-        }
         
         #getHelpLink i {
           font-size: 6px !important;
@@ -614,6 +629,70 @@ permalink: /livestream/
           font-size: 8px !important;
         }
         
+      }
+      
+      /* Tablet responsive error displays - medium sizing */
+      @media (min-width: 768px) and (max-width: 991px) {
+        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
+          font-size: clamp(1.1rem, 3vw, 1.4rem) !important;
+          max-width: calc(100vw - 40px) !important;
+          width: calc(100vw - 40px) !important;
+          padding: clamp(15px, 3vw, 25px) !important;
+          margin: 0.5rem auto !important;
+          word-wrap: break-word !important;
+          line-height: 1.5 !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: clamp(1rem, 2.2vw, 1.2rem) !important;
+          padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2.2vw, 20px) !important;
+          max-width: 200px !important;
+          width: auto !important;
+          margin: 0.3rem 0 !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: initial !important;
+          display: inline-block !important;
+          line-height: 1.3 !important;
+          min-height: auto !important;
+          height: auto !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: clamp(0.9rem, 1.8vw, 1.1rem) !important;
+        }
+      }
+      
+      /* Desktop responsive error displays - large sizing for maximum readability */
+      @media (min-width: 1200px) {
+        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
+          font-size: clamp(1.3rem, 2.5vw, 1.8rem) !important;
+          max-width: calc(100vw - 60px) !important;
+          width: calc(100vw - 60px) !important;
+          padding: clamp(20px, 3vw, 35px) !important;
+          margin: 1rem auto !important;
+          word-wrap: break-word !important;
+          line-height: 1.6 !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: clamp(1.1rem, 1.8vw, 1.4rem) !important;
+          padding: clamp(10px, 1.5vw, 16px) clamp(16px, 2.5vw, 28px) !important;
+          max-width: 250px !important;
+          width: auto !important;
+          margin: 0.4rem 0 !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: initial !important;
+          display: inline-block !important;
+          line-height: 1.4 !important;
+          min-height: auto !important;
+          height: auto !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: clamp(1rem, 1.6vw, 1.3rem) !important;
+        }
       }
       
       /* Mobile landscape orientation - video left, map right (only for split view) */
@@ -731,59 +810,70 @@ permalink: /livestream/
           object-fit: contain; /* Show full video without cropping */
         }
         
-        /* Force map to be visible in portrait split view */
-        #map-panel.d-none {
-          display: flex !important;
-        }
-        #map-panel.col-lg-4 {
-          display: flex !important;
-          flex: 0 0 50% !important;
-          width: 100% !important;
-        }
       }
       
-      /* Extra small mobile screens */
-      @media (max-width: 480px) {
-        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
-          font-size: 9px !important;
-          padding: 6px !important;
-          margin: 0.2rem auto !important;
-        }
-        
-        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
-          font-size: 7px !important;
-          padding: 2px 4px !important;
-          max-width: 120px !important;
-          margin: 0.1rem 0 !important;
-        }
-        
-        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
-          font-size: 5px !important;
-        }
-        
-        #getHelpLink {
-          font-size: 7px !important;
-          padding: 2px 4px !important;
-          max-width: 120px !important;
-        }
-        
-        #getHelpLink i {
-          font-size: 5px !important;
-        }
-      }
       
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
         cursor: default !important;
       }
 
-      /* Ensure map is always visible by default */
-      #map-panel {
+      /* Aggressively hide placeholder when error notifications are shown */
+      #noStreamDetails[style*="display: block"] ~ .placeholder,
+      #connectedNoStreamDetails[style*="display: block"] ~ .placeholder,
+      #roomFullDetails[style*="display: block"] ~ .placeholder {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        z-index: -9999 !important;
+      }
+
+      /* Completely hide placeholder when error is shown */
+      .placeholder.hidden-by-error {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        z-index: -9999 !important;
+        pointer-events: none !important;
+      }
+
+      /* Show error icon when any error notification is visible */
+      #noStreamDetails[style*="display: block"] ~ #errorNotificationIcon,
+      #connectedNoStreamDetails[style*="display: block"] ~ #errorNotificationIcon,
+      #roomFullDetails[style*="display: block"] ~ #errorNotificationIcon {
+        display: block !important;
+      }
+
+      /* Ensure d-none properly hides the map panel */
+      #map-panel.d-none {
+        display: none !important;
+      }
+
+      /* Ensure camera icon is visible in main placeholder */
+      .placeholder .bi-camera-video-off {
+        display: inline-block !important;
+        font-size: 4rem !important;
+        color: #d1d5db !important;
+        margin-bottom: 2rem !important;
+      }
+
+      /* Force placeholder to be visible when no error notifications are shown */
+      .placeholder:not(.hidden-by-error) {
         display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        left: auto !important;
+        z-index: 1 !important;
+        pointer-events: auto !important;
       }
       
-      /* Override any hiding of map panel when no stream */
-      #map-panel.d-none {
+      /* Ensure map is visible when not hidden */
+      #map-panel:not(.d-none) {
         display: flex !important;
       }
 
@@ -905,6 +995,118 @@ permalink: /livestream/
       
       #fullscreenExitBtn.show {
         display: flex !important;
+      }
+      
+      /* RESPONSIVE NOTIFICATION SYSTEM - HIGHEST PRIORITY */
+      /* Override all previous notification styles with compact sizing */
+      .placeholder #noStreamDetails, 
+      .placeholder #connectedNoStreamDetails, 
+      .placeholder #roomFullDetails {
+        font-size: clamp(10px, 2vw, 15px) !important;
+        max-width: 95% !important;
+        width: auto !important;
+        padding: clamp(6px, 1.5vw, 15px) !important;
+        margin: 0.3rem auto !important;
+        text-align: center !important;
+        line-height: 1.3 !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* Responsive text elements */
+      .placeholder #noStreamDetails div, 
+      .placeholder #connectedNoStreamDetails div, 
+      .placeholder #roomFullDetails div {
+        font-size: inherit !important;
+        line-height: 1.3 !important;
+        margin-bottom: clamp(5px, 1.5vw, 10px) !important;
+      }
+      
+      .placeholder #noStreamDetails strong, 
+      .placeholder #connectedNoStreamDetails strong, 
+      .placeholder #roomFullDetails strong {
+        font-size: clamp(11px, 2.2vw, 16px) !important;
+      }
+      
+      /* Stream ID styling */
+      .placeholder #noStreamDetails span[style*="monospace"], 
+      .placeholder #connectedNoStreamDetails span[style*="monospace"], 
+      .placeholder #roomFullDetails span[style*="monospace"] {
+        font-size: clamp(12px, 2.4vw, 17px) !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        word-break: break-all !important;
+      }
+      
+      /* Responsive buttons - more compact */
+      .placeholder #noStreamDetails button, 
+      .placeholder #connectedNoStreamDetails button, 
+      .placeholder #roomFullDetails button {
+        font-size: clamp(9px, 1.8vw, 13px) !important;
+        padding: clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px) !important;
+        max-width: 95% !important;
+        width: auto !important;
+        margin: 0.25rem auto !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        height: auto !important;
+        min-height: clamp(28px, 5vw, 36px) !important;
+        box-sizing: border-box !important;
+        display: block !important;
+      }
+      
+      /* Responsive button icons - smaller */
+      .placeholder #noStreamDetails button i, 
+      .placeholder #connectedNoStreamDetails button i, 
+      .placeholder #roomFullDetails button i {
+        font-size: clamp(10px, 2vw, 14px) !important;
+        margin-right: 0.3rem !important;
+      }
+      
+      /* Get Help link styling - more compact */
+      .placeholder #getHelpLink {
+        font-size: clamp(8px, 1.6vw, 12px) !important;
+        padding: clamp(3px, 0.8vw, 6px) clamp(6px, 1.5vw, 12px) !important;
+        display: inline-block !important;
+        margin-top: 0.3rem !important;
+        max-width: 95% !important;
+        white-space: normal !important;
+        box-sizing: border-box !important;
+      }
+      
+      .placeholder #getHelpLink i {
+        font-size: clamp(9px, 1.8vw, 13px) !important;
+        margin-right: 0.3rem !important;
+      }
+      
+      /* Extra compact for very small screens */
+      @media (max-width: 576px) {
+        .placeholder #noStreamDetails, 
+        .placeholder #connectedNoStreamDetails, 
+        .placeholder #roomFullDetails {
+          padding: clamp(4px, 1vw, 10px) !important;
+          max-width: 98% !important;
+          font-size: clamp(9px, 1.8vw, 13px) !important;
+        }
+        
+        .placeholder #noStreamDetails button, 
+        .placeholder #connectedNoStreamDetails button, 
+        .placeholder #roomFullDetails button {
+          font-size: clamp(8px, 1.6vw, 11px) !important;
+          padding: clamp(3px, 0.8vw, 6px) clamp(6px, 1.5vw, 12px) !important;
+          min-height: clamp(24px, 4vw, 32px) !important;
+        }
+      }
+      
+      /* Ensure container can accommodate content */
+      #videoContainer .placeholder {
+        overflow: visible !important;
+        padding: clamp(10px, 2vw, 20px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
       }
     </style>
 
@@ -1429,7 +1631,7 @@ permalink: /livestream/
         <div class="d-grid gap-2 mb-3">
           <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
             <i class="bi bi-share"></i> Share Livestream
-          </button>
+            </button>
         </div>
         <div class="d-grid gap-2 mb-3">
           <button
@@ -1684,7 +1886,9 @@ permalink: /livestream/
         </div>
         <div id="videoContainer">
           <div class="placeholder">
-            <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
+            <div style="margin-bottom: 2rem;">
+              <i class="bi bi-camera-video-off" style="font-size: 4rem !important; color: #d1d5db !important; display: inline-block !important;"></i>
+            </div>
             <p id="placeholderTitle">No video stream</p>
             <button
               id="placeholderConnectBtn"
@@ -1741,107 +1945,145 @@ permalink: /livestream/
               </div>
             </div>
 
-            <div id="connectedNoStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
+            <!-- Shared camera icon for all error notifications - always appears above notification text -->
+            <div id="errorNotificationIcon" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% - 200px)); text-align: center; z-index: 1001;">
+              <i class="bi bi-camera-video-off" style="font-size: 4rem; color: #d1d5db;"></i>
+            </div>
+
+            <div id="connectedNoStreamDetails" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90%; width: 100%; padding: 20px; text-align: center; z-index: 1000;">
               <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
                 <strong>Stream ID:</strong> <span id="noDataRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
               </div>
-              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
-                You've connected to the stream but video is not loading. This is likely due to your internet connection type (some mobile data plans do not allow P2P streaming). Try switching to WiFi or share this stream with a device on a different connection.
+              <div style="margin-bottom: 2rem; font-size: 1.1em; line-height: 1.6; color: #d1d5db; text-align: center; max-width: 100%; word-wrap: break-word; hyphens: auto;">
+                You've connected to the stream but video is not loading.<br>
+                This is likely due to your internet connection type<br>
+                (some mobile data plans do not allow P2P streaming).<br>
+                Try switching to WiFi or share this stream with a device<br>
+                on a different connection.
               </div>
-              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: center;">
                 <button
                   id="connectedNoStreamRetryBtn"
-                  class="btn btn-warning w-100"
+                  class="btn btn-warning"
                   onclick="window.viewer.retryConnection()"
-                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-arrow-clockwise"></i> Retry Connection
                 </button>
                 <button
-                  class="btn btn-primary w-100"
+                  class="btn btn-primary"
                   data-bs-toggle="modal"
                   data-bs-target="#shareModal"
-                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-share"></i> Share Livestream
                 </button>
                 <button
-                  class="btn w-100"
+                  class="btn"
                   data-bs-toggle="modal"
                   data-bs-target="#joinModal"
-                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
                 </button>
+                <a id="getHelpLinkConnected" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
+                  margin-top: 1rem;
+                  display: inline-block;
+                  background-color: #465373;
+                  color: #d1d5db;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  font-size: 0.9em;
+                  border: 1px solid #5a6b7d;
+                ">
+                  <i class="bi bi-question-circle"></i> Get Help
+                </a>
               </div>
             </div>
 
-            <div id="noStreamDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
-              <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
+            <div id="noStreamDetails" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90%; width: 100%; padding: clamp(15px, 4vw, 40px); text-align: center; z-index: 1000;">
+              <div style="margin-bottom: 1.5rem; word-break: break-all; color: #d1d5db; font-size: clamp(1.1rem, 3.5vw, 1.8rem);">
                 <strong>Stream ID:</strong> <span id="attemptedRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
               </div>
-              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
-                Unable to load this stream. The publisher may have stopped streaming, or the Stream ID may have been mistyped.
+              <div style="margin-bottom: 2.5rem; font-size: clamp(1.2rem, 4vw, 2rem); line-height: 1.6; color: #d1d5db; text-align: center; max-width: 100%; word-wrap: break-word; hyphens: auto; padding: 0 clamp(15px, 3vw, 30px);">
+                Unable to load this stream.<br>
+                The publisher may have stopped streaming,<br>
+                or the Stream ID may have been mistyped.
               </div>
-              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: center;">
                 <button
-                  class="btn btn-warning w-100"
+                  class="btn btn-warning"
                   onclick="window.viewer.retryConnection()"
-                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-arrow-clockwise"></i> Retry Connection
                 </button>
                 <button
-                  class="btn w-100"
+                  class="btn"
                   data-bs-toggle="modal"
                   data-bs-target="#joinModal"
-                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
                 </button>
+                <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
+                  margin-top: 1rem;
+                  display: inline-block;
+                  background-color: #465373;
+                  color: #d1d5db;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  font-size: 0.9em;
+                  border: 1px solid #5a6b7d;
+                ">
+                  <i class="bi bi-question-circle"></i> Get Help
+                </a>
               </div>
             </div>
 
-            <div id="roomFullDetails" style="display: none; margin-top: 1rem; max-width: 550px; width: 90%; padding: 0 15px;">
+            <div id="roomFullDetails" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90%; width: 100%; padding: 20px; text-align: center; z-index: 1000;">
               <div style="margin-bottom: 1rem; word-break: break-all; color: #d1d5db;">
                 <strong>Stream ID:</strong> <span id="roomFullRoomId" style="font-family: monospace; font-size: 1.1em; color: #ffc107;"></span>
               </div>
-              <div style="margin-bottom: 1rem; font-size: 0.95em; line-height: 1.5; color: #d1d5db;">
-                Unable to load stream: Streams are limited to 3 viewers to avoid network congestion. Ask other viewers to disconnect
+              <div style="margin-bottom: 2rem; font-size: 1.1em; line-height: 1.6; color: #d1d5db; text-align: center; max-width: 100%; word-wrap: break-word; hyphens: auto;">
+                Unable to load stream:<br>
+                Streams are limited to 3 viewers to avoid network congestion.<br>
+                Ask other viewers to disconnect.
               </div>
-              <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: center;">
                 <button
-                  class="btn btn-warning w-100"
+                  class="btn btn-warning"
                   onclick="window.viewer.retryConnection()"
-                  style="padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-arrow-clockwise"></i> Retry Connection
                 </button>
                 <button
-                  class="btn w-100"
+                  class="btn"
                   data-bs-toggle="modal"
                   data-bs-target="#joinModal"
-                  style="background-color: #314268; border-color: #314268; color: white; padding: 10px 20px; font-weight: 500; max-width: 300px;"
+                  style="background-color: #314268; border-color: #314268; color: white; padding: 12px 24px; font-weight: 500; min-width: 200px;"
                 >
                   <i class="bi bi-box-arrow-in-right"></i> Connect to Another Stream
                 </button>
-              </div>
-            </div>
-
-            <a id="getHelpLink" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
+                <a id="getHelpLinkRoomFull" href="https://www.eagleeyessearch.com/faq?query=livestreaming" target="_blank" style="
               margin-top: 1rem;
               display: inline-block;
               background-color: #465373;
-              color: white;
+                  color: #d1d5db;
               padding: 8px 16px;
-              border-radius: 6px;
+                  border-radius: 4px;
               text-decoration: none;
-              font-size: 14px;
-              font-weight: 500;
-              transition: background-color 0.2s;
-            " onmouseover="this.style.backgroundColor='#556382'" onmouseout="this.style.backgroundColor='#465373'">
+                  font-size: 0.9em;
+                  border: 1px solid #5a6b7d;
+                ">
               <i class="bi bi-question-circle"></i> Get Help
             </a>
+              </div>
+            </div>
+
           </div>
           <video id="remoteVideo" autoplay playsinline muted controls></video>
         </div>
@@ -1860,6 +2102,18 @@ permalink: /livestream/
       document.addEventListener("DOMContentLoaded", () => {
         const videoPanel = document.getElementById("video-panel");
         const mapPanel = document.getElementById("map-panel");
+        
+        // Ensure placeholder is visible on page load
+        const placeholder = document.querySelector('.placeholder');
+        if (placeholder) {
+          placeholder.style.display = 'flex';
+          placeholder.style.visibility = 'visible';
+          placeholder.style.opacity = '1';
+          placeholder.style.position = 'relative';
+          placeholder.style.left = 'auto';
+          placeholder.style.zIndex = '1';
+          placeholder.style.pointerEvents = 'auto';
+        }
 
         function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");
@@ -2088,20 +2342,23 @@ permalink: /livestream/
             });
           });
 
-        // Initialize with the currently selected view mode on page load
+        // Initialize with aspect ratio-based layout
         setTimeout(() => {
           // Check which radio button is selected and apply that view mode
           const splitViewRadio = document.getElementById('split-view');
           const videoViewRadio = document.getElementById('video-only');
           const mapViewRadio = document.getElementById('map-only');
-          
-          // Also check mobile radio buttons
           const splitViewMobileRadio = document.getElementById('split-view-mobile');
           const videoViewMobileRadio = document.getElementById('video-only-mobile');
           const mapViewMobileRadio = document.getElementById('map-only-mobile');
           
-          // Try to restore view mode from localStorage
-          let selectedMode = localStorage.getItem('livestream_view_mode') || "split"; // default
+          // Check if we have an active stream connected
+          const hasActiveStream = window.viewer && window.viewer.isConnected && window.viewer.hasVideoStream;
+          
+          // Default to video mode when no stream, otherwise use stored preference
+          let selectedMode = hasActiveStream ? 
+            (localStorage.getItem('livestream_view_mode') || "split") : 
+            "video";
           
           if (videoViewRadio && videoViewRadio.checked) {
             selectedMode = "video";
@@ -2113,7 +2370,7 @@ permalink: /livestream/
             selectedMode = "map";
           }
           
-          // Ensure both desktop and mobile radio buttons are synced
+          // Sync radio buttons
           if (selectedMode === "split") {
             if (splitViewRadio) splitViewRadio.checked = true;
             if (splitViewMobileRadio) splitViewMobileRadio.checked = true;
@@ -2124,6 +2381,11 @@ permalink: /livestream/
             if (mapViewRadio) mapViewRadio.checked = true;
             if (mapViewMobileRadio) mapViewMobileRadio.checked = true;
           }
+          
+          // Debug aspect ratio detection
+          const aspectRatio = window.innerWidth / window.innerHeight;
+          const isLandscape = window.innerWidth >= window.innerHeight;
+          console.log(`Aspect Ratio Detection - Width: ${window.innerWidth}, Height: ${window.innerHeight}, Ratio: ${aspectRatio.toFixed(2)}, Landscape: ${isLandscape}`);
           
           console.log('Initializing with view mode:', selectedMode);
           setViewMode(selectedMode);
@@ -2189,7 +2451,7 @@ permalink: /livestream/
         if (originalJoinRoom) {
           window.joinRoom = function() {
             const result = originalJoinRoom.apply(this, arguments);
-            // Maintain view mode after stream connects
+            // Auto-switch to split view after stream connects (1 second delay)
             setTimeout(() => {
               // Check BOTH desktop and mobile radio buttons
               const splitViewRadio = document.getElementById('split-view');
@@ -2220,8 +2482,18 @@ permalink: /livestream/
                 if (mapViewMobileRadio) mapViewMobileRadio.checked = true;
               }
               
-              console.log('Stream connected - maintaining view mode:', selectedMode);
-              setViewMode(selectedMode);
+              // Always switch to split view after stream connects
+              console.log('Stream connected - switching to split view');
+              
+              // Update radio buttons
+              if (splitViewRadio) splitViewRadio.checked = true;
+              if (splitViewMobileRadio) splitViewMobileRadio.checked = true;
+              
+              // Apply split view
+              setViewMode("split");
+              
+              // Save preference
+              localStorage.setItem('livestream_view_mode', 'split');
               
               // Force layout recalculation for mobile
               if (window.innerWidth <= 991) {
@@ -2247,7 +2519,7 @@ permalink: /livestream/
               setTimeout(() => {
                 loadCalTopoObjects();
               }, 1000);
-            }, 500);
+            }, 1000);
             return result;
           };
         }
@@ -2403,18 +2675,27 @@ permalink: /livestream/
         const placeholderTitle = document.getElementById('placeholderTitle');
         const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
         const noStreamDetails = document.getElementById('noStreamDetails');
+        const errorNotificationIcon = document.getElementById('errorNotificationIcon');
 
         if (placeholderTitle) placeholderTitle.style.display = 'block';
         if (placeholderConnectBtn) placeholderConnectBtn.style.display = 'inline-block';
         if (noStreamDetails) noStreamDetails.style.display = 'none';
+        if (errorNotificationIcon) errorNotificationIcon.style.display = 'none';
 
         // Show map panel, coordinate strip, and restore normal layout when hiding notification
         const mapPanel = document.getElementById('map-panel');
         const videoPanel = document.getElementById('video-panel');
         const coordStripContainer = document.getElementById('coordinateStripContainer');
+        const placeholder = document.querySelector('.placeholder');
+        
         if (mapPanel) mapPanel.style.display = 'block';
         if (videoPanel) videoPanel.classList.remove('col-12');
         if (coordStripContainer) coordStripContainer.style.display = 'flex';
+        
+        // Show the original placeholder again
+        if (placeholder) {
+          placeholder.style.display = 'flex';
+        }
       }
 
       function showNoStreamNotification() {
@@ -2422,6 +2703,7 @@ permalink: /livestream/
         const placeholderConnectBtn = document.getElementById('placeholderConnectBtn');
         const noStreamDetails = document.getElementById('noStreamDetails');
         const attemptedRoomId = document.getElementById('attemptedRoomId');
+        const errorNotificationIcon = document.getElementById('errorNotificationIcon');
 
         // Get the current room ID from the viewer
         const roomId = window.viewer ? window.viewer.currentRoomId : null;
@@ -2432,14 +2714,22 @@ permalink: /livestream/
           placeholderConnectBtn.style.display = 'none';
           attemptedRoomId.textContent = roomId;
           noStreamDetails.style.display = 'block';
+          if (errorNotificationIcon) errorNotificationIcon.style.display = 'block';
 
           // Hide map panel, coordinate strip, and expand video panel when unable to load stream
           const mapPanel = document.getElementById('map-panel');
           const videoPanel = document.getElementById('video-panel');
           const coordStripContainer = document.getElementById('coordinateStripContainer');
+          const placeholder = document.querySelector('.placeholder');
+          
           if (mapPanel) mapPanel.style.display = 'none';
           if (videoPanel) videoPanel.classList.add('col-12');
           if (coordStripContainer) coordStripContainer.style.display = 'none';
+          
+          // Hide the original placeholder when showing error notification
+          if (placeholder) {
+            placeholder.style.display = 'none';
+          }
         }
       }
 
@@ -2910,69 +3200,31 @@ permalink: /livestream/
       setInterval(syncMobileViewersButton, 1000);
       setTimeout(syncMobileViewersButton, 500); // Initial check
 
-      // Handle mobile orientation changes
+      // Handle orientation changes with aspect ratio detection
       window.addEventListener('orientationchange', () => {
         console.log('Orientation changed, updating layout...');
         setTimeout(() => {
-          // Ensure split view is maintained on orientation change
-          const splitViewRadio = document.getElementById('split-view-mobile');
-          if (splitViewRadio && splitViewRadio.checked) {
-            console.log('Maintaining split view after orientation change');
+          // Debug aspect ratio detection
+          const aspectRatio = window.innerWidth / window.innerHeight;
+          const isLandscape = window.innerWidth >= window.innerHeight;
+          console.log(`Orientation Change - Width: ${window.innerWidth}, Height: ${window.innerHeight}, Ratio: ${aspectRatio.toFixed(2)}, Landscape: ${isLandscape}`);
+          
+          // Clear any inline styles to let CSS handle layout
+          const mainContent = document.getElementById('main-content');
+          const videoPanel = document.getElementById('video-panel');
+          const mapPanel = document.getElementById('map-panel');
+          
+          if (mainContent && videoPanel && mapPanel) {
+            // Clear inline styles to let CSS media queries take control
+            videoPanel.style.flex = '';
+            videoPanel.style.width = '';
+            videoPanel.style.height = '';
+            mapPanel.style.flex = '';
+            mapPanel.style.width = '';
+            mapPanel.style.height = '';
+            mainContent.style.flexDirection = '';
             
-            // Force proper mobile layout based on orientation
-            const mainContent = document.getElementById('main-content');
-            const videoPanel = document.getElementById('video-panel');
-            const mapPanel = document.getElementById('map-panel');
-            
-            if (mainContent && videoPanel && mapPanel) {
-              // Force layout refresh
-              mainContent.style.display = 'none';
-              setTimeout(() => {
-                mainContent.style.display = 'flex';
-                
-                // Ensure both panels are visible in split view
-                videoPanel.classList.remove('d-none');
-                mapPanel.classList.remove('d-none');
-                
-                // Force correct mobile layout classes
-                if (window.innerWidth <= 991) {
-                  // Check if we're in split view mode (not full screen)
-                  const isSplitView = !videoPanel.classList.contains('full-view') && 
-                                    !mapPanel.classList.contains('full-view') &&
-                                    !videoPanel.classList.contains('d-none') && 
-                                    !mapPanel.classList.contains('d-none');
-                  
-                  if (isSplitView) {
-                    // Mobile - force layout based on orientation
-                    if (window.innerHeight < window.innerWidth) {
-                      // Landscape mode - force side by side
-                      videoPanel.style.flex = '0 0 50%';
-                      videoPanel.style.width = '50%';
-                      mapPanel.style.flex = '0 0 50%';
-                      mapPanel.style.width = '50%';
-                      mainContent.style.flexDirection = 'row';
-                    } else {
-                      // Portrait mode - force top/bottom layout
-                      videoPanel.style.flex = '0 0 50%';
-                      videoPanel.style.width = '100%';
-                      mapPanel.style.flex = '0 0 50%';
-                      mapPanel.style.width = '100%';
-                      mainContent.style.flexDirection = 'column';
-                      // Ensure map is visible
-                      mapPanel.classList.remove('d-none');
-                      mapPanel.style.display = 'flex';
-                    }
-                  }
-                } else {
-                  // Desktop - clear inline styles to let CSS handle it
-                  videoPanel.style.flex = '';
-                  videoPanel.style.width = '';
-                  mapPanel.style.flex = '';
-                  mapPanel.style.width = '';
-                  mainContent.style.flexDirection = '';
-                }
-              }, 50);
-            }
+            console.log('Cleared inline styles - CSS media queries will handle layout based on aspect ratio');
           }
           
           if (window.optimizeVideoFitting) {
@@ -2981,36 +3233,33 @@ permalink: /livestream/
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 100);
           }
-        }, 200); // Increased timeout for better orientation detection
+        }, 100);
       });
 
-      // Handle window resize to maintain split view
+      // Handle window resize with aspect ratio detection
       window.addEventListener('resize', () => {
         setTimeout(() => {
-          // Check if we're in split view mode and maintain it
-          const splitViewRadio = document.getElementById('split-view-mobile');
-          if (splitViewRadio && splitViewRadio.checked) {
-            console.log('Maintaining split view after resize');
-            const videoPanel = document.getElementById('video-panel');
-            const mapPanel = document.getElementById('map-panel');
+          // Debug aspect ratio detection
+          const aspectRatio = window.innerWidth / window.innerHeight;
+          const isLandscape = window.innerWidth >= window.innerHeight;
+          console.log(`Resize - Width: ${window.innerWidth}, Height: ${window.innerHeight}, Ratio: ${aspectRatio.toFixed(2)}, Landscape: ${isLandscape}`);
+          
+          // Clear any inline styles to let CSS handle layout
+          const mainContent = document.getElementById('main-content');
+          const videoPanel = document.getElementById('video-panel');
+          const mapPanel = document.getElementById('map-panel');
+          
+          if (mainContent && videoPanel && mapPanel) {
+            // Clear inline styles to let CSS media queries take control
+            videoPanel.style.flex = '';
+            videoPanel.style.width = '';
+            videoPanel.style.height = '';
+            mapPanel.style.flex = '';
+            mapPanel.style.width = '';
+            mapPanel.style.height = '';
+            mainContent.style.flexDirection = '';
             
-            if (videoPanel && mapPanel) {
-              // Force reapplication of split view classes
-              videoPanel.className = '';
-              mapPanel.className = '';
-              setTimeout(() => {
-                // Reapply the appropriate classes based on current orientation
-                if (window.innerWidth <= 991) {
-                  // Mobile - apply orientation-based layout
-                  videoPanel.classList.add('col-lg-8');
-                  mapPanel.classList.add('col-lg-4');
-                } else {
-                  // Desktop
-                  videoPanel.classList.add('col-lg-8');
-                  mapPanel.classList.add('col-lg-4');
-                }
-              }, 50);
-            }
+            console.log('Cleared inline styles - CSS media queries will handle layout based on aspect ratio');
           }
         }, 100);
       });
