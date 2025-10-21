@@ -64,13 +64,13 @@ permalink: /livestream/
         background-color: #000;
         min-height: 0;
       }
-      /* Mobile: Give more space to video, less to map */
+      /* Mobile: Optimized split screen layout */
       @media (max-width: 991px) {
         #video-panel {
-          flex: 0 0 70%;
+          flex: 0 0 60%; /* Better balance for mobile */
         }
         #map-panel {
-          flex: 0 0 30%;
+          flex: 0 0 40%; /* More map space for better usability */
         }
       }
       @media (min-width: 992px) {
@@ -153,21 +153,37 @@ permalink: /livestream/
       
       /* Mobile landscape optimization: 50/50 split */
       @media (max-width: 991px) and (orientation: landscape) {
+        #main-content {
+          flex-direction: row !important; /* Video left, map right */
+        }
         #video-panel {
           flex: 0 0 50% !important;
+          min-width: 0;
         }
         #map-panel {
           flex: 0 0 50% !important;
+          min-width: 0;
         }
         #remoteVideo {
-          object-fit: cover; /* Fill space in landscape mobile */
+          object-fit: contain; /* Show full video without cropping */
         }
       }
       
-      /* Mobile portrait: keep current proportions */
+      /* Mobile portrait: video top, map bottom layout */
       @media (max-width: 991px) and (orientation: portrait) {
+        #main-content {
+          flex-direction: column !important;
+        }
+        #video-panel {
+          flex: 0 0 50% !important;
+          min-height: 0;
+        }
+        #map-panel {
+          flex: 0 0 50% !important;
+          min-height: 0;
+        }
         #remoteVideo {
-          object-fit: cover; /* Fill space in portrait mobile */
+          object-fit: contain; /* Show full video without cropping */
         }
       }
       
@@ -311,10 +327,409 @@ permalink: /livestream/
         .navbar-brand span:not(.beta-badge) {
           display: none;
         }
+        
+        /* Hide status text on mobile to make space for share button */
+        #status .status-text {
+          display: none !important;
+        }
+        
+        /* Show mobile share button */
+        #mobileShareBtn {
+          display: block !important;
+        }
+        
+        /* Mobile responsive error displays - make text and buttons smaller */
+        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
+          font-size: 10px !important;
+          max-width: calc(100vw - 20px) !important;
+          width: calc(100vw - 20px) !important;
+          padding: 8px !important;
+          margin: 0.3rem auto !important;
+          word-wrap: break-word !important;
+          line-height: 1.3 !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: 8px !important;
+          padding: 3px 6px !important;
+          max-width: 150px !important;
+          width: auto !important;
+          margin: 0.2rem 0 !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: initial !important;
+          display: inline-block !important;
+          line-height: 1.2 !important;
+          min-height: auto !important;
+          height: auto !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: 6px !important;
+        }
+        
+        #getHelpLink {
+          font-size: 8px !important;
+          padding: 3px 6px !important;
+          max-width: 150px !important;
+          max-width: calc(100vw - 20px) !important;
+          width: calc(100vw - 20px) !important;
+          padding: 10px !important;
+          margin: 0.5rem auto !important;
+          word-wrap: break-word !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: 10px !important;
+          padding: 4px 8px !important;
+          max-width: 200px !important;
+          width: auto !important;
+          margin: 0.2rem 0 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          display: inline-block !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: 8px !important;
+        }
+        
+        #getHelpLink {
+          font-size: 8px !important;
+          padding: 3px 6px !important;
+          max-width: 150px !important;
+          width: auto !important;
+          margin: 0.2rem auto !important;
+          display: inline-block !important;
+          text-align: center !important;
+          line-height: 1.2 !important;
+        }
+        
+        #getHelpLink i {
+          font-size: 6px !important;
+        }
+        
+        /* Make placeholder content smaller for mobile */
+        .placeholder {
+          padding: 15px 10px !important;
+          max-width: calc(100vw - 20px) !important;
+          width: calc(100vw - 20px) !important;
+        }
+        
+        .placeholder i {
+          font-size: 2.5rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        
+        .placeholder p {
+          font-size: 0.9rem !important;
+          margin-bottom: 1rem !important;
+          padding: 0 5px !important;
+        }
+        
+        .placeholder .btn {
+          font-size: 10px !important;
+          padding: 4px 8px !important;
+          max-width: 200px !important;
+          width: auto !important;
+        }
+        
+        .placeholder .btn i {
+          font-size: 8px !important;
+        }
+        
       }
+      
+      /* Mobile landscape orientation - video left, map right (only for split view) */
+      @media (max-width: 991px) and (orientation: landscape) {
+        /* Split view layout for mobile landscape - only when not in full screen modes */
+        #main-content:not(.fullscreen-video):not(.fullscreen-map) {
+          flex-direction: row !important; /* Video left, map right */
+        }
+        #video-panel:not(.full-view):not(.d-none) {
+          flex: 0 0 50% !important;
+          min-width: 0;
+          display: flex !important;
+          width: 50% !important;
+        }
+        #map-panel:not(.full-view):not(.d-none) {
+          flex: 0 0 50% !important;
+          min-width: 0;
+          display: flex !important;
+          width: 50% !important;
+        }
+        #remoteVideo {
+          object-fit: contain; /* Show full video without cropping */
+        }
+        
+        /* Force override any conflicting classes - only for split view */
+        #video-panel.col-lg-8:not(.full-view):not(.d-none) {
+          flex: 0 0 50% !important;
+          width: 50% !important;
+        }
+        #map-panel.col-lg-4:not(.full-view):not(.d-none) {
+          flex: 0 0 50% !important;
+          width: 50% !important;
+        }
+      }
+        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
+          font-size: 8px !important;
+          padding: 4px !important;
+          margin: 0.2rem auto !important;
+          max-width: calc(100vw - 5px) !important;
+          width: calc(100vw - 5px) !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          hyphens: auto !important;
+          text-align: center !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* Target the specific error text within the video container */
+        #noStreamDetails p, #connectedNoStreamDetails p, #roomFullDetails p {
+          font-size: 6px !important;
+          margin: 0.05rem 0 !important;
+          padding: 0 1px !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          hyphens: auto !important;
+          line-height: 1.0 !important;
+          max-width: calc(100vw - 8px) !important;
+          width: calc(100vw - 8px) !important;
+          text-align: center !important;
+        }
+        
+        /* Target any text elements that might be causing overflow */
+        #noStreamDetails *, #connectedNoStreamDetails *, #roomFullDetails * {
+          max-width: 100% !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          hyphens: auto !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: 7px !important;
+          padding: 2px 4px !important;
+          max-width: 120px !important;
+          margin: 0.1rem 0 !important;
+          white-space: normal !important;
+          line-height: 1.1 !important;
+          height: auto !important;
+          min-height: auto !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: 5px !important;
+        }
+        
+        #getHelpLink {
+          font-size: 7px !important;
+          padding: 2px 4px !important;
+          max-width: 120px !important;
+        }
+        
+        #getHelpLink i {
+          font-size: 5px !important;
+        }
+      }
+      
+      /* Mobile portrait orientation - video top, map bottom */
+      @media (max-width: 991px) and (orientation: portrait) {
+        /* Split view layout for mobile portrait */
+        #main-content {
+          flex-direction: column !important; /* Video top, map bottom */
+        }
+        #video-panel {
+          flex: 0 0 50% !important;
+          min-height: 0;
+          display: flex !important;
+          width: 100% !important;
+        }
+        #map-panel {
+          flex: 0 0 50% !important;
+          min-height: 0;
+          display: flex !important;
+          width: 100% !important;
+        }
+        #remoteVideo {
+          object-fit: contain; /* Show full video without cropping */
+        }
+        
+        /* Force map to be visible in portrait split view */
+        #map-panel.d-none {
+          display: flex !important;
+        }
+        #map-panel.col-lg-4 {
+          display: flex !important;
+          flex: 0 0 50% !important;
+          width: 100% !important;
+        }
+      }
+      
+      /* Extra small mobile screens */
+      @media (max-width: 480px) {
+        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
+          font-size: 9px !important;
+          padding: 6px !important;
+          margin: 0.2rem auto !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: 7px !important;
+          padding: 2px 4px !important;
+          max-width: 120px !important;
+          margin: 0.1rem 0 !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: 5px !important;
+        }
+        
+        #getHelpLink {
+          font-size: 7px !important;
+          padding: 2px 4px !important;
+          max-width: 120px !important;
+        }
+        
+        #getHelpLink i {
+          font-size: 5px !important;
+        }
+      }
+      
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
         cursor: default !important;
+      }
+
+      /* Ensure map is always visible by default */
+      #map-panel {
+        display: flex !important;
+      }
+      
+      /* Override any hiding of map panel when no stream */
+      #map-panel.d-none {
+        display: flex !important;
+      }
+
+      /* Laser range finder marker animation */
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 0.7;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* Mobile responsive styles for disconnect popup */
+      @media (max-width: 768px) {
+        #sharedDisconnectedOverlay {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 8px !important;
+          padding: 12px !important;
+          font-size: 14px !important;
+          width: calc(100vw - 20px) !important;
+          max-width: calc(100vw - 20px) !important;
+          white-space: normal !important;
+        }
+        
+        #sharedDisconnectedOverlay > div {
+          margin-left: 0 !important;
+          width: 100% !important;
+          justify-content: center !important;
+        }
+        
+        #sharedDisconnectedOverlay button {
+          flex: 1 !important;
+          min-width: 80px !important;
+          padding: 8px 12px !important;
+          font-size: 13px !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        #sharedDisconnectedOverlay {
+          font-size: 13px !important;
+          padding: 10px !important;
+        }
+        
+        #sharedDisconnectedOverlay button {
+          font-size: 12px !important;
+          padding: 6px 10px !important;
+        }
+        
+        /* Extra small mobile - even more aggressive sizing */
+        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
+          font-size: 11px !important;
+          max-width: calc(100vw - 10px) !important;
+          width: calc(100vw - 10px) !important;
+          padding: 8px !important;
+        }
+        
+        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
+          font-size: 9px !important;
+          padding: 3px 6px !important;
+          max-width: 150px !important;
+          width: auto !important;
+        }
+        
+        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
+          font-size: 7px !important;
+        }
+        
+        #getHelpLink {
+          font-size: 9px !important;
+          padding: 3px 6px !important;
+          max-width: 150px !important;
+          width: auto !important;
+        }
+        
+        #getHelpLink i {
+          font-size: 7px !important;
+        }
+        
+        .placeholder {
+          padding: 10px 5px !important;
+          max-width: calc(100vw - 10px) !important;
+          width: calc(100vw - 10px) !important;
+        }
+        
+        .placeholder i {
+          font-size: 2rem !important;
+        }
+        
+        .placeholder p {
+          font-size: 0.8rem !important;
+        }
+        
+        .placeholder .btn {
+          font-size: 9px !important;
+          padding: 3px 6px !important;
+          max-width: 150px !important;
+          width: auto !important;
+        }
+        
+        .placeholder .btn i {
+          font-size: 7px !important;
+        }
+        
+      }
+
+      /* Fullscreen exit button styles */
+      #fullscreenExitBtn {
+        display: none !important;
+      }
+      
+      #fullscreenExitBtn.show {
+        display: flex !important;
       }
     </style>
 
@@ -539,10 +954,18 @@ permalink: /livestream/
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
-          <img src="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}" alt="Eagle Eyes Beta Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
+          <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Beta Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
           <span>Eagle Eyes Livestream Viewer</span>
-          <span class="beta-badge">BETA</span>
         </a>
+
+        <button
+          id="fullscreenBtn"
+          class="btn btn-outline-light btn-sm me-3"
+          onclick="toggleFullscreen()"
+          title="Toggle Fullscreen"
+        >
+          <i class="bi bi-fullscreen"></i>
+        </button>
 
         <div
           id="status"
@@ -551,6 +974,17 @@ permalink: /livestream/
           <span class="status-dot"></span>
           <span class="status-text small"></span>
         </div>
+
+        <button
+          id="mobileShareBtn"
+          class="btn btn-outline-light btn-sm me-2"
+          data-bs-toggle="modal"
+          data-bs-target="#shareModal"
+          title="Share Stream"
+          style="display: none;"
+        >
+          <i class="bi bi-share"></i>
+        </button>
 
         <button
           class="navbar-toggler"
@@ -818,6 +1252,11 @@ permalink: /livestream/
             </button>
         </div>
         <div class="d-grid gap-2 mb-3">
+          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
+            <i class="bi bi-share"></i> Share Livestream
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
           <button
             id="leaveBtnMobile"
             class="btn btn-dark"
@@ -825,6 +1264,17 @@ permalink: /livestream/
             disabled
           >
             <i class="bi bi-stop-fill"></i> Disconnect
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button
+            id="viewersBtnMobile"
+            class="btn btn-dark"
+            style="padding: 0.5rem 0.75rem;"
+            onclick="if(window.viewer) window.viewer.showViewerListDialog()"
+            title="Show Viewers"
+          >
+            <i class="bi bi-people-fill"></i> Viewers (<span id="viewerCountMobile">0</span>)
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
@@ -876,14 +1326,25 @@ permalink: /livestream/
             >Map</label
           >
         </div>
+        
+        <div class="d-grid gap-2 mb-3">
+          <button id="pipBtn" class="btn btn-outline-secondary" onclick="togglePictureInPicture()">
+            <i class="bi bi-picture-in-picture"></i> Picture-in-Picture
+          </button>
+        </div>
         <div class="d-grid gap-2 mb-3">
           <button class="btn btn-secondary" onclick="centerOnDrone()">
             <i class="bi bi-bullseye"></i> Center on Drone
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
-          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
-            <i class="bi bi-share"></i> Share Livestream
+          <button id="showMyLocationBtn" class="btn btn-outline-secondary" onclick="toggleMyLocation()">
+            <i class="bi bi-geo-alt"></i> Show My Location
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button id="showLaserBtn" class="btn btn-outline-secondary" onclick="toggleLaserRangeFinder()">
+            <i class="bi bi-bullseye"></i> Display Laser Range Finder Location
           </button>
         </div>
         <hr />
@@ -931,10 +1392,11 @@ permalink: /livestream/
         gap: 8px;
         width: fit-content;
         white-space: nowrap;
+        max-width: calc(100vw - 20px);
       ">
         <i class="bi bi-wifi-off"></i>
         <span>Stream disconnected. Attempting to reconnect...</span>
-        <div style="display: flex; gap: 6px; margin-left: 8px;">
+        <div style="display: flex; gap: 6px; margin-left: 8px; flex-wrap: wrap;">
           <button onclick="if(window.viewer) window.viewer.retryConnection()" style="
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.4);
@@ -945,6 +1407,7 @@ permalink: /livestream/
             padding: 4px 10px;
             border-radius: 4px;
             white-space: nowrap;
+            min-width: 60px;
           " title="Try to reconnect now" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
             Try Again
           </button>
@@ -958,10 +1421,36 @@ permalink: /livestream/
             padding: 4px 10px;
             border-radius: 4px;
             white-space: nowrap;
+            min-width: 60px;
           " title="Close this stream" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
             Close this stream
         </button>
         </div>
+      </div>
+
+      <!-- Fullscreen exit button (hidden by default) -->
+      <div id="fullscreenExitBtn" style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1050;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+        transition: all 0.3s ease;
+        width: 48px;
+        height: 48px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      " onclick="toggleFullscreen()" title="Exit Fullscreen" onmouseover="this.style.backgroundColor='rgba(0,0,0,0.8)'" onmouseout="this.style.backgroundColor='rgba(0,0,0,0.7)'">
+        <i class="bi bi-fullscreen-exit"></i>
       </div>
 
       <!-- Connection failed overlay -->
@@ -1223,6 +1712,16 @@ permalink: /livestream/
           }
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);
+          } else {
+            // Initialize map if not already done
+            setTimeout(() => {
+              if (window.initMap) {
+                window.initMap();
+              }
+              if (window.droneMap && window.droneMap.resize) {
+                window.droneMap.resize();
+              }
+            }, 200);
           }
         }
 
@@ -1401,11 +1900,113 @@ permalink: /livestream/
               document.getElementById(mode + "-view").checked = true;
             });
           });
+
+        // Initialize with split view mode on page load
+        setTimeout(() => {
+          setViewMode("split");
+          
+          // Ensure mobile layout is properly initialized
+          if (window.innerWidth <= 991) {
+            const videoPanel = document.getElementById('video-panel');
+            const mapPanel = document.getElementById('map-panel');
+            
+            if (videoPanel && mapPanel) {
+              // Force mobile layout classes
+              videoPanel.classList.remove('d-none');
+              mapPanel.classList.remove('d-none');
+              videoPanel.classList.add('col-lg-8');
+              mapPanel.classList.add('col-lg-4');
+            }
+          }
+          
+          // Always ensure map is visible and initialized
+          if (window.droneMap && window.droneMap.map) {
+            console.log('Map already initialized');
+          } else {
+            // Initialize map if not already done
+            setTimeout(() => {
+              if (window.initMap) {
+                window.initMap();
+              }
+              if (window.droneMap && window.droneMap.resize) {
+                window.droneMap.resize();
+              }
+            }, 500);
+          }
+        }, 100);
+
+        // Ensure split view is maintained when stream connects
+        const originalJoinRoom = window.joinRoom;
+        if (originalJoinRoom) {
+          window.joinRoom = function() {
+            const result = originalJoinRoom.apply(this, arguments);
+            // Ensure split view after stream connects
+            setTimeout(() => {
+              // Force split view and ensure proper layout
+              const splitViewRadio = document.getElementById('split-view-mobile');
+              if (splitViewRadio) {
+                splitViewRadio.checked = true;
+              }
+              setViewMode("split");
+              
+              // Force layout recalculation for mobile
+              if (window.innerWidth <= 991) {
+                const mainContent = document.getElementById('main-content');
+                const videoPanel = document.getElementById('video-panel');
+                const mapPanel = document.getElementById('map-panel');
+                
+                if (mainContent && videoPanel && mapPanel) {
+                  // Force reapplication of mobile layout
+                  mainContent.style.display = 'none';
+                  setTimeout(() => {
+                    mainContent.style.display = 'flex';
+                    // Ensure both panels are visible
+                    videoPanel.classList.remove('d-none');
+                    mapPanel.classList.remove('d-none');
+                  }, 100);
+                }
+              }
+            }, 500);
+            return result;
+          };
+        }
       });
 
       function centerOnDrone() {
         if (window.droneMap) window.droneMap.centerOnDrone();
       }
+
+      function toggleFullscreen() {
+        const navbar = document.querySelector('.navbar');
+        const exitBtn = document.getElementById('fullscreenExitBtn');
+        
+        if (!document.fullscreenElement) {
+          // Enter fullscreen
+          document.documentElement.requestFullscreen().then(() => {
+            // Hide the navbar when in fullscreen
+            if (navbar) navbar.style.display = 'none';
+            // Show the exit button
+            if (exitBtn) exitBtn.classList.add('show');
+            document.getElementById('fullscreenBtn').innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+            document.getElementById('fullscreenBtn').title = 'Exit Fullscreen';
+          }).catch(err => {
+            console.log('Error attempting to enable fullscreen:', err);
+          });
+        } else {
+          // Exit fullscreen
+          document.exitFullscreen().then(() => {
+            // Show the navbar when exiting fullscreen
+            if (navbar) navbar.style.display = 'flex';
+            // Hide the exit button
+            if (exitBtn) exitBtn.classList.remove('show');
+            document.getElementById('fullscreenBtn').innerHTML = '<i class="bi bi-fullscreen"></i>';
+            document.getElementById('fullscreenBtn').title = 'Toggle Fullscreen';
+          }).catch(err => {
+            console.log('Error attempting to exit fullscreen:', err);
+          });
+        }
+      }
+
 
       function openCaltopoMap() {
         if (window.droneMap && window.droneMap.caltopoInfo) {
@@ -1926,6 +2527,506 @@ permalink: /livestream/
           stopQRScanner();
         }
       });
+
+      // Mobile viewers button visibility and count control
+      function syncMobileViewersButton() {
+        const mobileViewersBtn = document.getElementById('viewersBtnMobile');
+        const mobileViewerCount = document.getElementById('viewerCountMobile');
+        const desktopViewerCount = document.getElementById('viewerCount');
+        
+        if (mobileViewersBtn) {
+          // Always show the viewers button
+          mobileViewersBtn.style.display = 'block';
+        }
+        
+        // Sync viewer count with desktop
+        if (mobileViewerCount && desktopViewerCount) {
+          mobileViewerCount.textContent = desktopViewerCount.textContent;
+        }
+      }
+
+      // Monitor for changes to stream state and sync mobile viewers button
+      setInterval(syncMobileViewersButton, 1000);
+      setTimeout(syncMobileViewersButton, 500); // Initial check
+
+      // Handle mobile orientation changes
+      window.addEventListener('orientationchange', () => {
+        console.log('Orientation changed, updating layout...');
+        setTimeout(() => {
+          // Ensure split view is maintained on orientation change
+          const splitViewRadio = document.getElementById('split-view-mobile');
+          if (splitViewRadio && splitViewRadio.checked) {
+            console.log('Maintaining split view after orientation change');
+            
+            // Force proper mobile layout based on orientation
+            const mainContent = document.getElementById('main-content');
+            const videoPanel = document.getElementById('video-panel');
+            const mapPanel = document.getElementById('map-panel');
+            
+            if (mainContent && videoPanel && mapPanel) {
+              // Force layout refresh
+              mainContent.style.display = 'none';
+              setTimeout(() => {
+                mainContent.style.display = 'flex';
+                
+                // Ensure both panels are visible in split view
+                videoPanel.classList.remove('d-none');
+                mapPanel.classList.remove('d-none');
+                
+                // Force correct mobile layout classes
+                if (window.innerWidth <= 991) {
+                  // Check if we're in split view mode (not full screen)
+                  const isSplitView = !videoPanel.classList.contains('full-view') && 
+                                    !mapPanel.classList.contains('full-view') &&
+                                    !videoPanel.classList.contains('d-none') && 
+                                    !mapPanel.classList.contains('d-none');
+                  
+                  if (isSplitView) {
+                    // Mobile - force layout based on orientation
+                    if (window.innerHeight < window.innerWidth) {
+                      // Landscape mode - force side by side
+                      videoPanel.style.flex = '0 0 50%';
+                      videoPanel.style.width = '50%';
+                      mapPanel.style.flex = '0 0 50%';
+                      mapPanel.style.width = '50%';
+                      mainContent.style.flexDirection = 'row';
+                    } else {
+                      // Portrait mode - force top/bottom layout
+                      videoPanel.style.flex = '0 0 50%';
+                      videoPanel.style.width = '100%';
+                      mapPanel.style.flex = '0 0 50%';
+                      mapPanel.style.width = '100%';
+                      mainContent.style.flexDirection = 'column';
+                      // Ensure map is visible
+                      mapPanel.classList.remove('d-none');
+                      mapPanel.style.display = 'flex';
+                    }
+                  }
+                }
+              }, 50);
+            }
+          }
+          
+          if (window.optimizeVideoFitting) {
+            window.optimizeVideoFitting();
+          }
+          if (window.droneMap) {
+            setTimeout(() => window.droneMap.resize(), 100);
+          }
+        }, 200); // Increased timeout for better orientation detection
+      });
+
+      // Handle window resize to maintain split view
+      window.addEventListener('resize', () => {
+        setTimeout(() => {
+          // Check if we're in split view mode and maintain it
+          const splitViewRadio = document.getElementById('split-view-mobile');
+          if (splitViewRadio && splitViewRadio.checked) {
+            console.log('Maintaining split view after resize');
+            const videoPanel = document.getElementById('video-panel');
+            const mapPanel = document.getElementById('map-panel');
+            
+            if (videoPanel && mapPanel) {
+              // Force reapplication of split view classes
+              videoPanel.className = '';
+              mapPanel.className = '';
+              setTimeout(() => {
+                // Reapply the appropriate classes based on current orientation
+                if (window.innerWidth <= 991) {
+                  // Mobile - apply orientation-based layout
+                  videoPanel.classList.add('col-lg-8');
+                  mapPanel.classList.add('col-lg-4');
+                } else {
+                  // Desktop
+                  videoPanel.classList.add('col-lg-8');
+                  mapPanel.classList.add('col-lg-4');
+                }
+              }, 50);
+            }
+          }
+        }, 100);
+      });
+
+      // Picture-in-Picture variables
+      let pipEnabled = false;
+
+      // Location tracking variables
+      let myLocationEnabled = false;
+      let myLocationMarker = null;
+      let myLocationWatchId = null;
+
+      // Laser range finder variables
+      let laserEnabled = false;
+      let laserMarker = null;
+      let laserUpdateInterval = null;
+
+      function togglePictureInPicture() {
+        const button = document.getElementById('pipBtn');
+        const video = document.getElementById('remoteVideo');
+        
+        if (!video) {
+          alert('No video stream available for Picture-in-Picture');
+          return;
+        }
+
+        // Check if Picture-in-Picture is supported
+        if (!document.pictureInPictureEnabled) {
+          alert('Picture-in-Picture is not supported by this browser');
+          return;
+        }
+
+        if (!pipEnabled) {
+          // Check if video is ready and has content
+          if (video.readyState < 2) {
+            alert('Video is not ready for Picture-in-Picture. Please wait for the stream to load.');
+            return;
+          }
+
+          // Request Picture-in-Picture
+          video.requestPictureInPicture().then(() => {
+            pipEnabled = true;
+            button.innerHTML = '<i class="bi bi-picture-in-picture-exit"></i> Exit PiP';
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-secondary');
+            console.log('Picture-in-Picture enabled');
+          }).catch(err => {
+            console.error('Error entering Picture-in-Picture:', err);
+            let errorMsg = 'Failed to enter Picture-in-Picture mode. ';
+            if (err.name === 'NotAllowedError') {
+              errorMsg += 'User denied permission or browser blocked the request.';
+            } else if (err.name === 'NotSupportedError') {
+              errorMsg += 'Picture-in-Picture is not supported.';
+            } else {
+              errorMsg += 'Please try again.';
+            }
+            alert(errorMsg);
+          });
+        } else {
+          // Exit Picture-in-Picture
+          if (document.pictureInPictureElement) {
+            document.exitPictureInPicture().then(() => {
+              pipEnabled = false;
+              button.innerHTML = '<i class="bi bi-picture-in-picture"></i> Picture-in-Picture';
+              button.classList.remove('btn-secondary');
+              button.classList.add('btn-outline-secondary');
+              console.log('Picture-in-Picture disabled');
+            }).catch(err => {
+              console.error('Error exiting Picture-in-Picture:', err);
+              alert('Failed to exit Picture-in-Picture mode');
+            });
+          }
+        }
+      }
+
+      // Listen for Picture-in-Picture events
+      document.addEventListener('enterpictureinpicture', () => {
+        pipEnabled = true;
+        const button = document.getElementById('pipBtn');
+        if (button) {
+          button.innerHTML = '<i class="bi bi-picture-in-picture-exit"></i> Exit PiP';
+          button.classList.remove('btn-outline-secondary');
+          button.classList.add('btn-secondary');
+        }
+      });
+
+      document.addEventListener('leavepictureinpicture', () => {
+        pipEnabled = false;
+        const button = document.getElementById('pipBtn');
+        if (button) {
+          button.innerHTML = '<i class="bi bi-picture-in-picture"></i> Picture-in-Picture';
+          button.classList.remove('btn-secondary');
+          button.classList.add('btn-outline-secondary');
+        }
+      });
+
+      function toggleLaserRangeFinder() {
+        const button = document.getElementById('showLaserBtn');
+        
+        if (!laserEnabled) {
+          // Enable laser range finder display
+          if (!window.droneMap || !window.droneMap.map) {
+            alert('Map is not available. Please wait for the map to load.');
+            return;
+          }
+
+          const originalText = button.innerHTML;
+          button.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting Laser Data...';
+          button.disabled = true;
+
+          // Start monitoring for laser range finder data
+          laserUpdateInterval = setInterval(() => {
+            updateLaserRangeFinder();
+          }, 1000); // Check every second
+
+          // Initial check
+          setTimeout(() => {
+            updateLaserRangeFinder();
+            button.innerHTML = '<i class="bi bi-bullseye-fill"></i> Hide Laser Range Finder Location';
+            button.disabled = false;
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-secondary');
+            laserEnabled = true;
+          }, 1000);
+
+        } else {
+          // Disable laser range finder display
+          if (laserUpdateInterval) {
+            clearInterval(laserUpdateInterval);
+            laserUpdateInterval = null;
+          }
+          
+          if (laserMarker && window.droneMap && window.droneMap.map) {
+            window.droneMap.map.removeLayer(laserMarker);
+            laserMarker = null;
+          }
+          
+          laserEnabled = false;
+          button.innerHTML = '<i class="bi bi-bullseye"></i> Display Laser Range Finder Location';
+          button.classList.remove('btn-secondary');
+          button.classList.add('btn-outline-secondary');
+          
+          console.log('Laser range finder disabled');
+        }
+      }
+
+      function updateLaserRangeFinder() {
+        // Check if we have drone data with laser range finder info
+        if (window.droneMap && window.droneMap.map && window.droneMap.droneData) {
+          const droneData = window.droneMap.droneData;
+          
+          // Look for laser range finder data in the drone info
+          if (droneData.laserRangeFinder && droneData.laserRangeFinder.lat && droneData.laserRangeFinder.lon) {
+            const lat = parseFloat(droneData.laserRangeFinder.lat);
+            const lon = parseFloat(droneData.laserRangeFinder.lon);
+            
+            if (!isNaN(lat) && !isNaN(lon)) {
+              // Remove existing marker
+              if (laserMarker) {
+                window.droneMap.map.removeLayer(laserMarker);
+              }
+              
+              // Create new laser range finder marker
+              laserMarker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                  className: 'laser-range-marker',
+                  html: `<div style="
+                    width: 12px;
+                    height: 12px;
+                    background-color: #dc3545;
+                    border: 2px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                    animation: pulse 2s infinite;
+                  "></div>`,
+                  iconSize: [12, 12],
+                  iconAnchor: [6, 6]
+                })
+              }).addTo(window.droneMap.map)
+              .bindPopup('Laser Range Finder Location');
+              
+              console.log('Laser range finder location updated:', lat, lon);
+            }
+          }
+        }
+      }
+
+      function toggleMyLocation() {
+        const button = document.getElementById('showMyLocationBtn');
+        
+        if (!myLocationEnabled) {
+          if (!navigator.geolocation) {
+            alert('Geolocation is not supported by this browser.');
+            return;
+          }
+
+          const originalText = button.innerHTML;
+          button.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting Location...';
+          button.disabled = true;
+
+          const mapPanel = document.getElementById('map-panel');
+          const videoPanel = document.getElementById('video-panel');
+          
+          if (mapPanel) {
+            mapPanel.classList.remove('d-none');
+            mapPanel.classList.add('col-12');
+            
+            if (videoPanel) {
+              videoPanel.classList.add('d-none');
+            }
+            
+            if (!window.droneMap || !window.droneMap.map) {
+              console.log('Map not initialized, attempting to create...');
+              setTimeout(() => {
+                if (window.initMap) {
+                  window.initMap();
+                }
+                if (window.droneMap && window.droneMap.resize) {
+                  window.droneMap.resize();
+                }
+              }, 200);
+            } else {
+              setTimeout(() => {
+                if (window.droneMap && window.droneMap.resize) {
+                  window.droneMap.resize();
+                }
+              }, 100);
+            }
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              const heading = position.coords.heading;
+
+              if (!window.droneMap || !window.droneMap.map) {
+                console.log('Map not initialized, attempting to create...');
+                setTimeout(() => {
+                  if (window.droneMap && window.droneMap.map) {
+                    createLocationMarker(lat, lon, heading);
+                  } else {
+                    console.log('Map still not available');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    alert('Map is not available. Please try again.');
+                  }
+                }, 500);
+                return;
+              }
+              
+              createLocationMarker(lat, lon, heading);
+            },
+            function(error) {
+              button.innerHTML = originalText;
+              button.disabled = false;
+              
+              let errorMessage = 'Unable to get your location. ';
+              switch(error.code) {
+                case error.PERMISSION_DENIED: errorMessage += 'Location access denied by user.'; break;
+                case error.POSITION_UNAVAILABLE: errorMessage += 'Location information unavailable.'; break;
+                case error.TIMEOUT: errorMessage += 'Location request timed out.'; break;
+                default: errorMessage += 'An unknown error occurred.'; break;
+              }
+              alert(errorMessage);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          );
+        } else {
+          // Disable location tracking
+          if (myLocationWatchId !== null) {
+            navigator.geolocation.clearWatch(myLocationWatchId);
+            myLocationWatchId = null;
+          }
+          
+          if (myLocationMarker && window.droneMap && window.droneMap.map) {
+            window.droneMap.map.removeLayer(myLocationMarker);
+            myLocationMarker = null;
+          }
+          
+          myLocationEnabled = false;
+          button.innerHTML = '<i class="bi bi-geo-alt"></i> Show My Location';
+          button.classList.remove('btn-secondary');
+          button.classList.add('btn-outline-secondary');
+          
+          console.log('User location disabled');
+        }
+      }
+
+      function createLocationMarker(lat, lon, heading) {
+        if (window.droneMap && window.droneMap.map) {
+          if (myLocationMarker) {
+            window.droneMap.map.removeLayer(myLocationMarker);
+          }
+          
+          let markerOptions = {
+            icon: L.divIcon({
+              className: 'my-location-marker',
+              html: `<div style="
+                width: 24px;
+                height: 24px;
+                background-color: #007bff;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                position: relative;
+              ">
+                ${heading !== null && heading !== undefined ? `
+                  <div style="
+                    position: absolute;
+                    top: -16px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(${heading}deg);
+                    width: 0;
+                    height: 0;
+                    border-left: 9px solid transparent;
+                    border-right: 9px solid transparent;
+                    border-bottom: 20px solid #007bff;
+                    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+                    z-index: 1000;
+                  "></div>
+                ` : `
+                  <div style="
+                    position: absolute;
+                    top: -12px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 0;
+                    height: 0;
+                    border-left: 7px solid transparent;
+                    border-right: 7px solid transparent;
+                    border-bottom: 14px solid #007bff;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+                  "></div>
+                `}
+              </div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            })
+          };
+          
+          myLocationMarker = L.marker([lat, lon], markerOptions)
+            .addTo(window.droneMap.map)
+            .bindPopup('Your Location');
+          
+          window.droneMap.map.setView([lat, lon], 15);
+          
+          myLocationWatchId = navigator.geolocation.watchPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              const heading = position.coords.heading;
+              
+              if (myLocationMarker) {
+                myLocationMarker.setLatLng([lat, lon]);
+                
+                if (heading !== null && heading !== undefined) {
+                  const markerElement = myLocationMarker.getElement();
+                  if (markerElement) {
+                    const arrow = markerElement.querySelector('div div');
+                    if (arrow) {
+                      arrow.style.transform = `translateX(-50%) rotate(${heading}deg)`;
+                    }
+                  }
+                }
+              }
+            },
+            function(error) {
+              console.log('Location watch error:', error);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 1000 }
+          );
+          
+          const button = document.getElementById('showMyLocationBtn');
+          myLocationEnabled = true;
+          button.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Hide My Location';
+          button.disabled = false;
+          button.classList.remove('btn-outline-secondary');
+          button.classList.add('btn-secondary');
+          
+          console.log('User location enabled:', lat, lon, 'heading:', heading);
+        }
+      }
+
 
     </script>
   </body>
