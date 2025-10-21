@@ -51,10 +51,46 @@ permalink: /livestream/
         flex-direction: column;
         min-height: 0;
       }
-      /* Desktop: Video left, map right */
-      @media (min-width: 992px) {
+      
+      /* Landscape layout (aspect ratio >= 1:1) - Video left, map right */
+      @media (min-aspect-ratio: 1/1) {
         #main-content {
           flex-direction: row !important;
+        }
+        #video-panel {
+          flex: 0 0 60% !important;
+          min-width: 0;
+          display: flex !important;
+        }
+        #map-panel {
+          flex: 0 0 40% !important;
+          min-width: 0;
+          display: flex !important;
+        }
+        #remoteVideo {
+          object-fit: contain !important;
+        }
+      }
+      
+      /* Portrait layout (aspect ratio < 1:1) - Video top, map bottom */
+      @media (max-aspect-ratio: 1/1) {
+        #main-content {
+          flex-direction: column !important;
+        }
+        #video-panel {
+          flex: 0 0 60% !important;
+          min-height: 0;
+          display: flex !important;
+          width: 100% !important;
+        }
+        #map-panel {
+          flex: 0 0 40% !important;
+          min-height: 0;
+          display: flex !important;
+          width: 100% !important;
+        }
+        #remoteVideo {
+          object-fit: contain !important;
         }
       }
       
@@ -2088,20 +2124,18 @@ permalink: /livestream/
             });
           });
 
-        // Initialize with the currently selected view mode on page load
+        // Initialize with aspect ratio-based layout
         setTimeout(() => {
           // Check which radio button is selected and apply that view mode
           const splitViewRadio = document.getElementById('split-view');
           const videoViewRadio = document.getElementById('video-only');
           const mapViewRadio = document.getElementById('map-only');
-          
-          // Also check mobile radio buttons
           const splitViewMobileRadio = document.getElementById('split-view-mobile');
           const videoViewMobileRadio = document.getElementById('video-only-mobile');
           const mapViewMobileRadio = document.getElementById('map-only-mobile');
           
           // Try to restore view mode from localStorage
-          let selectedMode = localStorage.getItem('livestream_view_mode') || "split"; // default
+          let selectedMode = localStorage.getItem('livestream_view_mode') || "split";
           
           if (videoViewRadio && videoViewRadio.checked) {
             selectedMode = "video";
@@ -2113,7 +2147,7 @@ permalink: /livestream/
             selectedMode = "map";
           }
           
-          // Ensure both desktop and mobile radio buttons are synced
+          // Sync radio buttons
           if (selectedMode === "split") {
             if (splitViewRadio) splitViewRadio.checked = true;
             if (splitViewMobileRadio) splitViewMobileRadio.checked = true;
@@ -2124,6 +2158,11 @@ permalink: /livestream/
             if (mapViewRadio) mapViewRadio.checked = true;
             if (mapViewMobileRadio) mapViewMobileRadio.checked = true;
           }
+          
+          // Debug aspect ratio detection
+          const aspectRatio = window.innerWidth / window.innerHeight;
+          const isLandscape = window.innerWidth >= window.innerHeight;
+          console.log(`Aspect Ratio Detection - Width: ${window.innerWidth}, Height: ${window.innerHeight}, Ratio: ${aspectRatio.toFixed(2)}, Landscape: ${isLandscape}`);
           
           console.log('Initializing with view mode:', selectedMode);
           setViewMode(selectedMode);
@@ -2910,69 +2949,31 @@ permalink: /livestream/
       setInterval(syncMobileViewersButton, 1000);
       setTimeout(syncMobileViewersButton, 500); // Initial check
 
-      // Handle mobile orientation changes
+      // Handle orientation changes with aspect ratio detection
       window.addEventListener('orientationchange', () => {
         console.log('Orientation changed, updating layout...');
         setTimeout(() => {
-          // Ensure split view is maintained on orientation change
-          const splitViewRadio = document.getElementById('split-view-mobile');
-          if (splitViewRadio && splitViewRadio.checked) {
-            console.log('Maintaining split view after orientation change');
+          // Debug aspect ratio detection
+          const aspectRatio = window.innerWidth / window.innerHeight;
+          const isLandscape = window.innerWidth >= window.innerHeight;
+          console.log(`Orientation Change - Width: ${window.innerWidth}, Height: ${window.innerHeight}, Ratio: ${aspectRatio.toFixed(2)}, Landscape: ${isLandscape}`);
+          
+          // Clear any inline styles to let CSS handle layout
+          const mainContent = document.getElementById('main-content');
+          const videoPanel = document.getElementById('video-panel');
+          const mapPanel = document.getElementById('map-panel');
+          
+          if (mainContent && videoPanel && mapPanel) {
+            // Clear inline styles to let CSS media queries take control
+            videoPanel.style.flex = '';
+            videoPanel.style.width = '';
+            videoPanel.style.height = '';
+            mapPanel.style.flex = '';
+            mapPanel.style.width = '';
+            mapPanel.style.height = '';
+            mainContent.style.flexDirection = '';
             
-            // Force proper mobile layout based on orientation
-            const mainContent = document.getElementById('main-content');
-            const videoPanel = document.getElementById('video-panel');
-            const mapPanel = document.getElementById('map-panel');
-            
-            if (mainContent && videoPanel && mapPanel) {
-              // Force layout refresh
-              mainContent.style.display = 'none';
-              setTimeout(() => {
-                mainContent.style.display = 'flex';
-                
-                // Ensure both panels are visible in split view
-                videoPanel.classList.remove('d-none');
-                mapPanel.classList.remove('d-none');
-                
-                // Force correct mobile layout classes
-                if (window.innerWidth <= 991) {
-                  // Check if we're in split view mode (not full screen)
-                  const isSplitView = !videoPanel.classList.contains('full-view') && 
-                                    !mapPanel.classList.contains('full-view') &&
-                                    !videoPanel.classList.contains('d-none') && 
-                                    !mapPanel.classList.contains('d-none');
-                  
-                  if (isSplitView) {
-                    // Mobile - force layout based on orientation
-                    if (window.innerHeight < window.innerWidth) {
-                      // Landscape mode - force side by side
-                      videoPanel.style.flex = '0 0 50%';
-                      videoPanel.style.width = '50%';
-                      mapPanel.style.flex = '0 0 50%';
-                      mapPanel.style.width = '50%';
-                      mainContent.style.flexDirection = 'row';
-                    } else {
-                      // Portrait mode - force top/bottom layout
-                      videoPanel.style.flex = '0 0 50%';
-                      videoPanel.style.width = '100%';
-                      mapPanel.style.flex = '0 0 50%';
-                      mapPanel.style.width = '100%';
-                      mainContent.style.flexDirection = 'column';
-                      // Ensure map is visible
-                      mapPanel.classList.remove('d-none');
-                      mapPanel.style.display = 'flex';
-                    }
-                  }
-                } else {
-                  // Desktop - clear inline styles to let CSS handle it
-                  videoPanel.style.flex = '';
-                  videoPanel.style.width = '';
-                  mapPanel.style.flex = '';
-                  mapPanel.style.width = '';
-                  mainContent.style.flexDirection = '';
-                }
-              }, 50);
-            }
+            console.log('Cleared inline styles - CSS media queries will handle layout based on aspect ratio');
           }
           
           if (window.optimizeVideoFitting) {
@@ -2981,36 +2982,33 @@ permalink: /livestream/
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 100);
           }
-        }, 200); // Increased timeout for better orientation detection
+        }, 100);
       });
 
-      // Handle window resize to maintain split view
+      // Handle window resize with aspect ratio detection
       window.addEventListener('resize', () => {
         setTimeout(() => {
-          // Check if we're in split view mode and maintain it
-          const splitViewRadio = document.getElementById('split-view-mobile');
-          if (splitViewRadio && splitViewRadio.checked) {
-            console.log('Maintaining split view after resize');
-            const videoPanel = document.getElementById('video-panel');
-            const mapPanel = document.getElementById('map-panel');
+          // Debug aspect ratio detection
+          const aspectRatio = window.innerWidth / window.innerHeight;
+          const isLandscape = window.innerWidth >= window.innerHeight;
+          console.log(`Resize - Width: ${window.innerWidth}, Height: ${window.innerHeight}, Ratio: ${aspectRatio.toFixed(2)}, Landscape: ${isLandscape}`);
+          
+          // Clear any inline styles to let CSS handle layout
+          const mainContent = document.getElementById('main-content');
+          const videoPanel = document.getElementById('video-panel');
+          const mapPanel = document.getElementById('map-panel');
+          
+          if (mainContent && videoPanel && mapPanel) {
+            // Clear inline styles to let CSS media queries take control
+            videoPanel.style.flex = '';
+            videoPanel.style.width = '';
+            videoPanel.style.height = '';
+            mapPanel.style.flex = '';
+            mapPanel.style.width = '';
+            mapPanel.style.height = '';
+            mainContent.style.flexDirection = '';
             
-            if (videoPanel && mapPanel) {
-              // Force reapplication of split view classes
-              videoPanel.className = '';
-              mapPanel.className = '';
-              setTimeout(() => {
-                // Reapply the appropriate classes based on current orientation
-                if (window.innerWidth <= 991) {
-                  // Mobile - apply orientation-based layout
-                  videoPanel.classList.add('col-lg-8');
-                  mapPanel.classList.add('col-lg-4');
-                } else {
-                  // Desktop
-                  videoPanel.classList.add('col-lg-8');
-                  mapPanel.classList.add('col-lg-4');
-                }
-              }, 50);
-            }
+            console.log('Cleared inline styles - CSS media queries will handle layout based on aspect ratio');
           }
         }, 100);
       });
