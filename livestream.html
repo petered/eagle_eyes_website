@@ -317,7 +317,12 @@ permalink: /livestream/
       #video-panel.full-view,
       #map-panel.full-view {
         flex: 1 1 100% !important;
+        width: 100% !important;
+        height: 100% !important;
         min-width: 0;
+        min-height: 0;
+        max-width: 100% !important;
+        max-height: 100% !important;
       }
       /* Override media query restrictions for fullscreen modes */
       @media (min-width: 992px) {
@@ -805,46 +810,8 @@ permalink: /livestream/
           object-fit: contain; /* Show full video without cropping */
         }
         
-        /* Force map to be visible in portrait split view */
-        #map-panel.d-none {
-          display: flex !important;
-        }
-        #map-panel.col-lg-4 {
-          display: flex !important;
-          flex: 0 0 50% !important;
-          width: 100% !important;
-        }
       }
       
-      /* Extra small mobile screens */
-      @media (max-width: 480px) {
-        #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
-          font-size: 9px !important;
-          padding: 6px !important;
-          margin: 0.2rem auto !important;
-        }
-        
-        #noStreamDetails button, #connectedNoStreamDetails button, #roomFullDetails button {
-          font-size: 7px !important;
-          padding: 2px 4px !important;
-          max-width: 120px !important;
-          margin: 0.1rem 0 !important;
-        }
-        
-        #noStreamDetails button i, #connectedNoStreamDetails button i, #roomFullDetails button i {
-          font-size: 5px !important;
-        }
-        
-        #getHelpLink {
-          font-size: 7px !important;
-          padding: 2px 4px !important;
-          max-width: 120px !important;
-        }
-        
-        #getHelpLink i {
-          font-size: 5px !important;
-        }
-      }
       
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
@@ -881,9 +848,9 @@ permalink: /livestream/
         display: block !important;
       }
 
-      /* Ensure map is always visible by default */
-      #map-panel {
-        display: flex !important;
+      /* Ensure d-none properly hides the map panel */
+      #map-panel.d-none {
+        display: none !important;
       }
 
       /* Ensure camera icon is visible in main placeholder */
@@ -905,8 +872,8 @@ permalink: /livestream/
         pointer-events: auto !important;
       }
       
-      /* Override any hiding of map panel when no stream */
-      #map-panel.d-none {
+      /* Ensure map is visible when not hidden */
+      #map-panel:not(.d-none) {
         display: flex !important;
       }
 
@@ -1028,6 +995,118 @@ permalink: /livestream/
       
       #fullscreenExitBtn.show {
         display: flex !important;
+      }
+      
+      /* RESPONSIVE NOTIFICATION SYSTEM - HIGHEST PRIORITY */
+      /* Override all previous notification styles with compact sizing */
+      .placeholder #noStreamDetails, 
+      .placeholder #connectedNoStreamDetails, 
+      .placeholder #roomFullDetails {
+        font-size: clamp(10px, 2vw, 15px) !important;
+        max-width: 95% !important;
+        width: auto !important;
+        padding: clamp(6px, 1.5vw, 15px) !important;
+        margin: 0.3rem auto !important;
+        text-align: center !important;
+        line-height: 1.3 !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* Responsive text elements */
+      .placeholder #noStreamDetails div, 
+      .placeholder #connectedNoStreamDetails div, 
+      .placeholder #roomFullDetails div {
+        font-size: inherit !important;
+        line-height: 1.3 !important;
+        margin-bottom: clamp(5px, 1.5vw, 10px) !important;
+      }
+      
+      .placeholder #noStreamDetails strong, 
+      .placeholder #connectedNoStreamDetails strong, 
+      .placeholder #roomFullDetails strong {
+        font-size: clamp(11px, 2.2vw, 16px) !important;
+      }
+      
+      /* Stream ID styling */
+      .placeholder #noStreamDetails span[style*="monospace"], 
+      .placeholder #connectedNoStreamDetails span[style*="monospace"], 
+      .placeholder #roomFullDetails span[style*="monospace"] {
+        font-size: clamp(12px, 2.4vw, 17px) !important;
+        display: block !important;
+        margin-top: 0.2rem !important;
+        word-break: break-all !important;
+      }
+      
+      /* Responsive buttons - more compact */
+      .placeholder #noStreamDetails button, 
+      .placeholder #connectedNoStreamDetails button, 
+      .placeholder #roomFullDetails button {
+        font-size: clamp(9px, 1.8vw, 13px) !important;
+        padding: clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px) !important;
+        max-width: 95% !important;
+        width: auto !important;
+        margin: 0.25rem auto !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        height: auto !important;
+        min-height: clamp(28px, 5vw, 36px) !important;
+        box-sizing: border-box !important;
+        display: block !important;
+      }
+      
+      /* Responsive button icons - smaller */
+      .placeholder #noStreamDetails button i, 
+      .placeholder #connectedNoStreamDetails button i, 
+      .placeholder #roomFullDetails button i {
+        font-size: clamp(10px, 2vw, 14px) !important;
+        margin-right: 0.3rem !important;
+      }
+      
+      /* Get Help link styling - more compact */
+      .placeholder #getHelpLink {
+        font-size: clamp(8px, 1.6vw, 12px) !important;
+        padding: clamp(3px, 0.8vw, 6px) clamp(6px, 1.5vw, 12px) !important;
+        display: inline-block !important;
+        margin-top: 0.3rem !important;
+        max-width: 95% !important;
+        white-space: normal !important;
+        box-sizing: border-box !important;
+      }
+      
+      .placeholder #getHelpLink i {
+        font-size: clamp(9px, 1.8vw, 13px) !important;
+        margin-right: 0.3rem !important;
+      }
+      
+      /* Extra compact for very small screens */
+      @media (max-width: 576px) {
+        .placeholder #noStreamDetails, 
+        .placeholder #connectedNoStreamDetails, 
+        .placeholder #roomFullDetails {
+          padding: clamp(4px, 1vw, 10px) !important;
+          max-width: 98% !important;
+          font-size: clamp(9px, 1.8vw, 13px) !important;
+        }
+        
+        .placeholder #noStreamDetails button, 
+        .placeholder #connectedNoStreamDetails button, 
+        .placeholder #roomFullDetails button {
+          font-size: clamp(8px, 1.6vw, 11px) !important;
+          padding: clamp(3px, 0.8vw, 6px) clamp(6px, 1.5vw, 12px) !important;
+          min-height: clamp(24px, 4vw, 32px) !important;
+        }
+      }
+      
+      /* Ensure container can accommodate content */
+      #videoContainer .placeholder {
+        overflow: visible !important;
+        padding: clamp(10px, 2vw, 20px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
       }
     </style>
 
@@ -2273,8 +2352,13 @@ permalink: /livestream/
           const videoViewMobileRadio = document.getElementById('video-only-mobile');
           const mapViewMobileRadio = document.getElementById('map-only-mobile');
           
-          // Try to restore view mode from localStorage
-          let selectedMode = localStorage.getItem('livestream_view_mode') || "split";
+          // Check if we have an active stream connected
+          const hasActiveStream = window.viewer && window.viewer.isConnected && window.viewer.hasVideoStream;
+          
+          // Default to video mode when no stream, otherwise use stored preference
+          let selectedMode = hasActiveStream ? 
+            (localStorage.getItem('livestream_view_mode') || "split") : 
+            "video";
           
           if (videoViewRadio && videoViewRadio.checked) {
             selectedMode = "video";
@@ -2367,7 +2451,7 @@ permalink: /livestream/
         if (originalJoinRoom) {
           window.joinRoom = function() {
             const result = originalJoinRoom.apply(this, arguments);
-            // Maintain view mode after stream connects
+            // Auto-switch to split view after stream connects (1 second delay)
             setTimeout(() => {
               // Check BOTH desktop and mobile radio buttons
               const splitViewRadio = document.getElementById('split-view');
@@ -2398,8 +2482,18 @@ permalink: /livestream/
                 if (mapViewMobileRadio) mapViewMobileRadio.checked = true;
               }
               
-              console.log('Stream connected - maintaining view mode:', selectedMode);
-              setViewMode(selectedMode);
+              // Always switch to split view after stream connects
+              console.log('Stream connected - switching to split view');
+              
+              // Update radio buttons
+              if (splitViewRadio) splitViewRadio.checked = true;
+              if (splitViewMobileRadio) splitViewMobileRadio.checked = true;
+              
+              // Apply split view
+              setViewMode("split");
+              
+              // Save preference
+              localStorage.setItem('livestream_view_mode', 'split');
               
               // Force layout recalculation for mobile
               if (window.innerWidth <= 991) {
@@ -2425,7 +2519,7 @@ permalink: /livestream/
               setTimeout(() => {
                 loadCalTopoObjects();
               }, 1000);
-            }, 500);
+            }, 1000);
             return result;
           };
         }
