@@ -1426,8 +1426,13 @@ class WebRTCViewer {
     const latFormatted = `${Math.abs(latitude).toFixed(5)}°${latDir}`;
     const lonFormatted = `${Math.abs(longitude).toFixed(5)}°${lonDir}`;
 
-    // Compact display for coordinate strip
-    const compactText = `🌐 ${latFormatted},${lonFormatted}  ↑🏠 ${altAhlText}  ↑${altSecondLabel} ${altSecondText}  🧭${bearing.toFixed(0)}°`;
+    // Create segmented display for coordinate strip
+    const segmentedHTML = `
+      <span class="coord-segment priority-1">🌐 ${latFormatted},${lonFormatted}</span>
+      <span class="coord-segment priority-2">↑🏠 ${altAhlText}</span>
+      <span class="coord-segment priority-3">↑${altSecondLabel} ${altSecondText}</span>
+      <span class="coord-segment priority-4">🧭 ${bearing.toFixed(0)}°</span>
+    `;
 
     // Detailed display for mobile sidebar
     const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (${altitude_asl != null ? 'sea' : 'GPS'}):</strong> ${altSecondText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
@@ -1438,16 +1443,21 @@ class WebRTCViewer {
       coordTextMobile.innerHTML = detailedText;
     }
 
-    // Update desktop coordinate strip (compact format)
+    // Update desktop coordinate strip (segmented format)
     const coordTextDesktop = document.getElementById("coordTextDesktop");
     if (coordTextDesktop) {
-      coordTextDesktop.innerHTML = compactText;
+      coordTextDesktop.innerHTML = segmentedHTML;
     }
 
     // Enable pointer cursor when we have location data
     const coordStripContainer = document.getElementById("coordinateStripContainer");
     if (coordStripContainer) {
       coordStripContainer.style.cursor = "pointer";
+    }
+    
+    // Trigger responsive visibility update
+    if (window.updateCoordinateStripVisibility) {
+      setTimeout(() => window.updateCoordinateStripVisibility(), 10);
     }
   }
 
