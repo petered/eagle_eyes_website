@@ -51,9 +51,184 @@ permalink: /livestream/
         flex-direction: column;
         min-height: 0;
       }
+      /* Desktop: Video left, map right */
       @media (min-width: 992px) {
         #main-content {
-          flex-direction: row;
+          flex-direction: row !important;
+        }
+      }
+      
+      /* Large desktop screens (1200px+) - wider map panel */
+      @media (min-width: 1200px) {
+        #video-panel {
+          flex: 0 0 60% !important;
+        }
+        #map-panel {
+          flex: 0 0 40% !important;
+        }
+      }
+      
+      /* Medium desktop screens (992px-1199px) - balanced split */
+      @media (min-width: 992px) and (max-width: 1199px) {
+        #video-panel {
+          flex: 0 0 65% !important;
+        }
+        #map-panel {
+          flex: 0 0 35% !important;
+        }
+      }
+      
+      /* Small desktop/large tablet (768px-991px) - more video space */
+      @media (min-width: 768px) and (max-width: 991px) {
+        #main-content {
+          flex-direction: row !important;
+        }
+        #video-panel {
+          flex: 0 0 70% !important;
+        }
+        #map-panel {
+          flex: 0 0 30% !important;
+        }
+      }
+      
+      /* Responsive navbar adjustments */
+      @media (min-width: 1200px) {
+        .navbar {
+          padding: 0.75rem 1.5rem;
+        }
+        .navbar-brand {
+          font-size: 1.1rem;
+        }
+        .navbar-brand img {
+          height: 45px;
+        }
+      }
+      
+      @media (min-width: 992px) and (max-width: 1199px) {
+        .navbar {
+          padding: 0.6rem 1.2rem;
+        }
+        .navbar-brand {
+          font-size: 1rem;
+        }
+        .navbar-brand img {
+          height: 40px;
+        }
+      }
+      
+      @media (min-width: 768px) and (max-width: 991px) {
+        .navbar {
+          padding: 0.4rem 1rem;
+        }
+        .navbar-brand {
+          font-size: 0.9rem;
+        }
+        .navbar-brand img {
+          height: 35px;
+        }
+        .navbar-brand span {
+          display: none; /* Hide text on smaller screens */
+        }
+      }
+      
+      /* Responsive control buttons */
+      @media (min-width: 1200px) {
+        .btn-group .btn {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.9rem;
+        }
+        #caltopoBtn {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.85rem;
+        }
+      }
+      
+      @media (min-width: 992px) and (max-width: 1199px) {
+        .btn-group .btn {
+          padding: 0.4rem 0.6rem;
+          font-size: 0.85rem;
+        }
+        #caltopoBtn {
+          padding: 0.4rem 0.6rem;
+          font-size: 0.8rem;
+        }
+      }
+      
+      @media (min-width: 768px) and (max-width: 991px) {
+        .btn-group .btn {
+          padding: 0.3rem 0.5rem;
+          font-size: 0.8rem;
+        }
+        #caltopoBtn {
+          padding: 0.3rem 0.5rem;
+          font-size: 0.75rem;
+        }
+        #caltopoBtn div {
+          font-size: 0.75rem;
+        }
+      }
+      
+      /* Responsive coordinate strip */
+      @media (min-width: 1200px) {
+        .coordinate-strip {
+          padding: 0.5rem 1rem;
+          font-size: 0.9rem;
+        }
+      }
+      
+      @media (min-width: 992px) and (max-width: 1199px) {
+        .coordinate-strip {
+          padding: 0.4rem 0.8rem;
+          font-size: 0.85rem;
+        }
+      }
+      
+      @media (min-width: 768px) and (max-width: 991px) {
+        .coordinate-strip {
+          padding: 0.3rem 0.6rem;
+          font-size: 0.8rem;
+        }
+      }
+      
+      /* Responsive video and map content */
+      @media (min-width: 1200px) {
+        #remoteVideo {
+          object-fit: contain;
+        }
+        .map-container {
+          font-size: 0.9rem;
+        }
+        .leaflet-control-zoom {
+          font-size: 1.1rem;
+        }
+      }
+      
+      @media (min-width: 992px) and (max-width: 1199px) {
+        #remoteVideo {
+          object-fit: contain;
+        }
+        .map-container {
+          font-size: 0.85rem;
+        }
+        .leaflet-control-zoom {
+          font-size: 1rem;
+        }
+      }
+      
+      @media (min-width: 768px) and (max-width: 991px) {
+        #remoteVideo {
+          object-fit: contain;
+        }
+        .map-container {
+          font-size: 0.8rem;
+        }
+        .leaflet-control-zoom {
+          font-size: 0.9rem;
+        }
+        .leaflet-control-zoom a {
+          width: 28px;
+          height: 28px;
+          line-height: 28px;
         }
       }
       #video-panel,
@@ -1884,8 +2059,14 @@ permalink: /livestream/
                 .replace("-only", "")
                 .replace("-view", "");
               setViewMode(mode);
+              
+              // Save to localStorage
+              localStorage.setItem('livestream_view_mode', mode);
+              console.log('View mode saved to localStorage:', mode);
+              
               // Sync mobile radios
-              document.getElementById(mode + "-view-mobile").checked = true;
+              const mobileRadio = document.getElementById(mode + "-view-mobile");
+              if (mobileRadio) mobileRadio.checked = true;
             });
           });
         document
@@ -1896,32 +2077,96 @@ permalink: /livestream/
                 .replace("-only-mobile", "")
                 .replace("-view-mobile", "");
               setViewMode(mode);
+              
+              // Save to localStorage
+              localStorage.setItem('livestream_view_mode', mode);
+              console.log('View mode saved to localStorage:', mode);
+              
               // Sync desktop radios
-              document.getElementById(mode + "-view").checked = true;
+              const desktopRadio = document.getElementById(mode + "-view");
+              if (desktopRadio) desktopRadio.checked = true;
             });
           });
 
-        // Initialize with split view mode on page load
+        // Initialize with the currently selected view mode on page load
         setTimeout(() => {
-          setViewMode("split");
+          // Check which radio button is selected and apply that view mode
+          const splitViewRadio = document.getElementById('split-view');
+          const videoViewRadio = document.getElementById('video-only');
+          const mapViewRadio = document.getElementById('map-only');
           
-          // Ensure mobile layout is properly initialized
+          // Also check mobile radio buttons
+          const splitViewMobileRadio = document.getElementById('split-view-mobile');
+          const videoViewMobileRadio = document.getElementById('video-only-mobile');
+          const mapViewMobileRadio = document.getElementById('map-only-mobile');
+          
+          // Try to restore view mode from localStorage
+          let selectedMode = localStorage.getItem('livestream_view_mode') || "split"; // default
+          
+          if (videoViewRadio && videoViewRadio.checked) {
+            selectedMode = "video";
+          } else if (mapViewRadio && mapViewRadio.checked) {
+            selectedMode = "map";
+          } else if (videoViewMobileRadio && videoViewMobileRadio.checked) {
+            selectedMode = "video";
+          } else if (mapViewMobileRadio && mapViewMobileRadio.checked) {
+            selectedMode = "map";
+          }
+          
+          // Ensure both desktop and mobile radio buttons are synced
+          if (selectedMode === "split") {
+            if (splitViewRadio) splitViewRadio.checked = true;
+            if (splitViewMobileRadio) splitViewMobileRadio.checked = true;
+          } else if (selectedMode === "video") {
+            if (videoViewRadio) videoViewRadio.checked = true;
+            if (videoViewMobileRadio) videoViewMobileRadio.checked = true;
+          } else if (selectedMode === "map") {
+            if (mapViewRadio) mapViewRadio.checked = true;
+            if (mapViewMobileRadio) mapViewMobileRadio.checked = true;
+          }
+          
+          console.log('Initializing with view mode:', selectedMode);
+          setViewMode(selectedMode);
+          
+          // Ensure proper layout initialization
+          const videoPanel = document.getElementById('video-panel');
+          const mapPanel = document.getElementById('map-panel');
+          const mainContent = document.getElementById('main-content');
+          
           if (window.innerWidth <= 991) {
-            const videoPanel = document.getElementById('video-panel');
-            const mapPanel = document.getElementById('map-panel');
-            
+            // Mobile layout
             if (videoPanel && mapPanel) {
-              // Force mobile layout classes
-              videoPanel.classList.remove('d-none');
-              mapPanel.classList.remove('d-none');
-              videoPanel.classList.add('col-lg-8');
-              mapPanel.classList.add('col-lg-4');
+              // Apply proper classes based on selected mode
+              if (selectedMode === "split") {
+                videoPanel.classList.remove('d-none');
+                mapPanel.classList.remove('d-none');
+                videoPanel.classList.add('col-lg-8');
+                mapPanel.classList.add('col-lg-4');
+              } else if (selectedMode === "video") {
+                videoPanel.classList.remove('d-none');
+                mapPanel.classList.add('d-none');
+              } else if (selectedMode === "map") {
+                videoPanel.classList.add('d-none');
+                mapPanel.classList.remove('d-none');
+              }
+            }
+          } else {
+            // Desktop layout - clear inline styles to let CSS handle it
+            if (videoPanel && mapPanel && mainContent) {
+              videoPanel.style.flex = '';
+              videoPanel.style.width = '';
+              mapPanel.style.flex = '';
+              mapPanel.style.width = '';
+              mainContent.style.flexDirection = '';
+              console.log('Desktop mode - cleared inline styles for CSS control');
             }
           }
           
           // Always ensure map is visible and initialized
           if (window.droneMap && window.droneMap.map) {
             console.log('Map already initialized');
+            // Ensure CalTopo objects are loaded even without GPS
+            loadCalTopoObjects();
           } else {
             // Initialize map if not already done
             setTimeout(() => {
@@ -1931,6 +2176,10 @@ permalink: /livestream/
               if (window.droneMap && window.droneMap.resize) {
                 window.droneMap.resize();
               }
+              // Load CalTopo objects after map initialization
+              setTimeout(() => {
+                loadCalTopoObjects();
+              }, 1000);
             }, 500);
           }
         }, 100);
@@ -1940,14 +2189,39 @@ permalink: /livestream/
         if (originalJoinRoom) {
           window.joinRoom = function() {
             const result = originalJoinRoom.apply(this, arguments);
-            // Ensure split view after stream connects
+            // Maintain view mode after stream connects
             setTimeout(() => {
-              // Force split view and ensure proper layout
-              const splitViewRadio = document.getElementById('split-view-mobile');
-              if (splitViewRadio) {
-                splitViewRadio.checked = true;
+              // Check BOTH desktop and mobile radio buttons
+              const splitViewRadio = document.getElementById('split-view');
+              const videoViewRadio = document.getElementById('video-only');
+              const mapViewRadio = document.getElementById('map-only');
+              const splitViewMobileRadio = document.getElementById('split-view-mobile');
+              const videoViewMobileRadio = document.getElementById('video-only-mobile');
+              const mapViewMobileRadio = document.getElementById('map-only-mobile');
+              
+              let selectedMode = "split"; // default
+              
+              // Check which mode is selected (check both desktop and mobile)
+              if ((videoViewRadio && videoViewRadio.checked) || (videoViewMobileRadio && videoViewMobileRadio.checked)) {
+                selectedMode = "video";
+              } else if ((mapViewRadio && mapViewRadio.checked) || (mapViewMobileRadio && mapViewMobileRadio.checked)) {
+                selectedMode = "map";
               }
-              setViewMode("split");
+              
+              // Ensure both desktop and mobile radio buttons are synced
+              if (selectedMode === "split") {
+                if (splitViewRadio) splitViewRadio.checked = true;
+                if (splitViewMobileRadio) splitViewMobileRadio.checked = true;
+              } else if (selectedMode === "video") {
+                if (videoViewRadio) videoViewRadio.checked = true;
+                if (videoViewMobileRadio) videoViewMobileRadio.checked = true;
+              } else if (selectedMode === "map") {
+                if (mapViewRadio) mapViewRadio.checked = true;
+                if (mapViewMobileRadio) mapViewMobileRadio.checked = true;
+              }
+              
+              console.log('Stream connected - maintaining view mode:', selectedMode);
+              setViewMode(selectedMode);
               
               // Force layout recalculation for mobile
               if (window.innerWidth <= 991) {
@@ -1960,12 +2234,19 @@ permalink: /livestream/
                   mainContent.style.display = 'none';
                   setTimeout(() => {
                     mainContent.style.display = 'flex';
-                    // Ensure both panels are visible
-                    videoPanel.classList.remove('d-none');
-                    mapPanel.classList.remove('d-none');
+                    // Ensure both panels are visible in split view
+                    if (splitViewRadio && splitViewRadio.checked) {
+                      videoPanel.classList.remove('d-none');
+                      mapPanel.classList.remove('d-none');
+                    }
                   }, 100);
                 }
               }
+              
+              // Load CalTopo objects after stream connects (regardless of GPS status)
+              setTimeout(() => {
+                loadCalTopoObjects();
+              }, 1000);
             }, 500);
             return result;
           };
@@ -2013,6 +2294,86 @@ permalink: /livestream/
           const mapId = window.droneMap.caltopoInfo.map_id;
           if (mapId) {
             window.open(`https://caltopo.com/m/${mapId}`, '_blank');
+          }
+        }
+      }
+
+      function loadCalTopoObjects() {
+        // Load CalTopo map objects regardless of GPS status
+        if (window.droneMap && window.droneMap.map && window.droneMap.caltopoInfo) {
+          const caltopoInfo = window.droneMap.caltopoInfo;
+          console.log('Loading CalTopo objects:', caltopoInfo);
+          
+          // Show CalTopo button if map is available
+          const caltopoBtn = document.getElementById('caltopoBtn');
+          const caltopoBtnMobile = document.getElementById('caltopoBtnMobile');
+          const caltopoMapName = document.getElementById('caltopoMapName');
+          const caltopoMapNameMobile = document.getElementById('caltopoMapNameMobile');
+          
+          if (caltopoInfo.map_id) {
+            if (caltopoBtn) {
+              caltopoBtn.style.display = 'flex';
+            }
+            if (caltopoBtnMobile) {
+              caltopoBtnMobile.style.display = 'flex';
+            }
+            if (caltopoMapName) {
+              caltopoMapName.textContent = caltopoInfo.map_name || 'CalTopo Map';
+            }
+            if (caltopoMapNameMobile) {
+              caltopoMapNameMobile.textContent = caltopoInfo.map_name || 'CalTopo Map';
+            }
+          }
+          
+          // Load CalTopo map layers if available
+          if (caltopoInfo.layers && Array.isArray(caltopoInfo.layers)) {
+            caltopoInfo.layers.forEach(layer => {
+              if (layer.url && layer.name) {
+                try {
+                  const caltopoLayer = L.tileLayer(layer.url, {
+                    attribution: 'CalTopo',
+                    opacity: 0.7
+                  });
+                  caltopoLayer.addTo(window.droneMap.map);
+                  console.log('Added CalTopo layer:', layer.name);
+                } catch (error) {
+                  console.error('Error adding CalTopo layer:', error);
+                }
+              }
+            });
+          }
+          
+          // Load CalTopo markers/objects if available
+          if (caltopoInfo.markers && Array.isArray(caltopoInfo.markers)) {
+            caltopoInfo.markers.forEach(marker => {
+              if (marker.lat && marker.lon) {
+                try {
+                  const caltopoMarker = L.marker([marker.lat, marker.lon], {
+                    icon: L.divIcon({
+                      className: 'caltopo-marker',
+                      html: `<div style="
+                        width: 16px;
+                        height: 16px;
+                        background-color: #ff6b35;
+                        border: 2px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                      "></div>`,
+                      iconSize: [16, 16],
+                      iconAnchor: [8, 8]
+                    })
+                  }).addTo(window.droneMap.map);
+                  
+                  if (marker.name) {
+                    caltopoMarker.bindPopup(marker.name);
+                  }
+                  
+                  console.log('Added CalTopo marker:', marker.name || 'Unnamed marker');
+                } catch (error) {
+                  console.error('Error adding CalTopo marker:', error);
+                }
+              }
+            });
           }
         }
       }
@@ -2602,6 +2963,13 @@ permalink: /livestream/
                       mapPanel.style.display = 'flex';
                     }
                   }
+                } else {
+                  // Desktop - clear inline styles to let CSS handle it
+                  videoPanel.style.flex = '';
+                  videoPanel.style.width = '';
+                  mapPanel.style.flex = '';
+                  mapPanel.style.width = '';
+                  mainContent.style.flexDirection = '';
                 }
               }, 50);
             }
@@ -2749,6 +3117,28 @@ permalink: /livestream/
             return;
           }
 
+          // Ensure we're in the correct view mode for laser display
+          const splitViewRadio = document.getElementById('split-view-mobile');
+          const mapViewRadio = document.getElementById('map-only-mobile');
+          
+          if (splitViewRadio && splitViewRadio.checked) {
+            // Stay in split view - ensure both panels are visible
+            const mapPanel = document.getElementById('map-panel');
+            const videoPanel = document.getElementById('video-panel');
+            if (mapPanel) mapPanel.classList.remove('d-none');
+            if (videoPanel) videoPanel.classList.remove('d-none');
+          } else if (mapViewRadio && mapViewRadio.checked) {
+            // Map full screen is fine for laser display
+            console.log('Laser range finder in map full screen mode');
+          } else {
+            // Default to split view for laser display
+            const splitViewRadio = document.getElementById('split-view-mobile');
+            if (splitViewRadio) {
+              splitViewRadio.checked = true;
+              setViewMode("split");
+            }
+          }
+
           const originalText = button.innerHTML;
           button.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting Laser Data...';
           button.disabled = true;
@@ -2847,11 +3237,27 @@ permalink: /livestream/
           const videoPanel = document.getElementById('video-panel');
           
           if (mapPanel) {
-            mapPanel.classList.remove('d-none');
-            mapPanel.classList.add('col-12');
+            // Check current view mode and respect it
+            const splitViewRadio = document.getElementById('split-view-mobile');
+            const videoViewRadio = document.getElementById('video-only-mobile');
+            const mapViewRadio = document.getElementById('map-only-mobile');
             
-            if (videoPanel) {
-              videoPanel.classList.add('d-none');
+            if (splitViewRadio && splitViewRadio.checked) {
+              // Stay in split view - don't force full screen map
+              mapPanel.classList.remove('d-none');
+              videoPanel.classList.remove('d-none');
+              // Let the existing split view layout handle the sizing
+            } else if (mapViewRadio && mapViewRadio.checked) {
+              // Map full screen mode
+              mapPanel.classList.remove('d-none');
+              mapPanel.classList.add('col-12');
+              if (videoPanel) {
+                videoPanel.classList.add('d-none');
+              }
+            } else {
+              // Default to split view if no specific mode selected
+              mapPanel.classList.remove('d-none');
+              videoPanel.classList.remove('d-none');
             }
             
             if (!window.droneMap || !window.droneMap.map) {
