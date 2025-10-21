@@ -544,14 +544,26 @@ permalink: /livestream/
           flex: 0 0 50% !important;
           min-height: 0;
           display: flex !important;
+          width: 100% !important;
         }
         #map-panel {
           flex: 0 0 50% !important;
           min-height: 0;
           display: flex !important;
+          width: 100% !important;
         }
         #remoteVideo {
           object-fit: contain; /* Show full video without cropping */
+        }
+        
+        /* Force map to be visible in portrait split view */
+        #map-panel.d-none {
+          display: flex !important;
+        }
+        #map-panel.col-lg-4 {
+          display: flex !important;
+          flex: 0 0 50% !important;
+          width: 100% !important;
         }
       }
       
@@ -588,6 +600,32 @@ permalink: /livestream/
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
         cursor: default !important;
+      }
+
+      /* Ensure map is always visible by default */
+      #map-panel {
+        display: flex !important;
+      }
+      
+      /* Override any hiding of map panel when no stream */
+      #map-panel.d-none {
+        display: flex !important;
+      }
+
+      /* Laser range finder marker animation */
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 0.7;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
       }
 
       /* Mobile responsive styles for disconnect popup */
@@ -1304,6 +1342,11 @@ permalink: /livestream/
             <i class="bi bi-geo-alt"></i> Show My Location
           </button>
         </div>
+        <div class="d-grid gap-2 mb-3">
+          <button id="showLaserBtn" class="btn btn-outline-secondary" onclick="toggleLaserRangeFinder()">
+            <i class="bi bi-bullseye"></i> Display Laser Range Finder Location
+          </button>
+        </div>
         <hr />
         <h6>History</h6>
         <div class="mb-3">
@@ -1669,6 +1712,16 @@ permalink: /livestream/
           }
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);
+          } else {
+            // Initialize map if not already done
+            setTimeout(() => {
+              if (window.initMap) {
+                window.initMap();
+              }
+              if (window.droneMap && window.droneMap.resize) {
+                window.droneMap.resize();
+              }
+            }, 200);
           }
         }
 
@@ -1864,6 +1917,21 @@ permalink: /livestream/
               videoPanel.classList.add('col-lg-8');
               mapPanel.classList.add('col-lg-4');
             }
+          }
+          
+          // Always ensure map is visible and initialized
+          if (window.droneMap && window.droneMap.map) {
+            console.log('Map already initialized');
+          } else {
+            // Initialize map if not already done
+            setTimeout(() => {
+              if (window.initMap) {
+                window.initMap();
+              }
+              if (window.droneMap && window.droneMap.resize) {
+                window.droneMap.resize();
+              }
+            }, 500);
           }
         }, 100);
 
@@ -2514,7 +2582,7 @@ permalink: /livestream/
                                     !mapPanel.classList.contains('d-none');
                   
                   if (isSplitView) {
-                    // Mobile - force landscape layout for landscape orientation
+                    // Mobile - force layout based on orientation
                     if (window.innerHeight < window.innerWidth) {
                       // Landscape mode - force side by side
                       videoPanel.style.flex = '0 0 50%';
@@ -2523,12 +2591,15 @@ permalink: /livestream/
                       mapPanel.style.width = '50%';
                       mainContent.style.flexDirection = 'row';
                     } else {
-                      // Portrait mode - let CSS handle it
-                      videoPanel.style.flex = '';
-                      videoPanel.style.width = '';
-                      mapPanel.style.flex = '';
-                      mapPanel.style.width = '';
-                      mainContent.style.flexDirection = '';
+                      // Portrait mode - force top/bottom layout
+                      videoPanel.style.flex = '0 0 50%';
+                      videoPanel.style.width = '100%';
+                      mapPanel.style.flex = '0 0 50%';
+                      mapPanel.style.width = '100%';
+                      mainContent.style.flexDirection = 'column';
+                      // Ensure map is visible
+                      mapPanel.classList.remove('d-none');
+                      mapPanel.style.display = 'flex';
                     }
                   }
                 }
@@ -2583,6 +2654,11 @@ permalink: /livestream/
       let myLocationEnabled = false;
       let myLocationMarker = null;
       let myLocationWatchId = null;
+
+      // Laser range finder variables
+      let laserEnabled = false;
+      let laserMarker = null;
+      let laserUpdateInterval = null;
 
       function togglePictureInPicture() {
         const button = document.getElementById('pipBtn');
@@ -2662,6 +2738,97 @@ permalink: /livestream/
           button.classList.add('btn-outline-secondary');
         }
       });
+
+      function toggleLaserRangeFinder() {
+        const button = document.getElementById('showLaserBtn');
+        
+        if (!laserEnabled) {
+          // Enable laser range finder display
+          if (!window.droneMap || !window.droneMap.map) {
+            alert('Map is not available. Please wait for the map to load.');
+            return;
+          }
+
+          const originalText = button.innerHTML;
+          button.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting Laser Data...';
+          button.disabled = true;
+
+          // Start monitoring for laser range finder data
+          laserUpdateInterval = setInterval(() => {
+            updateLaserRangeFinder();
+          }, 1000); // Check every second
+
+          // Initial check
+          setTimeout(() => {
+            updateLaserRangeFinder();
+            button.innerHTML = '<i class="bi bi-bullseye-fill"></i> Hide Laser Range Finder Location';
+            button.disabled = false;
+            button.classList.remove('btn-outline-secondary');
+            button.classList.add('btn-secondary');
+            laserEnabled = true;
+          }, 1000);
+
+        } else {
+          // Disable laser range finder display
+          if (laserUpdateInterval) {
+            clearInterval(laserUpdateInterval);
+            laserUpdateInterval = null;
+          }
+          
+          if (laserMarker && window.droneMap && window.droneMap.map) {
+            window.droneMap.map.removeLayer(laserMarker);
+            laserMarker = null;
+          }
+          
+          laserEnabled = false;
+          button.innerHTML = '<i class="bi bi-bullseye"></i> Display Laser Range Finder Location';
+          button.classList.remove('btn-secondary');
+          button.classList.add('btn-outline-secondary');
+          
+          console.log('Laser range finder disabled');
+        }
+      }
+
+      function updateLaserRangeFinder() {
+        // Check if we have drone data with laser range finder info
+        if (window.droneMap && window.droneMap.map && window.droneMap.droneData) {
+          const droneData = window.droneMap.droneData;
+          
+          // Look for laser range finder data in the drone info
+          if (droneData.laserRangeFinder && droneData.laserRangeFinder.lat && droneData.laserRangeFinder.lon) {
+            const lat = parseFloat(droneData.laserRangeFinder.lat);
+            const lon = parseFloat(droneData.laserRangeFinder.lon);
+            
+            if (!isNaN(lat) && !isNaN(lon)) {
+              // Remove existing marker
+              if (laserMarker) {
+                window.droneMap.map.removeLayer(laserMarker);
+              }
+              
+              // Create new laser range finder marker
+              laserMarker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                  className: 'laser-range-marker',
+                  html: `<div style="
+                    width: 12px;
+                    height: 12px;
+                    background-color: #dc3545;
+                    border: 2px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                    animation: pulse 2s infinite;
+                  "></div>`,
+                  iconSize: [12, 12],
+                  iconAnchor: [6, 6]
+                })
+              }).addTo(window.droneMap.map)
+              .bindPopup('Laser Range Finder Location');
+              
+              console.log('Laser range finder location updated:', lat, lon);
+            }
+          }
+        }
+      }
 
       function toggleMyLocation() {
         const button = document.getElementById('showMyLocationBtn');
