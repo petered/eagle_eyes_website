@@ -441,25 +441,38 @@ permalink: /livestream/
         
       }
       
-      /* Mobile landscape orientation - video left, map right */
+      /* Mobile landscape orientation - video left, map right (only for split view) */
       @media (max-width: 991px) and (orientation: landscape) {
-        /* Split view layout for mobile landscape */
-        #main-content {
+        /* Split view layout for mobile landscape - only when not in full screen modes */
+        #main-content:not(.fullscreen-video):not(.fullscreen-map) {
           flex-direction: row !important; /* Video left, map right */
         }
-        #video-panel {
+        #video-panel:not(.full-view):not(.d-none) {
           flex: 0 0 50% !important;
           min-width: 0;
           display: flex !important;
+          width: 50% !important;
         }
-        #map-panel {
+        #map-panel:not(.full-view):not(.d-none) {
           flex: 0 0 50% !important;
           min-width: 0;
           display: flex !important;
+          width: 50% !important;
         }
         #remoteVideo {
           object-fit: contain; /* Show full video without cropping */
         }
+        
+        /* Force override any conflicting classes - only for split view */
+        #video-panel.col-lg-8:not(.full-view):not(.d-none) {
+          flex: 0 0 50% !important;
+          width: 50% !important;
+        }
+        #map-panel.col-lg-4:not(.full-view):not(.d-none) {
+          flex: 0 0 50% !important;
+          width: 50% !important;
+        }
+      }
         #noStreamDetails, #connectedNoStreamDetails, #roomFullDetails {
           font-size: 8px !important;
           padding: 4px !important;
@@ -2494,14 +2507,30 @@ permalink: /livestream/
                 
                 // Force correct mobile layout classes
                 if (window.innerWidth <= 991) {
-                  // Mobile - let CSS media queries handle the layout
-                  videoPanel.className = '';
-                  mapPanel.className = '';
-                  setTimeout(() => {
-                    // Reapply appropriate classes
-                    videoPanel.classList.add('col-lg-8');
-                    mapPanel.classList.add('col-lg-4');
-                  }, 50);
+                  // Check if we're in split view mode (not full screen)
+                  const isSplitView = !videoPanel.classList.contains('full-view') && 
+                                    !mapPanel.classList.contains('full-view') &&
+                                    !videoPanel.classList.contains('d-none') && 
+                                    !mapPanel.classList.contains('d-none');
+                  
+                  if (isSplitView) {
+                    // Mobile - force landscape layout for landscape orientation
+                    if (window.innerHeight < window.innerWidth) {
+                      // Landscape mode - force side by side
+                      videoPanel.style.flex = '0 0 50%';
+                      videoPanel.style.width = '50%';
+                      mapPanel.style.flex = '0 0 50%';
+                      mapPanel.style.width = '50%';
+                      mainContent.style.flexDirection = 'row';
+                    } else {
+                      // Portrait mode - let CSS handle it
+                      videoPanel.style.flex = '';
+                      videoPanel.style.width = '';
+                      mapPanel.style.flex = '';
+                      mapPanel.style.width = '';
+                      mainContent.style.flexDirection = '';
+                    }
+                  }
                 }
               }, 50);
             }
@@ -2564,10 +2593,16 @@ permalink: /livestream/
           return;
         }
 
+        // Check if Picture-in-Picture is supported
+        if (!document.pictureInPictureEnabled) {
+          alert('Picture-in-Picture is not supported by this browser');
+          return;
+        }
+
         if (!pipEnabled) {
-          // Check if Picture-in-Picture is supported
-          if (!document.pictureInPictureEnabled) {
-            alert('Picture-in-Picture is not supported by this browser');
+          // Check if video is ready and has content
+          if (video.readyState < 2) {
+            alert('Video is not ready for Picture-in-Picture. Please wait for the stream to load.');
             return;
           }
 
@@ -2580,7 +2615,15 @@ permalink: /livestream/
             console.log('Picture-in-Picture enabled');
           }).catch(err => {
             console.error('Error entering Picture-in-Picture:', err);
-            alert('Failed to enter Picture-in-Picture mode');
+            let errorMsg = 'Failed to enter Picture-in-Picture mode. ';
+            if (err.name === 'NotAllowedError') {
+              errorMsg += 'User denied permission or browser blocked the request.';
+            } else if (err.name === 'NotSupportedError') {
+              errorMsg += 'Picture-in-Picture is not supported.';
+            } else {
+              errorMsg += 'Please try again.';
+            }
+            alert(errorMsg);
           });
         } else {
           // Exit Picture-in-Picture
@@ -2593,6 +2636,7 @@ permalink: /livestream/
               console.log('Picture-in-Picture disabled');
             }).catch(err => {
               console.error('Error exiting Picture-in-Picture:', err);
+              alert('Failed to exit Picture-in-Picture mode');
             });
           }
         }
