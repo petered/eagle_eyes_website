@@ -1276,6 +1276,11 @@ permalink: /livestream/
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
+          <button id="showMyLocationBtn" class="btn btn-outline-secondary" onclick="toggleMyLocation()">
+            <i class="bi bi-geo-alt"></i> Show My Location
+          </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
           <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
             <i class="bi bi-share"></i> Share Livestream
           </button>
@@ -2424,6 +2429,20 @@ permalink: /livestream/
       window.addEventListener('orientationchange', () => {
         console.log('Orientation changed, updating layout...');
         setTimeout(() => {
+          // Ensure split view is maintained on orientation change
+          const splitViewRadio = document.getElementById('split-view-mobile');
+          if (splitViewRadio && splitViewRadio.checked) {
+            console.log('Maintaining split view after orientation change');
+            // Force the CSS media queries to apply correctly
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+              mainContent.style.display = 'none';
+              setTimeout(() => {
+                mainContent.style.display = 'flex';
+              }, 50);
+            }
+          }
+          
           if (window.optimizeVideoFitting) {
             window.optimizeVideoFitting();
           }
@@ -2432,6 +2451,239 @@ permalink: /livestream/
           }
         }, 100);
       });
+
+      // Handle window resize to maintain split view
+      window.addEventListener('resize', () => {
+        setTimeout(() => {
+          // Check if we're in split view mode and maintain it
+          const splitViewRadio = document.getElementById('split-view-mobile');
+          if (splitViewRadio && splitViewRadio.checked) {
+            console.log('Maintaining split view after resize');
+            const videoPanel = document.getElementById('video-panel');
+            const mapPanel = document.getElementById('map-panel');
+            
+            if (videoPanel && mapPanel) {
+              // Force reapplication of split view classes
+              videoPanel.className = '';
+              mapPanel.className = '';
+              setTimeout(() => {
+                // Reapply the appropriate classes based on current orientation
+                if (window.innerWidth <= 991) {
+                  // Mobile - apply orientation-based layout
+                  videoPanel.classList.add('col-lg-8');
+                  mapPanel.classList.add('col-lg-4');
+                } else {
+                  // Desktop
+                  videoPanel.classList.add('col-lg-8');
+                  mapPanel.classList.add('col-lg-4');
+                }
+              }, 50);
+            }
+          }
+        }, 100);
+      });
+
+      // Location tracking variables
+      let myLocationEnabled = false;
+      let myLocationMarker = null;
+      let myLocationWatchId = null;
+
+      function toggleMyLocation() {
+        const button = document.getElementById('showMyLocationBtn');
+        
+        if (!myLocationEnabled) {
+          if (!navigator.geolocation) {
+            alert('Geolocation is not supported by this browser.');
+            return;
+          }
+
+          const originalText = button.innerHTML;
+          button.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting Location...';
+          button.disabled = true;
+
+          const mapPanel = document.getElementById('map-panel');
+          const videoPanel = document.getElementById('video-panel');
+          
+          if (mapPanel) {
+            mapPanel.classList.remove('d-none');
+            mapPanel.classList.add('col-12');
+            
+            if (videoPanel) {
+              videoPanel.classList.add('d-none');
+            }
+            
+            if (!window.droneMap || !window.droneMap.map) {
+              console.log('Map not initialized, attempting to create...');
+              setTimeout(() => {
+                if (window.initMap) {
+                  window.initMap();
+                }
+                if (window.droneMap && window.droneMap.resize) {
+                  window.droneMap.resize();
+                }
+              }, 200);
+            } else {
+              setTimeout(() => {
+                if (window.droneMap && window.droneMap.resize) {
+                  window.droneMap.resize();
+                }
+              }, 100);
+            }
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              const heading = position.coords.heading;
+
+              if (!window.droneMap || !window.droneMap.map) {
+                console.log('Map not initialized, attempting to create...');
+                setTimeout(() => {
+                  if (window.droneMap && window.droneMap.map) {
+                    createLocationMarker(lat, lon, heading);
+                  } else {
+                    console.log('Map still not available');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    alert('Map is not available. Please try again.');
+                  }
+                }, 500);
+                return;
+              }
+              
+              createLocationMarker(lat, lon, heading);
+            },
+            function(error) {
+              button.innerHTML = originalText;
+              button.disabled = false;
+              
+              let errorMessage = 'Unable to get your location. ';
+              switch(error.code) {
+                case error.PERMISSION_DENIED: errorMessage += 'Location access denied by user.'; break;
+                case error.POSITION_UNAVAILABLE: errorMessage += 'Location information unavailable.'; break;
+                case error.TIMEOUT: errorMessage += 'Location request timed out.'; break;
+                default: errorMessage += 'An unknown error occurred.'; break;
+              }
+              alert(errorMessage);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          );
+        } else {
+          // Disable location tracking
+          if (myLocationWatchId !== null) {
+            navigator.geolocation.clearWatch(myLocationWatchId);
+            myLocationWatchId = null;
+          }
+          
+          if (myLocationMarker && window.droneMap && window.droneMap.map) {
+            window.droneMap.map.removeLayer(myLocationMarker);
+            myLocationMarker = null;
+          }
+          
+          myLocationEnabled = false;
+          button.innerHTML = '<i class="bi bi-geo-alt"></i> Show My Location';
+          button.classList.remove('btn-secondary');
+          button.classList.add('btn-outline-secondary');
+          
+          console.log('User location disabled');
+        }
+      }
+
+      function createLocationMarker(lat, lon, heading) {
+        if (window.droneMap && window.droneMap.map) {
+          if (myLocationMarker) {
+            window.droneMap.map.removeLayer(myLocationMarker);
+          }
+          
+          let markerOptions = {
+            icon: L.divIcon({
+              className: 'my-location-marker',
+              html: `<div style="
+                width: 24px;
+                height: 24px;
+                background-color: #007bff;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                position: relative;
+              ">
+                ${heading !== null && heading !== undefined ? `
+                  <div style="
+                    position: absolute;
+                    top: -16px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(${heading}deg);
+                    width: 0;
+                    height: 0;
+                    border-left: 9px solid transparent;
+                    border-right: 9px solid transparent;
+                    border-bottom: 20px solid #007bff;
+                    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+                    z-index: 1000;
+                  "></div>
+                ` : `
+                  <div style="
+                    position: absolute;
+                    top: -12px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 0;
+                    height: 0;
+                    border-left: 7px solid transparent;
+                    border-right: 7px solid transparent;
+                    border-bottom: 14px solid #007bff;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+                  "></div>
+                `}
+              </div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            })
+          };
+          
+          myLocationMarker = L.marker([lat, lon], markerOptions)
+            .addTo(window.droneMap.map)
+            .bindPopup('Your Location');
+          
+          window.droneMap.map.setView([lat, lon], 15);
+          
+          myLocationWatchId = navigator.geolocation.watchPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              const heading = position.coords.heading;
+              
+              if (myLocationMarker) {
+                myLocationMarker.setLatLng([lat, lon]);
+                
+                if (heading !== null && heading !== undefined) {
+                  const markerElement = myLocationMarker.getElement();
+                  if (markerElement) {
+                    const arrow = markerElement.querySelector('div div');
+                    if (arrow) {
+                      arrow.style.transform = `translateX(-50%) rotate(${heading}deg)`;
+                    }
+                  }
+                }
+              }
+            },
+            function(error) {
+              console.log('Location watch error:', error);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 1000 }
+          );
+          
+          const button = document.getElementById('showMyLocationBtn');
+          myLocationEnabled = true;
+          button.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Hide My Location';
+          button.disabled = false;
+          button.classList.remove('btn-outline-secondary');
+          button.classList.add('btn-secondary');
+          
+          console.log('User location enabled:', lat, lon, 'heading:', heading);
+        }
+      }
 
 
     </script>
