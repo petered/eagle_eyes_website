@@ -204,23 +204,74 @@ permalink: /livestream/
         }
       }
       
-      /* Responsive coordinate strip */
+      /* Responsive coordinate strip with segment hiding */
+      .coord-segment {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      
+      /* Priority levels for showing/hiding segments */
+      .coord-segment {
+        padding: 0 0.5rem;
+      }
+      
+      .coord-segment:first-child {
+        padding-left: 0;
+      }
+      
+      .coord-segment.hidden {
+        display: none !important;
+      }
+      
+      /* Visual separator between segments */
+      .coord-segment:not(:first-child)::before {
+        content: "";
+        position: absolute;
+        left: -0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1px;
+        height: 60%;
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+      
+      .coord-segment {
+        position: relative;
+      }
+      
+      /* Ensure coordinate strip container has proper sizing */
+      #coordinateStripContainer {
+        min-height: 2rem;
+        cursor: pointer;
+      }
+      
+      #coordinateStrip {
+        height: 100%;
+      }
+      
+      /* Add visual hint that strip is clickable */
+      #coordinateStripContainer:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+      }
+      
       @media (min-width: 1200px) {
-        .coordinate-strip {
+        #coordinateStripContainer {
           padding: 0.5rem 1rem;
           font-size: 0.9rem;
         }
       }
       
       @media (min-width: 992px) and (max-width: 1199px) {
-        .coordinate-strip {
+        #coordinateStripContainer {
           padding: 0.4rem 0.8rem;
           font-size: 0.85rem;
         }
       }
       
       @media (min-width: 768px) and (max-width: 991px) {
-        .coordinate-strip {
+        #coordinateStripContainer {
           padding: 0.3rem 0.6rem;
           font-size: 0.8rem;
         }
@@ -330,6 +381,23 @@ permalink: /livestream/
         #map-panel.full-view {
           flex: 1 1 100% !important;
         }
+      }
+      
+      /* Ensure full-screen map takes entire space */
+      #map-panel.full-view {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+      }
+      
+      /* Fix main-content layout for full-screen views */
+      #main-content:has(#video-panel.d-none) {
+        display: flex !important;
+      }
+      
+      #main-content:has(#map-panel.d-none) {
+        display: flex !important;
       }
       #map-panel {
         background-color: #181818;
@@ -848,8 +916,12 @@ permalink: /livestream/
         display: block !important;
       }
 
-      /* Ensure d-none properly hides the map panel */
+      /* Ensure d-none properly hides panels */
       #map-panel.d-none {
+        display: none !important;
+      }
+      
+      #video-panel.d-none {
         display: none !important;
       }
 
@@ -1875,13 +1947,18 @@ permalink: /livestream/
       </div>
 
       <div id="video-panel" class="col-lg-8">
-        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none;" onclick="showCoordinateDialog()">
+        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; position: relative;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
-            class="font-monospace small"
-            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            class="font-monospace small d-flex align-items-center justify-content-between"
+            style="overflow: hidden; white-space: nowrap;"
           >
-            Waiting for location data...
+            <div id="coordTextDesktop" class="d-flex align-items-center" style="gap: 1rem;">
+              Waiting for location data...
+            </div>
+            <span id="moreIndicator" class="text-muted small" style="display: none; margin-left: 0.5rem;">
+              <i class="bi bi-three-dots"></i>
+            </span>
           </div>
         </div>
         <div id="videoContainer">
@@ -2099,6 +2176,71 @@ permalink: /livestream/
     <script src="{{ '/js/livestream/map.js' | relative_url }}"></script>
     <script src="{{ '/js/livestream/client.js' | relative_url }}"></script>
     <script>
+      // Function to handle responsive coordinate strip segments
+      function updateCoordinateStripVisibility() {
+        const container = document.getElementById('coordinateStripContainer');
+        const strip = document.getElementById('coordTextDesktop');
+        
+        if (!container || !strip || container.style.display === 'none') return;
+        
+        const segments = strip.querySelectorAll('.coord-segment');
+        if (segments.length === 0) return;
+        
+        // Get available width
+        const containerWidth = container.offsetWidth;
+        const containerPadding = parseInt(window.getComputedStyle(container).paddingLeft) + 
+                                parseInt(window.getComputedStyle(container).paddingRight);
+        const availableWidth = containerWidth - containerPadding;
+        
+        // Show all segments initially to measure
+        segments.forEach(seg => seg.classList.remove('hidden'));
+        
+        // Calculate total width needed
+        let totalWidth = 0;
+        const segmentWidths = [];
+        segments.forEach((seg, i) => {
+          const width = seg.offsetWidth;
+          segmentWidths.push({ element: seg, width: width, priority: i + 1 });
+          totalWidth += width;
+        });
+        
+        // If all segments fit, we're done
+        if (totalWidth <= availableWidth) {
+          const moreIndicator = document.getElementById('moreIndicator');
+          if (moreIndicator) {
+            moreIndicator.style.display = 'none';
+          }
+          return;
+        }
+        
+        // Hide segments starting from lowest priority (highest index)
+        let currentWidth = totalWidth;
+        let hasHiddenSegments = false;
+        for (let i = segments.length - 1; i >= 0; i--) {
+          if (currentWidth <= availableWidth) break;
+          
+          segments[i].classList.add('hidden');
+          currentWidth -= segmentWidths[i].width;
+          hasHiddenSegments = true;
+        }
+        
+        // Show/hide the "more" indicator
+        const moreIndicator = document.getElementById('moreIndicator');
+        if (moreIndicator) {
+          moreIndicator.style.display = hasHiddenSegments ? 'inline' : 'none';
+        }
+      }
+      
+      // Set up responsive coordinate strip
+      window.addEventListener('resize', updateCoordinateStripVisibility);
+      
+      // Also update when coordinate data changes
+      const originalUpdateLocation = window.updateCoordinateStripVisibility;
+      window.updateCoordinateStripVisibility = function() {
+        if (originalUpdateLocation) originalUpdateLocation.apply(this, arguments);
+        setTimeout(updateCoordinateStripVisibility, 10);
+      };
+      
       document.addEventListener("DOMContentLoaded", () => {
         const videoPanel = document.getElementById("video-panel");
         const mapPanel = document.getElementById("map-panel");
@@ -2139,6 +2281,10 @@ permalink: /livestream/
             // Re-run optimization to apply correct fitting and proportions
             setTimeout(() => optimizeVideoFitting(), 100);
           }
+          
+          // Update coordinate strip visibility after view mode change
+          setTimeout(updateCoordinateStripVisibility, 50);
+          
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);
           } else {
