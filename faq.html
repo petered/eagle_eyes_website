@@ -1791,14 +1791,33 @@ function createDroneRow(drone, index) {
     // Controllers
     const controllersCell = document.createElement('td');
     controllersCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6;';
-    const allControllers = [
-        ...(drone.controllers_internally_tested || []),
-        ...(drone.controllers_user_tested || []),
-        ...(drone.controllers_not_tested || [])
-    ];
-    // Add standard Android options
-    allControllers.push('Android Device', 'Android Tablet');
-    controllersCell.textContent = allControllers.length > 0 ? allControllers.join(', ') : 'See notes';
+    
+    const controllersList = [];
+    
+    // Add internally tested controllers
+    (drone.controllers_internally_tested || []).forEach(controller => {
+        controllersList.push(`${controller} (internally tested)`);
+    });
+    
+    // Add user tested controllers
+    (drone.controllers_user_tested || []).forEach(controller => {
+        controllersList.push(`${controller} (user tested)`);
+    });
+    
+    // Add not tested controllers
+    (drone.controllers_not_tested || []).forEach(controller => {
+        controllersList.push(`${controller} (not tested)`);
+    });
+    
+    // Add incompatible controllers
+    (drone.controllers_incompatible || []).forEach(controller => {
+        controllersList.push(`${controller} (incompatible)`);
+    });
+    
+    // Add standard Android options (assume internally tested)
+    controllersList.push('Android Device (internally tested)', 'Android Tablet (internally tested)');
+    
+    controllersCell.textContent = controllersList.length > 0 ? controllersList.join(', ') : 'See notes';
     
     // Status
     const statusCell = document.createElement('td');
