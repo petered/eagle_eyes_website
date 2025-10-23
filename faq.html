@@ -348,9 +348,42 @@ permalink: /faq/
                         </div>
 <div class="faq-answer">
                             <p>See our <a href="{{ '/compatibility/' | relative_url }}" class="resource-link">Compatibility page</a> for complete overview of Eagle Eyes compatibility.</p>
+                            
+                            <h4 style="margin: 20px 0 15px 0; color: #333; font-size: 18px;">DJI Drone Compatibility (Eagle Eyes Pilot)</h4>
+                            
+                            <div id="general-compatibility-loading" style="text-align: center; padding: 20px; color: #666;">
+                                <span>Loading drone compatibility data...</span>
+                            </div>
+                            
+                            <div id="general-compatibility-table" style="display: none;">
+                                <div style="overflow-x: auto; margin: 15px 0;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; background: white; border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        <thead>
+                                            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                                <th style="padding: 15px 10px; text-align: left; border: 1px solid #555; font-weight: 600; font-size: 15px;">Drone Model</th>
+                                                <th style="padding: 15px 10px; text-align: left; border: 1px solid #555; font-weight: 600; font-size: 15px;">Compatible Controllers</th>
+                                                <th style="padding: 15px 10px; text-align: center; border: 1px solid #555; font-weight: 600; font-size: 15px;">Testing Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="general-compatibility-tbody">
+                                            <!-- Dynamic content will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div id="general-compatibility-error" style="display: none; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 15px; margin: 15px 0; color: #721c24;">
+                                <p style="margin: 0;"><strong>Unable to load compatibility data.</strong> Please visit our <a href="{{ '/compatibility/' | relative_url }}" style="color: #721c24; text-decoration: underline;">compatibility page</a> for the most up-to-date information.</p>
+                            </div>
+                            
+                            <div style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                                <p style="margin: 0; color: #0056b3; line-height: 1.6;"><strong>📱 Android Requirements:</strong> Android 7+ with processor comparable to Snapdragon 855 (Galaxy S10 level), 6GB+ free storage. Not compatible with Google Pixel 6/7 phones due to DJI SDK bug.</p>
+                            </div>
+                            
                             <p>For more information on Compatibility see <a href="https://docs.google.com/document/d/1Uq8lHS-V7B7ekQ9h6gRrnnclu9vuM4zKRBzB3tS0fGQ/edit?tab=t.0#bookmark=id.xe20wqfx2ir1" class="resource-link" target="_blank">📘 Eagle Eyes Pilot Manual</a>.</p>
                         </div>
                     </div>
+
 
                     <div class="faq-item" id="thermal-detection">
                         <div class="faq-question">
@@ -993,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tags = 'pricing cost trial';
         } else if (id === 'compatibility-overview') {
             alternates = 'what drones supported drone types which drones work models';
-            tags = 'compatibility drone types models supported dji mavic';
+            tags = 'compatibility drone types models supported dji mavic mini3';
         } else if (id === 'offline-tracks-upload') {
             alternates = 'no wifi no internet upload tracks later recorded flight logs offline maps';
             tags = 'offline tracks upload caltopo gps flight logs mbtiles maps free';
@@ -1727,5 +1760,264 @@ function showEmailCopyNotification() {
         trackQuestionClicks();
         trackAnswerLinkClicks();
     }
+
+    // Load drone compatibility data for the general compatibility FAQ
+    loadGeneralCompatibilityData();
 })();
+
+// Function to create a hash of drone data for change detection
+function hashDroneData(droneData) {
+    const str = JSON.stringify(droneData);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString();
+}
+
+// Function to create a table row for a drone
+function createDroneRow(drone, index) {
+    const row = document.createElement('tr');
+    row.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+    row.setAttribute('data-drone-id', `${drone.brand}-${drone.name}`.replace(/\s+/g, '-').toLowerCase());
+    
+    // Drone Model
+    const modelCell = document.createElement('td');
+    modelCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6; font-weight: 500;';
+    modelCell.textContent = `${drone.brand} ${drone.name}`;
+    
+    // Controllers
+    const controllersCell = document.createElement('td');
+    controllersCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6;';
+    const allControllers = [
+        ...(drone.controllers_internally_tested || []),
+        ...(drone.controllers_user_tested || []),
+        ...(drone.controllers_not_tested || [])
+    ];
+    // Add standard Android options
+    allControllers.push('Android Device', 'Android Tablet');
+    controllersCell.textContent = allControllers.length > 0 ? allControllers.join(', ') : 'See notes';
+    
+    // Status
+    const statusCell = document.createElement('td');
+    statusCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6; text-align: center;';
+    
+    let statusBadge = '';
+    if ((drone.controllers_internally_tested || []).length > 0) {
+        statusBadge = '<span style="background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;">✅ Tested</span>';
+    } else if ((drone.controllers_user_tested || []).length > 0) {
+        statusBadge = '<span style="background: #e1f5fe; color: #0277bd; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;">👥 User Tested</span>';
+    } else if ((drone.controllers_not_tested || []).length > 0) {
+        statusBadge = '<span style="background: #fff3cd; color: #856404; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;">⚠️ May Work</span>';
+    } else {
+        statusBadge = '<span style="background: #f8d7da; color: #721c24; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500;">❓ Unknown</span>';
+    }
+    statusCell.innerHTML = statusBadge;
+    
+    row.appendChild(modelCell);
+    row.appendChild(controllersCell);
+    row.appendChild(statusCell);
+    return row;
+}
+
+// Function to load cached data and show immediately
+function loadCachedDroneData() {
+    const cached = localStorage.getItem('droneCompatibilityData');
+    const cacheTimestamp = localStorage.getItem('droneCompatibilityTimestamp');
+    
+    if (!cached) return false;
+    
+    try {
+        const data = JSON.parse(cached);
+        const tbody = document.getElementById('general-compatibility-tbody');
+        const loadingDiv = document.getElementById('general-compatibility-loading');
+        const tableDiv = document.getElementById('general-compatibility-table');
+        
+        if (!tbody || !data.length) return false;
+        
+        // Clear and populate with cached data
+        tbody.innerHTML = '';
+        data.forEach((drone, index) => {
+            const row = createDroneRow(drone, index);
+            tbody.appendChild(row);
+        });
+        
+        // Show table immediately
+        loadingDiv.style.display = 'none';
+        tableDiv.style.display = 'block';
+        
+        // Add a small indicator that data is cached
+        const timestamp = new Date(parseInt(cacheTimestamp));
+        const timeAgo = Math.round((Date.now() - timestamp.getTime()) / (1000 * 60));
+        if (timeAgo > 0) {
+            const indicator = document.createElement('div');
+            indicator.id = 'cache-indicator';
+            indicator.style.cssText = 'font-size: 12px; color: #666; text-align: right; margin-top: 5px; font-style: italic;';
+            indicator.textContent = `Data cached ${timeAgo} minutes ago • Checking for updates...`;
+            tableDiv.appendChild(indicator);
+        }
+        
+        return true;
+    } catch (e) {
+        console.error('Error loading cached data:', e);
+        return false;
+    }
+}
+
+// Function to update only changed rows
+function updateChangedRows(newData, oldData) {
+    const tbody = document.getElementById('general-compatibility-tbody');
+    if (!tbody) return;
+    
+    // Create maps for easier comparison
+    const oldMap = new Map();
+    oldData.forEach(drone => {
+        const key = `${drone.brand}-${drone.name}`.replace(/\s+/g, '-').toLowerCase();
+        oldMap.set(key, drone);
+    });
+    
+    const newMap = new Map();
+    newData.forEach(drone => {
+        const key = `${drone.brand}-${drone.name}`.replace(/\s+/g, '-').toLowerCase();
+        newMap.set(key, drone);
+    });
+    
+    // Check for changes and updates
+    let hasChanges = false;
+    
+    newData.forEach((drone, index) => {
+        const key = `${drone.brand}-${drone.name}`.replace(/\s+/g, '-').toLowerCase();
+        const oldDrone = oldMap.get(key);
+        
+        if (!oldDrone || hashDroneData(drone) !== hashDroneData(oldDrone)) {
+            hasChanges = true;
+            
+            // Find and replace the row
+            const existingRow = tbody.querySelector(`tr[data-drone-id="${key}"]`);
+            const newRow = createDroneRow(drone, index);
+            
+            if (existingRow) {
+                tbody.replaceChild(newRow, existingRow);
+            } else {
+                // New drone, add to table
+                tbody.appendChild(newRow);
+            }
+        }
+    });
+    
+    // Remove any drones that no longer exist
+    oldData.forEach(drone => {
+        const key = `${drone.brand}-${drone.name}`.replace(/\s+/g, '-').toLowerCase();
+        if (!newMap.has(key)) {
+            hasChanges = true;
+            const existingRow = tbody.querySelector(`tr[data-drone-id="${key}"]`);
+            if (existingRow) {
+                existingRow.remove();
+            }
+        }
+    });
+    
+    return hasChanges;
+}
+
+
+// Function to load compatibility data for the general compatibility question
+async function loadGeneralCompatibilityData() {
+    const loadingDiv = document.getElementById('general-compatibility-loading');
+    const tableDiv = document.getElementById('general-compatibility-table');
+    const errorDiv = document.getElementById('general-compatibility-error');
+    const tbody = document.getElementById('general-compatibility-tbody');
+    
+    if (!loadingDiv || !tableDiv || !errorDiv || !tbody) {
+        return; // Elements not found, probably on a different page
+    }
+    
+    // Try to load cached data first
+    const hasCachedData = loadCachedDroneData();
+    
+    try {
+        // Always fetch fresh data (but don't show loading if we have cache)
+        const response = await fetch('https://us-central1-eagleeyessearch.cloudfunctions.net/get_drone_models', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch drone models');
+        
+        const data = await response.json();
+        const allDrones = data.drones || [];
+        
+        // Filter for Pilot-compatible drones only
+        const pilotDrones = allDrones.filter(drone => {
+            const compat = Array.isArray(drone.compatibility) ? drone.compatibility :
+                          Array.isArray(drone.Compatibility) ? drone.Compatibility : [];
+            return compat.map(x => String(x).toLowerCase()).includes('pilot');
+        });
+        
+        // Sort drones alphabetically
+        const sortedDrones = pilotDrones.filter(drone => drone.name && drone.brand).sort((a, b) => {
+            const nameA = `${a.brand} ${a.name}`.toLowerCase();
+            const nameB = `${b.brand} ${b.name}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+        
+        if (sortedDrones.length === 0) {
+            throw new Error('No Pilot-compatible drones found');
+        }
+        
+        // Get cached data for comparison
+        const cachedData = localStorage.getItem('droneCompatibilityData');
+        const oldData = cachedData ? JSON.parse(cachedData) : [];
+        
+        if (hasCachedData && oldData.length > 0) {
+            // Update only changed rows
+            const hasChanges = updateChangedRows(sortedDrones, oldData);
+            
+            // Remove cache indicator
+            const indicator = document.getElementById('cache-indicator');
+            if (indicator) indicator.remove();
+            
+            if (hasChanges) {
+                console.log('Drone compatibility data updated with changes');
+            } else {
+                console.log('No changes in drone compatibility data');
+            }
+        } else {
+            // No cached data, populate table normally
+            tbody.innerHTML = '';
+            sortedDrones.forEach((drone, index) => {
+                const row = createDroneRow(drone, index);
+                tbody.appendChild(row);
+            });
+            
+            loadingDiv.style.display = 'none';
+            tableDiv.style.display = 'block';
+        }
+        
+        // Update cache
+        localStorage.setItem('droneCompatibilityData', JSON.stringify(sortedDrones));
+        localStorage.setItem('droneCompatibilityTimestamp', Date.now().toString());
+        
+        errorDiv.style.display = 'none';
+        
+    } catch (error) {
+        console.error('Error loading drone compatibility data:', error);
+        
+        // If we have cached data, keep showing it
+        if (hasCachedData) {
+            const indicator = document.getElementById('cache-indicator');
+            if (indicator) {
+                indicator.textContent = 'Using cached data • Unable to check for updates';
+                indicator.style.color = '#856404';
+            }
+        } else {
+            // No cached data and fetch failed, show error
+            loadingDiv.style.display = 'none';
+            tableDiv.style.display = 'none';
+            errorDiv.style.display = 'block';
+        }
+    }
+}
 </script> 
