@@ -8,11 +8,11 @@ permalink: /livestream/
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Favicon -->
-    <link rel="icon" href="images/eagle-eyes-beta-logo-new.png" type="image/png">
-    <link rel="shortcut icon" href="images/eagle-eyes-beta-logo-new.png" type="image/png">
+    <link rel="icon" href="/images/eagle-eyes-beta-logo-new.png" type="image/png">
+    <link rel="shortcut icon" href="/images/eagle-eyes-beta-logo-new.png" type="image/png">
 
     <!-- PWA Configuration -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#314268">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Eagle Eyes Livestream">
@@ -21,17 +21,17 @@ permalink: /livestream/
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Eagle Eyes Livestream">
-    <link rel="apple-touch-icon" href="images/eagle-eyes-beta-logo-new.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="images/eagle-eyes-beta-logo-new.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="images/eagle-eyes-beta-logo-new.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="images/eagle-eyes-beta-logo-new.png">
+    <link rel="apple-touch-icon" href="/images/eagle-eyes-beta-logo-new.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/images/eagle-eyes-beta-logo-new.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/eagle-eyes-beta-logo-new.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/images/eagle-eyes-beta-logo-new.png">
 
     <!-- Open Graph / Facebook -->
-    <meta property="og:image" content="images/eagle-eyes-beta-logo-new.png">
+    <meta property="og:image" content="/images/eagle-eyes-beta-logo-new.png">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:image" content="images/eagle-eyes-beta-logo-new.png">
+    <meta name="twitter:image" content="/images/eagle-eyes-beta-logo-new.png">
     
     <title>Eagle Eyes Livestream Viewer</title>
     <link
@@ -140,6 +140,32 @@ permalink: /livestream/
         object-fit: contain;
         display: none;
         z-index: 2;
+      }
+      /* Play button overlay when video is paused */
+      .play-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 3;
+        transition: all 0.3s ease;
+      }
+      .play-overlay:hover {
+        background-color: rgba(0, 0, 0, 0.8);
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+      .play-overlay i {
+        color: white;
+        font-size: 32px;
+        margin-left: 4px; /* Compensate for play icon visual centering */
       }
       /* Remove shadow/gradient overlay from video controls */
       #remoteVideo::-webkit-media-controls-panel {
@@ -1223,6 +1249,9 @@ permalink: /livestream/
             </a>
           </div>
           <video id="remoteVideo" autoplay playsinline muted controls></video>
+          <div class="play-overlay" id="playOverlay" onclick="resumeVideo()">
+            <i class="bi bi-play-fill"></i>
+          </div>
         </div>
       </div>
       <div id="map-panel">
@@ -1236,9 +1265,83 @@ permalink: /livestream/
     <script src="{{ '/js/livestream/map.js' | relative_url }}"></script>
     <script src="{{ '/js/livestream/client.js' | relative_url }}"></script>
     <script>
+      // Register service worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => console.log('Service Worker registered:', registration))
+            .catch(error => console.log('Service Worker registration failed:', error));
+        });
+      }
+      // Video play/pause overlay functionality
+      function setupVideoControls() {
+        const video = document.getElementById('remoteVideo');
+        const playOverlay = document.getElementById('playOverlay');
+        
+        if (video && playOverlay) {
+          // Show/hide play overlay based on video state
+          video.addEventListener('pause', () => {
+            if (video.style.display !== 'none') {
+              playOverlay.style.display = 'flex';
+            }
+          });
+          
+          video.addEventListener('play', () => {
+            playOverlay.style.display = 'none';
+          });
+          
+          // Hide overlay when video ends
+          video.addEventListener('ended', () => {
+            playOverlay.style.display = 'none';
+          });
+        }
+      }
+      
+      function resumeVideo() {
+        const video = document.getElementById('remoteVideo');
+        if (video && video.paused) {
+          video.play();
+        }
+      }
+      
+      // Picture-in-Picture functionality
+      function setupPictureInPicture() {
+        const video = document.getElementById('remoteVideo');
+        
+        if (video && 'pictureInPictureEnabled' in document) {
+          // Enter PiP when page loses visibility
+          document.addEventListener('visibilitychange', async () => {
+            if (document.hidden && !video.paused && video.style.display !== 'none') {
+              try {
+                if (video !== document.pictureInPictureElement) {
+                  await video.requestPictureInPicture();
+                }
+              } catch (error) {
+                console.log('PiP failed:', error);
+              }
+            }
+          });
+          
+          // Optional: Exit PiP when page becomes visible again
+          document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden && document.pictureInPictureElement) {
+              try {
+                await document.exitPictureInPicture();
+              } catch (error) {
+                console.log('Exit PiP failed:', error);
+              }
+            }
+          });
+        }
+      }
+      
       document.addEventListener("DOMContentLoaded", () => {
         const videoPanel = document.getElementById("video-panel");
         const mapPanel = document.getElementById("map-panel");
+        
+        // Initialize video controls and PiP
+        setupVideoControls();
+        setupPictureInPicture();
 
         // Function to hide coordinate segments that don't fit completely
         function updateCoordinateSegmentVisibility() {
