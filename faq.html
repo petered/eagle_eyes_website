@@ -362,7 +362,6 @@ permalink: /faq/
                                             <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                                                 <th style="padding: 15px 10px; text-align: left; border: 1px solid #555; font-weight: 600; font-size: 15px;">Drone Model</th>
                                                 <th style="padding: 15px 10px; text-align: left; border: 1px solid #555; font-weight: 600; font-size: 15px;">Compatible Controllers</th>
-                                                <th style="padding: 15px 10px; text-align: center; border: 1px solid #555; font-weight: 600; font-size: 15px;">Testing Status</th>
                                             </tr>
                                         </thead>
                                         <tbody id="general-compatibility-tbody">
@@ -1814,29 +1813,14 @@ function createDroneRow(drone, index) {
         controllersList.push(`${controller} (incompatible)`);
     });
     
-    controllersCell.textContent = controllersList.length > 0 ? controllersList.join(', ') : 'See notes';
-    
-    // Status
-    const statusCell = document.createElement('td');
-    statusCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6; text-align: center;';
-    
-    let statusBadge = '';
     if (drone.scanOnly) {
-        statusBadge = '<span style="background: #e3f2fd; color: #1565c0; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block; line-height: 1.3; box-decoration-break: clone; -webkit-box-decoration-break: clone;">🖥️ Eagle Eyes Scan Only</span>';
-    } else if ((drone.controllers_internally_tested || []).length > 0) {
-        statusBadge = '<span style="background: #d4edda; color: #155724; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block; line-height: 1.3; box-decoration-break: clone; -webkit-box-decoration-break: clone;">✅ Tested</span>';
-    } else if ((drone.controllers_user_tested || []).length > 0) {
-        statusBadge = '<span style="background: #e1f5fe; color: #0277bd; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block; line-height: 1.3; box-decoration-break: clone; -webkit-box-decoration-break: clone;">👥 User Tested</span>';
-    } else if ((drone.controllers_not_tested || []).length > 0) {
-        statusBadge = '<span style="background: #fff3cd; color: #856404; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block; line-height: 1.3; box-decoration-break: clone; -webkit-box-decoration-break: clone;">⚠️ May Work</span>';
+        controllersCell.textContent = 'Note: Eagle Eyes Scan Only 💻';
     } else {
-        statusBadge = '<span style="background: #f8d7da; color: #721c24; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block; line-height: 1.3; box-decoration-break: clone; -webkit-box-decoration-break: clone;">❓ Unknown</span>';
+        controllersCell.textContent = controllersList.length > 0 ? controllersList.join(', ') : 'See notes';
     }
-    statusCell.innerHTML = statusBadge;
     
     row.appendChild(modelCell);
     row.appendChild(controllersCell);
-    row.appendChild(statusCell);
     return row;
 }
 
