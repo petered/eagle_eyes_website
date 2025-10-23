@@ -84,7 +84,7 @@ permalink: /livestream/
         background-color: #000;
         min-height: 0;
       }
-      /* In both orientations, video gets 2/3, map gets 1/3 */
+      /* Landscape: video gets 2/3 width, map gets 1/3 width (fixed) */
       @media (min-aspect-ratio: 1/1) {
         #video-panel {
           flex: 0 0 66.666667%;
@@ -93,12 +93,16 @@ permalink: /livestream/
           flex: 0 0 33.333333%;
         }
       }
+      /* Portrait: flexible sizing with constraints to optimize space */
       @media (max-aspect-ratio: 1/1) {
         #video-panel {
-          flex: 0 0 66.666667%;
+          flex: 1 1 auto;
+          min-height: 40%;
+          max-height: 70%;
         }
         #map-panel {
-          flex: 0 0 33.333333%;
+          flex: 1 1 auto;
+          min-height: 30%;
         }
       }
       /* Full size for single-view modes */
@@ -121,6 +125,12 @@ permalink: /livestream/
         justify-content: center;
         position: relative;
       }
+      /* In portrait mode, align video to top instead of center */
+      @media (max-aspect-ratio: 1/1) {
+        #videoContainer {
+          align-items: flex-start;
+        }
+      }
       #remoteVideo {
         position: absolute;
         top: 0;
@@ -130,6 +140,15 @@ permalink: /livestream/
         object-fit: contain;
         display: none;
         z-index: 2;
+      }
+      /* Remove shadow/gradient overlay from video controls */
+      #remoteVideo::-webkit-media-controls-panel {
+        background-image: none !important;
+        background: transparent !important;
+      }
+      #remoteVideo::-webkit-media-controls-enclosure {
+        background-image: none !important;
+        background: transparent !important;
       }
       .placeholder {
         width: 100%;
@@ -264,6 +283,78 @@ permalink: /livestream/
         .navbar-brand span:not(.beta-badge) {
           display: none;
         }
+      }
+      /* Hide history dropdown at medium sizes to prevent navbar overflow */
+      @media (min-width: 768px) and (max-width: 991px) {
+        #historyDropdown {
+          display: none !important;
+        }
+      }
+      /* Reduce navbar spacing at medium sizes */
+      @media (min-width: 768px) and (max-width: 991px) {
+        .navbar .btn,
+        .navbar .btn-group {
+          margin-right: 0.5rem !important;
+        }
+        /* Remove margin from viewer count at medium sizes */
+        #viewerCount {
+          margin-right: 0 !important;
+        }
+      }
+      /* Hide viewer count text at smaller medium sizes, keep icon */
+      @media (min-width: 768px) and (max-width: 900px) {
+        #viewerCount {
+          display: none !important;
+        }
+      }
+      /* Compact navbar styling */
+      .navbar {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+      }
+      .navbar-brand {
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+      }
+      .navbar-brand img {
+        height: 32px !important;
+        margin-right: 0.5rem !important;
+      }
+      .navbar .btn {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.875rem;
+      }
+      .navbar .btn-group .btn {
+        padding: 0.375rem 0.5rem;
+      }
+      .navbar #status {
+        font-size: 0.8rem;
+      }
+      .navbar #status .status-dot {
+        width: 8px;
+        height: 8px;
+      }
+      /* Compact CalTopo button */
+      #caltopoBtn {
+        padding: 0.5rem 0.5rem !important;
+        gap: 0.15rem !important;
+      }
+      #caltopoBtn div {
+        font-size: 0.75rem !important;
+      }
+      #caltopoBtn img {
+        height: 14px !important;
+      }
+      /* Reduce spacing between all navbar items */
+      .navbar .me-3 {
+        margin-right: 0.5rem !important;
+      }
+      .navbar .me-2 {
+        margin-right: 0.35rem !important;
+      }
+      /* Compact viewer count */
+      .navbar .text-white {
+        font-size: 0.85rem;
       }
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
@@ -961,13 +1052,13 @@ permalink: /livestream/
       </div>
 
       <div id="video-panel">
-        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none;" onclick="showCoordinateDialog()">
+        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
             class="font-monospace small"
-            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+            style="display: flex; gap: 0.75rem; overflow: hidden; align-items: center;"
           >
-            Waiting for location data...
+            <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
           </div>
         </div>
         <div id="videoContainer">
@@ -1148,6 +1239,55 @@ permalink: /livestream/
       document.addEventListener("DOMContentLoaded", () => {
         const videoPanel = document.getElementById("video-panel");
         const mapPanel = document.getElementById("map-panel");
+
+        // Function to hide coordinate segments that don't fit completely
+        function updateCoordinateSegmentVisibility() {
+          const coordStrip = document.getElementById("coordinateStrip");
+          if (!coordStrip) return;
+
+          const segments = Array.from(coordStrip.children);
+          if (segments.length === 0) return;
+
+          // Show all segments first to measure
+          segments.forEach(seg => seg.style.display = '');
+
+          const containerWidth = coordStrip.offsetWidth;
+          let totalWidth = 0;
+          const gap = 12; // 0.75rem in pixels (approximate)
+
+          // Hide segments from right to left if they don't fit
+          for (let i = 0; i < segments.length; i++) {
+            const segmentWidth = segments[i].offsetWidth;
+            const widthWithGap = totalWidth + segmentWidth + (i > 0 ? gap : 0);
+
+            if (widthWithGap > containerWidth) {
+              // This segment and all following don't fit
+              for (let j = i; j < segments.length; j++) {
+                segments[j].style.display = 'none';
+              }
+              break;
+            }
+            totalWidth = widthWithGap;
+          }
+        }
+
+        // Create ResizeObserver for coordinate strip
+        const coordStripContainer = document.getElementById("coordinateStripContainer");
+        if (coordStripContainer) {
+          const resizeObserver = new ResizeObserver(() => {
+            updateCoordinateSegmentVisibility();
+          });
+          resizeObserver.observe(coordStripContainer);
+
+          // Also update when content changes (via MutationObserver)
+          const mutationObserver = new MutationObserver(() => {
+            updateCoordinateSegmentVisibility();
+          });
+          const coordStrip = document.getElementById("coordinateStrip");
+          if (coordStrip) {
+            mutationObserver.observe(coordStrip, { childList: true, subtree: true });
+          }
+        }
 
         function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");

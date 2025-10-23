@@ -1397,7 +1397,7 @@ class WebRTCViewer {
     // Initialize desktop coordinate display
     const coordStrip = document.getElementById("coordinateStrip");
     if (coordStrip) {
-      coordStrip.innerHTML = `<div id="coordTextDesktop">Waiting for location data...</div>`;
+      coordStrip.innerHTML = `<span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
     }
   }
 
@@ -1426,9 +1426,6 @@ class WebRTCViewer {
     const latFormatted = `${Math.abs(latitude).toFixed(5)}°${latDir}`;
     const lonFormatted = `${Math.abs(longitude).toFixed(5)}°${lonDir}`;
 
-    // Compact display for coordinate strip
-    const compactText = `🌐 ${latFormatted},${lonFormatted}  ↑🏠 ${altAhlText}  ↑${altSecondLabel} ${altSecondText}  🧭${bearing.toFixed(0)}°`;
-
     // Detailed display for mobile sidebar
     const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (${altitude_asl != null ? 'sea' : 'GPS'}):</strong> ${altSecondText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
 
@@ -1438,10 +1435,16 @@ class WebRTCViewer {
       coordTextMobile.innerHTML = detailedText;
     }
 
-    // Update desktop coordinate strip (compact format)
-    const coordTextDesktop = document.getElementById("coordTextDesktop");
-    if (coordTextDesktop) {
-      coordTextDesktop.innerHTML = compactText;
+    // Update desktop coordinate strip (segmented format for responsive hiding)
+    const coordStrip = document.getElementById("coordinateStrip");
+    if (coordStrip) {
+      // Create separate segments that can hide individually when space is limited
+      coordStrip.innerHTML = `
+        <span style="white-space: nowrap; flex-shrink: 0;">🌐 ${latFormatted},${lonFormatted}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">↑🏠 ${altAhlText}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">↑${altSecondLabel} ${altSecondText}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">🧭${bearing.toFixed(0)}°</span>
+      `;
     }
 
     // Enable pointer cursor when we have location data
