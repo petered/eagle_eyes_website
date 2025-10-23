@@ -1397,7 +1397,7 @@ class WebRTCViewer {
     // Initialize desktop coordinate display
     const coordStrip = document.getElementById("coordinateStrip");
     if (coordStrip) {
-      coordStrip.innerHTML = `<div id="coordTextDesktop">Waiting for location data...</div>`;
+      coordStrip.innerHTML = `<span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
     }
   }
 
@@ -1426,14 +1426,6 @@ class WebRTCViewer {
     const latFormatted = `${Math.abs(latitude).toFixed(5)}°${latDir}`;
     const lonFormatted = `${Math.abs(longitude).toFixed(5)}°${lonDir}`;
 
-    // Create segmented display for coordinate strip
-    const segmentedHTML = `
-      <span class="coord-segment priority-1">🌐 ${latFormatted},${lonFormatted}</span>
-      <span class="coord-segment priority-2">↑🏠 ${altAhlText}</span>
-      <span class="coord-segment priority-3">↑${altSecondLabel} ${altSecondText}</span>
-      <span class="coord-segment priority-4">🧭 ${bearing.toFixed(0)}°</span>
-    `;
-
     // Detailed display for mobile sidebar
     const detailedText = `(${latitude.toFixed(6)}°, ${longitude.toFixed(6)}°) <strong>Altitude (home):</strong> ${altAhlText} <strong>Altitude (${altitude_asl != null ? 'sea' : 'GPS'}):</strong> ${altSecondText} <strong>Bearing:</strong> ${bearing.toFixed(1)}°`;
 
@@ -1443,21 +1435,22 @@ class WebRTCViewer {
       coordTextMobile.innerHTML = detailedText;
     }
 
-    // Update desktop coordinate strip (segmented format)
-    const coordTextDesktop = document.getElementById("coordTextDesktop");
-    if (coordTextDesktop) {
-      coordTextDesktop.innerHTML = segmentedHTML;
+    // Update desktop coordinate strip (segmented format for responsive hiding)
+    const coordStrip = document.getElementById("coordinateStrip");
+    if (coordStrip) {
+      // Create separate segments that can hide individually when space is limited
+      coordStrip.innerHTML = `
+        <span style="white-space: nowrap; flex-shrink: 0;">🌐 ${latFormatted},${lonFormatted}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">↑🏠 ${altAhlText}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">↑${altSecondLabel} ${altSecondText}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">🧭${bearing.toFixed(0)}°</span>
+      `;
     }
 
     // Enable pointer cursor when we have location data
     const coordStripContainer = document.getElementById("coordinateStripContainer");
     if (coordStripContainer) {
       coordStripContainer.style.cursor = "pointer";
-    }
-    
-    // Trigger responsive visibility update
-    if (window.updateCoordinateStripVisibility) {
-      setTimeout(() => window.updateCoordinateStripVisibility(), 10);
     }
   }
 
