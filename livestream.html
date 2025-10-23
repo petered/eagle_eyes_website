@@ -1,3 +1,6 @@
+---
+permalink: /livestream/
+---
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
   <head>
@@ -474,7 +477,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
-          <img src="images/eagle-eyes-beta-logo-new.png" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
+          <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
           <span>Eagle Eyes Livestream Viewer</span>
         </a>
 
@@ -501,12 +504,12 @@
             <button
               id="caltopoBtn"
               class="btn me-3"
-              style="display: none; flex-direction: column; align-items: center; gap: 0.25rem; border: 1px solid #cc5e31; color: #cc5e31; background-color: transparent; padding: 0.5rem 0.75rem;"
+              style="display: none; flex-direction: column; align-items: center; gap: 0.25rem; border: 1px solid #cc5e31; color: #cc5e31; background-color: transparent; padding: 0.75rem 0.75rem;"
               onclick="openCaltopoMap()"
               title="Open CalTopo Map"
             >
-              <div style="font-size: 0.85rem; white-space: nowrap;">View <span id="caltopoMapName"></span> on</div>
-              <img src="images/livestream/caltopo-full-logo.svg" alt="CalTopo" style="height: 18px; width: auto;">
+              <div style="font-size: 0.85rem; white-space: nowrap; line-height: 1.2;">View <span id="caltopoMapName"></span> on</div>
+              <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 18px; width: auto; margin-top: 2px;">
             </button>
 
             <div class="btn-group me-3" role="group">
@@ -765,12 +768,12 @@
           <button
             id="caltopoBtnMobile"
             class="btn"
-            style="display: none; flex-direction: column; align-items: center; gap: 0.25rem; border: 1px solid #cc5e31; color: #cc5e31; background-color: transparent; padding: 0.5rem 0.75rem;"
+            style="display: none; flex-direction: column; align-items: center; gap: 0.25rem; border: 1px solid #cc5e31; color: #cc5e31; background-color: transparent; padding: 0.75rem 0.75rem;"
             onclick="openCaltopoMap()"
             title="Open CalTopo Map"
           >
-            <div style="font-size: 0.85rem;">View <span id="caltopoMapNameMobile"></span> on</div>
-            <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 18px; width: auto;">
+            <div style="font-size: 0.85rem; line-height: 1.2;">View <span id="caltopoMapNameMobile"></span> on</div>
+            <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 18px; width: auto; margin-top: 2px;">
           </button>
         </div>
         <hr />
@@ -1124,8 +1127,8 @@
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/livestream/map.js"></script>
-    <script src="js/livestream/client.js"></script>
+    <script src="{{ '/js/livestream/map.js' | relative_url }}"></script>
+    <script src="{{ '/js/livestream/client.js' | relative_url }}"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const videoPanel = document.getElementById("video-panel");
@@ -1135,17 +1138,23 @@
           const coordStrip = document.getElementById("coordinateStripContainer");
 
           if (mode === "video") {
-            videoPanel.className = "col-12";
+            videoPanel.className = "col-12 full-view";
+            videoPanel.style.flex = "1 1 100%";
             mapPanel.className = "d-none";
+            mapPanel.style.flex = "";
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
           } else if (mode === "map") {
             videoPanel.className = "d-none";
-            mapPanel.className = "col-12";
+            videoPanel.style.flex = "";
+            mapPanel.className = "col-12 full-view";
+            mapPanel.style.flex = "1 1 100%";
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
           } else {
             // split
             videoPanel.className = "col-lg-8";
+            videoPanel.style.flex = "";
             mapPanel.className = "col-lg-4";
+            mapPanel.style.flex = "";
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
           }
           if (window.droneMap) {
