@@ -1,3 +1,4 @@
+<!-- COMMENTED OUT - Blog post temporarily disabled
 ---
 layout: post
 title: "Eagle Eyes Pilot 1.5.0 Beta - Livestreaming has arrived"
@@ -39,3 +40,4 @@ This is our first public version of wireless livestreaming, expect quirks, share
 <a href="mailto:info@EagleEyesSearch.com">info@EagleEyesSearch.com</a>
 
 — The Eagle Eyes Team
+-->
