@@ -1,4 +1,3 @@
-<!-- COMMENTED OUT - Blog post temporarily disabled
 ---
 layout: post
 title: "Eagle Eyes Pilot 1.5.0 Beta - Livestreaming has arrived"
@@ -7,6 +6,7 @@ date: 2025-10-23 09:00:00 -0800
 author: Eagle Eyes Team
 permalink: /blog/eagle-eyes-pilot-1-5-0-beta-livestreaming
 categories: product-updates pilot livestreaming
+published: false
 ---
 <br>
 Eagle Eyes Pilot v1.5.0 is finally here! This update focuses on improved stability, better CalTopo integration, and introduces Eagle Eyes Livestreaming, a new way to share your drone's live view wirelessly with teams on-site or remote.
@@ -40,4 +40,3 @@ This is our first public version of wireless livestreaming, expect quirks, share
 <a href="mailto:info@EagleEyesSearch.com">info@EagleEyesSearch.com</a>
 
 — The Eagle Eyes Team
--->
