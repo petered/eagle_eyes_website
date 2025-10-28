@@ -79,27 +79,32 @@ class DroneMap {
 
             // Create high-quality base map layers
             const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
+                maxZoom: 25,
+                maxNativeZoom: 19,
                 attribution: '© Esri, Maxar, Earthstar Geographics'
             });
 
             const satelliteLabelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
+                maxZoom: 25,
+                maxNativeZoom: 19,
                 attribution: '© Esri, Maxar, Earthstar Geographics'
             });
 
             const googleHybridLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
+                maxZoom: 25,
+                maxNativeZoom: 20,
                 attribution: '© Google'
             });
 
             const terrainLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
+                maxZoom: 25,
+                maxNativeZoom: 19,
                 attribution: '© Esri, DeLorme, NAVTEQ'
             });
 
             const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
+                maxZoom: 25,
+                maxNativeZoom: 19,
                 attribution: '© OpenStreetMap contributors'
             });
 
@@ -152,8 +157,8 @@ class DroneMap {
             
             console.log('Scale control added:', this.scaleControl);
 
-            // Add context menu for copying coordinates
-            this.addContextMenu();
+            // Add long-press functionality for coordinate marker
+            this.addLongPressHandler();
 
             // Add drag event listener to disable continuous centering when user pans
             this.map.on('dragstart', () => {
@@ -216,79 +221,121 @@ class DroneMap {
         }
     }
 
-    addContextMenu() {
-        this.contextMenu = null;
-
-        this.map.on('contextmenu', (e) => {
-            // Remove any existing context menu
-            this.removeContextMenu();
-
-            const lat = e.latlng.lat.toFixed(5);
-            const lng = e.latlng.lng.toFixed(5);
-            const coordText = `${lat}, ${lng}`;
-
-            // Create context menu
-            this.contextMenu = L.DomUtil.create('div', 'leaflet-context-menu');
-            this.contextMenu.style.cssText = `
-                position: absolute;
-                background-color: #2c2c2c;
-                border: 1px solid #444;
-                border-radius: 4px;
-                padding: 0;
-                z-index: 1001;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                min-width: 200px;
-            `;
-
-            const menuItem = L.DomUtil.create('div', '', this.contextMenu);
-            menuItem.style.cssText = `
-                padding: 8px 12px;
-                cursor: pointer;
-                color: #fff;
-                font-size: 13px;
-                transition: background-color 0.2s;
-            `;
-            menuItem.innerHTML = `Copy '${coordText}'`;
-            menuItem.title = coordText;
-
-            menuItem.onmouseover = () => {
-                menuItem.style.backgroundColor = '#3c3c3c';
-            };
-            menuItem.onmouseout = () => {
-                menuItem.style.backgroundColor = 'transparent';
-            };
-
-            menuItem.onclick = () => {
-                navigator.clipboard.writeText(coordText).then(() => {
-                    console.log('Coordinates copied:', coordText);
-                    this.showCopyToast();
-                }).catch(err => {
-                    console.error('Failed to copy coordinates:', err);
-                });
-                this.removeContextMenu();
-            };
-
-            // Position the menu at the click location
-            const mapContainer = this.map.getContainer();
-            mapContainer.appendChild(this.contextMenu);
-
-            const point = this.map.latLngToContainerPoint(e.latlng);
-            this.contextMenu.style.left = point.x + 'px';
-            this.contextMenu.style.top = point.y + 'px';
-
-            // Close menu on any click outside
-            setTimeout(() => {
-                document.addEventListener('click', this.removeContextMenu.bind(this), { once: true });
-            }, 100);
+    addLongPressHandler() {
+        let pressTimer = null;
+        let isLongPress = false;
+        
+        this.map.on('mousedown', (e) => {
+            // Start timer for long press (800ms)
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                this.createCoordinateMarker(e.latlng);
+            }, 800);
+        });
+        
+        this.map.on('mouseup', () => {
+            // Clear timer if mouse is released before long press
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        this.map.on('mousemove', () => {
+            // Clear timer if mouse moves during press
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        // Handle touch events for mobile
+        this.map.on('touchstart', (e) => {
+            const touch = e.originalEvent.touches[0];
+            const latlng = this.map.containerPointToLatLng(this.map.mouseEventToContainerPoint(touch));
+            
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                this.createCoordinateMarker(latlng);
+            }, 800);
+        });
+        
+        this.map.on('touchend', () => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        this.map.on('touchmove', () => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
         });
     }
-
-    removeContextMenu() {
-        if (this.contextMenu && this.contextMenu.parentNode) {
-            this.contextMenu.parentNode.removeChild(this.contextMenu);
-            this.contextMenu = null;
+    
+    createCoordinateMarker(latlng) {
+        // Remove any existing coordinate marker
+        if (this.coordinateMarker) {
+            this.map.removeLayer(this.coordinateMarker);
+        }
+        
+        const lat = latlng.lat.toFixed(6);
+        const lng = latlng.lng.toFixed(6);
+        
+        // Create a temporary marker
+        this.coordinateMarker = L.marker(latlng, {
+            icon: L.divIcon({
+                html: `
+                    <div style="
+                        width: 20px;
+                        height: 20px;
+                        background-color: #ff6b35;
+                        border: 3px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    "></div>
+                `,
+                className: 'coordinate-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            })
+        }).addTo(this.map);
+        
+        // Create popup with coordinates
+        const popup = L.popup({
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: false
+        }).setLatLng(latlng).setContent(`
+            <div style="text-align: center; min-width: 200px;">
+                <strong>Coordinates</strong><br>
+                <div style="font-family: monospace; margin: 8px 0;">
+                    Lat: ${lat}<br>
+                    Lng: ${lng}
+                </div>
+                <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => alert('Coordinates copied!'))" 
+                        style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px;">
+                    Copy Coordinates
+                </button>
+                <button onclick="window.droneMap.removeCoordinateMarker()" 
+                        style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    Remove Marker
+                </button>
+            </div>
+        `);
+        
+        this.coordinateMarker.bindPopup(popup).openPopup();
+    }
+    
+    removeCoordinateMarker() {
+        if (this.coordinateMarker) {
+            this.map.removeLayer(this.coordinateMarker);
+            this.coordinateMarker = null;
         }
     }
+
 
     showCopyToast() {
         const toast = document.getElementById('coordsCopiedToast');
