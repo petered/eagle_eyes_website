@@ -27,6 +27,15 @@ class DroneMap {
         this.watchId = null;
         this.isMyLocationVisible = false;
         this.myLocationAccuracy = null;
+        
+        // North arrow control
+        this.northArrowMode = 'north'; // 'north' or 'user-facing'
+        this.userHeading = null;
+        this.northArrowControl = null;
+        
+        // Full screen control
+        this.isFullscreen = false;
+        this.fullscreenControl = null;
 
         this.defaultCenter = [45.0, -100.0];
         this.defaultZoom = 3;
@@ -147,13 +156,19 @@ class DroneMap {
 
             this.addCustomControls();
 
-            // Add scale bar (bottom left position)
+            // Add scale bar (shifted right to make room for north arrow)
             this.scaleControl = L.control.scale({
                 position: 'bottomleft',
                 metric: true,
                 imperial: true,
                 maxWidth: 150
             }).addTo(this.map);
+            
+            // Add north arrow control
+            this.addNorthArrowControl();
+            
+            // Add full screen control
+            this.addFullscreenControl();
             
             console.log('Scale control added:', this.scaleControl);
 
@@ -168,6 +183,8 @@ class DroneMap {
                     this.updateRecenterButtonStyle();
                 }
             });
+            
+            // Note: Manual map rotation removed as it breaks Leaflet's coordinate system
 
             console.log('Drone map initialized with Leaflet');
             console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
@@ -329,10 +346,310 @@ class DroneMap {
         this.coordinateMarker.bindPopup(popup).openPopup();
     }
     
-    removeCoordinateMarker() {
-        if (this.coordinateMarker) {
-            this.map.removeLayer(this.coordinateMarker);
-            this.coordinateMarker = null;
+    addNorthArrowControl() {
+        // Create custom north arrow control
+        const NorthArrowControl = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'north-arrow-control');
+                container.style.cssText = `
+                    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+                    border: 2px solid #2c3e50;
+                    border-radius: 4px;
+                    width: 40px;
+                    height: 40px;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    transition: all 0.3s ease;
+                    position: relative;
+                    margin-bottom: 5px;
+                    font-family: Arial, sans-serif;
+                `;
+                
+                // Create the main arrow element (pointing up)
+                const arrow = L.DomUtil.create('div', 'north-arrow', container);
+                arrow.style.cssText = `
+                    width: 0;
+                    height: 0;
+                    border-left: 5px solid transparent;
+                    border-right: 5px solid transparent;
+                    border-bottom: 12px solid #e74c3c;
+                    transition: transform 0.3s ease;
+                    transform-origin: center bottom;
+                    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+                `;
+                
+                // Add "N" label below arrow
+                const label = L.DomUtil.create('div', 'north-label', container);
+                label.textContent = 'N';
+                label.style.cssText = `
+                    font-size: 8px;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-top: 1px;
+                    text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+                `;
+                
+                // Add mode indicator
+                const modeIndicator = L.DomUtil.create('div', 'mode-indicator', container);
+                modeIndicator.style.cssText = `
+                    position: absolute;
+                    top: -4px;
+                    right: -4px;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #27ae60;
+                    border: 1px solid white;
+                    font-size: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: bold;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+                `;
+                modeIndicator.textContent = 'N';
+                
+                // Add hover effects
+                container.onmouseover = function() {
+                    this.style.background = 'linear-gradient(135deg, #ffffff, #e8f4fd)';
+                    this.style.transform = 'scale(1.05)';
+                    this.style.boxShadow = '0 6px 16px rgba(0,0,0,0.5)';
+                };
+                container.onmouseout = function() {
+                    this.style.background = 'linear-gradient(135deg, #ffffff, #f8f9fa)';
+                    this.style.transform = 'scale(1)';
+                    this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+                };
+                
+                // Add click handler
+                container.onclick = function() {
+                    window.droneMap.toggleNorthArrowMode();
+                };
+                
+                return container;
+            },
+            
+            onRemove: function(map) {
+                // Cleanup if needed
+            }
+        });
+        
+        this.northArrowControl = new NorthArrowControl({ position: 'bottomleft' });
+        this.northArrowControl.addTo(this.map);
+        
+        console.log('North arrow control added:', this.northArrowControl);
+        console.log('North arrow control container:', this.northArrowControl.getContainer());
+        
+        // Update arrow rotation based on current mode
+        this.updateNorthArrowRotation();
+    }
+    
+    addFullscreenControl() {
+        // Create custom full screen control
+        const FullscreenControl = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'fullscreen-control');
+                container.style.cssText = `
+                    background-color: rgba(44, 44, 44, 0.6);
+                    border: 1px solid #444;
+                    border-radius: 4px;
+                    width: 40px;
+                    height: 40px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    transition: all 0.3s ease;
+                    position: relative;
+                    margin-bottom: 5px;
+                    font-family: Arial, sans-serif;
+                `;
+                
+                // Create the fullscreen icon
+                const icon = L.DomUtil.create('div', 'fullscreen-icon', container);
+                icon.style.cssText = `
+                    width: 16px;
+                    height: 16px;
+                    position: relative;
+                `;
+                
+                // Create expand icon (default state)
+                const expandIcon = L.DomUtil.create('div', 'expand-icon', icon);
+                expandIcon.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>') no-repeat center;
+                    background-size: contain;
+                    opacity: 1;
+                    transition: opacity 0.3s ease;
+                `;
+                
+                // Create close icon (fullscreen state)
+                const closeIcon = L.DomUtil.create('div', 'close-icon', icon);
+                closeIcon.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>') no-repeat center;
+                    background-size: contain;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                `;
+                
+                // Add hover effects
+                container.onmouseover = function() {
+                    this.style.backgroundColor = 'rgba(60, 60, 60, 0.7)';
+                    this.style.transform = 'scale(1.05)';
+                    this.style.boxShadow = '0 3px 8px rgba(0,0,0,0.4)';
+                };
+                container.onmouseout = function() {
+                    this.style.backgroundColor = 'rgba(44, 44, 44, 0.6)';
+                    this.style.transform = 'scale(1)';
+                    this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+                };
+                
+                // Add click handler
+                container.onclick = function() {
+                    window.droneMap.toggleFullscreen();
+                };
+                
+                // Store references for icon switching
+                container.expandIcon = expandIcon;
+                container.closeIcon = closeIcon;
+                
+                return container;
+            },
+            
+            onRemove: function(map) {
+                // Cleanup if needed
+            }
+        });
+        
+        this.fullscreenControl = new FullscreenControl({ position: 'bottomright' });
+        this.fullscreenControl.addTo(this.map);
+        
+        console.log('Fullscreen control added:', this.fullscreenControl);
+    }
+    
+    toggleNorthArrowMode() {
+        if (this.northArrowMode === 'north') {
+            this.northArrowMode = 'user-facing';
+            console.log('Switched to user-facing mode');
+        } else {
+            this.northArrowMode = 'north';
+            console.log('Switched to north-oriented mode');
+        }
+        
+        this.updateNorthArrowRotation();
+        this.updateMapRotation();
+    }
+    
+    updateNorthArrowRotation() {
+        console.log('updateNorthArrowRotation called, northArrowControl:', this.northArrowControl);
+        if (!this.northArrowControl) return;
+        
+        const container = this.northArrowControl.getContainer();
+        console.log('North arrow container:', container);
+        const arrow = container.querySelector('.north-arrow');
+        const modeIndicator = container.querySelector('.mode-indicator');
+        
+        console.log('Arrow element:', arrow, 'Mode indicator:', modeIndicator);
+        
+        if (!arrow || !modeIndicator) return;
+        
+        // Remove existing classes
+        container.classList.remove('north-oriented', 'user-facing');
+        
+        if (this.northArrowMode === 'north') {
+            arrow.style.transform = 'rotate(0deg)';
+            modeIndicator.textContent = 'N';
+            modeIndicator.style.background = '#27ae60';
+            container.classList.add('north-oriented');
+            container.title = 'North-oriented mode (click to switch to user-facing)';
+            console.log('Set to north-oriented mode');
+        } else {
+            const rotation = this.userHeading !== null ? -this.userHeading : 0;
+            arrow.style.transform = `rotate(${rotation}deg)`;
+            modeIndicator.textContent = 'U';
+            modeIndicator.style.background = '#3498db';
+            container.classList.add('user-facing');
+            container.title = 'User-facing mode (click to switch to north-oriented)';
+            console.log('Set to user-facing mode, rotation:', rotation);
+        }
+    }
+    
+    toggleFullscreen() {
+        this.isFullscreen = !this.isFullscreen;
+        
+        const navbar = document.querySelector('.navbar');
+        const mobileOffcanvas = document.querySelector('.offcanvas');
+        
+        if (this.isFullscreen) {
+            // Hide top bar
+            if (navbar) {
+                navbar.style.display = 'none';
+            }
+            if (mobileOffcanvas) {
+                mobileOffcanvas.style.display = 'none';
+            }
+            
+            // Update button icon to close icon
+            this.updateFullscreenIcon();
+            
+            console.log('Entered fullscreen mode - top bar hidden');
+        } else {
+            // Show top bar
+            if (navbar) {
+                navbar.style.display = 'flex';
+            }
+            if (mobileOffcanvas) {
+                mobileOffcanvas.style.display = 'block';
+            }
+            
+            // Update button icon to expand icon
+            this.updateFullscreenIcon();
+            
+            console.log('Exited fullscreen mode - top bar shown');
+        }
+    }
+    
+    updateFullscreenIcon() {
+        if (!this.fullscreenControl) return;
+        
+        const container = this.fullscreenControl.getContainer();
+        const expandIcon = container.expandIcon;
+        const closeIcon = container.closeIcon;
+        
+        if (this.isFullscreen) {
+            // Show close icon, hide expand icon
+            expandIcon.style.opacity = '0';
+            closeIcon.style.opacity = '1';
+            container.title = 'Exit fullscreen mode';
+        } else {
+            // Show expand icon, hide close icon
+            expandIcon.style.opacity = '1';
+            closeIcon.style.opacity = '0';
+            container.title = 'Enter fullscreen mode';
+        }
+    }
+    
+    
+    updateUserHeading(heading) {
+        this.userHeading = heading;
+        if (this.northArrowMode === 'user-facing') {
+            this.updateNorthArrowRotation();
+            this.updateMapRotation();
         }
     }
 
@@ -1055,6 +1372,11 @@ class DroneMap {
         const heading = position.coords.heading;
 
         this.myLocationAccuracy = accuracy;
+        
+        // Update user heading for north arrow
+        if (heading !== null && heading !== undefined) {
+            this.updateUserHeading(heading);
+        }
 
         // Remove existing markers
         if (this.myLocationMarker) {
