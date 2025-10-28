@@ -72,13 +72,58 @@ class DroneMap {
             console.log('Initializing map on container:', mapContainer);
             
             this.map = L.map('map', {
-                tap: false  // Fix for iOS Safari popup issues
+                tap: false,  // Fix for iOS Safari popup issues
+                zoomControl: true,
+                attributionControl: true
             }).setView(this.defaultCenter, this.defaultZoom);
 
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            // Create high-quality base map layers
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: '© Esri, Maxar, Earthstar Geographics'
+            });
+
+            const satelliteLabelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: '© Esri, Maxar, Earthstar Geographics'
+            });
+
+            const googleHybridLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '© Google'
+            });
+
+            const terrainLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: '© Esri, DeLorme, NAVTEQ'
+            });
+
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            });
+
+            // Add default satellite layer
+            satelliteLayer.addTo(this.map);
+
+            // Add layer control with base maps and overlays
+            const baseMaps = {
+                "Satellite": satelliteLayer,
+                "Google Hybrid": googleHybridLayer,
+                "Terrain": terrainLayer,
+                "Street": streetLayer
+            };
+
+            const overlays = {
+                "Labels": satelliteLabelsLayer
+            };
+
+            this.layerControl = L.control.layers(baseMaps, overlays, {
+                position: 'topleft'
             }).addTo(this.map);
+            
+            console.log('Layer control added:', this.layerControl);
+            console.log('Base maps:', baseMaps);
 
             this.trailPolyline = L.polyline([], {
                 color: '#3b82f6',
@@ -97,13 +142,15 @@ class DroneMap {
 
             this.addCustomControls();
 
-            // Add scale bar (top right - default position)
-            L.control.scale({
-                position: 'topright',
+            // Add scale bar (bottom left position)
+            this.scaleControl = L.control.scale({
+                position: 'bottomleft',
                 metric: true,
                 imperial: true,
                 maxWidth: 150
             }).addTo(this.map);
+            
+            console.log('Scale control added:', this.scaleControl);
 
             // Add context menu for copying coordinates
             this.addContextMenu();
@@ -1021,7 +1068,7 @@ class DroneMap {
     }
 
     createLocationIcon(heading) {
-        // Create a blue dot with directional arrow
+        // Create a blue dot with prominent directional arrow
         const rotation = heading !== null && heading !== undefined ? heading : 0;
         return `
             <div style="
@@ -1035,14 +1082,39 @@ class DroneMap {
             ">
                 <div style="
                     position: absolute;
+                    top: -10px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(${rotation}deg);
+                    width: 0;
+                    height: 0;
+                    border-left: 5px solid transparent;
+                    border-right: 5px solid transparent;
+                    border-bottom: 10px solid #007bff;
+                    transform-origin: center bottom;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                "></div>
+                <div style="
+                    position: absolute;
                     top: -8px;
                     left: 50%;
                     transform: translateX(-50%) rotate(${rotation}deg);
                     width: 0;
                     height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-bottom: 8px solid #007bff;
+                    border-left: 3px solid transparent;
+                    border-right: 3px solid transparent;
+                    border-bottom: 6px solid white;
+                    transform-origin: center bottom;
+                "></div>
+                <div style="
+                    position: absolute;
+                    top: -6px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(${rotation}deg);
+                    width: 0;
+                    height: 0;
+                    border-left: 2px solid transparent;
+                    border-right: 2px solid transparent;
+                    border-bottom: 4px solid #ff6b35;
                     transform-origin: center bottom;
                 "></div>
             </div>
