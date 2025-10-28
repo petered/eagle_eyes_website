@@ -20,6 +20,13 @@ class DroneMap {
         this.currentDroneName = null;
         this.currentLivestreamId = null; // Current drone's livestream ID
         this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
+        
+        // My location tracking
+        this.myLocationMarker = null;
+        this.myLocationCircle = null;
+        this.watchId = null;
+        this.isMyLocationVisible = false;
+        this.myLocationAccuracy = null;
 
         this.defaultCenter = [45.0, -100.0];
         this.defaultZoom = 3;
@@ -39,6 +46,31 @@ class DroneMap {
 
     init() {
         try {
+            // Check if map container exists
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) {
+                console.error('Map container with id "map" not found');
+                this.fallbackToStaticMap();
+                return;
+            }
+
+            // Ensure map panel is visible for initialization
+            const mapPanel = document.getElementById('map-panel');
+            if (mapPanel) {
+                const originalDisplay = mapPanel.style.display;
+                mapPanel.style.display = 'flex';
+                console.log('Made map panel visible for initialization');
+                
+                // Restore original display after a short delay
+                setTimeout(() => {
+                    if (originalDisplay) {
+                        mapPanel.style.display = originalDisplay;
+                    }
+                }, 100);
+            }
+
+            console.log('Initializing map on container:', mapContainer);
+            
             this.map = L.map('map', {
                 tap: false  // Fix for iOS Safari popup issues
             }).setView(this.defaultCenter, this.defaultZoom);
@@ -65,7 +97,7 @@ class DroneMap {
 
             this.addCustomControls();
 
-            // Add scale bar (top right)
+            // Add scale bar (top right - default position)
             L.control.scale({
                 position: 'topright',
                 metric: true,
@@ -86,6 +118,7 @@ class DroneMap {
             });
 
             console.log('Drone map initialized with Leaflet');
+            console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
 
         } catch (error) {
             console.error('Error initializing map:', error);
@@ -843,10 +876,216 @@ class DroneMap {
             }, 100);
         }
     }
+
+    // My Location Tracking Methods
+    toggleMyLocation() {
+        console.log('toggleMyLocation called, isMyLocationVisible:', this.isMyLocationVisible);
+        if (this.isMyLocationVisible) {
+            this.stopLocationTracking();
+        } else {
+            this.startLocationTracking();
+        }
+    }
+
+    startLocationTracking() {
+        console.log('Starting location tracking...');
+        
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by this browser.');
+            return;
+        }
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        console.log('Requesting current position...');
+        
+        // Get current position first
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log('Current position received:', position);
+                this.onLocationSuccess(position);
+            },
+            (error) => {
+                console.error('Error getting current position:', error);
+                this.onLocationError(error);
+            },
+            options
+        );
+
+        // Start watching position for updates
+        console.log('Starting position watch...');
+        this.watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                console.log('Position update received:', position);
+                this.onLocationSuccess(position);
+            },
+            (error) => {
+                console.error('Error watching position:', error);
+                this.onLocationError(error);
+            },
+            options
+        );
+
+        this.isMyLocationVisible = true;
+        this.updateLocationButton();
+    }
+
+    stopLocationTracking() {
+        if (this.watchId) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+        }
+
+        if (this.myLocationMarker) {
+            this.map.removeLayer(this.myLocationMarker);
+            this.myLocationMarker = null;
+        }
+
+        if (this.myLocationCircle) {
+            this.map.removeLayer(this.myLocationCircle);
+            this.myLocationCircle = null;
+        }
+
+        this.isMyLocationVisible = false;
+        this.updateLocationButton();
+    }
+
+    onLocationSuccess(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        const heading = position.coords.heading;
+
+        this.myLocationAccuracy = accuracy;
+
+        // Remove existing markers
+        if (this.myLocationMarker) {
+            this.map.removeLayer(this.myLocationMarker);
+        }
+        if (this.myLocationCircle) {
+            this.map.removeLayer(this.myLocationCircle);
+        }
+
+        // Create accuracy circle
+        this.myLocationCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#007bff',
+            fillColor: '#007bff',
+            fillOpacity: 0.1,
+            weight: 1
+        }).addTo(this.map);
+
+        // Create location marker with directional arrow
+        const iconHtml = this.createLocationIcon(heading);
+        this.myLocationMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                html: iconHtml,
+                className: 'my-location-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            })
+        }).addTo(this.map);
+
+        // Center map on user location if it's the first time
+        if (!this.myLocationMarker) {
+            this.map.setView([lat, lng], 15);
+        }
+    }
+
+    onLocationError(error) {
+        console.error('Location error:', error);
+        let message = 'Unable to retrieve your location. ';
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                message += 'Location access denied by user. Please enable location permissions in your browser settings.';
+                break;
+            case error.POSITION_UNAVAILABLE:
+                message += 'Location information unavailable. Please check your GPS settings.';
+                break;
+            case error.TIMEOUT:
+                message += 'Location request timed out. Please try again.';
+                break;
+            default:
+                message += 'An unknown error occurred.';
+                break;
+        }
+        
+        console.log('Location error message:', message);
+        alert(message);
+        this.stopLocationTracking();
+    }
+
+    createLocationIcon(heading) {
+        // Create a blue dot with directional arrow
+        const rotation = heading !== null && heading !== undefined ? heading : 0;
+        return `
+            <div style="
+                width: 20px;
+                height: 20px;
+                background-color: #007bff;
+                border: 2px solid white;
+                border-radius: 50%;
+                position: relative;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            ">
+                <div style="
+                    position: absolute;
+                    top: -8px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(${rotation}deg);
+                    width: 0;
+                    height: 0;
+                    border-left: 4px solid transparent;
+                    border-right: 4px solid transparent;
+                    border-bottom: 8px solid #007bff;
+                    transform-origin: center bottom;
+                "></div>
+            </div>
+        `;
+    }
+
+    updateLocationButton() {
+        const button = document.getElementById('myLocationBtn');
+        if (button) {
+            if (this.isMyLocationVisible) {
+                button.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Hide My Location';
+                button.style.backgroundColor = '#ffc107';
+                button.style.borderColor = '#ffc107';
+                button.style.color = '#000';
+            } else {
+                button.innerHTML = '<i class="bi bi-geo-alt"></i> Show My Location';
+                button.style.backgroundColor = '#314268';
+                button.style.borderColor = '#314268';
+                button.style.color = 'white';
+            }
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        window.droneMap = new DroneMap();
-    }, 500);
+    // Wait for the map container to be available
+    const initMap = (retryCount = 0) => {
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            try {
+                window.droneMap = new DroneMap();
+                console.log('DroneMap initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize DroneMap:', error);
+            }
+        } else if (retryCount < 50) { // Max 5 seconds of retries
+            console.log(`Map container not found, retrying in 100ms... (attempt ${retryCount + 1})`);
+            setTimeout(() => initMap(retryCount + 1), 100);
+        } else {
+            console.error('Failed to find map container after 5 seconds');
+        }
+    };
+    
+    // Start trying to initialize after a short delay
+    setTimeout(() => initMap(), 100);
 });

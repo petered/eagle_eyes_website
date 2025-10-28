@@ -6,7 +6,7 @@ permalink: /livestream/
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+    
     <!-- Favicon -->
     <link rel="icon" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" type="image/png">
     <link rel="shortcut icon" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" type="image/png">
@@ -25,10 +25,10 @@ permalink: /livestream/
     <link rel="apple-touch-icon" sizes="152x152" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
     <link rel="apple-touch-icon" sizes="167x167" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
-
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:image" content="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
-
+    
     <!-- Twitter -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:image" content="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
@@ -228,6 +228,10 @@ permalink: /livestream/
         font-weight: 600;
         letter-spacing: 0.5px;
       }
+      /* Force show map when in fullscreen map mode */
+      #map-panel[data-force-show="true"] {
+        display: flex !important;
+      }
       #roomIdToast,
       #coordsCopiedToast {
         position: fixed;
@@ -295,6 +299,7 @@ permalink: /livestream/
         background-color: transparent !important;
         box-shadow: none !important;
         border: none !important;
+        z-index: 1000 !important;
       }
       .leaflet-control-scale-line {
         background: none !important;
@@ -302,7 +307,24 @@ permalink: /livestream/
         border: 2px solid #fff !important;
         border-top: none !important;
         color: #fff !important;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+      }
+      /* Ensure map popups appear above scale bar */
+      .leaflet-popup {
+        z-index: 2000 !important;
+      }
+      .leaflet-popup-pane {
+        z-index: 2000 !important;
+      }
+      /* Make layer control same size as center control */
+      .leaflet-control-layers {
+        width: 30px !important;
+        height: 30px !important;
+      }
+      .leaflet-control-layers-toggle {
+        width: 30px !important;
+        height: 30px !important;
+        background-size: 16px 16px !important;
+        background-position: center !important;
       }
       /* Hide navbar brand text on narrow screens */
       @media (max-width: 991px) {
@@ -740,13 +762,14 @@ permalink: /livestream/
             <button
               class="btn me-3 d-none d-lg-inline-block"
               type="button"
-              id="leaveBtnDesktop"
-              onclick="leaveRoom()"
-              title="Disconnect"
-              style="background-color: #dc3545; border-color: #dc3545; color: white;"
-              disabled
+              id="menuBtnDesktop"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#mobileControls"
+              aria-controls="mobileControls"
+              title="Menu"
+              style="background-color: #6c757d; border-color: #6c757d; color: white;"
             >
-              <i class="bi bi-stop-fill"></i>
+              <i class="bi bi-list"></i>
             </button>
 
             <div class="text-white me-3" style="cursor: pointer;" onclick="if(window.viewer) window.viewer.showViewerListDialog()" title="View viewer list">
@@ -884,7 +907,17 @@ permalink: /livestream/
         <div class="d-grid gap-2 mb-3">
           <button class="btn" data-bs-toggle="modal" data-bs-target="#joinModal" style="background-color: #314268; border-color: #314268; color: white;">
             <i class="bi bi-box-arrow-in-right"></i> Connect to a Stream
+            </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
+            <i class="bi bi-share"></i> Share Livestream
           </button>
+        </div>
+        <div class="d-grid gap-2 mb-3">
+          <div class="text-white text-center" style="cursor: pointer;" onclick="if(window.viewer) window.viewer.showViewerListDialog()" title="View viewer list">
+            <i class="bi bi-people"></i> <span id="viewerCountMobile">0</span> viewers
+          </div>
         </div>
         <div class="d-grid gap-2 mb-3">
           <button
@@ -951,8 +984,8 @@ permalink: /livestream/
           </button>
         </div>
         <div class="d-grid gap-2 mb-3">
-          <button class="btn" data-bs-toggle="modal" data-bs-target="#shareModal" style="background-color: #314268; border-color: #314268; color: white;">
-            <i class="bi bi-share"></i> Share Livestream
+          <button class="btn" onclick="toggleMyLocation()" id="myLocationBtn" style="background-color: #314268; border-color: #314268; color: white;">
+            <i class="bi bi-geo-alt"></i> Show My Location
           </button>
         </div>
         <hr />
@@ -1007,10 +1040,10 @@ permalink: /livestream/
           <button onclick="if(window.viewer) window.viewer.retryConnection()" style="
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.4);
-            color: white;
+          color: white;
             font-size: 12px;
             font-weight: 600;
-            cursor: pointer;
+          cursor: pointer;
             padding: 4px 10px;
             border-radius: 4px;
             white-space: nowrap;
@@ -1029,7 +1062,7 @@ permalink: /livestream/
             white-space: nowrap;
           " title="Close this stream" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
             Close this stream
-          </button>
+        </button>
         </div>
       </div>
 
@@ -1251,8 +1284,8 @@ permalink: /livestream/
           <video id="remoteVideo" autoplay playsinline muted controls></video>
           <div class="play-overlay" id="playOverlay" onclick="resumeVideo()">
             <i class="bi bi-play-fill"></i>
-          </div>
         </div>
+      </div>
       </div>
       <div id="map-panel">
         <div id="map"></div>
@@ -1400,19 +1433,34 @@ permalink: /livestream/
             videoPanel.style.flex = "1 1 100%";
             mapPanel.className = "d-none";
             mapPanel.style.flex = "";
+            // Remove the force-show flag when switching away from map mode
+            mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
           } else if (mode === "map") {
             videoPanel.className = "d-none";
             videoPanel.style.flex = "";
             mapPanel.className = "full-view";
             mapPanel.style.flex = "1 1 100%";
+            // Set a flag to prevent JavaScript client from hiding the map
+            mapPanel.setAttribute('data-force-show', 'true');
+            // Force show map panel even when no drone is connected with !important
+            mapPanel.style.setProperty('display', 'flex', 'important');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
+            
+            // Center map on North America when entering fullscreen map view
+            if (window.droneMap && window.droneMap.map) {
+              setTimeout(() => {
+                window.droneMap.map.setView([45.0, -100.0], 3);
+              }, 100);
+            }
           } else {
             // split - let CSS aspect ratio media queries handle layout
             videoPanel.className = "";
             videoPanel.style.flex = "";
             mapPanel.className = "";
             mapPanel.style.flex = "";
+            // Remove the force-show flag when switching away from map mode
+            mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
           }
           if (window.droneMap) {
@@ -1428,8 +1476,12 @@ permalink: /livestream/
                 .replace("-only", "")
                 .replace("-view", "");
               setViewMode(mode);
-              // Sync mobile radios
-              document.getElementById(mode + "-view-mobile").checked = true;
+              // Sync mobile radios with correct ID mapping
+              const mobileId = e.target.id + "-mobile";
+              const mobileRadio = document.getElementById(mobileId);
+              if (mobileRadio) {
+                mobileRadio.checked = true;
+              }
             });
           });
         document
@@ -1440,14 +1492,47 @@ permalink: /livestream/
                 .replace("-only-mobile", "")
                 .replace("-view-mobile", "");
               setViewMode(mode);
-              // Sync desktop radios
-              document.getElementById(mode + "-view").checked = true;
+              // Sync desktop radios with correct ID mapping
+              const desktopId = e.target.id.replace("-mobile", "");
+              const desktopRadio = document.getElementById(desktopId);
+              if (desktopRadio) {
+                desktopRadio.checked = true;
+              }
             });
           });
       });
 
       function centerOnDrone() {
         if (window.droneMap) window.droneMap.centerOnDrone();
+      }
+
+      function toggleMyLocation() {
+        console.log('toggleMyLocation called, window.droneMap:', window.droneMap);
+        
+        if (window.droneMap && typeof window.droneMap.toggleMyLocation === 'function') {
+          console.log('Calling toggleMyLocation on droneMap');
+          window.droneMap.toggleMyLocation();
+        } else {
+          console.error('DroneMap not ready or toggleMyLocation method not available');
+          console.log('window.droneMap:', window.droneMap);
+          console.log('typeof window.droneMap.toggleMyLocation:', typeof window.droneMap?.toggleMyLocation);
+          
+          // Try to initialize the map if it's not ready
+          if (!window.droneMap) {
+            console.log('Attempting to initialize DroneMap...');
+            setTimeout(() => {
+              if (window.droneMap && typeof window.droneMap.toggleMyLocation === 'function') {
+                console.log('DroneMap now available, calling toggleMyLocation');
+                window.droneMap.toggleMyLocation();
+              } else {
+                console.error('DroneMap still not available after retry');
+                alert('Map is not ready yet. Please wait a moment and try again.');
+              }
+            }, 500);
+          } else {
+            alert('Map is not ready yet. Please wait a moment and try again.');
+          }
+        }
       }
 
       function openCaltopoMap() {
