@@ -78,10 +78,10 @@ class DroneMap {
             }).setView(this.defaultCenter, this.defaultZoom);
 
             // Create high-quality base map layers
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
                 maxZoom: 25,
-                maxNativeZoom: 19,
-                attribution: '© Esri, Maxar, Earthstar Geographics'
+                maxNativeZoom: 20,
+                attribution: '© Google'
             });
 
             const satelliteLabelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
@@ -1129,39 +1129,39 @@ class DroneMap {
             ">
                 <div style="
                     position: absolute;
-                    top: -10px;
+                    top: -15px;
+                    left: 50%;
+                    transform: translateX(-50%) rotate(${rotation}deg);
+                    width: 0;
+                    height: 0;
+                    border-left: 8px solid transparent;
+                    border-right: 8px solid transparent;
+                    border-bottom: 16px solid #007bff;
+                    transform-origin: center bottom;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                "></div>
+                <div style="
+                    position: absolute;
+                    top: -12px;
                     left: 50%;
                     transform: translateX(-50%) rotate(${rotation}deg);
                     width: 0;
                     height: 0;
                     border-left: 5px solid transparent;
                     border-right: 5px solid transparent;
-                    border-bottom: 10px solid #007bff;
+                    border-bottom: 10px solid white;
                     transform-origin: center bottom;
-                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
                 "></div>
                 <div style="
                     position: absolute;
-                    top: -8px;
+                    top: -9px;
                     left: 50%;
                     transform: translateX(-50%) rotate(${rotation}deg);
                     width: 0;
                     height: 0;
                     border-left: 3px solid transparent;
                     border-right: 3px solid transparent;
-                    border-bottom: 6px solid white;
-                    transform-origin: center bottom;
-                "></div>
-                <div style="
-                    position: absolute;
-                    top: -6px;
-                    left: 50%;
-                    transform: translateX(-50%) rotate(${rotation}deg);
-                    width: 0;
-                    height: 0;
-                    border-left: 2px solid transparent;
-                    border-right: 2px solid transparent;
-                    border-bottom: 4px solid #ff6b35;
+                    border-bottom: 6px solid #ff6b35;
                     transform-origin: center bottom;
                 "></div>
             </div>
