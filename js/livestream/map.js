@@ -232,13 +232,13 @@ class DroneMap {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                 const button = L.DomUtil.create('a', 'leaflet-control-basemap', container);
                 
-                // Create layers icon using CSS
+                // Create layers icon using image
                 button.innerHTML = `
                     <div style="
                         width: 20px;
                         height: 20px;
-                        background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMiIgcnk9IjIiLz48cGF0aCBkPSJNOSA5aDZ2Nkg5eiIvPjxwYXRoIGQ9Ik05IDF2NiIvPjxwYXRoIGQ9Ik0xNSAxdjYiLz48cGF0aCBkPSJNOSAxN3Y2Ii8+PHBhdGggZD0iTTE1IDE3djYiLz48cGF0aCBkPSJNMSA5aDYiLz48cGF0aCBkPSJNMTcgOWg2Ii8+PHBhdGggZD0iTTEgMTVoNiIvPjxwYXRoIGQ9Ik0xNyAxNWg2Ii8+PC9zdmc+') no-repeat center;
-                        background-size: 16px 16px;
+                        background: url('${this.getAssetPath('/images/Map Layers (1).png')}') no-repeat center;
+                        background-size: 20px 20px;
                         display: block;
                         margin: auto;
                     "></div>
@@ -1697,8 +1697,8 @@ class DroneMap {
                 icon: L.divIcon({
                     html: iconHtml,
                     className: 'my-location-marker',
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
                 })
             }).addTo(this.map);
         }
@@ -1734,55 +1734,60 @@ class DroneMap {
     }
 
     createLocationIcon(heading) {
-        // Create a blue dot with prominent directional arrow
-        const rotation = heading !== null && heading !== undefined ? heading : 0;
+        // Google Maps style location marker
+        const hasHeading = heading !== null && heading !== undefined && !isNaN(heading);
+        const rotation = hasHeading ? heading : 0;
+        
+        // If we have heading, show directional chevron; otherwise just the dot
+        const chevronHtml = hasHeading ? `
+            <div class="location-chevron" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 0;
+                height: 0;
+                margin-top: -22px;
+                margin-left: -4px;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 12px solid #4285f4;
+                transform: translate(-50%, -100%) rotate(${rotation}deg);
+                transform-origin: 50% 100%;
+                filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+                z-index: 2;
+            "></div>
+        ` : '';
+        
         return `
-            <div style="
-                width: 20px;
-                height: 20px;
-                background-color: #007bff;
-                border: 2px solid white;
-                border-radius: 50%;
+            <div class="google-maps-location-marker" style="
                 position: relative;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                width: 24px;
+                height: 24px;
             ">
-                <div class="location-arrow-outer" style="
+                <!-- White outer ring (shadow effect) -->
+                <div style="
                     position: absolute;
-                    top: -15px;
-                    left: 50%;
-                    transform: translateX(-50%) rotate(${rotation}deg);
-                    width: 0;
-                    height: 0;
-                    border-left: 8px solid transparent;
-                    border-right: 8px solid transparent;
-                    border-bottom: 16px solid #007bff;
-                    transform-origin: center bottom;
-                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                    top: 0;
+                    left: 0;
+                    width: 24px;
+                    height: 24px;
+                    background-color: white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                 "></div>
-                <div class="location-arrow-middle" style="
+                <!-- Blue center dot -->
+                <div style="
                     position: absolute;
-                    top: -12px;
-                    left: 50%;
-                    transform: translateX(-50%) rotate(${rotation}deg);
-                    width: 0;
-                    height: 0;
-                    border-left: 5px solid transparent;
-                    border-right: 5px solid transparent;
-                    border-bottom: 10px solid white;
-                    transform-origin: center bottom;
+                    top: 2px;
+                    left: 2px;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #4285f4;
+                    border-radius: 50%;
+                    z-index: 1;
                 "></div>
-                <div class="location-arrow-inner" style="
-                    position: absolute;
-                    top: -9px;
-                    left: 50%;
-                    transform: translateX(-50%) rotate(${rotation}deg);
-                    width: 0;
-                    height: 0;
-                    border-left: 3px solid transparent;
-                    border-right: 3px solid transparent;
-                    border-bottom: 6px solid #ff6b35;
-                    transform-origin: center bottom;
-                "></div>
+                <!-- Directional chevron (only shown when heading is available) -->
+                ${chevronHtml}
             </div>
         `;
     }
@@ -1790,25 +1795,35 @@ class DroneMap {
     updateLocationMarkerRotation(heading) {
         if (!this.myLocationMarker) return;
         
-        const rotation = heading !== null && heading !== undefined ? heading : 0;
+        const hasHeading = heading !== null && heading !== undefined && !isNaN(heading);
+        const rotation = hasHeading ? heading : 0;
         const markerElement = this.myLocationMarker.getElement();
         
         if (markerElement) {
-            const outerArrow = markerElement.querySelector('.location-arrow-outer');
-            const middleArrow = markerElement.querySelector('.location-arrow-middle');
-            const innerArrow = markerElement.querySelector('.location-arrow-inner');
+            const chevron = markerElement.querySelector('.location-chevron');
             
-            if (outerArrow) {
-                outerArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
-            }
-            if (middleArrow) {
-                middleArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
-            }
-            if (innerArrow) {
-                innerArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            if (chevron) {
+                if (hasHeading) {
+                    // Show chevron and update rotation
+                    chevron.style.display = 'block';
+                    chevron.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
+                } else {
+                    // Hide chevron when no heading
+                    chevron.style.display = 'none';
+                }
+            } else if (hasHeading) {
+                // Chevron doesn't exist yet, recreate the icon with heading
+                const iconHtml = this.createLocationIcon(heading);
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'my-location-marker',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                this.myLocationMarker.setIcon(icon);
             }
             
-            console.log(`Updated user location marker rotation to ${rotation}deg`);
+            console.log(`Updated user location marker rotation to ${rotation}deg (hasHeading: ${hasHeading})`);
         }
     }
 
