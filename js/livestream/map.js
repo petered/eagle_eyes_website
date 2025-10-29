@@ -43,6 +43,14 @@ class DroneMap {
                 tap: false  // Fix for iOS Safari popup issues
             }).setView(this.defaultCenter, this.defaultZoom);
 
+            // Create custom panes for proper z-index ordering
+            // Polygons should be below markers so markers are always clickable
+            this.map.createPane('polygonPane');
+            this.map.getPane('polygonPane').style.zIndex = 400; // Below markerPane (600)
+
+            this.map.createPane('droneMarkerPane');
+            this.map.getPane('droneMarkerPane').style.zIndex = 650; // Above markerPane and polygons
+
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: '© Esri, Maxar, Earthstar Geographics'
@@ -51,7 +59,8 @@ class DroneMap {
             this.trailPolyline = L.polyline([], {
                 color: '#3b82f6',
                 weight: 3,
-                opacity: 0.8
+                opacity: 0.8,
+                pane: 'polygonPane'  // Use polygon pane for trail
             }).addTo(this.map);
 
             this.geojsonLayer = L.geoJSON(null, {
@@ -60,7 +69,8 @@ class DroneMap {
                     fillOpacity: POLYGON_FILL_OPACITY,
                     color: '#f59e0b',
                     weight: 2
-                }
+                },
+                pane: 'polygonPane'  // Use polygon pane for GeoJSON features
             }).addTo(this.map);
 
             this.addCustomControls();
@@ -260,7 +270,8 @@ class DroneMap {
 
             this.droneMarker = L.marker(this.currentLocation, {
                 icon: droneIcon,
-                interactive: false
+                interactive: false,
+                pane: 'droneMarkerPane'  // Use dedicated pane to ensure it's always on top
             }).addTo(this.map);
 
             // Create invisible clickable circle marker
@@ -268,7 +279,8 @@ class DroneMap {
                 radius: 16,
                 fillOpacity: 0,
                 opacity: 0,
-                interactive: true
+                interactive: true,
+                pane: 'droneMarkerPane'  // Use dedicated pane to ensure it's always on top
             }).addTo(this.map);
 
             this.droneClickMarker.bindPopup(() => this.generateDronePopupContent(), {
@@ -431,7 +443,12 @@ class DroneMap {
 
         // Configure styling and popups for GeoJSON features
         this.geojsonLayer = L.geoJSON(parsedData, {
-            style: (feature) => this.getFeatureStyle(feature),
+            style: (feature) => {
+                const style = this.getFeatureStyle(feature);
+                // Ensure polygon/line features use the polygonPane
+                style.pane = 'polygonPane';
+                return style;
+            },
             pointToLayer: (feature, latlng) => this.createStyledMarker(feature, latlng),
             onEachFeature: (feature, layer) => this.configureFeaturePopup(feature, layer)
         }).addTo(this.map);
@@ -779,7 +796,10 @@ class DroneMap {
                     iconAnchor: [14, 14]
                 });
 
-                const marker = L.marker(latLng, { icon: otherDroneIcon }).addTo(this.map);
+                const marker = L.marker(latLng, {
+                    icon: otherDroneIcon,
+                    pane: 'droneMarkerPane'  // Use dedicated pane to ensure it's always on top
+                }).addTo(this.map);
 
                 // Add popup using shared popup generation
                 marker.bindPopup(() => this.generateDronePopupContent(droneData, droneName, livestreamId), {
