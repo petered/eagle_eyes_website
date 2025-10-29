@@ -468,7 +468,7 @@ class WebRTCViewer {
     const mapPanel = document.getElementById('map-panel');
     const videoPanel = document.getElementById('video-panel');
     const coordStripContainer = document.getElementById('coordinateStripContainer');
-    if (mapPanel) mapPanel.style.display = 'none';
+    if (mapPanel && !mapPanel.hasAttribute('data-force-show')) mapPanel.style.display = 'none';
     if (videoPanel) {
       videoPanel.classList.remove('col-lg-8');
       videoPanel.classList.add('col-12');
@@ -504,7 +504,7 @@ class WebRTCViewer {
     const mapPanel = document.getElementById('map-panel');
     const videoPanel = document.getElementById('video-panel');
     const coordStripContainer = document.getElementById('coordinateStripContainer');
-    if (mapPanel) mapPanel.style.display = 'none';
+    if (mapPanel && !mapPanel.hasAttribute('data-force-show')) mapPanel.style.display = 'none';
     if (videoPanel) {
       videoPanel.classList.remove('col-lg-8');
       videoPanel.classList.add('col-12');
@@ -564,7 +564,7 @@ class WebRTCViewer {
     const mapPanel = document.getElementById('map-panel');
     const videoPanel = document.getElementById('video-panel');
     const coordStripContainer = document.getElementById('coordinateStripContainer');
-    if (mapPanel) mapPanel.style.display = 'none';
+    if (mapPanel && !mapPanel.hasAttribute('data-force-show')) mapPanel.style.display = 'none';
     if (videoPanel) {
       videoPanel.classList.remove('col-lg-8');
       videoPanel.classList.add('col-12');
@@ -606,7 +606,7 @@ class WebRTCViewer {
     const mapPanel = document.getElementById('map-panel');
     const videoPanel = document.getElementById('video-panel');
     const coordStripContainer = document.getElementById('coordinateStripContainer');
-    if (mapPanel) mapPanel.style.display = 'none';
+    if (mapPanel && !mapPanel.hasAttribute('data-force-show')) mapPanel.style.display = 'none';
     if (videoPanel) {
       videoPanel.classList.remove('col-lg-8');
       videoPanel.classList.add('col-12');
@@ -650,7 +650,7 @@ class WebRTCViewer {
     const mapPanel = document.getElementById('map-panel');
     const videoPanel = document.getElementById('video-panel');
     const coordStripContainer = document.getElementById('coordinateStripContainer');
-    if (mapPanel) mapPanel.style.display = 'none';
+    if (mapPanel && !mapPanel.hasAttribute('data-force-show')) mapPanel.style.display = 'none';
     if (videoPanel) {
       videoPanel.classList.remove('col-lg-8');
       videoPanel.classList.add('col-12');
@@ -699,7 +699,7 @@ class WebRTCViewer {
     const mapPanel = document.getElementById('map-panel');
     const videoPanel = document.getElementById('video-panel');
     const coordStripContainer = document.getElementById('coordinateStripContainer');
-    if (mapPanel) mapPanel.style.display = 'none';
+    if (mapPanel && !mapPanel.hasAttribute('data-force-show')) mapPanel.style.display = 'none';
     if (videoPanel) {
       videoPanel.classList.remove('col-lg-8');
       videoPanel.classList.add('col-12');
@@ -1597,6 +1597,11 @@ class WebRTCViewer {
     console.log('Viewer list updated:', this.viewerList);
     const count = this.viewerList.length;
     document.getElementById("viewerCount").textContent = count;
+    // Also update mobile viewer count
+    const mobileViewerCount = document.getElementById("viewerCountMobile");
+    if (mobileViewerCount) {
+      mobileViewerCount.textContent = count;
+    }
   }
 
   setupHistory() {
