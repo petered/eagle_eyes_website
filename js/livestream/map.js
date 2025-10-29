@@ -27,7 +27,7 @@ class DroneMap {
         this.watchId = null;
         this.isMyLocationVisible = false;
         this.myLocationAccuracy = null;
-        
+
         // North arrow control
         this.northArrowMode = 'north'; // 'north' or 'user-facing'
         this.userHeading = null;
@@ -120,24 +120,17 @@ class DroneMap {
             // Add default satellite layer
             satelliteLayer.addTo(this.map);
 
-            // Add layer control with base maps and overlays
-            const baseMaps = {
+            // Store base map layers for custom control
+            this.baseMaps = {
                 "Satellite": satelliteLayer,
                 "Google Hybrid": googleHybridLayer,
                 "Terrain": terrainLayer,
                 "Street": streetLayer
             };
-
-            const overlays = {
-                "Labels": satelliteLabelsLayer
-            };
-
-            this.layerControl = L.control.layers(baseMaps, overlays, {
-                position: 'topleft'
-            }).addTo(this.map);
             
-            console.log('Layer control added:', this.layerControl);
-            console.log('Base maps:', baseMaps);
+            this.currentBaseMap = "Satellite";
+            
+            console.log('Base maps stored:', this.baseMaps);
 
             this.trailPolyline = L.polyline([], {
                 color: '#3b82f6',
@@ -163,7 +156,7 @@ class DroneMap {
                 imperial: true,
                 maxWidth: 150
             }).addTo(this.map);
-            
+
             // Add north arrow control
             this.addNorthArrowControl();
             
@@ -185,6 +178,9 @@ class DroneMap {
             });
             
             // Note: Manual map rotation removed as it breaks Leaflet's coordinate system
+            
+            // Add fullscreen change event listeners
+            this.addFullscreenEventListeners();
 
             console.log('Drone map initialized with Leaflet');
             console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
@@ -196,6 +192,10 @@ class DroneMap {
     }
 
     addCustomControls() {
+        // Add custom base map switching control first (so it appears above)
+        this.addBaseMapControl();
+        
+        // Add center on drone control
         const centerControl = L.Control.extend({
             options: {
                 position: 'topleft'
@@ -222,6 +222,45 @@ class DroneMap {
         });
         this.map.addControl(new centerControl());
     }
+    
+    addBaseMapControl() {
+        const BaseMapControl = L.Control.extend({
+            options: {
+                position: 'topleft'
+            },
+            onAdd: (map) => {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const button = L.DomUtil.create('a', 'leaflet-control-basemap', container);
+                
+                // Create layers icon using CSS
+                button.innerHTML = `
+                    <div style="
+                        width: 20px;
+                        height: 20px;
+                        background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMiIgcnk9IjIiLz48cGF0aCBkPSJNOSA5aDZ2Nkg5eiIvPjxwYXRoIGQ9Ik05IDF2NiIvPjxwYXRoIGQ9Ik0xNSAxdjYiLz48cGF0aCBkPSJNOSAxN3Y2Ii8+PHBhdGggZD0iTTE1IDE3djYiLz48cGF0aCBkPSJNMSA5aDYiLz48cGF0aCBkPSJNMTcgOWg2Ii8+PHBhdGggZD0iTTEgMTVoNiIvPjxwYXRoIGQ9Ik0xNyAxNWg2Ii8+PC9zdmc+') no-repeat center;
+                        background-size: 16px 16px;
+                        display: block;
+                        margin: auto;
+                    "></div>
+                `;
+                
+                button.href = '#';
+                button.role = 'button';
+                button.title = 'Base Maps';
+                button.style.display = 'flex';
+                button.style.alignItems = 'center';
+                button.style.justifyContent = 'center';
+
+                L.DomEvent.on(button, 'click', L.DomEvent.stop)
+                          .on(button, 'click', () => {
+                              window.droneMap.showBaseMapPopup();
+                          }, this);
+
+                return container;
+            }
+        });
+        this.map.addControl(new BaseMapControl());
+    }
 
     updateRecenterButtonStyle() {
         if (!this.recenterButton) return;
@@ -236,6 +275,99 @@ class DroneMap {
             this.recenterButton.style.outline = 'none';
             this.recenterButton.title = 'Center on Drone';
         }
+    }
+    
+    showBaseMapPopup() {
+        // Remove existing popup if it exists
+        if (this.baseMapPopup) {
+            this.baseMapPopup.remove();
+        }
+        
+        // Create a custom DOM popup instead of using Leaflet popup
+        const mapContainer = this.map.getContainer();
+        const mapRect = mapContainer.getBoundingClientRect();
+        
+        // Create popup element
+        this.baseMapPopup = document.createElement('div');
+        this.baseMapPopup.style.cssText = `
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            padding: 12px;
+            min-width: 180px;
+            z-index: 2000;
+            font-family: Arial, sans-serif;
+        `;
+        
+        this.baseMapPopup.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 12px; color: #000; font-size: 14px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">Base Maps</div>
+            ${Object.keys(this.baseMaps).map(name => `
+                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                    <input type="radio" name="basemap" value="${name}" 
+                           ${name === this.currentBaseMap ? 'checked' : ''} 
+                           style="margin-right: 8px;">
+                    ${name}
+                </label>
+            `).join('')}
+        `;
+        
+        // Add event listeners to radio buttons
+        const radioButtons = this.baseMapPopup.querySelectorAll('input[name="basemap"]');
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.switchBaseMap(e.target.value);
+                }
+            });
+        });
+        
+        // Add to map container
+        mapContainer.appendChild(this.baseMapPopup);
+        
+        // Prevent map clicks when popup is open
+        this.map.getContainer().style.pointerEvents = 'none';
+        this.baseMapPopup.style.pointerEvents = 'auto';
+        
+        // Close popup when clicking outside
+        setTimeout(() => {
+            const closeHandler = (e) => {
+                if (!this.baseMapPopup.contains(e.target)) {
+                    this.closeBaseMapPopup();
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            document.addEventListener('click', closeHandler);
+        }, 100);
+    }
+    
+    closeBaseMapPopup() {
+        if (this.baseMapPopup) {
+            this.baseMapPopup.remove();
+            this.baseMapPopup = null;
+            // Re-enable map clicks
+            this.map.getContainer().style.pointerEvents = 'auto';
+        }
+    }
+    
+    switchBaseMap(mapName) {
+        if (!this.baseMaps[mapName] || mapName === this.currentBaseMap) return;
+        
+        // Remove current base map
+        Object.values(this.baseMaps).forEach(layer => {
+            this.map.removeLayer(layer);
+        });
+        
+        // Add new base map
+        this.baseMaps[mapName].addTo(this.map);
+        this.currentBaseMap = mapName;
+        
+        console.log(`Switched to ${mapName} base map`);
+        
+        // Don't close popup - let user click outside to close
     }
 
     addLongPressHandler() {
@@ -332,7 +464,7 @@ class DroneMap {
                     Lat: ${lat}<br>
                     Lng: ${lng}
                 </div>
-                <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => alert('Coordinates copied!'))" 
+                <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
                         style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px;">
                     Copy Coordinates
                 </button>
@@ -344,6 +476,14 @@ class DroneMap {
         `);
         
         this.coordinateMarker.bindPopup(popup).openPopup();
+    }
+    
+    removeCoordinateMarker() {
+        if (this.coordinateMarker) {
+            this.map.removeLayer(this.coordinateMarker);
+            this.coordinateMarker = null;
+            console.log('Coordinate marker removed');
+        }
     }
     
     addNorthArrowControl() {
@@ -396,7 +536,7 @@ class DroneMap {
                 // Add mode indicator
                 const modeIndicator = L.DomUtil.create('div', 'mode-indicator', container);
                 modeIndicator.style.cssText = `
-                    position: absolute;
+                position: absolute;
                     top: -4px;
                     right: -4px;
                     width: 10px;
@@ -415,20 +555,74 @@ class DroneMap {
                 modeIndicator.textContent = 'N';
                 
                 // Add hover effects
-                container.onmouseover = function() {
+                container.onmouseover = function(e) {
+                    e.stopPropagation();
                     this.style.background = 'linear-gradient(135deg, #ffffff, #e8f4fd)';
                     this.style.transform = 'scale(1.05)';
                     this.style.boxShadow = '0 6px 16px rgba(0,0,0,0.5)';
                 };
-                container.onmouseout = function() {
+                container.onmouseout = function(e) {
+                    e.stopPropagation();
                     this.style.background = 'linear-gradient(135deg, #ffffff, #f8f9fa)';
                     this.style.transform = 'scale(1)';
                     this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
                 };
                 
-                // Add click handler
-                container.onclick = function() {
-                    window.droneMap.toggleNorthArrowMode();
+                // Add click and long-press handlers
+                let pressTimer = null;
+                let isLongPress = false;
+                
+                container.onmousedown = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isLongPress = false;
+                    pressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        window.droneMap.toggleUserFacingMode();
+                    }, 500); // 500ms for long press
+                };
+                
+                container.onmouseup = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
+                    if (!isLongPress) {
+                        window.droneMap.resetToNorthUp();
+                    }
+                };
+                
+                container.onmouseleave = function(e) {
+                    e.stopPropagation();
+                    if (pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
+                };
+                
+                // Touch events for mobile
+                container.ontouchstart = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isLongPress = false;
+                    pressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        window.droneMap.toggleUserFacingMode();
+                    }, 500);
+                };
+                
+                container.ontouchend = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
+                    if (!isLongPress) {
+                        window.droneMap.resetToNorthUp();
+                    }
                 };
                 
                 return container;
@@ -456,8 +650,8 @@ class DroneMap {
                 const container = L.DomUtil.create('div', 'fullscreen-control');
                 container.style.cssText = `
                     background-color: rgba(44, 44, 44, 0.6);
-                    border: 1px solid #444;
-                    border-radius: 4px;
+                border: 1px solid #444;
+                border-radius: 4px;
                     width: 40px;
                     height: 40px;
                     cursor: pointer;
@@ -542,17 +736,25 @@ class DroneMap {
         console.log('Fullscreen control added:', this.fullscreenControl);
     }
     
-    toggleNorthArrowMode() {
-        if (this.northArrowMode === 'north') {
-            this.northArrowMode = 'user-facing';
-            console.log('Switched to user-facing mode');
-        } else {
+    toggleUserFacingMode() {
+        if (this.northArrowMode === 'user-facing') {
             this.northArrowMode = 'north';
             console.log('Switched to north-oriented mode');
+        } else {
+            this.northArrowMode = 'user-facing';
+            console.log('Switched to user-facing mode');
         }
         
         this.updateNorthArrowRotation();
         this.updateMapRotation();
+    }
+    
+    resetToNorthUp() {
+        if (this.northArrowMode === 'north') {
+            // Reset map rotation to north-up
+            this.applyMapRotation();
+            console.log('Reset map to north-up');
+        }
     }
     
     updateNorthArrowRotation() {
@@ -576,7 +778,7 @@ class DroneMap {
             modeIndicator.textContent = 'N';
             modeIndicator.style.background = '#27ae60';
             container.classList.add('north-oriented');
-            container.title = 'North-oriented mode (click to switch to user-facing)';
+            container.title = 'North-oriented mode (click to reset to north-up, long-press to switch to user-facing)';
             console.log('Set to north-oriented mode');
         } else {
             const rotation = this.userHeading !== null ? -this.userHeading : 0;
@@ -584,18 +786,62 @@ class DroneMap {
             modeIndicator.textContent = 'U';
             modeIndicator.style.background = '#3498db';
             container.classList.add('user-facing');
-            container.title = 'User-facing mode (click to switch to north-oriented)';
+            container.title = 'User-facing mode (long-press to switch to north-oriented)';
             console.log('Set to user-facing mode, rotation:', rotation);
         }
     }
     
     toggleFullscreen() {
-        this.isFullscreen = !this.isFullscreen;
+        if (!this.isFullscreen) {
+            // Enter fullscreen
+            this.enterFullscreen();
+        } else {
+            // Exit fullscreen
+            this.exitFullscreen();
+        }
+    }
+    
+    enterFullscreen() {
+        const element = document.documentElement; // Full page
+        
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        } else {
+            console.warn('Fullscreen API not supported');
+            // Fallback to old behavior
+            this.fallbackFullscreen(true);
+        }
+    }
+    
+    exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        } else {
+            console.warn('Fullscreen API not supported');
+            // Fallback to old behavior
+            this.fallbackFullscreen(false);
+        }
+    }
+    
+    fallbackFullscreen(enter) {
+        this.isFullscreen = enter;
         
         const navbar = document.querySelector('.navbar');
         const mobileOffcanvas = document.querySelector('.offcanvas');
         
-        if (this.isFullscreen) {
+        if (enter) {
             // Hide top bar
             if (navbar) {
                 navbar.style.display = 'none';
@@ -603,11 +849,7 @@ class DroneMap {
             if (mobileOffcanvas) {
                 mobileOffcanvas.style.display = 'none';
             }
-            
-            // Update button icon to close icon
-            this.updateFullscreenIcon();
-            
-            console.log('Entered fullscreen mode - top bar hidden');
+            console.log('Entered fallback fullscreen mode - top bar hidden');
         } else {
             // Show top bar
             if (navbar) {
@@ -616,12 +858,41 @@ class DroneMap {
             if (mobileOffcanvas) {
                 mobileOffcanvas.style.display = 'block';
             }
-            
-            // Update button icon to expand icon
-            this.updateFullscreenIcon();
-            
-            console.log('Exited fullscreen mode - top bar shown');
+            console.log('Exited fallback fullscreen mode - top bar shown');
         }
+        
+        this.updateFullscreenIcon();
+    }
+    
+    addFullscreenEventListeners() {
+        // Listen for fullscreen change events
+        const fullscreenChangeEvents = [
+            'fullscreenchange',
+            'webkitfullscreenchange', 
+            'mozfullscreenchange',
+            'MSFullscreenChange'
+        ];
+        
+        fullscreenChangeEvents.forEach(eventName => {
+            document.addEventListener(eventName, () => {
+                this.handleFullscreenChange();
+            });
+        });
+    }
+    
+    handleFullscreenChange() {
+        // Check if we're currently in fullscreen
+        const isCurrentlyFullscreen = !!(
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement
+        );
+        
+        this.isFullscreen = isCurrentlyFullscreen;
+        this.updateFullscreenIcon();
+        
+        console.log(`Fullscreen state changed: ${isCurrentlyFullscreen ? 'entered' : 'exited'}`);
     }
     
     updateFullscreenIcon() {
@@ -645,6 +916,25 @@ class DroneMap {
     }
     
     
+    applyMapRotation() {
+        const mapContainer = this.map.getContainer();
+        const tileContainer = mapContainer.querySelector('.leaflet-tile-container');
+        
+        if (tileContainer) {
+            if (this.northArrowMode === 'user-facing' && this.userHeading !== null) {
+                // User-facing mode: rotate based on device heading
+                tileContainer.style.transform = `rotate(${-this.userHeading}deg)`;
+            } else {
+                // North-up mode: always stay north-up (no rotation)
+                tileContainer.style.transform = `rotate(0deg)`;
+            }
+        }
+    }
+    
+    updateMapRotation() {
+        this.applyMapRotation();
+    }
+    
     updateUserHeading(heading) {
         this.userHeading = heading;
         if (this.northArrowMode === 'user-facing') {
@@ -652,6 +942,7 @@ class DroneMap {
             this.updateMapRotation();
         }
     }
+    
 
 
     showCopyToast() {
@@ -1313,7 +1604,7 @@ class DroneMap {
         };
 
         console.log('Requesting current position...');
-        
+
         // Get current position first
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -1378,36 +1669,42 @@ class DroneMap {
             this.updateUserHeading(heading);
         }
 
-        // Remove existing markers
-        if (this.myLocationMarker) {
-            this.map.removeLayer(this.myLocationMarker);
-        }
+        // Update or create accuracy circle
         if (this.myLocationCircle) {
-            this.map.removeLayer(this.myLocationCircle);
+            this.myLocationCircle.setLatLng([lat, lng]).setRadius(accuracy);
+        } else {
+            this.myLocationCircle = L.circle([lat, lng], {
+                radius: accuracy,
+                color: '#007bff',
+                fillColor: '#007bff',
+                fillOpacity: 0.1,
+                weight: 1
+            }).addTo(this.map);
         }
 
-        // Create accuracy circle
-        this.myLocationCircle = L.circle([lat, lng], {
-            radius: accuracy,
-            color: '#007bff',
-            fillColor: '#007bff',
-            fillOpacity: 0.1,
-            weight: 1
-        }).addTo(this.map);
-
-        // Create location marker with directional arrow
-        const iconHtml = this.createLocationIcon(heading);
-        this.myLocationMarker = L.marker([lat, lng], {
-            icon: L.divIcon({
-                html: iconHtml,
-                className: 'my-location-marker',
-                iconSize: [20, 20],
-                iconAnchor: [10, 10]
-            })
-        }).addTo(this.map);
+        // Check if this is the first time we're showing location
+        const isFirstTime = this.myLocationMarker === null;
+        
+        // Update or create location marker with directional arrow
+        if (this.myLocationMarker) {
+            // Update existing marker position and rotation
+            this.myLocationMarker.setLatLng([lat, lng]);
+            this.updateLocationMarkerRotation(heading);
+        } else {
+            // Create new marker
+            const iconHtml = this.createLocationIcon(heading);
+            this.myLocationMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    html: iconHtml,
+                    className: 'my-location-marker',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                })
+            }).addTo(this.map);
+        }
 
         // Center map on user location if it's the first time
-        if (!this.myLocationMarker) {
+        if (isFirstTime) {
             this.map.setView([lat, lng], 15);
         }
     }
@@ -1449,7 +1746,7 @@ class DroneMap {
                 position: relative;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             ">
-                <div style="
+                <div class="location-arrow-outer" style="
                     position: absolute;
                     top: -15px;
                     left: 50%;
@@ -1462,7 +1759,7 @@ class DroneMap {
                     transform-origin: center bottom;
                     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
                 "></div>
-                <div style="
+                <div class="location-arrow-middle" style="
                     position: absolute;
                     top: -12px;
                     left: 50%;
@@ -1474,7 +1771,7 @@ class DroneMap {
                     border-bottom: 10px solid white;
                     transform-origin: center bottom;
                 "></div>
-                <div style="
+                <div class="location-arrow-inner" style="
                     position: absolute;
                     top: -9px;
                     left: 50%;
@@ -1488,6 +1785,31 @@ class DroneMap {
                 "></div>
             </div>
         `;
+    }
+    
+    updateLocationMarkerRotation(heading) {
+        if (!this.myLocationMarker) return;
+        
+        const rotation = heading !== null && heading !== undefined ? heading : 0;
+        const markerElement = this.myLocationMarker.getElement();
+        
+        if (markerElement) {
+            const outerArrow = markerElement.querySelector('.location-arrow-outer');
+            const middleArrow = markerElement.querySelector('.location-arrow-middle');
+            const innerArrow = markerElement.querySelector('.location-arrow-inner');
+            
+            if (outerArrow) {
+                outerArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            }
+            if (middleArrow) {
+                middleArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            }
+            if (innerArrow) {
+                innerArrow.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            }
+            
+            console.log(`Updated user location marker rotation to ${rotation}deg`);
+        }
     }
 
     updateLocationButton() {
@@ -1514,7 +1836,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mapContainer = document.getElementById('map');
         if (mapContainer) {
             try {
-                window.droneMap = new DroneMap();
+        window.droneMap = new DroneMap();
                 console.log('DroneMap initialized successfully');
             } catch (error) {
                 console.error('Failed to initialize DroneMap:', error);
