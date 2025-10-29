@@ -722,6 +722,62 @@ permalink: /download/
         margin-top: 20px;
     }
     
+    /* CalTopo notice mobile optimization */
+    .caltopo-notice {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    .caltopo-notice img {
+        margin-top: 2px;
+    }
+    
+    .caltopo-notice strong {
+        display: inline;
+    }
+    
+    @media (max-width: 900px) {
+        .caltopo-notice {
+            font-size: 12px !important;
+            padding: 10px 14px !important;
+            line-height: 1.4 !important;
+        }
+        
+        .caltopo-notice img {
+            width: 14px !important;
+            height: 14px !important;
+            margin-right: 6px !important;
+        }
+        
+        /* Improve mobile touch targets */
+        .nav-button {
+            padding: 12px 20px !important;
+            font-size: 15px !important;
+            min-height: 44px;
+        }
+        
+        .search-input,
+        .drone-dropdown {
+            padding: 12px 14px !important;
+            font-size: 16px !important; /* Prevents zoom on iOS */
+            min-height: 44px;
+        }
+        
+        .autocomplete-item {
+            padding: 12px 14px !important;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .download-button {
+            padding: 14px 22px !important;
+            font-size: 16px !important;
+            min-height: 44px;
+        }
+    }
+    
     .compatibility-supported {
         background: #d4edda;
         border: 1px solid #c3e6cb;
@@ -1321,8 +1377,8 @@ permalink: /download/
             <div id="drone-selection-content" class="drone-selection-container" style="display: none !important; border: 2px solid #007bff; border-radius: 8px; padding: 20px; margin-top: 20px; background-color: #f8f9fa; box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);">
                 
                 <!-- CalTopo Integration Notice -->
-                <div class="compatibility-message compatibility-info" style="margin: 0 0 10px 0; padding: 6px 12px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 11px; line-height: 1.2; white-space: nowrap; max-width: 100%;">
-                    <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;">
+                <div class="compatibility-message compatibility-info caltopo-notice" style="margin: 0 0 10px 0; padding: 12px 16px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 13px; line-height: 1.5; word-wrap: break-word; max-width: 100%;">
+                    <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px; flex-shrink: 0;">
                     <strong>CalTopo Integration:</strong> Eagle Eyes Pilot includes CalTopo integration built-in. No need to install CalTopo app separately on your drone controller.
                 </div>
                 
@@ -1361,8 +1417,8 @@ permalink: /download/
             <p class="step-description" id="download-description">Choose from available versions</p>
             
             <!-- CalTopo Integration Notice (Eagle Eyes Pilot only) -->
-            <div id="caltopo-notice-step3" class="compatibility-message compatibility-info" style="margin: 0 0 20px 0; padding: 6px 12px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 11px; line-height: 1.2; white-space: nowrap; max-width: 100%; display: none;">
-                <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;">
+            <div id="caltopo-notice-step3" class="compatibility-message compatibility-info caltopo-notice" style="margin: 0 0 20px 0; padding: 12px 16px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 13px; line-height: 1.5; word-wrap: break-word; max-width: 100%; display: none;">
+                <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px; flex-shrink: 0;">
                 <strong>CalTopo Integration:</strong> Eagle Eyes Pilot includes CalTopo integration built-in. No need to install CalTopo app separately on your drone controller.
             </div>
             
@@ -1404,8 +1460,8 @@ permalink: /download/
             <p class="step-description" id="setup-description">Follow these steps to activate your Eagle Eyes software</p>
             
             <!-- CalTopo Integration Notice (Eagle Eyes Pilot only) -->
-            <div id="caltopo-notice-step4" class="compatibility-message compatibility-info" style="margin: 0 0 20px 0; padding: 6px 12px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 11px; line-height: 1.2; white-space: nowrap; max-width: 100%; display: none;">
-                <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;">
+            <div id="caltopo-notice-step4" class="compatibility-message compatibility-info caltopo-notice" style="margin: 0 0 20px 0; padding: 12px 16px; background-color: #fff3cd; border-left: 4px solid #ff9800; font-size: 13px; line-height: 1.5; word-wrap: break-word; max-width: 100%; display: none;">
+                <img src="{{ '/images/caltopo.png' | relative_url }}" alt="CalTopo" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px; flex-shrink: 0;">
                 <strong>CalTopo Integration:</strong> Eagle Eyes Pilot includes CalTopo integration built-in. No need to install CalTopo app separately on your drone controller.
             </div>
             
@@ -2666,7 +2722,43 @@ permalink: /download/
             return;
         }
         
-        releases.forEach(release => {
+        // Sort releases: stable versions first, then beta, then alpha
+        const sortedReleases = releases.slice().sort((a, b) => {
+            const typeA = (a.type || a.version_type || 'stable').toLowerCase();
+            const typeB = (b.type || b.version_type || 'stable').toLowerCase();
+            
+            // Priority order: stable (0), beta (1), alpha (2)
+            const priority = { 'stable': 0, 'beta': 1, 'alpha': 2 };
+            const priorityA = priority[typeA] !== undefined ? priority[typeA] : 99;
+            const priorityB = priority[typeB] !== undefined ? priority[typeB] : 99;
+            
+            // First sort by type priority
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+            
+            // If same type, sort by version number (newest first)
+            // Extract version numbers for comparison
+            const versionA = (a.version || '').replace(/[^0-9.]/g, '');
+            const versionB = (b.version || '').replace(/[^0-9.]/g, '');
+            
+            if (versionA && versionB) {
+                // Compare version numbers (descending - newest first)
+                const partsA = versionA.split('.').map(Number);
+                const partsB = versionB.split('.').map(Number);
+                for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                    const numA = partsA[i] || 0;
+                    const numB = partsB[i] || 0;
+                    if (numB !== numA) {
+                        return numB - numA; // Descending order
+                    }
+                }
+            }
+            
+            return 0;
+        });
+        
+        sortedReleases.forEach(release => {
             const versionCard = createVersionCard(release);
             container.appendChild(versionCard);
         });
