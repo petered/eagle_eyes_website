@@ -86,6 +86,14 @@ class DroneMap {
                 attributionControl: true
             }).setView(this.defaultCenter, this.defaultZoom);
 
+            // Create custom panes for proper z-index ordering
+            // Polygons should be below markers so markers are always clickable
+            this.map.createPane('polygonPane');
+            this.map.getPane('polygonPane').style.zIndex = 400; // Below markerPane (600)
+
+            this.map.createPane('droneMarkerPane');
+            this.map.getPane('droneMarkerPane').style.zIndex = 650; // Above markerPane and polygons
+
             // Create high-quality base map layers
             const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
                 maxZoom: 25,
@@ -139,6 +147,7 @@ class DroneMap {
             }).addTo(this.map);
 
             this.geojsonLayer = L.geoJSON(null, {
+                pane: 'polygonPane',
                 style: {
                     fillColor: '#f59e0b',
                     fillOpacity: POLYGON_FILL_OPACITY,
@@ -995,7 +1004,8 @@ class DroneMap {
 
             this.droneMarker = L.marker(this.currentLocation, {
                 icon: droneIcon,
-                interactive: false
+                interactive: false,
+                pane: 'droneMarkerPane'
             }).addTo(this.map);
 
             // Create invisible clickable circle marker
@@ -1514,7 +1524,10 @@ class DroneMap {
                     iconAnchor: [14, 14]
                 });
 
-                const marker = L.marker(latLng, { icon: otherDroneIcon }).addTo(this.map);
+                const marker = L.marker(latLng, { 
+                    icon: otherDroneIcon,
+                    pane: 'droneMarkerPane'
+                }).addTo(this.map);
 
                 // Add popup using shared popup generation
                 marker.bindPopup(() => this.generateDronePopupContent(droneData, droneName, livestreamId), {
