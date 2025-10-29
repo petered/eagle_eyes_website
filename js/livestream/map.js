@@ -104,8 +104,6 @@ class DroneMap {
             const satelliteLabelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 25,
                 maxNativeZoom: 19,
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
                 attribution: '© Esri, Maxar, Earthstar Geographics'
             });
 
@@ -150,14 +148,13 @@ class DroneMap {
             }).addTo(this.map);
 
             this.geojsonLayer = L.geoJSON(null, {
-                pane: 'polygonPane',
+                pane: 'polygonPane',  // Use polygon pane for GeoJSON features
                 style: {
                     fillColor: '#f59e0b',
                     fillOpacity: POLYGON_FILL_OPACITY,
                     color: '#f59e0b',
                     weight: 2
-                },
-                pane: 'polygonPane'  // Use polygon pane for GeoJSON features
+                }
             }).addTo(this.map);
 
             this.addCustomControls();
