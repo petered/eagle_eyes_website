@@ -1467,6 +1467,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add documents to index
     miniSearch.addAll(faqData);
 
+    // Configuration for embedding search
+    const EMBEDDING_SEARCH_CONFIG = {
+        FUNCTION_URL: 'https://us-central1-eagleeyessearch.cloudfunctions.net/faq_search',
+        TIMEOUT_MS: 5000,  // 5 second timeout
+        ENABLE_EMBEDDINGS: true
+    };
+
     // Expand query with concepts (conservative)
     function expandQuery(queryText) {
         const tokens = queryText.toLowerCase().split(/\s+/).filter(Boolean);
@@ -1493,7 +1500,116 @@ document.addEventListener('DOMContentLoaded', function() {
         return Array.from(expanded).join(' ');
     }
 
-    function renderResults(query) {
+    /**
+     * Escape HTML special characters to prevent XSS and display issues
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Search using OpenAI embeddings via Cloud Function
+     * @param {string} query - User query
+     * @returns {Promise<Array|null>} - Embedding search results or null on failure
+     */
+    async function searchWithEmbeddings(query) {
+        if (!EMBEDDING_SEARCH_CONFIG.ENABLE_EMBEDDINGS) {
+            console.log('🔤 Embeddings disabled, using BM25');
+            return null;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), EMBEDDING_SEARCH_CONFIG.TIMEOUT_MS);
+
+        try {
+            console.log(`🔬 Attempting embedding search for: "${query}"`);
+
+            // Prepare FAQ data for the API (without embeddings)
+            const faqsForApi = faqData.map(({ id, question, answer, alternates, tags }) => ({
+                id,
+                question,
+                answer: answer ? answer.substring(0, 500) : '',
+                alternates: alternates || '',
+                tags: tags || ''
+            }));
+
+            const response = await fetch(EMBEDDING_SEARCH_CONFIG.FUNCTION_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, faqs: faqsForApi }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const results = data.results || [];
+
+            if (results.length === 0) {
+                console.log('📭 Embedding search returned 0 results - falling back to BM25');
+                return null;
+            }
+
+            console.log(`✅ Embedding search succeeded - ${results.length} results`);
+            return results;
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+
+            if (error.name === 'AbortError') {
+                console.log('⏱️ Embedding search timed out - falling back to BM25');
+            } else {
+                console.log(`❌ Embedding search failed: ${error.message} - falling back to BM25`);
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Search using BM25 algorithm with fuzzy matching
+     * @param {string} expandedQuery - Query with stopwords removed and concepts expanded
+     * @returns {Array} - BM25 search results
+     */
+    function searchWithBM25(expandedQuery) {
+        return miniSearch.search(expandedQuery, {
+            boost: { question: 3, alternates: 2, tags: 2, answer: 1 }
+        });
+    }
+
+    /**
+     * Intelligently choose the best search results
+     * @param {Array|null} embeddingResults - Results from embedding search
+     * @param {Array} bm25Results - Results from BM25 search
+     * @param {string} query - Original user query
+     * @returns {Object} - { results: Array, method: string }
+     */
+    function chooseBestResults(embeddingResults, bm25Results, query) {
+        // Scenario 1: Embeddings failed/empty → use BM25
+        if (!embeddingResults || embeddingResults.length === 0) {
+            console.log('🔤 Using BM25 (embeddings returned no results)');
+            return { results: bm25Results, method: 'bm25' };
+        }
+
+        // Scenario 2: BM25 has significantly more results (2x) → likely typo/fuzzy benefit
+        if (bm25Results.length >= embeddingResults.length * 2 && bm25Results.length > 2) {
+            console.log(`🔍 Using BM25 fuzzy (${bm25Results.length} results vs ${embeddingResults.length} from embeddings - likely typo handling)`);
+            return { results: bm25Results, method: 'bm25-fuzzy' };
+        }
+
+        // Scenario 3: Similar counts → prefer embeddings (better semantic understanding)
+        console.log(`🔬 Using embeddings (${embeddingResults.length} results vs ${bm25Results.length} from BM25 - semantic match)`);
+        return { results: embeddingResults, method: 'embeddings' };
+    }
+
+    async function renderResults(query) {
         const q = (query || '').trim();
         history.replaceState(null, null, window.location.pathname);
 
@@ -1508,7 +1624,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Expand query with concepts (also filters stopwords)
         const expandedQuery = expandQuery(q);
-        
+
         // If query is all stopwords, show all FAQs
         if (expandedQuery.length === 0) {
             faqData.forEach(({ item }) => item.style.display = '');
@@ -1518,11 +1634,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (contactSection) contactSection.style.display = 'block';
             return;
         }
-        
-        // Search with MiniSearch BM25
-        const results = miniSearch.search(expandedQuery, { 
-            boost: { question: 3, alternates: 2, tags: 2, answer: 1 }
-        });
+
+        // Run both searches in parallel for hybrid approach
+        const [embeddingResults, bm25Results] = await Promise.all([
+            searchWithEmbeddings(q),
+            searchWithBM25(expandedQuery)
+        ]);
+
+        // Intelligently choose the best results
+        const { results: chosenResults, method: searchMethod } = chooseBestResults(embeddingResults, bm25Results, q);
+
+        // Normalize results format
+        let results;
+        if (searchMethod === 'embeddings') {
+            results = chosenResults.map((r, idx) => ({
+                id: r.id,
+                score: r.score || (1 - (idx * 0.1)) // Use API score or fallback to position-based
+            }));
+        } else {
+            results = chosenResults; // BM25 results already in correct format
+        }
 
         // Create a map of id -> rank for sorting
         const idToRank = {};
@@ -1564,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Hide contact section when no results (it's redundant)
             if (contactSection) contactSection.style.display = 'none';
         } else {
-            searchMeta.innerHTML = `<span style="font-size: 1.2rem;">${results.length} result${results.length === 1 ? '' : 's'} for "${q}"</span>`;
+            searchMeta.innerHTML = `<span style="font-size: 1.2rem;">${results.length} result${results.length === 1 ? '' : 's'} for "${escapeHtml(q)}"</span>`;
             // Show contact section when there are results
             if (contactSection) contactSection.style.display = 'block';
         }
