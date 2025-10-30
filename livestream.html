@@ -546,6 +546,17 @@ permalink: /livestream/
           width: 20px !important;
           height: 20px !important;
         }
+        
+        /* Base map control should match center control size on mobile */
+        .leaflet-control-basemap {
+          width: 35px !important;
+          height: 35px !important;
+        }
+        .leaflet-control-basemap > div {
+          width: 18px !important;
+          height: 18px !important;
+          background-size: 18px 18px !important;
+        }
       }
       
       /* Mobile optimization for all map controls */
@@ -614,11 +625,6 @@ permalink: /livestream/
       /* Scale control positioning - all the way to the left */
       .leaflet-control-scale {
         margin-left: 0 !important;
-      }
-      
-      /* Smooth rotation transitions for user location marker */
-      .location-chevron {
-        transition: transform 0.3s ease-out;
       }
       /* Hide navbar brand text on narrow screens */
       @media (max-width: 991px) {
@@ -1312,35 +1318,40 @@ permalink: /livestream/
       <div id="sharedDisconnectedOverlay" style="
         position: absolute;
         top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 10px;
+        right: 10px;
         background-color: rgba(220, 53, 69, 0.95);
         color: white;
-        padding: 10px 14px;
-        border-radius: 6px;
-        font-size: 13px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
         font-weight: 600;
         z-index: 1040;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         display: none;
-        align-items: center;
-        gap: 8px;
-        width: fit-content;
-        white-space: nowrap;
+        flex-direction: column;
+        gap: 12px;
+        max-width: calc(100vw - 20px);
+        word-wrap: break-word;
       ">
-        <i class="bi bi-wifi-off"></i>
-        <span>Stream disconnected. Attempting to reconnect...</span>
-        <div style="display: flex; gap: 6px; margin-left: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="bi bi-wifi-off" style="font-size: 16px;"></i>
+          <span>Stream disconnected. Attempting to reconnect...</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button onclick="if(window.viewer) window.viewer.retryConnection()" style="
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.4);
-          color: white;
-            font-size: 12px;
+            color: white;
+            font-size: 14px;
             font-weight: 600;
-          cursor: pointer;
-            padding: 4px 10px;
-            border-radius: 4px;
-            white-space: nowrap;
+            cursor: pointer;
+            padding: 10px 16px;
+            border-radius: 6px;
+            min-height: 44px;
+            flex: 1;
+            min-width: 120px;
+            transition: background-color 0.2s ease;
           " title="Try to reconnect now" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
             Try Again
           </button>
@@ -1348,15 +1359,18 @@ permalink: /livestream/
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.4);
             color: white;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            padding: 4px 10px;
-            border-radius: 4px;
-            white-space: nowrap;
+            padding: 10px 16px;
+            border-radius: 6px;
+            min-height: 44px;
+            flex: 1;
+            min-width: 120px;
+            transition: background-color 0.2s ease;
           " title="Close this stream" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.3)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.2)'">
-            Close this stream
-        </button>
+            Close Stream
+          </button>
         </div>
       </div>
 
@@ -1748,10 +1762,19 @@ permalink: /livestream/
             }
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
             
-            // Center map on North America when entering fullscreen map view
+            // Center map - zoom to drone if connected, otherwise North America
             if (window.droneMap && window.droneMap.map) {
               setTimeout(() => {
-                window.droneMap.map.setView([45.0, -100.0], 3);
+                // Check if a drone is connected (has current location)
+                if (window.droneMap.currentLocation && Array.isArray(window.droneMap.currentLocation)) {
+                  // Zoom to connected drone location
+                  window.droneMap.map.setView(window.droneMap.currentLocation, 15);
+                  console.log('Zooming to connected drone location:', window.droneMap.currentLocation);
+                } else {
+                  // No drone connected - show North America scale
+                  window.droneMap.map.setView([45.0, -100.0], 3);
+                  console.log('No drone connected - showing North America scale');
+                }
                 // Invalidate size to ensure map tiles render properly
                 window.droneMap.map.invalidateSize();
               }, 100);
@@ -1770,6 +1793,24 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            
+            // Center map - zoom to drone if connected, otherwise North America
+            if (window.droneMap && window.droneMap.map) {
+              setTimeout(() => {
+                // Check if a drone is connected (has current location)
+                if (window.droneMap.currentLocation && Array.isArray(window.droneMap.currentLocation)) {
+                  // Zoom to connected drone location
+                  window.droneMap.map.setView(window.droneMap.currentLocation, 15);
+                  console.log('Zooming to connected drone location (split mode):', window.droneMap.currentLocation);
+                } else {
+                  // No drone connected - show North America scale
+                  window.droneMap.map.setView([45.0, -100.0], 3);
+                  console.log('No drone connected - showing North America scale (split mode)');
+                }
+                // Invalidate size to ensure map tiles render properly
+                window.droneMap.map.invalidateSize();
+              }, 100);
+            }
           }
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);

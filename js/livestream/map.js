@@ -36,6 +36,7 @@ class DroneMap {
         // Full screen control
         this.isFullscreen = false;
         this.fullscreenControl = null;
+        this.originalNavbarDisplay = null; // Store original navbar display value
 
         this.defaultCenter = [45.0, -100.0];
         this.defaultZoom = 3;
@@ -578,61 +579,11 @@ class DroneMap {
                     this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
                 };
                 
-                // Add click and long-press handlers
-                let pressTimer = null;
-                let isLongPress = false;
-                
-                container.onmousedown = function(e) {
+                // Add click handler only (no long-press)
+                container.onclick = function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    isLongPress = false;
-                    pressTimer = setTimeout(() => {
-                        isLongPress = true;
-                        window.droneMap.toggleUserFacingMode();
-                    }, 500); // 500ms for long press
-                };
-                
-                container.onmouseup = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (pressTimer) {
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
-                    }
-                    if (!isLongPress) {
-                        window.droneMap.resetToNorthUp();
-                    }
-                };
-                
-                container.onmouseleave = function(e) {
-                    e.stopPropagation();
-                    if (pressTimer) {
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
-                    }
-                };
-                
-                // Touch events for mobile
-                container.ontouchstart = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    isLongPress = false;
-                    pressTimer = setTimeout(() => {
-                        isLongPress = true;
-                        window.droneMap.toggleUserFacingMode();
-                    }, 500);
-                };
-                
-                container.ontouchend = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (pressTimer) {
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
-                    }
-                    if (!isLongPress) {
-                        window.droneMap.resetToNorthUp();
-                    }
+                    window.droneMap.resetToNorthUp();
                 };
                 
                 return container;
@@ -746,25 +697,10 @@ class DroneMap {
         console.log('Fullscreen control added:', this.fullscreenControl);
     }
     
-    toggleUserFacingMode() {
-        if (this.northArrowMode === 'user-facing') {
-            this.northArrowMode = 'north';
-            console.log('Switched to north-oriented mode');
-        } else {
-            this.northArrowMode = 'user-facing';
-            console.log('Switched to user-facing mode');
-        }
-        
-        this.updateNorthArrowRotation();
-        this.updateMapRotation();
-    }
-    
     resetToNorthUp() {
-        if (this.northArrowMode === 'north') {
-            // Reset map rotation to north-up
-            this.applyMapRotation();
-            console.log('Reset map to north-up');
-        }
+        // Reset map rotation to north-up
+        this.applyMapRotation();
+        console.log('Reset map to north-up');
     }
     
     updateNorthArrowRotation() {
@@ -780,25 +716,14 @@ class DroneMap {
         
         if (!arrow || !modeIndicator) return;
         
-        // Remove existing classes
-        container.classList.remove('north-oriented', 'user-facing');
-        
-        if (this.northArrowMode === 'north') {
-            arrow.style.transform = 'rotate(0deg)';
-            modeIndicator.textContent = 'N';
-            modeIndicator.style.background = '#27ae60';
-            container.classList.add('north-oriented');
-            container.title = 'North-oriented mode (click to reset to north-up, long-press to switch to user-facing)';
-            console.log('Set to north-oriented mode');
-        } else {
-            const rotation = this.userHeading !== null ? -this.userHeading : 0;
-            arrow.style.transform = `rotate(${rotation}deg)`;
-            modeIndicator.textContent = 'U';
-            modeIndicator.style.background = '#3498db';
-            container.classList.add('user-facing');
-            container.title = 'User-facing mode (long-press to switch to north-oriented)';
-            console.log('Set to user-facing mode, rotation:', rotation);
-        }
+        // Always set to north-oriented mode
+        arrow.style.transform = 'rotate(0deg)';
+        modeIndicator.textContent = 'N';
+        modeIndicator.style.background = '#27ae60';
+        container.classList.remove('user-facing');
+        container.classList.add('north-oriented');
+        container.title = 'North-oriented mode (click to reset to north-up)';
+        console.log('Set to north-oriented mode');
     }
     
     toggleFullscreen() {
@@ -852,6 +777,12 @@ class DroneMap {
         const mobileOffcanvas = document.querySelector('.offcanvas');
         
         if (enter) {
+            // Store original display value before hiding
+            if (navbar && !this.originalNavbarDisplay) {
+                const computedStyle = window.getComputedStyle(navbar);
+                this.originalNavbarDisplay = computedStyle.display;
+            }
+            
             // Hide top bar
             if (navbar) {
                 navbar.style.display = 'none';
@@ -863,7 +794,13 @@ class DroneMap {
         } else {
             // Show top bar
             if (navbar) {
-                navbar.style.display = 'flex';
+                // Restore original display or remove inline style to let CSS handle it
+                if (this.originalNavbarDisplay) {
+                    navbar.style.display = this.originalNavbarDisplay;
+                    this.originalNavbarDisplay = null; // Reset after restore
+                } else {
+                    navbar.style.display = ''; // Remove inline style, let CSS handle it
+                }
             }
             if (mobileOffcanvas) {
                 mobileOffcanvas.style.display = 'block';
@@ -902,6 +839,42 @@ class DroneMap {
         this.isFullscreen = isCurrentlyFullscreen;
         this.updateFullscreenIcon();
         
+        // Hide/show navbar when entering/exiting fullscreen
+        const navbar = document.querySelector('.navbar');
+        const mobileOffcanvas = document.querySelector('.offcanvas');
+        
+        if (isCurrentlyFullscreen) {
+            // Store original display value before hiding
+            if (navbar && !this.originalNavbarDisplay) {
+                const computedStyle = window.getComputedStyle(navbar);
+                this.originalNavbarDisplay = computedStyle.display;
+            }
+            
+            // Hide navbar and mobile offcanvas when entering fullscreen
+            if (navbar) {
+                navbar.style.display = 'none';
+            }
+            if (mobileOffcanvas) {
+                mobileOffcanvas.style.display = 'none';
+            }
+            console.log('Entered fullscreen - navbar hidden');
+        } else {
+            // Show navbar and mobile offcanvas when exiting fullscreen
+            if (navbar) {
+                // Restore original display or remove inline style to let CSS handle it
+                if (this.originalNavbarDisplay) {
+                    navbar.style.display = this.originalNavbarDisplay;
+                    this.originalNavbarDisplay = null; // Reset after restore
+                } else {
+                    navbar.style.display = ''; // Remove inline style, let CSS handle it
+                }
+            }
+            if (mobileOffcanvas) {
+                mobileOffcanvas.style.display = 'block';
+            }
+            console.log('Exited fullscreen - navbar shown');
+        }
+        
         console.log(`Fullscreen state changed: ${isCurrentlyFullscreen ? 'entered' : 'exited'}`);
     }
     
@@ -931,26 +904,13 @@ class DroneMap {
         const tileContainer = mapContainer.querySelector('.leaflet-tile-container');
         
         if (tileContainer) {
-            if (this.northArrowMode === 'user-facing' && this.userHeading !== null) {
-                // User-facing mode: rotate based on device heading
-                tileContainer.style.transform = `rotate(${-this.userHeading}deg)`;
-            } else {
-                // North-up mode: always stay north-up (no rotation)
-                tileContainer.style.transform = `rotate(0deg)`;
-            }
+            // Always stay north-up (no rotation)
+            tileContainer.style.transform = `rotate(0deg)`;
         }
     }
     
     updateMapRotation() {
         this.applyMapRotation();
-    }
-    
-    updateUserHeading(heading) {
-        this.userHeading = heading;
-        if (this.northArrowMode === 'user-facing') {
-            this.updateNorthArrowRotation();
-            this.updateMapRotation();
-        }
     }
     
 
@@ -1683,11 +1643,6 @@ class DroneMap {
         const heading = position.coords.heading;
 
         this.myLocationAccuracy = accuracy;
-        
-        // Update user heading for north arrow
-        if (heading !== null && heading !== undefined) {
-            this.updateUserHeading(heading);
-        }
 
         // Update or create accuracy circle
         if (this.myLocationCircle) {
@@ -1705,14 +1660,13 @@ class DroneMap {
         // Check if this is the first time we're showing location
         const isFirstTime = this.myLocationMarker === null;
         
-        // Update or create location marker with directional arrow
+        // Update or create location marker
         if (this.myLocationMarker) {
-            // Update existing marker position and rotation
+            // Update existing marker position
             this.myLocationMarker.setLatLng([lat, lng]);
-            this.updateLocationMarkerRotation(heading);
         } else {
             // Create new marker
-            const iconHtml = this.createLocationIcon(heading);
+            const iconHtml = this.createLocationIcon();
             this.myLocationMarker = L.marker([lat, lng], {
                 icon: L.divIcon({
                     html: iconHtml,
@@ -1753,31 +1707,8 @@ class DroneMap {
         this.stopLocationTracking();
     }
 
-    createLocationIcon(heading) {
-        // Google Maps style location marker
-        const hasHeading = heading !== null && heading !== undefined && !isNaN(heading);
-        const rotation = hasHeading ? heading : 0;
-        
-        // If we have heading, show directional chevron; otherwise just the dot
-        const chevronHtml = hasHeading ? `
-            <div class="location-chevron" style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 0;
-                height: 0;
-                margin-top: -22px;
-                margin-left: -4px;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-bottom: 12px solid #4285f4;
-                transform: translate(-50%, -100%) rotate(${rotation}deg);
-                transform-origin: 50% 100%;
-                filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
-                z-index: 2;
-            "></div>
-        ` : '';
-        
+    createLocationIcon() {
+        // Google Maps style location marker (simple blue dot, no orientation indicator)
         return `
             <div class="google-maps-location-marker" style="
                 position: relative;
@@ -1806,46 +1737,10 @@ class DroneMap {
                     border-radius: 50%;
                     z-index: 1;
                 "></div>
-                <!-- Directional chevron (only shown when heading is available) -->
-                ${chevronHtml}
             </div>
         `;
     }
     
-    updateLocationMarkerRotation(heading) {
-        if (!this.myLocationMarker) return;
-        
-        const hasHeading = heading !== null && heading !== undefined && !isNaN(heading);
-        const rotation = hasHeading ? heading : 0;
-        const markerElement = this.myLocationMarker.getElement();
-        
-        if (markerElement) {
-            const chevron = markerElement.querySelector('.location-chevron');
-            
-            if (chevron) {
-                if (hasHeading) {
-                    // Show chevron and update rotation
-                    chevron.style.display = 'block';
-                    chevron.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
-                } else {
-                    // Hide chevron when no heading
-                    chevron.style.display = 'none';
-                }
-            } else if (hasHeading) {
-                // Chevron doesn't exist yet, recreate the icon with heading
-                const iconHtml = this.createLocationIcon(heading);
-                const icon = L.divIcon({
-                    html: iconHtml,
-                    className: 'my-location-marker',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-                this.myLocationMarker.setIcon(icon);
-            }
-            
-            console.log(`Updated user location marker rotation to ${rotation}deg (hasHeading: ${hasHeading})`);
-        }
-    }
 
     updateLocationButton() {
         const button = document.getElementById('myLocationBtn');
