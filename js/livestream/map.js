@@ -489,8 +489,7 @@ class DroneMap {
         
         // Prevent all clicks inside popup from reaching map
         this.baseMapPopup.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
+            e.stopPropagation(); // Don't call preventDefault() - it breaks checkbox/radio functionality
         });
         this.baseMapPopup.addEventListener('mousedown', (e) => {
             e.stopPropagation();
