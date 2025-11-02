@@ -441,7 +441,7 @@ class DroneMap {
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
-                    OpenAIPAirspace (At Ground)
+                    Airspace (At Ground)
                 </label>
                 <div id="droneAirspaceSubLayers" style="margin-left: 20px; margin-top: 4px; display: ${this.isDroneAirspaceEnabled ? 'block' : 'none'};">
                     <label style="display: block; margin: 4px 0; cursor: pointer; font-size: 12px; padding: 2px 0; color: #666; font-weight: 400;">
@@ -453,7 +453,7 @@ class DroneMap {
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
-                    OpenAIPAirspace (All)
+                    Airspace (All)
                 </label>
                 <div id="airspaceSubLayers" style="margin-left: 20px; margin-top: 4px; display: ${this.isAirspaceEnabled ? 'block' : 'none'};">
                     <label style="display: block; margin: 4px 0; cursor: pointer; font-size: 12px; padding: 2px 0; color: #666; font-weight: 400;">
@@ -1488,10 +1488,10 @@ class DroneMap {
                     // Raw properties toggle
                     const featureId = `feature-${props.id || props._id || props.icaoCode || props.name}`;
                     popupContent += `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; text-align: center;">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
                             <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
-                                    style="background: transparent; border: 2px solid #6c757d; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; color: #6c757d;">
-                                👁️
+                                    style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                                i
                             </button>
                             <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
                         </div>
@@ -4542,7 +4542,7 @@ class DroneMap {
         const isDroneAirspace = item.isDroneAirspace || false;
         
         if (layerType === 'airspace') {
-            layerName = isDroneAirspace ? 'OpenAIPAirspace (At Ground)' : 'OpenAIPAirspace (All)';
+            layerName = isDroneAirspace ? 'Airspace (At Ground)' : 'Airspace (All)';
             typeLabel = props.type || props.typeCode || '';
         } else if (layerType === 'airport') {
             layerName = airportType === 'water' ? 'Water Aerodrome' : 
@@ -4653,10 +4653,10 @@ class DroneMap {
         // Raw properties toggle
         const featureId = `feature-${this.getFeatureStableId(feature)}`;
         content += `
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; text-align: center;">
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
                 <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
-                        style="background: transparent; border: 2px solid #6c757d; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; color: #6c757d;">
-                    👁️
+                        style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                    i
                 </button>
                 <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
             </div>
@@ -4702,12 +4702,11 @@ class DroneMap {
         const button = pre?.previousElementSibling;
         
         if (pre && button) {
+            // Just toggle visibility, keep button as 'i'
             if (pre.style.display === 'none') {
                 pre.style.display = 'block';
-                button.textContent = 'Hide raw properties';
             } else {
                 pre.style.display = 'none';
-                button.textContent = 'Show raw properties';
             }
         }
         
