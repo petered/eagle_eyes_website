@@ -439,6 +439,10 @@ class DroneMap {
         // Add event listener for airspace toggle
         const airspaceToggle = this.baseMapPopup.querySelector('#airspaceToggle');
         if (airspaceToggle) {
+            // Stop propagation on both mousedown and change to prevent map clicks
+            airspaceToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
             airspaceToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirspace(e.target.checked);
@@ -448,6 +452,9 @@ class DroneMap {
         // Add event listener for drone airspace toggle
         const droneAirspaceToggle = this.baseMapPopup.querySelector('#droneAirspaceToggle');
         if (droneAirspaceToggle) {
+            droneAirspaceToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
             droneAirspaceToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleDroneAirspace(e.target.checked);
@@ -457,6 +464,9 @@ class DroneMap {
         // Add event listener for airports toggle
         const airportsToggle = this.baseMapPopup.querySelector('#airportsToggle');
         if (airportsToggle) {
+            airportsToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
             airportsToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirports(e.target.checked);
@@ -466,6 +476,9 @@ class DroneMap {
         // Add event listeners to radio buttons
         const radioButtons = this.baseMapPopup.querySelectorAll('input[name="basemap"]');
         radioButtons.forEach(radio => {
+            radio.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
             radio.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 if (e.target.checked) {
