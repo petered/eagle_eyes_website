@@ -759,6 +759,12 @@ class DroneMap {
                 <div style="font-size: 24px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
                 <div style="font-size: 11px; color: #666; margin-top: 4px;" id="measurementUnitLabel">NM</div>
             </div>
+            <div style="margin-top: 12px;">
+                <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
+                        style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%;">
+                    Undo Last Point
+                </button>
+            </div>
         `;
         
         // Add event listeners
@@ -901,6 +907,43 @@ class DroneMap {
             this.measurementTotalDistance += distanceNM;
             this.updateMeasurementDisplay();
         }
+    }
+    
+    undoLastMeasurement() {
+        if (this.measurementPoints.length === 0) return;
+        
+        // Remove the last point
+        this.measurementPoints.pop();
+        
+        // Remove the last marker
+        const lastMarker = this.measurementMarkers.pop();
+        if (lastMarker) {
+            this.map.removeLayer(lastMarker);
+        }
+        
+        // If we had a line to the last point, remove it and update distance
+        if (this.measurementPoints.length > 0 && this.measurementPolylines.length > 0) {
+            const lastPolyline = this.measurementPolylines.pop();
+            if (lastPolyline) {
+                this.map.removeLayer(lastPolyline);
+                
+                // Recalculate total distance
+                if (this.measurementPoints.length >= 2) {
+                    // Subtract the distance from the removed line
+                    const secondLastPoint = this.measurementPoints[this.measurementPoints.length - 2];
+                    const lastPoint = this.measurementPoints[this.measurementPoints.length - 1];
+                    
+                    const distanceM = secondLastPoint.distanceTo(lastPoint);
+                    const distanceNM = distanceM / 1852;
+                    this.measurementTotalDistance -= distanceNM;
+                }
+            }
+        } else {
+            // No line to remove, just reset distance to 0
+            this.measurementTotalDistance = 0;
+        }
+        
+        this.updateMeasurementDisplay();
     }
     
     switchBaseMap(mapName) {
