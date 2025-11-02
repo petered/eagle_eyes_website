@@ -38,6 +38,7 @@ class DroneMap {
         this.droneAirspaceCache = new Map(); // Cache by bbox string
         this.droneAirspaceDebounceTimer = null;
         this.droneAirspaceFeatureIds = new Set(); // For deduplication by stable id
+        this.droneAirspaceLoading = false; // Track if drone airspace is currently loading
         
         // Multi-hit popup state
         this.multiHitPopup = null; // Current multi-hit popup instance
@@ -467,11 +468,6 @@ class DroneMap {
                            style="margin-right: 8px;">
                     Airports/Heliports
                 </label>
-                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
-                    <input type="checkbox" id="airportsTestToggle" ${this.isAirportsTestEnabled ? 'checked' : ''} 
-                           style="margin-right: 8px;">
-                    Airports/Heliports Test
-                </label>
             </div>
         `;
         
@@ -509,18 +505,6 @@ class DroneMap {
             airportsToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirports(e.target.checked);
-            });
-        }
-        
-        // Add event listener for airports test toggle
-        const airportsTestToggle = this.baseMapPopup.querySelector('#airportsTestToggle');
-        if (airportsTestToggle) {
-            airportsTestToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            airportsTestToggle.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent event from bubbling to document
-                this.toggleAirportsTest(e.target.checked);
             });
         }
         
@@ -957,6 +941,10 @@ class DroneMap {
         if (this.droneAirspaceCache.has(bbox)) {
             return;
         }
+        
+        // Show loading indicator
+        this.droneAirspaceLoading = true;
+        this.showAirspaceLoadingMessage('droneAirspace');
 
         const proxyBase = this.getOpenAIPProxyUrl();
         const airspaceUrl = `${proxyBase}/openaip/airspaces?bbox=${bbox}&format=geojson`;
@@ -1067,8 +1055,14 @@ class DroneMap {
                     console.log(`Drone airspace features rendered: ${uniqueFeatures.length}`);
                 }
             }
+            
+            // Hide loading message
+            this.droneAirspaceLoading = false;
+            this.hideAirspaceLoadingMessage();
         } catch (error) {
             console.error('Error loading drone airspace data:', error);
+            this.droneAirspaceLoading = false;
+            this.hideAirspaceLoadingMessage();
         }
     }
 
@@ -1715,6 +1709,7 @@ class DroneMap {
         // Map basic properties
         props.name = item.name || 'Unknown';
         props.id = item._id || item.id;
+        props._id = item._id || item.id; // Add _id explicitly for popup links
         
         // Convert numeric type to string (OpenAIP uses numeric codes)
         // Map OpenAIP type codes to labels (include at least: 1,2,3,4,5,6,7,13,20,26,36)
@@ -1983,7 +1978,7 @@ class DroneMap {
         
         // Show loading indicator
         this.airspaceLoading = true;
-        this.showAirspaceLoadingMessage();
+        this.showAirspaceLoadingMessage('airspace');
 
         const proxyBase = this.getOpenAIPProxyUrl();
         // Request GeoJSON format for airspaces
@@ -2426,9 +2421,16 @@ class DroneMap {
         }
     }
     
-    showAirspaceLoadingMessage() {
+    showAirspaceLoadingMessage(layerName = 'airspace') {
         // Remove any existing loading message
         this.hideAirspaceLoadingMessage();
+        
+        // Map layer names to display names
+        const displayNames = {
+            'airspace': 'Open AIP Airspace (All)',
+            'droneAirspace': 'Open AIP Airspace (At Ground)'
+        };
+        const displayName = displayNames[layerName] || 'airspace';
         
         const loadingDiv = document.createElement('div');
         loadingDiv.id = 'airspaceLoading';
@@ -2456,7 +2458,7 @@ class DroneMap {
                 <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
                 <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
             </svg>
-            <span>Loading airspace data...</span>
+            <span>Loading ${displayName}...</span>
         `;
         
         // Add spinning animation style if not already present
@@ -2521,9 +2523,27 @@ class DroneMap {
     }
 
     getDroneAirspaceStyle(feature) {
-        // Style for drone airspace layer - distinct color to differentiate
+        // Style for drone airspace layer
+        const props = feature.properties || {};
         const fillOpacity = 0.25;
-        const color = '#9333ea'; // Purple/violet color for drone airspace
+        
+        // Class C, F, and D get red, everything else gets orange
+        const icaoClassNumeric = props.icaoClassNumeric;
+        const icaoClass = props.icaoClass;
+        let color = '#fd7e14'; // Default orange
+        
+        if (icaoClassNumeric !== undefined && icaoClassNumeric !== null) {
+            if (icaoClassNumeric === 2 || icaoClassNumeric === 5 || icaoClassNumeric === 3) {
+                // Class C (2), F (5), or D (3) - red
+                color = '#dc3545';
+            }
+        } else if (icaoClass) {
+            // Fallback to string ICAO class
+            const classUpper = String(icaoClass).toUpperCase();
+            if (classUpper === 'C' || classUpper === 'F' || classUpper === 'D') {
+                color = '#dc3545';
+            }
+        }
         
         return {
             fillColor: color,
@@ -4582,6 +4602,23 @@ class DroneMap {
                     <strong style="font-size: 14px; color: #333;">${props.name || 'Unknown'}</strong>
                 </div>
         `;
+        
+        // OpenAIP link for airspace
+        if (layerType === 'airspace') {
+            const airspaceId = props._id || props.id;
+            if (airspaceId) {
+                const airspaceUrl = `https://www.openaip.net/data/airspaces/${airspaceId}`;
+                content += `
+                    <div style="margin-bottom: 8px;">
+                        <a href="${airspaceUrl}" target="_blank" rel="noopener noreferrer"
+                           onclick="window.open('${airspaceUrl}', '_blank'); return false;"
+                           style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
+                            View on OpenAIP
+                        </a>
+                    </div>
+                `;
+            }
+        }
         
         // ICAO code for airports/heliports
         if (layerType === 'airport') {
