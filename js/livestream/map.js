@@ -443,11 +443,25 @@ class DroneMap {
                            style="margin-right: 8px;">
                     OpenAIPAirspace (At Ground)
                 </label>
+                <div id="droneAirspaceSubLayers" style="margin-left: 20px; margin-top: 4px; display: ${this.isDroneAirspaceEnabled ? 'block' : 'none'};">
+                    <label style="display: block; margin: 4px 0; cursor: pointer; font-size: 12px; padding: 2px 0; color: #666; font-weight: 400;">
+                        <input type="checkbox" id="droneAirspaceAirportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
+                               style="margin-right: 8px;">
+                        Airports/Heliports
+                    </label>
+                </div>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
                     OpenAIPAirspace (All)
                 </label>
+                <div id="airspaceSubLayers" style="margin-left: 20px; margin-top: 4px; display: ${this.isAirspaceEnabled ? 'block' : 'none'};">
+                    <label style="display: block; margin: 4px 0; cursor: pointer; font-size: 12px; padding: 2px 0; color: #666; font-weight: 400;">
+                        <input type="checkbox" id="airspaceAirportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
+                               style="margin-right: 8px;">
+                        Airports/Heliports
+                    </label>
+                </div>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
@@ -507,6 +521,40 @@ class DroneMap {
             airportsTestToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirportsTest(e.target.checked);
+            });
+        }
+        
+        // Add event listener for drone airspace airports sublayer toggle
+        const droneAirspaceAirportsToggle = this.baseMapPopup.querySelector('#droneAirspaceAirportsToggle');
+        if (droneAirspaceAirportsToggle) {
+            droneAirspaceAirportsToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            droneAirspaceAirportsToggle.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
+                this.toggleAirports(e.target.checked);
+                // Sync the standalone airports toggle
+                const airportsToggle = document.querySelector('#airportsToggle');
+                if (airportsToggle) {
+                    airportsToggle.checked = e.target.checked;
+                }
+            });
+        }
+        
+        // Add event listener for airspace airports sublayer toggle
+        const airspaceAirportsToggle = this.baseMapPopup.querySelector('#airspaceAirportsToggle');
+        if (airspaceAirportsToggle) {
+            airspaceAirportsToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            airspaceAirportsToggle.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
+                this.toggleAirports(e.target.checked);
+                // Sync the standalone airports toggle
+                const airportsToggle = document.querySelector('#airportsToggle');
+                if (airportsToggle) {
+                    airportsToggle.checked = e.target.checked;
+                }
             });
         }
         
@@ -641,6 +689,23 @@ class DroneMap {
             
             // Load drone airspace data for current view
             this.loadDroneAirspaceDataDebounced();
+            
+            // Auto-enable airports if not already enabled
+            if (!this.isAirportsEnabled) {
+                this.toggleAirports(true);
+                // Update checkboxes to sync
+                const droneAirspaceAirportsToggle = document.querySelector('#droneAirspaceAirportsToggle');
+                if (droneAirspaceAirportsToggle) {
+                    droneAirspaceAirportsToggle.checked = true;
+                }
+                const airportsToggle = document.querySelector('#airportsToggle');
+                if (airportsToggle) {
+                    airportsToggle.checked = true;
+                }
+            }
+            
+            // Show sublayers
+            this.updateAirspaceSublayers();
         } else {
             // Remove layer from map
             if (this.map.hasLayer(this.droneAirspaceLayer)) {
@@ -649,6 +714,9 @@ class DroneMap {
             // Clear cache
             this.droneAirspaceCache.clear();
             this.droneAirspaceFeatureIds.clear();
+            
+            // Hide sublayers
+            this.updateAirspaceSublayers();
         }
     }
 
@@ -671,6 +739,23 @@ class DroneMap {
             
             // Load airspace data for current view
             this.loadAirspaceDataDebounced();
+            
+            // Auto-enable airports if not already enabled
+            if (!this.isAirportsEnabled) {
+                this.toggleAirports(true);
+                // Update checkboxes to sync
+                const airspaceAirportsToggle = document.querySelector('#airspaceAirportsToggle');
+                if (airspaceAirportsToggle) {
+                    airspaceAirportsToggle.checked = true;
+                }
+                const airportsToggle = document.querySelector('#airportsToggle');
+                if (airportsToggle) {
+                    airportsToggle.checked = true;
+                }
+            }
+            
+            // Show sublayers
+            this.updateAirspaceSublayers();
         } else {
             // Remove layer from map
             if (this.map.hasLayer(this.airspaceLayer)) {
@@ -681,6 +766,24 @@ class DroneMap {
             this.airspaceFeatureIds.clear();
             this.airspaceProxyError = false;
             this.hideProxyErrorMessage();
+            
+            // Hide sublayers
+            this.updateAirspaceSublayers();
+        }
+    }
+    
+    updateAirspaceSublayers() {
+        // Show/hide sublayers based on airspace layer states
+        if (!this.baseMapPopup) return;
+        
+        const droneAirspaceSubLayers = this.baseMapPopup.querySelector('#droneAirspaceSubLayers');
+        const airspaceSubLayers = this.baseMapPopup.querySelector('#airspaceSubLayers');
+        
+        if (droneAirspaceSubLayers) {
+            droneAirspaceSubLayers.style.display = this.isDroneAirspaceEnabled ? 'block' : 'none';
+        }
+        if (airspaceSubLayers) {
+            airspaceSubLayers.style.display = this.isAirspaceEnabled ? 'block' : 'none';
         }
     }
 
@@ -751,6 +854,12 @@ class DroneMap {
                     this.droneAirspaceLayer.addTo(this.map);
                 }
                 this.loadDroneAirspaceDataDebounced();
+                // Auto-enable airports
+                if (!this.isAirportsEnabled) {
+                    this.airportsAcknowledged = true; // Already shown
+                    this.toggleAirports(true);
+                }
+                this.updateAirspaceSublayers();
             } else if (airspaceToggle && airspaceToggle.checked) {
                 this.airspaceAcknowledged = true;
                 this.isAirspaceEnabled = true; // Set the enabled flag
@@ -759,6 +868,12 @@ class DroneMap {
                     this.airspaceLayer.addTo(this.map);
                 }
                 this.loadAirspaceDataDebounced();
+                // Auto-enable airports
+                if (!this.isAirportsEnabled) {
+                    this.airportsAcknowledged = true; // Already shown
+                    this.toggleAirports(true);
+                }
+                this.updateAirspaceSublayers();
             } else if (airportsToggle && airportsToggle.checked) {
                 this.airportsAcknowledged = true;
                 this.isAirportsEnabled = true; // Set the enabled flag
@@ -990,6 +1105,21 @@ class DroneMap {
             // Clear cache
             this.airportsCache.clear();
             this.airportsFeatureIds.clear();
+        }
+        
+        // Sync all airport toggles
+        const airportsToggle = document.querySelector('#airportsToggle');
+        const droneAirspaceAirportsToggle = document.querySelector('#droneAirspaceAirportsToggle');
+        const airspaceAirportsToggle = document.querySelector('#airspaceAirportsToggle');
+        
+        if (airportsToggle) {
+            airportsToggle.checked = enabled;
+        }
+        if (droneAirspaceAirportsToggle) {
+            droneAirspaceAirportsToggle.checked = enabled;
+        }
+        if (airspaceAirportsToggle) {
+            airspaceAirportsToggle.checked = enabled;
         }
     }
 
