@@ -54,6 +54,11 @@ class DroneMap {
         this.airportsDebounceTimer = null;
         this.airportsFeatureIds = new Set(); // For deduplication by _id
         
+        // Airports and Heliports Test layer (minimal implementation)
+        this.airportsTestMarkerCluster = null;
+        this.isAirportsTestEnabled = false;
+        this.airportsTestDebounceTimer = null;
+        
         // My location tracking
         this.myLocationMarker = null;
         this.myLocationCircle = null;
@@ -214,7 +219,16 @@ class DroneMap {
                 maxClusterRadius: 80, // Cluster radius in pixels
                 spiderfyOnMaxZoom: true,
                 showCoverageOnHover: true,
-                zoomToBoundsOnClick: true,
+                zoomToBoundsOnClick: false, // Disable to allow our custom popup system to work
+                chunkedLoading: true
+            });
+            
+            // Initialize airports test marker cluster layer
+            this.airportsTestMarkerCluster = L.markerClusterGroup({
+                maxClusterRadius: 80,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: true,
+                zoomToBoundsOnClick: false,
                 chunkedLoading: true
             });
             
@@ -222,6 +236,9 @@ class DroneMap {
             this.map.on('moveend', () => {
                 if (this.isAirportsEnabled) {
                     this.loadAirportsDataDebounced();
+                }
+                if (this.isAirportsTestEnabled) {
+                    this.loadAirportsTestDataDebounced();
                 }
             });
 
@@ -270,6 +287,7 @@ class DroneMap {
             
             // Add click handler for multi-hit popups
             this.map.on('click', (e) => {
+                console.log('MAP CLICK EVENT FIRED - calling handleMapClick');
                 this.handleMapClick(e);
             });
             
@@ -433,6 +451,11 @@ class DroneMap {
                            style="margin-right: 8px;">
                     Airports/Heliports
                 </label>
+                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                    <input type="checkbox" id="airportsTestToggle" ${this.isAirportsTestEnabled ? 'checked' : ''} 
+                           style="margin-right: 8px;">
+                    Airports/Heliports Test
+                </label>
             </div>
         `;
         
@@ -470,6 +493,18 @@ class DroneMap {
             airportsToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirports(e.target.checked);
+            });
+        }
+        
+        // Add event listener for airports test toggle
+        const airportsTestToggle = this.baseMapPopup.querySelector('#airportsTestToggle');
+        if (airportsTestToggle) {
+            airportsTestToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            airportsTestToggle.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
+                this.toggleAirportsTest(e.target.checked);
             });
         }
         
@@ -1148,8 +1183,105 @@ class DroneMap {
                     // Create marker
                     const marker = L.marker(latlng, { icon: icon });
                     
-                    // Store properties for multi-hit popup system
-                    // Note: Not binding popup here - using multi-hit popup system instead
+                    // Create popup content for airport
+                    const airportType = this.getAirportCategory(typeCode);
+                    const layerName = airportType === 'water' ? 'Water Aerodrome' : 
+                                     airportType === 'heliport' ? 'Heliport' : 'Airport';
+                    const typeCategory = this.getAirportTypeCategory(typeCode || props.type);
+                    
+                    let popupContent = `
+                        <div style="font-family: Arial, sans-serif; min-width: 250px; max-height: 450px; overflow-y: auto; overflow-x: hidden;">
+                            <div style="margin-bottom: 10px;">
+                                <strong style="font-size: 13px; color: #666;">${layerName}</strong>
+                                ${typeCategory ? `<span style="font-size: 12px; color: #999; margin-left: 8px;">(${typeCategory})</span>` : ''}
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong style="font-size: 14px; color: #333;">${props.name || 'Unknown'}</strong>
+                            </div>
+                    `;
+                    
+                    // ICAO code
+                    const icaoCode = props.icaoCode || props.icao || props.code;
+                    if (icaoCode) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO Code:</strong> ${icaoCode}</div>`;
+                    }
+                    
+                    // IATA code
+                    if (props.iata) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>IATA Code:</strong> ${props.iata}</div>`;
+                    }
+                    
+                    // Country
+                    if (props.country) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Country:</strong> ${props.country}</div>`;
+                    }
+                    
+                    // Elevation
+                    if (props.elevation) {
+                        let elevation = 'N/A';
+                        if (typeof props.elevation === 'object') {
+                            const elevValue = props.elevation.value || props.elevation;
+                            const elevUnit = props.elevation.unit === 0 ? 'M' : 'FT';
+                            elevation = `${elevValue} ${elevUnit}`;
+                        } else {
+                            elevation = `${props.elevation} FT`;
+                        }
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Elevation:</strong> ${elevation}</div>`;
+                    }
+                    
+                    // Frequencies
+                    if (props.radioFrequencies && Array.isArray(props.radioFrequencies) && props.radioFrequencies.length > 0) {
+                        const frequencies = props.radioFrequencies.map(freq => {
+                            if (typeof freq === 'object' && freq.value) {
+                                return `${freq.value} ${freq.unit === 0 ? 'MHz' : 'kHz'}`;
+                            }
+                            return freq;
+                        });
+                        if (frequencies.length === 1) {
+                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequency:</strong> ${frequencies[0]}</div>`;
+                        } else {
+                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequencies:</strong> ${frequencies.join(', ')}</div>`;
+                        }
+                    }
+                    
+                    // Runways
+                    if (props.runways && Array.isArray(props.runways) && props.runways.length > 0) {
+                        const runwayInfo = props.runways.map(rwy => {
+                            const length = rwy.length;
+                            const designator = rwy.designator || rwy.designator1 || '';
+                            if (length && length.value) {
+                                const lengthValue = length.value;
+                                const lengthUnit = length.unit === 0 ? 'M' : 'FT';
+                                return `${designator ? designator + ': ' : ''}${lengthValue} ${lengthUnit}`;
+                            }
+                            return null;
+                        }).filter(r => r !== null);
+                        if (runwayInfo.length > 0) {
+                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Runway(s):</strong> ${runwayInfo.join(', ')}</div>`;
+                        }
+                    }
+                    
+                    // Raw properties toggle
+                    const featureId = `feature-${props.id || props._id || props.icaoCode || props.name}`;
+                    popupContent += `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                            <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
+                                    style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                                Show raw properties
+                            </button>
+                            <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    popupContent += `</div>`;
+                    
+                    // Bind popup directly to marker
+                    marker.bindPopup(popupContent, {
+                        className: 'airport-popup',
+                        maxWidth: 450,
+                        autoClose: false,
+                        closeOnClick: false
+                    });
                     
                     // Store properties in marker for reference
                     marker.airportProperties = props;
@@ -1177,30 +1309,10 @@ class DroneMap {
             console.log(`Airports deduplicated: ${uniqueAirports.length}`);
             console.log(`Airports rendered: ${markers.length}`);
             if (sampleAirport) {
-                // Create SkyVector URL for sample airport (for debugging)
-                let sampleSkyVectorUrl = null;
-                if (sampleAirport.icaoCode || sampleAirport.icao || sampleAirport.code) {
-                    const icao = sampleAirport.icaoCode || sampleAirport.icao || sampleAirport.code;
-                    let url = `https://skyvector.com/airport/${icao}`;
-                    if (sampleAirport.name && sampleAirport.name !== 'Unknown') {
-                        const nameSlug = sampleAirport.name
-                            .trim()
-                            .replace(/[^\w\s-]/g, '')
-                            .replace(/\s+/g, '-')
-                            .replace(/-+/g, '-')
-                            .replace(/^-+|-+$/g, '');
-                        if (nameSlug) {
-                            url = `https://skyvector.com/airport/${icao}/${nameSlug}`;
-                        }
-                    }
-                    sampleSkyVectorUrl = url;
-                }
-                
                 console.log('Sample airport properties:', {
                     name: sampleAirport.name,
                     icaoCode: sampleAirport.icaoCode || sampleAirport.icao || sampleAirport.code,
                     iataCode: sampleAirport.iata,
-                    skyVectorUrl: sampleSkyVectorUrl,
                     elevation: sampleAirport.elevation,
                     frequencies: sampleAirport.radioFrequencies,
                     runways: sampleAirport.runways,
@@ -1269,45 +1381,6 @@ class DroneMap {
             <div style="font-family: Arial, sans-serif; min-width: 200px;">
                 <div style="font-size: 12px; line-height: 1.6;">
         `;
-        
-        // SkyVector link FIRST (if ICAO code exists)
-        if (icaoCode) {
-            // Create airport name slug matching SkyVector format
-            // Examples: 
-            // "Vancouver International Airport" -> "Vancouver-International-Airport"
-            // "Victoria International Airport" -> "Victoria-International-Airport"
-            let skyVectorUrl = `https://skyvector.com/airport/${icaoCode}`;
-            
-            if (name && name !== 'Unknown') {
-                // Create URL-friendly slug from airport name
-                // Preserve capitalization like SkyVector does
-                const nameSlug = name
-                    .trim()
-                    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens and spaces
-                    .replace(/\s+/g, '-') // Replace spaces with hyphens
-                    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-                    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
-                
-                if (nameSlug) {
-                    // Format: https://skyvector.com/airport/{ICAO}/{Name-Slug}
-                    skyVectorUrl = `https://skyvector.com/airport/${icaoCode}/${nameSlug}`;
-                }
-            }
-            
-            // Create clickable SkyVector link with proper styling
-            // Ensure it's clickable and opens in new tab
-            popupContent += `
-                <div style="margin-bottom: 12px;">
-                    <a href="${skyVectorUrl}" 
-                       target="_blank" 
-                       rel="noopener noreferrer"
-                       onclick="window.open('${skyVectorUrl}', '_blank'); return false;"
-                       style="font-size: 14px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer; display: inline-block; pointer-events: auto;">
-                        View on SkyVector
-                    </a>
-                </div>
-            `;
-        }
         
         // Airport name
         popupContent += `<div style="margin-bottom: 8px;"><strong style="font-size: 14px;">${name}</strong></div>`;
@@ -1568,6 +1641,84 @@ class DroneMap {
         }
         
         return { west: w, south: s, east: e, north: n };
+    }
+    
+    // ===== Airports Test Layer (Minimal Implementation) =====
+    
+    toggleAirportsTest(enabled) {
+        this.isAirportsTestEnabled = enabled;
+        
+        if (enabled) {
+            // Add cluster layer to map if not already added
+            if (!this.map.hasLayer(this.airportsTestMarkerCluster)) {
+                this.airportsTestMarkerCluster.addTo(this.map);
+            }
+            // Load airport data for current view
+            this.loadAirportsTestDataDebounced();
+        } else {
+            // Remove cluster layer from map
+            if (this.map.hasLayer(this.airportsTestMarkerCluster)) {
+                this.map.removeLayer(this.airportsTestMarkerCluster);
+                this.airportsTestMarkerCluster.clearLayers();
+            }
+        }
+    }
+    
+    loadAirportsTestDataDebounced() {
+        clearTimeout(this.airportsTestDebounceTimer);
+        this.airportsTestDebounceTimer = setTimeout(() => {
+            this.loadAirportsTestData();
+        }, 300);
+    }
+    
+    async loadAirportsTestData() {
+        if (!this.isAirportsTestEnabled || !this.map) return;
+        
+        const bounds = this.map.getBounds();
+        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        
+        const proxyBase = this.getOpenAIPProxyUrl();
+        const airportUrl = `${proxyBase}/openaip/airports?bbox=${bbox}`;
+        
+        try {
+            const response = await fetch(airportUrl);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            const features = data.features || (data.items ? data.items.map(item => this.convertOpenAIPAirportToGeoJSON(item)) : []);
+            
+            // Create simple markers with basic popup
+            const markers = [];
+            features.forEach(airport => {
+                if (airport.geometry && airport.geometry.type === 'Point') {
+                    const coords = airport.geometry.coordinates;
+                    const latlng = [coords[1], coords[0]];
+                    const props = airport.properties;
+                    
+                    // Simple icon - just a circle
+                    const icon = L.divIcon({
+                        className: 'test-airport-icon',
+                        html: '<div style="width:20px;height:20px;background:#0066cc;border:2px solid white;border-radius:50%;"></div>',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+                    
+                    const marker = L.marker(latlng, { icon: icon });
+                    
+                    // Simple popup with just name
+                    const popupContent = `<div><strong>${props.name || 'Unknown'}</strong><br>${props.icaoCode || ''}</div>`;
+                    marker.bindPopup(popupContent);
+                    
+                    markers.push(marker);
+                }
+            });
+            
+            if (markers.length > 0) {
+                this.airportsTestMarkerCluster.addLayers(markers);
+            }
+        } catch (error) {
+            console.error('Error loading test airport data:', error);
+        }
     }
 
     async loadAirspaceData() {
@@ -3759,37 +3910,55 @@ class DroneMap {
 
     // Multi-hit popup methods
     handleMapClick(e) {
+        console.log('=== handleMapClick called ===');
+        console.log('Click location:', e.latlng);
+        console.log('Container point:', e.containerPoint);
+        
         // Don't handle clicks on popups or controls
         const target = e.originalEvent?.target;
+        console.log('Click target:', target);
         if (target && (
             target.closest('.leaflet-popup') ||
             target.closest('.leaflet-control') ||
             target.closest('.multi-hit-popup')
         )) {
+            console.log('Skipping - click was on popup or control');
             return;
         }
         
+        console.log('Processing map click...');
         // Close any existing popup first
         this.closeMultiHitPopup();
         
         // Collect all features at click point
+        console.log('Collecting features at point...');
         const features = this.collectFeaturesAtPoint(e.latlng, e.containerPoint);
+        console.log('Features collected:', features.length, features);
         
         if (features.length === 0) {
+            console.log('No features found at click point');
             return; // No features at click point
         }
         
         // Order features according to rules
         const orderedFeatures = this.orderFeatures(features);
+        console.log('Ordered features:', orderedFeatures.length, orderedFeatures);
         
         // Store features and show popup
         this.multiHitFeatures = orderedFeatures;
         this.multiHitCurrentIndex = 0;
         this.multiHitOriginalLatLng = e.latlng; // Store original click location
+        console.log('Creating popup...');
         this.createMultiHitPopup(e.latlng);
     }
 
     collectFeaturesAtPoint(latlng, containerPoint) {
+        console.log('=== collectFeaturesAtPoint called ===');
+        console.log('LatLng:', latlng);
+        console.log('Container point:', containerPoint);
+        console.log('isAirportsEnabled:', this.isAirportsEnabled);
+        console.log('airportsMarkerCluster exists:', !!this.airportsMarkerCluster);
+        
         const features = [];
         const seenIds = new Set();
         const tolerance = 10; // pixels
@@ -3854,23 +4023,42 @@ class DroneMap {
         }
         
         // Collect from airport markers
+        console.log('Checking airport markers...');
+        console.log('isAirportsEnabled:', this.isAirportsEnabled);
+        console.log('airportsMarkerCluster exists:', !!this.airportsMarkerCluster);
         if (this.isAirportsEnabled && this.airportsMarkerCluster) {
+            console.log('Collecting airport markers...');
+            let airportMarkerCount = 0;
+            let markerLayerCount = 0;
             this.airportsMarkerCluster.eachLayer((layer) => {
+                markerLayerCount++;
                 if (layer instanceof L.Marker) {
+                    airportMarkerCount++;
+                    const markerLatLng = layer.getLatLng();
+                    console.log(`Marker ${airportMarkerCount}:`, {
+                        latlng: markerLatLng,
+                        hasProperties: !!layer.airportProperties,
+                        properties: layer.airportProperties
+                    });
+                    
                     // Check if click is near marker
-                    const markerPoint = this.map.latLngToContainerPoint(layer.getLatLng());
+                    const markerPoint = this.map.latLngToContainerPoint(markerLatLng);
                     const distance = Math.sqrt(
                         Math.pow(containerPoint.x - markerPoint.x, 2) +
                         Math.pow(containerPoint.y - markerPoint.y, 2)
                     );
                     
+                    console.log(`Marker ${airportMarkerCount} distance:`, distance, 'tolerance:', tolerance * 2);
+                    
                     if (distance <= tolerance * 2) { // Larger tolerance for markers
+                        console.log('✓ Found nearby airport marker:', distance, layer.airportProperties);
                         if (layer.airportProperties) {
                             const props = layer.airportProperties;
                             const id = props.id || props._id || `airport-${props.icaoCode || props.name}`;
                             
                             if (!seenIds.has(id)) {
                                 seenIds.add(id);
+                                console.log('Adding airport feature:', id, props.name);
                                 // Create feature-like object for airport
                                 features.push({
                                     feature: {
@@ -3885,12 +4073,33 @@ class DroneMap {
                                     airportType: this.getAirportCategory(props.typeCode),
                                     drawOrder: features.length
                                 });
+                            } else {
+                                console.log('Skipping duplicate airport:', id);
                             }
+                        } else {
+                            console.log('⚠ Marker has no airportProperties');
                         }
+                    } else {
+                        console.log(`Marker ${airportMarkerCount} too far:`, distance);
                     }
+                } else {
+                    console.log('Layer is not a Marker:', layer.constructor.name);
                 }
             });
+            console.log('=== Airport marker summary ===');
+            console.log('Total layers in cluster:', markerLayerCount);
+            console.log('Marker instances found:', airportMarkerCount);
+            console.log('Features collected from airports:', features.length);
+        } else {
+            console.log('Skipping airport markers - not enabled or cluster not found');
         }
+        
+        // Don't collect test airport markers - they have their own popups
+        
+        console.log('=== collectFeaturesAtPoint summary ===');
+        console.log('Total features collected:', features.length);
+        console.log('Feature types:', features.map(f => f.layerType));
+        console.log('Features:', features);
         
         return features;
     }
@@ -4138,33 +4347,6 @@ class DroneMap {
                 <div style="margin-bottom: 6px; font-size: 12px;">
                     <strong>Lower:</strong> ${lowerLimit}<br>
                     <strong>Upper:</strong> ${upperLimit}
-                </div>
-            `;
-        }
-        
-        // SkyVector link for airports/heliports  
-        const icaoCode = props.icaoCode || props.icao || props.code;
-        if (icaoCode && layerType === 'airport') {
-            let skyVectorUrl = `https://skyvector.com/airport/${icaoCode}`;
-            if (props.name && props.name !== 'Unknown') {
-                const nameSlug = props.name
-                    .trim()
-                    .replace(/[^\w\s-]/g, '')
-                    .replace(/\s+/g, '-')
-                    .replace(/-+/g, '-')
-                    .replace(/^-+|-+$/g, '');
-                if (nameSlug) {
-                    skyVectorUrl = `https://skyvector.com/airport/${icaoCode}/${nameSlug}`;
-                }
-            }
-            
-            content += `
-                <div style="margin-bottom: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-                    <a href="${skyVectorUrl}" target="_blank" rel="noopener noreferrer"
-                       onclick="window.open('${skyVectorUrl}', '_blank'); return false;"
-                       style="font-size: 13px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
-                        View on SkyVector
-                    </a>
                 </div>
             `;
         }
