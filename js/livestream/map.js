@@ -31,7 +31,7 @@ class DroneMap {
         this.airspaceProxyError = false; // Track if proxy is unreachable
         this.airspaceLoading = false; // Track if airspace is currently loading
         
-        // OpenAIPAirspace (AtGround) layer (Class F airways and drone-relevant airspace)
+        // OpenAIPAirspace (At Ground) layer (Class F airways and drone-relevant airspace)
         this.droneAirspaceLayer = null;
         this.isDroneAirspaceEnabled = false; // Disabled by default
         this.droneAirspaceAcknowledged = false; // Track acknowledgment for drone airspace
@@ -203,7 +203,7 @@ class DroneMap {
                 style: this.getAirspaceStyle.bind(this)
             });
             
-            // Initialize OpenAIPAirspace (AtGround) layer (Class F airways and drone-relevant)
+            // Initialize OpenAIPAirspace (At Ground) layer (Class F airways and drone-relevant)
             this.droneAirspaceLayer = L.geoJSON(null, {
                 pane: 'polygonPane',
                 style: this.getDroneAirspaceStyle.bind(this)
@@ -439,7 +439,7 @@ class DroneMap {
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
-                    OpenAIPAirspace (AtGround)
+                    OpenAIPAirspace (At Ground)
                 </label>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
@@ -2143,28 +2143,22 @@ class DroneMap {
     }
 
     filterDroneAirspace(feature) {
-        // Filter for drone-relevant airspace:
-        // - Class F airways (AWY) - like CYA102(M) example
-        // - Class F airspace that goes from ground/surface
+        // Filter for airspace that starts at ground level:
+        // - Any airspace with lower limit at ground, surface, or GND
         const props = feature.properties || {};
-        const icaoClassNumeric = props.icaoClassNumeric;
-        const typeCode = props.typeCode;
-        const type = (props.type || '').toUpperCase();
         
-        // Must be ICAO Class F (numeric 5)
-        if (icaoClassNumeric !== 5) {
-            return false;
-        }
-        
-        // Check if it's an airway (AWY, type code 0)
-        // Or other Class F airspace types relevant to drones
-        if (typeCode === 0 || type === 'AWY' || type.includes('AWY')) {
+        // Check lower limit reference datum
+        const lowerLimitReferenceDatum = props.lowerLimitReferenceDatum;
+        if (lowerLimitReferenceDatum === 0) { // Ground/Surface
             return true;
         }
         
-        // Also include other Class F airspace that starts at ground/surface
-        const lowerLimitReferenceDatum = props.lowerLimitReferenceDatum;
-        if (lowerLimitReferenceDatum === 0) { // Ground/Surface
+        // Check lower limit value for GND, ground, or surface
+        const lowerLimitRaw = props.lowerLimitRaw;
+        const lowerLimit = props.lowerLimit;
+        const lowerLimitStr = (lowerLimitRaw ? String(lowerLimitRaw) : (lowerLimit ? String(lowerLimit) : '')).toUpperCase();
+        
+        if (lowerLimitStr === 'GND' || lowerLimitStr === 'SFC' || lowerLimitStr === 'GROUND' || lowerLimitStr === 'SURFACE' || lowerLimitStr === '0') {
             return true;
         }
         
@@ -4270,7 +4264,7 @@ class DroneMap {
         const isDroneAirspace = item.isDroneAirspace || false;
         
         if (layerType === 'airspace') {
-            layerName = isDroneAirspace ? 'OpenAIPAirspace (AtGround)' : 'OpenAIPAirspace (All)';
+            layerName = isDroneAirspace ? 'OpenAIPAirspace (At Ground)' : 'OpenAIPAirspace (All)';
             typeLabel = props.type || props.typeCode || '';
         } else if (layerType === 'airport') {
             layerName = airportType === 'water' ? 'Water Aerodrome' : 
