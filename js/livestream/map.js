@@ -54,6 +54,7 @@ class DroneMap {
         this.airportsCache = new Map(); // Cache by bbox string
         this.airportsDebounceTimer = null;
         this.airportsFeatureIds = new Set(); // For deduplication by _id
+        this.airportsIndex = new Map(); // Index airports by name and ICAO for lookup
         
         // Airports and Heliports Test layer (minimal implementation)
         this.airportsTestMarkerCluster = null;
@@ -1184,6 +1185,24 @@ class DroneMap {
                     dedupedIds.add(id);
                     this.airportsFeatureIds.add(id);
                     uniqueAirports.push(airport);
+                }
+            });
+
+            // Index airports for lookup
+            uniqueAirports.forEach(airport => {
+                const props = airport.properties || {};
+                const name = (props.name || '').toUpperCase();
+                const icao = (props.icaoCode || props.icao || props.code || '').toUpperCase();
+                const airportId = props._id || props.id;
+                
+                // Index by uppercase name
+                if (name) {
+                    this.airportsIndex.set(name, { id: airportId, name: props.name, icao: props.icaoCode || props.icao || props.code });
+                }
+                
+                // Index by ICAO code
+                if (icao) {
+                    this.airportsIndex.set(`ICAO:${icao}`, { id: airportId, name: props.name, icao: props.icaoCode || props.icao || props.code });
                 }
             });
 
@@ -4324,6 +4343,62 @@ class DroneMap {
         }
     }
 
+    findAssociatedAirport(airspaceName, airspaceCode) {
+        // Find airport associated with airspace by name or ICAO code
+        // Examples: "NANAIMO CZ" -> "NANAIMO", "CYVR TCA" -> "CYVR"
+        if (!airspaceName) return null;
+        
+        const nameUpper = airspaceName.toUpperCase();
+        let locationName = null;
+        
+        // Extract location name from airspace name (remove common suffixes)
+        // Patterns: "LOCATION CZ", "LOCATION TCA", "LOCATION CTR", etc.
+        const locationMatch = nameUpper.match(/^([A-Z\s]+?)\s+(CZ|TCA|CTR|ATZ|HTZ|AWY|CTA|TMA|FIR)$/);
+        if (locationMatch) {
+            locationName = locationMatch[1].trim();
+        } else {
+            // If no match, try using the whole name
+            locationName = nameUpper;
+        }
+        
+        // Try matching by ICAO code first (most reliable)
+        if (airspaceCode) {
+            const icaoUpper = String(airspaceCode).toUpperCase();
+            const airport = this.airportsIndex.get(`ICAO:${icaoUpper}`);
+            if (airport && airport.id) {
+                return airport;
+            }
+        }
+        
+        // Try exact match on location name
+        if (locationName) {
+            const airport = this.airportsIndex.get(locationName);
+            if (airport && airport.id) {
+                return airport;
+            }
+        }
+        
+        // Try partial name match - airport name starts with location name
+        // e.g., "NANAIMO" matches "NANAIMO AIRPORT", "NANAIMO HARBOUR", etc.
+        if (locationName) {
+            for (const [key, airport] of this.airportsIndex.entries()) {
+                if (key.startsWith('ICAO:')) continue; // Skip ICAO entries
+                const airportNameUpper = key;
+                // Check if airport name starts with location name (most common pattern)
+                if (airportNameUpper.startsWith(locationName) || locationName.startsWith(airportNameUpper)) {
+                    return airport;
+                }
+                // Also check if airport name contains location name (e.g., "NANAIMO HARBOUR WATER AIRPORT")
+                const words = locationName.split(/\s+/);
+                if (words.length > 0 && airportNameUpper.includes(words[0])) {
+                    return airport;
+                }
+            }
+        }
+        
+        return null;
+    }
+
     buildPopupContent(item) {
         const feature = item.feature;
         const props = feature.properties || {};
@@ -4416,6 +4491,24 @@ class DroneMap {
                     <strong>Upper:</strong> ${upperLimit}
                 </div>
             `;
+        }
+        
+        // Associated airport link for airspace
+        if (layerType === 'airspace') {
+            const associatedAirport = this.findAssociatedAirport(props.name, props.code || props.icaoCode || props.icao);
+            if (associatedAirport && associatedAirport.id) {
+                const airportUrl = `https://www.openaip.net/data/airports/${associatedAirport.id}`;
+                content += `
+                    <div style="margin-top: 10px; margin-bottom: 6px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <div style="font-size: 12px; margin-bottom: 4px;"><strong>Associated Airport:</strong> ${associatedAirport.name || 'Unknown'}</div>
+                        <a href="${airportUrl}" target="_blank" rel="noopener noreferrer"
+                           onclick="window.open('${airportUrl}', '_blank'); return false;"
+                           style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
+                            View Airport on OpenAIP
+                        </a>
+                    </div>
+                `;
+            }
         }
         
         // Fallback circle note
