@@ -378,16 +378,16 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Position ruler widget directly below center on drone widget (no absolute positioning)
-                container.style.marginTop = '0px';
+                // Position ruler widget directly below center on drone widget
+                container.style.marginTop = '40px'; // 8px (drone) + 30px (widget) + 2px gap
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
                 
                 const button = L.DomUtil.create('a', 'leaflet-control-measurement', container);
                 
-                // Use ruler.png image
-                button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/ruler.png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
+                // Use ruler.png image - keep aspect ratio (4:3)
+                button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/ruler.png')}" style="width: 20px; height: 15px; display: block; margin: auto;">`;
                 
                 button.href = '#';
                 button.role = 'button';
@@ -416,8 +416,8 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Position basemap widget right below ruler widget (no absolute positioning)
-                container.style.marginTop = '0px';
+                // Position basemap widget right below ruler widget
+                container.style.marginTop = '72px'; // 40px (ruler) + 30px (widget) + 2px gap
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
