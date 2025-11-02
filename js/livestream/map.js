@@ -378,8 +378,8 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Position ruler widget directly below center on drone widget (same left margin, 38px from top = 8px + 30px widget)
-                container.style.marginTop = '38px';
+                // Position ruler widget directly below center on drone widget (no absolute positioning)
+                container.style.marginTop = '0px';
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
@@ -416,8 +416,8 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Position basemap widget right below ruler widget (68px from top = 38px + 30px widget)
-                container.style.marginTop = '68px';
+                // Position basemap widget right below ruler widget (no absolute positioning)
+                container.style.marginTop = '0px';
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
