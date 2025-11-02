@@ -2144,12 +2144,12 @@ class DroneMap {
 
     filterDroneAirspace(feature) {
         // Filter for airspace that starts at ground level:
-        // - Any airspace with lower limit at ground, surface, or GND
+        // - Any airspace with lowerLimitRaw === 0 (actual ground level)
         const props = feature.properties || {};
         
-        // Check lower limit reference datum (0 = Ground/Surface)
-        const lowerLimitReferenceDatum = props.lowerLimitReferenceDatum;
-        if (lowerLimitReferenceDatum === 0) {
+        // Check if lower limit raw value is 0 (ground level)
+        const lowerLimitRaw = props.lowerLimitRaw;
+        if (lowerLimitRaw === 0) {
             return true;
         }
         
