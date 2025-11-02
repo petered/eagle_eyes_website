@@ -33,7 +33,8 @@ class DroneMap {
         
         // Airspace for Drones layer (Class F airways and drone-relevant airspace)
         this.droneAirspaceLayer = null;
-        this.isDroneAirspaceEnabled = true; // Enabled by default
+        this.isDroneAirspaceEnabled = false; // Disabled by default
+        this.droneAirspaceAcknowledged = false; // Track acknowledgment for drone airspace
         this.droneAirspaceCache = new Map(); // Cache by bbox string
         this.droneAirspaceDebounceTimer = null;
         this.droneAirspaceFeatureIds = new Set(); // For deduplication by stable id
@@ -43,6 +44,7 @@ class DroneMap {
         this.multiHitFeatures = []; // Array of features at click point
         this.multiHitCurrentIndex = 0; // Current feature index in pager
         this.multiHitOriginalLatLng = null; // Original click location to keep popup anchored
+        this.highlightedAirspaceLayer = null; // Currently highlighted airspace layer
         
         // OpenAIP Airports/Heliports layer
         this.airportsLayer = null;
@@ -261,14 +263,10 @@ class DroneMap {
                 if (this.isDroneAirspaceEnabled) {
                     this.loadDroneAirspaceDataDebounced();
                 }
-                // Close multi-hit popup on map move
-                this.closeMultiHitPopup();
+                // Don't close popup on map move - let user keep viewing selected feature
             });
             
-            // Close popup on zoom start
-            this.map.on('zoomstart', () => {
-                this.closeMultiHitPopup();
-            });
+            // Don't close popup on zoom - let user keep viewing selected feature
             
             // Add click handler for multi-hit popups
             this.map.on('click', (e) => {
@@ -428,7 +426,7 @@ class DroneMap {
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
-                    Airspace
+                    All OpenAIP Airspace
                 </label>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
@@ -442,6 +440,7 @@ class DroneMap {
         const airspaceToggle = this.baseMapPopup.querySelector('#airspaceToggle');
         if (airspaceToggle) {
             airspaceToggle.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirspace(e.target.checked);
             });
         }
@@ -450,6 +449,7 @@ class DroneMap {
         const droneAirspaceToggle = this.baseMapPopup.querySelector('#droneAirspaceToggle');
         if (droneAirspaceToggle) {
             droneAirspaceToggle.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleDroneAirspace(e.target.checked);
             });
         }
@@ -458,6 +458,7 @@ class DroneMap {
         const airportsToggle = this.baseMapPopup.querySelector('#airportsToggle');
         if (airportsToggle) {
             airportsToggle.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirports(e.target.checked);
             });
         }
@@ -466,6 +467,7 @@ class DroneMap {
         const radioButtons = this.baseMapPopup.querySelectorAll('input[name="basemap"]');
         radioButtons.forEach(radio => {
             radio.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to document
                 if (e.target.checked) {
                     this.switchBaseMap(e.target.value);
                 }
@@ -500,6 +502,11 @@ class DroneMap {
                 // Don't close if clicking inside the popup itself
                 if (this.baseMapPopup && this.baseMapPopup.contains(e.target)) {
                     mouseDownPos = null; // Reset
+                    return;
+                }
+                
+                // Don't close if clicking on modal overlays (check if target or parent has high z-index)
+                if (e.target.closest('[style*="z-index: 10000"]')) {
                     return;
                 }
                 
@@ -558,6 +565,14 @@ class DroneMap {
 
     // OpenAIP Airspace Layer Methods
     toggleDroneAirspace(enabled) {
+        if (enabled) {
+            // Show acknowledgment modal if not already acknowledged
+            if (!this.droneAirspaceAcknowledged) {
+                this.showAirspaceAcknowledgment();
+                return; // Will enable after acknowledgment
+            }
+        }
+        
         this.isDroneAirspaceEnabled = enabled;
         
         if (enabled) {
@@ -580,15 +595,17 @@ class DroneMap {
     }
 
     toggleAirspace(enabled) {
-        this.isAirspaceEnabled = enabled;
-        
         if (enabled) {
             // Show acknowledgment modal if not already acknowledged
             if (!this.airspaceAcknowledged) {
                 this.showAirspaceAcknowledgment();
                 return; // Will enable after acknowledgment
             }
-            
+        }
+        
+        this.isAirspaceEnabled = enabled;
+        
+        if (enabled) {
             // Add layer to map
             if (!this.map.hasLayer(this.airspaceLayer)) {
                 this.airspaceLayer.addTo(this.map);
@@ -662,25 +679,46 @@ class DroneMap {
         // Handle acknowledge button
         const acknowledgeBtn = modalContent.querySelector('#airspaceAcknowledgeBtn');
         acknowledgeBtn.addEventListener('click', () => {
-            this.airspaceAcknowledged = true;
-            document.body.removeChild(modal);
+            // Determine which layer was being toggled based on toggle state
+            const droneAirspaceToggle = document.querySelector('#droneAirspaceToggle');
+            const airspaceToggle = document.querySelector('#airspaceToggle');
             
-            // Now enable the layer
-            if (!this.map.hasLayer(this.airspaceLayer)) {
-                this.airspaceLayer.addTo(this.map);
+            if (droneAirspaceToggle && droneAirspaceToggle.checked) {
+                this.droneAirspaceAcknowledged = true;
+                this.isDroneAirspaceEnabled = true; // Set the enabled flag
+                // Now enable the drone airspace layer
+                if (!this.map.hasLayer(this.droneAirspaceLayer)) {
+                    this.droneAirspaceLayer.addTo(this.map);
+                }
+                this.loadDroneAirspaceDataDebounced();
+            } else if (airspaceToggle && airspaceToggle.checked) {
+                this.airspaceAcknowledged = true;
+                this.isAirspaceEnabled = true; // Set the enabled flag
+                // Now enable the airspace layer
+                if (!this.map.hasLayer(this.airspaceLayer)) {
+                    this.airspaceLayer.addTo(this.map);
+                }
+                this.loadAirspaceDataDebounced();
             }
-            this.loadAirspaceDataDebounced();
+            
+            document.body.removeChild(modal);
         });
 
         // Close on background click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                // User clicked outside, disable airspace
-                this.isAirspaceEnabled = false;
+                // User clicked outside, disable the layer that was being toggled
+                const droneAirspaceToggle = document.querySelector('#droneAirspaceToggle');
                 const airspaceToggle = document.querySelector('#airspaceToggle');
-                if (airspaceToggle) {
+                
+                if (droneAirspaceToggle && droneAirspaceToggle.checked) {
+                    this.isDroneAirspaceEnabled = false;
+                    droneAirspaceToggle.checked = false;
+                } else if (airspaceToggle && airspaceToggle.checked) {
+                    this.isAirspaceEnabled = false;
                     airspaceToggle.checked = false;
                 }
+                
                 document.body.removeChild(modal);
             }
         });
@@ -2178,6 +2216,71 @@ class DroneMap {
         };
     }
 
+    highlightAirspaceLayer(leafletLayer, feature, isDroneAirspace) {
+        // Unhighlight previous layer if any
+        if (this.highlightedAirspaceLayer) {
+            this.unhighlightAirspaceLayer();
+        }
+        
+        // Set new highlighted layer with metadata
+        this.highlightedAirspaceLayer = {
+            layer: leafletLayer,
+            feature: feature,
+            isDroneAirspace: isDroneAirspace || false
+        };
+        
+        // Apply highlight style (thicker border, brighter fill)
+        if (leafletLayer && leafletLayer.setStyle) {
+            const props = feature.properties || {};
+            const baseColor = isDroneAirspace ? '#9333ea' : (props.icaoClassNumeric !== undefined ? 
+                this.getAirspaceColor(props.icaoClassNumeric) : '#808080');
+            
+            leafletLayer.setStyle({
+                weight: 8, // Much thicker border so it shows through layers
+                opacity: 1.0,
+                fillOpacity: 0.6, // More opaque fill for visibility
+                color: '#00d9ff', // Bright turquoise/cyan highlight color
+                fillColor: baseColor
+            });
+            
+            // Bring to front to ensure it shows above other layers
+            if (leafletLayer.bringToFront) {
+                leafletLayer.bringToFront();
+            }
+        }
+    }
+
+    getAirspaceColor(icaoClassNumeric) {
+        // Helper to get base color for airspace class
+        switch (icaoClassNumeric) {
+            case 0: return '#dc3545'; // Red
+            case 1: return '#fd7e14'; // Orange
+            case 2: return '#ffc107'; // Yellow
+            case 3: return '#28a745'; // Green
+            case 4: return '#17a2b8'; // Cyan
+            case 5: return '#e83e8c'; // Magenta
+            case 6: return '#0066cc'; // Blue
+            case 8: return '#808080'; // Gray
+            default: return '#808080';
+        }
+    }
+
+    unhighlightAirspaceLayer() {
+        if (this.highlightedAirspaceLayer) {
+            const { layer, feature, isDroneAirspace } = this.highlightedAirspaceLayer;
+            
+            // Restore original style
+            if (layer && layer.setStyle) {
+                const style = isDroneAirspace ? 
+                    this.getDroneAirspaceStyle(feature) : 
+                    this.getAirspaceStyle(feature);
+                layer.setStyle(style);
+            }
+            
+            this.highlightedAirspaceLayer = null;
+        }
+    }
+
     formatAltitudeWithDatum(value, unit, referenceDatum) {
         // Format altitude with reference datum (MSL, GND, etc.)
         // Value should be raw value from OpenAIP, unit indicates original unit
@@ -2220,29 +2323,6 @@ class DroneMap {
         }
         
         return `${displayValue} ${displayUnit}${datum}`.trim();
-    }
-
-    onEachAirspaceFeature(feature, layer) {
-        const props = feature.properties || {};
-        
-        // DEBUGGING MODE: Show ALL raw properties in popup for inspection
-        let popupContent = `
-            <div style="font-family: Arial, sans-serif; min-width: 250px; max-width: 400px;">
-                <strong style="font-size: 14px; display: block; margin-bottom: 8px; color: #333;">${props.name || 'Unknown'}</strong>
-                <div style="font-size: 11px; line-height: 1.8; color: #555;">
-                    <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #ddd;">
-                        <strong style="color: #000;">Raw Properties:</strong>
-                    </div>
-                    <pre style="margin: 0; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; line-height: 1.6; max-height: 400px; overflow-y: auto;">${JSON.stringify(props, null, 2)}</pre>
-                </div>
-            </div>
-        `;
-
-        layer.bindPopup(popupContent, {
-            className: 'airspace-debug-popup',
-            maxWidth: 450,
-            maxHeight: 500
-        });
     }
 
     convertToFeet(value, unit) {
@@ -3717,7 +3797,9 @@ class DroneMap {
                         seenIds.add(id);
                         features.push({
                             feature: feature,
-                            layerType: 'airspace', // Use 'airspace' so it appears in airspace section
+                            layerType: 'airspace',
+                            isDroneAirspace: true,
+                            leafletLayer: layer,
                             drawOrder: features.length
                         });
                     }
@@ -3741,6 +3823,8 @@ class DroneMap {
                         features.push({
                             feature: feature,
                             layerType: 'airspace',
+                            isDroneAirspace: false,
+                            leafletLayer: layer,
                             drawOrder: features.length
                         });
                     }
@@ -3838,7 +3922,7 @@ class DroneMap {
 
     orderFeatures(features) {
         // Ordering rules:
-        // 1. Airspace polygons
+        // 1. Airspace polygons (sorted by altitude: highest first)
         // 2. Water aerodromes
         // 3. Airports
         // 4. Heliports
@@ -3859,6 +3943,25 @@ class DroneMap {
             
             if (orderA !== orderB) {
                 return orderA - orderB;
+            }
+            
+            // Within same group (airspace), sort by altitude (highest first)
+            if (orderA === 1 && orderB === 1) {
+                const upperA = a.feature?.properties?.upperLimitFt;
+                const upperB = b.feature?.properties?.upperLimitFt;
+                
+                if (upperA !== undefined && upperB !== undefined) {
+                    return upperB - upperA; // Descending order
+                }
+                if (upperA !== undefined && upperB === undefined) return -1;
+                if (upperA === undefined && upperB !== undefined) return 1;
+                
+                const lowerA = a.feature?.properties?.lowerLimitFt;
+                const lowerB = b.feature?.properties?.lowerLimitFt;
+                
+                if (lowerA !== undefined && lowerB !== undefined) {
+                    return lowerB - lowerA; // Descending order
+                }
             }
             
             // Within same group, preserve draw order
@@ -3885,6 +3988,12 @@ class DroneMap {
         .setContent(content)
         .openOn(this.map);
         
+        // Highlight the currently selected airspace layer
+        const currentItem = this.multiHitFeatures[this.multiHitCurrentIndex];
+        if (currentItem.layerType === 'airspace' && currentItem.leafletLayer) {
+            this.highlightAirspaceLayer(currentItem.leafletLayer, currentItem.feature, currentItem.isDroneAirspace);
+        }
+        
         // Add event listeners to prevent clicks from propagating to map
         const popupElement = this.multiHitPopup.getElement();
         if (popupElement) {
@@ -3905,11 +4014,11 @@ class DroneMap {
             // Add keyboard event listener
             popupElement.setAttribute('tabindex', '0');
             popupElement.addEventListener('keydown', (e) => {
-                if (e.key === 'ArrowLeft') {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                     this.navigatePopup(-1);
                     e.preventDefault();
                     e.stopPropagation();
-                } else if (e.key === 'ArrowRight') {
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                     this.navigatePopup(1);
                     e.preventDefault();
                     e.stopPropagation();
@@ -3928,8 +4037,10 @@ class DroneMap {
         let layerName = 'Unknown';
         let typeLabel = '';
         
+        const isDroneAirspace = item.isDroneAirspace || false;
+        
         if (layerType === 'airspace') {
-            layerName = 'Airspace';
+            layerName = isDroneAirspace ? 'Airspace for Drones' : 'All OpenAIP Airspace';
             typeLabel = props.type || props.typeCode || '';
         } else if (layerType === 'airport') {
             layerName = airportType === 'water' ? 'Water Aerodrome' : 
@@ -3940,21 +4051,21 @@ class DroneMap {
         
         // Build content
         let content = `
-            <div style="font-family: Arial, sans-serif; min-width: 250px;">
+            <div style="font-family: Arial, sans-serif; min-width: 250px; max-height: 450px; overflow-y: auto; overflow-x: hidden;">
                 <!-- Pager UI -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ddd;">
                     <button onclick="event.stopPropagation(); window.droneMap.navigatePopup(-1); return false;" 
-                            style="background: #007bff; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 16px; pointer-events: auto;" 
-                            ${this.multiHitFeatures.length <= 1 ? 'disabled' : ''}>
-                        ←
+                            style="${this.multiHitCurrentIndex > 0 ? 'background: #007bff; color: white; cursor: pointer;' : 'background: #ccc; color: #666; cursor: not-allowed;'} border: none; padding: 4px 12px; border-radius: 4px; font-size: 16px; pointer-events: auto;" 
+                            ${this.multiHitCurrentIndex <= 0 ? 'disabled' : ''}>
+                        ↑
                     </button>
                     <span style="font-size: 13px; font-weight: 600; color: #333;">
                         ${this.multiHitCurrentIndex + 1} of ${this.multiHitFeatures.length}
                     </span>
                     <button onclick="event.stopPropagation(); window.droneMap.navigatePopup(1); return false;" 
-                            style="background: #007bff; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 16px; pointer-events: auto;" 
-                            ${this.multiHitFeatures.length <= 1 ? 'disabled' : ''}>
-                        →
+                            style="${this.multiHitCurrentIndex < this.multiHitFeatures.length - 1 ? 'background: #007bff; color: white; cursor: pointer;' : 'background: #ccc; color: #666; cursor: not-allowed;'} border: none; padding: 4px 12px; border-radius: 4px; font-size: 16px; pointer-events: auto;" 
+                            ${this.multiHitCurrentIndex >= this.multiHitFeatures.length - 1 ? 'disabled' : ''}>
+                        ↓
                     </button>
                 </div>
                 
@@ -3969,6 +4080,14 @@ class DroneMap {
                     <strong style="font-size: 14px; color: #333;">${props.name || 'Unknown'}</strong>
                 </div>
         `;
+        
+        // ICAO code for airports/heliports
+        if (layerType === 'airport') {
+            const icaoCodeDisplay = props.icaoCode || props.icao || props.code;
+            if (icaoCodeDisplay) {
+                content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO Code:</strong> ${icaoCodeDisplay}</div>`;
+            }
+        }
         
         // ICAO class
         const icaoClass = props.icaoClass || (props.icaoClassNumeric !== undefined ? ['A','B','C','D','E','F','G',null,'Unclassified'][props.icaoClassNumeric] : null);
@@ -4002,9 +4121,9 @@ class DroneMap {
             `;
         }
         
-        // SkyVector link for airports/heliports
+        // SkyVector link for airports/heliports  
         const icaoCode = props.icaoCode || props.icao || props.code;
-        if (icaoCode && (layerType === 'airport' || layerType === 'heliport')) {
+        if (icaoCode && layerType === 'airport') {
             let skyVectorUrl = `https://skyvector.com/airport/${icaoCode}`;
             if (props.name && props.name !== 'Unknown') {
                 const nameSlug = props.name
@@ -4046,7 +4165,7 @@ class DroneMap {
                         style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
                     Show raw properties
                 </button>
-                <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; max-height: 200px; overflow-y: auto;">${JSON.stringify(props, null, 2)}</pre>
+                <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
             </div>
         `;
         
@@ -4060,11 +4179,11 @@ class DroneMap {
         
         this.multiHitCurrentIndex += direction;
         
-        // Wrap around
+        // Don't wrap around - stay at boundaries
         if (this.multiHitCurrentIndex < 0) {
-            this.multiHitCurrentIndex = this.multiHitFeatures.length - 1;
-        } else if (this.multiHitCurrentIndex >= this.multiHitFeatures.length) {
             this.multiHitCurrentIndex = 0;
+        } else if (this.multiHitCurrentIndex >= this.multiHitFeatures.length) {
+            this.multiHitCurrentIndex = this.multiHitFeatures.length - 1;
         }
         
         // Update popup content while keeping same position at original click location
@@ -4073,6 +4192,15 @@ class DroneMap {
             // Keep popup at original click location
             this.multiHitPopup.setContent(content);
             this.multiHitPopup.setLatLng(this.multiHitOriginalLatLng);
+            
+            // Update highlight for the newly selected layer
+            const currentItem = this.multiHitFeatures[this.multiHitCurrentIndex];
+            if (currentItem.layerType === 'airspace' && currentItem.leafletLayer) {
+                this.highlightAirspaceLayer(currentItem.leafletLayer, currentItem.feature, currentItem.isDroneAirspace);
+            } else {
+                // If switching to non-airspace, unhighlight previous
+                this.unhighlightAirspaceLayer();
+            }
         }
     }
 
@@ -4103,6 +4231,7 @@ class DroneMap {
             this.multiHitFeatures = [];
             this.multiHitCurrentIndex = 0;
             this.multiHitOriginalLatLng = null;
+            this.unhighlightAirspaceLayer(); // Remove highlight when popup closes
         }
     }
 }
