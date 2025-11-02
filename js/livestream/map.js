@@ -31,7 +31,7 @@ class DroneMap {
         this.airspaceProxyError = false; // Track if proxy is unreachable
         this.airspaceLoading = false; // Track if airspace is currently loading
         
-        // Airspace for Drones layer (Class F airways and drone-relevant airspace)
+        // OpenAIPAirspace (AtGround) layer (Class F airways and drone-relevant airspace)
         this.droneAirspaceLayer = null;
         this.isDroneAirspaceEnabled = false; // Disabled by default
         this.droneAirspaceAcknowledged = false; // Track acknowledgment for drone airspace
@@ -198,7 +198,7 @@ class DroneMap {
                 style: this.getAirspaceStyle.bind(this)
             });
             
-            // Initialize Airspace for Drones layer (Class F airways and drone-relevant)
+            // Initialize OpenAIPAirspace (AtGround) layer (Class F airways and drone-relevant)
             this.droneAirspaceLayer = L.geoJSON(null, {
                 pane: 'polygonPane',
                 style: this.getDroneAirspaceStyle.bind(this)
@@ -421,12 +421,12 @@ class DroneMap {
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
-                    Airspace for Drones
+                    OpenAIPAirspace (AtGround)
                 </label>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
-                    All OpenAIP Airspace
+                    OpenAIPAirspace (All)
                 </label>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
@@ -4061,7 +4061,7 @@ class DroneMap {
         const isDroneAirspace = item.isDroneAirspace || false;
         
         if (layerType === 'airspace') {
-            layerName = isDroneAirspace ? 'Airspace for Drones' : 'All OpenAIP Airspace';
+            layerName = isDroneAirspace ? 'OpenAIPAirspace (AtGround)' : 'OpenAIPAirspace (All)';
             typeLabel = props.type || props.typeCode || '';
         } else if (layerType === 'airport') {
             layerName = airportType === 'water' ? 'Water Aerodrome' : 
