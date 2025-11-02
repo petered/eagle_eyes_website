@@ -1200,15 +1200,45 @@ class DroneMap {
                             </div>
                     `;
                     
+                    // OpenAIP link if _id available
+                    if (props._id || props.id) {
+                        const openaipUrl = `https://www.openaip.net/data/airports/${props._id || props.id}`;
+                        popupContent += `
+                            <div style="margin-bottom: 8px;">
+                                <a href="${openaipUrl}" target="_blank" rel="noopener noreferrer"
+                                   onclick="window.open('${openaipUrl}', '_blank'); return false;"
+                                   style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
+                                    View on OpenAIP
+                                </a>
+                            </div>
+                        `;
+                    }
+                    
+                    // Coordinates
+                    if (props.latitude && props.longitude) {
+                        const lat = typeof props.latitude === 'number' ? props.latitude.toFixed(6) : props.latitude;
+                        const lon = typeof props.longitude === 'number' ? props.longitude.toFixed(6) : props.longitude;
+                        const latDir = typeof props.latitude === 'number' && props.latitude < 0 ? 'S' : 'N';
+                        const lonDir = typeof props.longitude === 'number' && props.longitude < 0 ? 'W' : 'E';
+                        const latAbs = typeof props.latitude === 'number' ? Math.abs(props.latitude).toFixed(6) : lat;
+                        const lonAbs = typeof props.longitude === 'number' ? Math.abs(props.longitude).toFixed(6) : lon;
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Coordinates:</strong> ${latAbs}° ${latDir}, ${lonAbs}° ${lonDir}</div>`;
+                    }
+                    
                     // ICAO code
                     const icaoCode = props.icaoCode || props.icao || props.code;
                     if (icaoCode) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO Code:</strong> ${icaoCode}</div>`;
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO:</strong> ${icaoCode}</div>`;
                     }
                     
                     // IATA code
                     if (props.iata) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>IATA Code:</strong> ${props.iata}</div>`;
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>IATA:</strong> ${props.iata}</div>`;
+                    }
+                    
+                    // Type
+                    if (typeCategory) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Type:</strong> ${typeCategory}</div>`;
                     }
                     
                     // Country
@@ -1229,18 +1259,26 @@ class DroneMap {
                         popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Elevation:</strong> ${elevation}</div>`;
                     }
                     
-                    // Frequencies
+                    // Traffic type (VFR/IFR)
+                    if (props.trafficType) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Traffic:</strong> ${props.trafficType}</div>`;
+                    }
+                    
+                    // Frequencies with labels if available
                     if (props.radioFrequencies && Array.isArray(props.radioFrequencies) && props.radioFrequencies.length > 0) {
-                        const frequencies = props.radioFrequencies.map(freq => {
+                        const freqDisplay = props.radioFrequencies.map(freq => {
                             if (typeof freq === 'object' && freq.value) {
-                                return `${freq.value} ${freq.unit === 0 ? 'MHz' : 'kHz'}`;
+                                const freqLabel = freq.label ? `${freq.label}: ` : '';
+                                const freqValue = freq.value;
+                                const freqUnit = freq.unit === 0 ? 'MHz' : 'kHz';
+                                return `${freqLabel}${freqValue} ${freqUnit}`;
                             }
                             return freq;
-                        });
-                        if (frequencies.length === 1) {
-                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequency:</strong> ${frequencies[0]}</div>`;
+                        }).join(', ');
+                        if (props.radioFrequencies.length === 1) {
+                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequency:</strong> ${freqDisplay}</div>`;
                         } else {
-                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequencies:</strong> ${frequencies.join(', ')}</div>`;
+                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequencies:</strong> ${freqDisplay}</div>`;
                         }
                     }
                     
@@ -1252,13 +1290,29 @@ class DroneMap {
                             if (length && length.value) {
                                 const lengthValue = length.value;
                                 const lengthUnit = length.unit === 0 ? 'M' : 'FT';
-                                return `${designator ? designator + ': ' : ''}${lengthValue} ${lengthUnit}`;
+                                const surface = rwy.surface ? ` (${rwy.surface})` : '';
+                                return `${designator ? designator + ': ' : ''}${lengthValue} ${lengthUnit}${surface}`;
                             }
                             return null;
                         }).filter(r => r !== null);
                         if (runwayInfo.length > 0) {
                             popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Runway(s):</strong> ${runwayInfo.join(', ')}</div>`;
                         }
+                    }
+                    
+                    // Ownership
+                    if (props.ownership) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Ownership:</strong> ${props.ownership}</div>`;
+                    }
+                    
+                    // Restriction
+                    if (props.restriction) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Restriction:</strong> ${props.restriction}</div>`;
+                    }
+                    
+                    // Magnetic variation
+                    if (props.magVar !== null && props.magVar !== undefined) {
+                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Mag Var:</strong> ${props.magVar}°</div>`;
                     }
                     
                     // Raw properties toggle
@@ -1447,6 +1501,7 @@ class DroneMap {
             code: icaoCode, // Also keep code for backwards compatibility
             iata: item.iata || null,
             id: item._id || item.id,
+            _id: item._id || item.id, // Store _id explicitly for OpenAIP link
             country: item.country || null,
             type: 'AIRPORT',
             typeCode: item.type, // Store airport type code
@@ -1454,7 +1509,13 @@ class DroneMap {
             radioFrequencies: item.radioFrequencies || item.frequencies || null,
             runways: item.runways || null,
             trafficType: item.trafficType || item.traffic || null, // VFR/IFR
-            notes: item.notes || null
+            notes: item.notes || null,
+            // Include all other fields that might be in the API response
+            magVar: item.magVar || null,
+            ownership: item.ownership || null,
+            restriction: item.restriction || null,
+            latitude: item.latitude || (item.geometry && item.geometry.coordinates ? item.geometry.coordinates[1] : null),
+            longitude: item.longitude || (item.geometry && item.geometry.coordinates ? item.geometry.coordinates[0] : null)
         };
         
         // Airport geometry might be a Point or we need to construct it
