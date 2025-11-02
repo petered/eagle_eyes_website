@@ -4615,23 +4615,6 @@ class DroneMap {
                 </div>
         `;
         
-        // OpenAIP link for airspace
-        if (layerType === 'airspace') {
-            const airspaceId = props._id || props.id;
-            if (airspaceId) {
-                const airspaceUrl = `https://www.openaip.net/data/airspaces/${airspaceId}`;
-                content += `
-                    <div style="margin-bottom: 8px;">
-                        <a href="${airspaceUrl}" target="_blank" rel="noopener noreferrer"
-                           onclick="window.open('${airspaceUrl}', '_blank'); return false;"
-                           style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
-                            View on OpenAIP
-                        </a>
-                    </div>
-                `;
-            }
-        }
-        
         // ICAO code for airports/heliports
         if (layerType === 'airport') {
             const icaoCodeDisplay = props.icaoCode || props.icao || props.code;
