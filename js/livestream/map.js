@@ -50,6 +50,7 @@ class DroneMap {
         this.airportsLayer = null;
         this.airportsMarkerCluster = null;
         this.isAirportsEnabled = false;
+        this.airportsAcknowledged = false; // Track acknowledgment for airports
         this.airportsCache = new Map(); // Cache by bbox string
         this.airportsDebounceTimer = null;
         this.airportsFeatureIds = new Set(); // For deduplication by _id
@@ -710,10 +711,11 @@ class DroneMap {
         `;
 
         modalContent.innerHTML = `
-            <h2 style="margin: 0 0 16px 0; font-size: 20px; color: #333;">Airspace Data Disclaimer</h2>
+            <h2 style="margin: 0 0 16px 0; font-size: 20px; color: #333;">Airspace Data Notice</h2>
             <p style="margin: 0 0 16px 0; line-height: 1.6; color: #555;">
-                The following airspace data is incomplete. This is an open source airspace data provided by 
-                <a href="https://www.openaip.net/" target="_blank" style="color: #0066cc;">OpenAIP</a>.
+                This airspace layer may be incomplete. Some restricted or controlled airspace may not be shown on this map.<br><br>
+                Data source: <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP</a>.<br><br>
+                If you notice missing or incorrect airspace or aerodrome information, you can contribute updates on the <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP website</a>.
             </p>
             <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
                 <button id="airspaceAcknowledgeBtn" style="
@@ -738,6 +740,7 @@ class DroneMap {
             // Determine which layer was being toggled based on toggle state
             const droneAirspaceToggle = document.querySelector('#droneAirspaceToggle');
             const airspaceToggle = document.querySelector('#airspaceToggle');
+            const airportsToggle = document.querySelector('#airportsToggle');
             
             if (droneAirspaceToggle && droneAirspaceToggle.checked) {
                 this.droneAirspaceAcknowledged = true;
@@ -755,6 +758,14 @@ class DroneMap {
                     this.airspaceLayer.addTo(this.map);
                 }
                 this.loadAirspaceDataDebounced();
+            } else if (airportsToggle && airportsToggle.checked) {
+                this.airportsAcknowledged = true;
+                this.isAirportsEnabled = true; // Set the enabled flag
+                // Now enable the airports layer
+                if (!this.map.hasLayer(this.airportsMarkerCluster)) {
+                    this.airportsMarkerCluster.addTo(this.map);
+                }
+                this.loadAirportsDataDebounced();
             }
             
             document.body.removeChild(modal);
@@ -766,6 +777,7 @@ class DroneMap {
                 // User clicked outside, disable the layer that was being toggled
                 const droneAirspaceToggle = document.querySelector('#droneAirspaceToggle');
                 const airspaceToggle = document.querySelector('#airspaceToggle');
+                const airportsToggle = document.querySelector('#airportsToggle');
                 
                 if (droneAirspaceToggle && droneAirspaceToggle.checked) {
                     this.isDroneAirspaceEnabled = false;
@@ -773,6 +785,9 @@ class DroneMap {
                 } else if (airspaceToggle && airspaceToggle.checked) {
                     this.isAirspaceEnabled = false;
                     airspaceToggle.checked = false;
+                } else if (airportsToggle && airportsToggle.checked) {
+                    this.isAirportsEnabled = false;
+                    airportsToggle.checked = false;
                 }
                 
                 document.body.removeChild(modal);
@@ -949,6 +964,12 @@ class DroneMap {
     // ===== Airports/Heliports Layer Methods =====
     
     toggleAirports(enabled) {
+        if (enabled && !this.airportsAcknowledged) {
+            // Show acknowledgment modal if not already acknowledged
+            this.showAirspaceAcknowledgment();
+            return; // Will enable after acknowledgment
+        }
+        
         this.isAirportsEnabled = enabled;
         
         if (enabled) {
