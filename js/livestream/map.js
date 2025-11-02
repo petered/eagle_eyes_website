@@ -71,6 +71,15 @@ class DroneMap {
         this.airportRadiusCircles = [];
         this.isMyLocationVisible = false;
         this.myLocationAccuracy = null;
+        
+        // Measurement tool state
+        this.measurementMode = false;
+        this.measurementPoints = [];
+        this.measurementMarkers = [];
+        this.measurementPolylines = [];
+        this.measurementPopup = null;
+        this.measurementUnit = 'NM'; // Default: Nautical Miles
+        this.measurementTotalDistance = 0;
 
         // North arrow control
         this.northArrowMode = 'north'; // 'north' or 'user-facing'
@@ -347,8 +356,52 @@ class DroneMap {
         });
         this.map.addControl(new centerControl());
         
-        // Add custom base map switching control second (below center control)
+        // Add measurement control second (below center control)
+        this.addMeasurementControl();
+        
+        // Add custom base map switching control third (below measurement control)
         this.addBaseMapControl();
+    }
+    
+    addMeasurementControl() {
+        const MeasurementControl = L.Control.extend({
+            options: {
+                position: 'topleft'
+            },
+            onAdd: (map) => {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                // Add top offset to position below the center on drone control
+                container.style.marginTop = '44px';
+                const button = L.DomUtil.create('a', 'leaflet-control-measurement', container);
+                
+                // Create ruler icon using SVG
+                button.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12h18M3 12v8M3 12V4"></path>
+                        <path d="M21 12v8M21 12V4"></path>
+                        <path d="M3 6h6M15 6h6"></path>
+                        <circle cx="6" cy="6" r="2"></circle>
+                        <circle cx="18" cy="6" r="2"></circle>
+                    </svg>
+                `;
+                
+                button.href = '#';
+                button.role = 'button';
+                button.title = 'Measure Distance';
+                button.style.display = 'flex';
+                button.style.alignItems = 'center';
+                button.style.justifyContent = 'center';
+                button.style.color = '#333';
+
+                L.DomEvent.on(button, 'click', L.DomEvent.stop)
+                          .on(button, 'click', () => {
+                              window.droneMap.showMeasurementPopup();
+                          }, this);
+
+                return container;
+            }
+        });
+        this.map.addControl(new MeasurementControl());
     }
     
     addBaseMapControl() {
@@ -358,8 +411,8 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Add top offset to position below the center on drone control
-                container.style.marginTop = '44px';
+                // Add top offset to position below the measurement control
+                container.style.marginTop = '88px';
                 const button = L.DomUtil.create('a', 'leaflet-control-basemap', container);
                 
                 // Create layers icon using image
@@ -638,6 +691,210 @@ class DroneMap {
         if (this.baseMapPopup) {
             this.baseMapPopup.remove();
             this.baseMapPopup = null;
+        }
+    }
+    
+    showMeasurementPopup() {
+        // Remove existing popup if it exists
+        if (this.measurementPopup) {
+            this.measurementPopup.remove();
+        }
+        
+        // Create a custom DOM popup
+        const mapContainer = this.map.getContainer();
+        const mapRect = mapContainer.getBoundingClientRect();
+        
+        // Create popup element
+        this.measurementPopup = document.createElement('div');
+        this.measurementPopup.style.cssText = `
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            padding: 12px;
+            min-width: 200px;
+            z-index: 2000;
+            font-family: Arial, sans-serif;
+        `;
+        
+        this.measurementPopup.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="font-weight: bold; color: #000; font-size: 14px;">Measure Distance</div>
+                <button id="closeMeasurementBtn" style="
+                    background: transparent;
+                    border: none;
+                    font-size: 18px;
+                    color: #666;
+                    cursor: pointer;
+                    padding: 0;
+                    line-height: 1;
+                    width: 24px;
+                    height: 24px;
+                ">×</button>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; color: #666;">Unit:</label>
+                <select id="measurementUnit" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+                    <option value="NM" ${this.measurementUnit === 'NM' ? 'selected' : ''}>Nautical Miles</option>
+                    <option value="MI" ${this.measurementUnit === 'MI' ? 'selected' : ''}>Miles</option>
+                    <option value="KM" ${this.measurementUnit === 'KM' ? 'selected' : ''}>Kilometers</option>
+                    <option value="M" ${this.measurementUnit === 'M' ? 'selected' : ''}>Meters</option>
+                    <option value="FT" ${this.measurementUnit === 'FT' ? 'selected' : ''}>Feet</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 12px; padding: 10px; background: #f0f8ff; border-radius: 4px; border-left: 3px solid #0066cc;">
+                <div style="font-size: 12px; color: #333; line-height: 1.5;">
+                    Click on the map to measure distance between points.
+                </div>
+            </div>
+            <div style="padding: 10px; background: #f5f5f5; border-radius: 4px; text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
+                <div style="font-size: 11px; color: #666; margin-top: 4px;" id="measurementUnitLabel">NM</div>
+            </div>
+        `;
+        
+        // Add event listeners
+        const closeBtn = this.measurementPopup.querySelector('#closeMeasurementBtn');
+        closeBtn.addEventListener('click', () => {
+            this.closeMeasurementPopup();
+        });
+        
+        const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
+        unitSelect.addEventListener('change', (e) => {
+            this.measurementUnit = e.target.value;
+            this.updateMeasurementDisplay();
+        });
+        
+        // Prevent clicks in popup from closing it
+        this.measurementPopup.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        this.measurementPopup.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Add to map container
+        mapContainer.appendChild(this.measurementPopup);
+        
+        // Enable measurement mode
+        this.measurementMode = true;
+        this.measurementPoints = [];
+        this.measurementMarkers = [];
+        this.measurementPolylines = [];
+        this.measurementTotalDistance = 0;
+        this.updateMeasurementDisplay();
+    }
+    
+    closeMeasurementPopup() {
+        if (this.measurementPopup) {
+            this.measurementPopup.remove();
+            this.measurementPopup = null;
+        }
+        
+        // Disable measurement mode and clear all measurements
+        this.measurementMode = false;
+        this.clearMeasurements();
+    }
+    
+    clearMeasurements() {
+        // Remove all markers and polylines
+        this.measurementMarkers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.measurementPolylines.forEach(polyline => {
+            this.map.removeLayer(polyline);
+        });
+        
+        this.measurementPoints = [];
+        this.measurementMarkers = [];
+        this.measurementPolylines = [];
+        this.measurementTotalDistance = 0;
+    }
+    
+    updateMeasurementDisplay() {
+        if (!this.measurementPopup) return;
+        
+        const distanceDiv = document.getElementById('measurementDistance');
+        const unitLabelDiv = document.getElementById('measurementUnitLabel');
+        
+        if (distanceDiv && unitLabelDiv) {
+            const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
+            distanceDiv.textContent = convertedDistance.toFixed(2);
+            unitLabelDiv.textContent = this.measurementUnit;
+        }
+    }
+    
+    convertDistance(distanceNM, fromUnit, toUnit) {
+        // Convert from NM to target unit
+        const distanceM = distanceNM * 1852; // NM to meters
+        
+        switch (toUnit) {
+            case 'NM':
+                return distanceNM;
+            case 'MI':
+                return distanceNM * 1.15078; // NM to miles
+            case 'KM':
+                return distanceNM * 1.852; // NM to kilometers
+            case 'M':
+                return distanceM;
+            case 'FT':
+                return distanceM * 3.28084; // meters to feet
+            default:
+                return distanceNM;
+        }
+    }
+    
+    handleMeasurementClick(e) {
+        if (!this.measurementMode) return;
+        
+        // Don't handle clicks on popups or controls
+        const target = e.originalEvent?.target;
+        if (target && (
+            target.closest('.leaflet-popup') ||
+            target.closest('.leaflet-control') ||
+            target.closest('.multi-hit-popup')
+        )) {
+            return;
+        }
+        
+        const latlng = e.latlng;
+        
+        // Create small pin marker
+        const pinIcon = L.divIcon({
+            className: 'measurement-pin',
+            html: '<div style="width: 8px; height: 8px; background: #ff0000; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [8, 8],
+            iconAnchor: [4, 4]
+        });
+        
+        const marker = L.marker(latlng, { icon: pinIcon }).addTo(this.map);
+        this.measurementMarkers.push(marker);
+        this.measurementPoints.push(latlng);
+        
+        // If we have at least 2 points, draw a line and calculate distance
+        if (this.measurementPoints.length >= 2) {
+            const lastPoint = this.measurementPoints[this.measurementPoints.length - 2];
+            const currentPoint = this.measurementPoints[this.measurementPoints.length - 1];
+            
+            // Draw line
+            const polyline = L.polyline([lastPoint, currentPoint], {
+                color: '#ff0000',
+                weight: 2,
+                opacity: 0.7
+            }).addTo(this.map);
+            this.measurementPolylines.push(polyline);
+            
+            // Calculate distance in meters
+            const distanceM = this.measurementPoints[this.measurementPoints.length - 2].distanceTo(currentPoint);
+            // Convert to nautical miles
+            const distanceNM = distanceM / 1852;
+            
+            // Add to total
+            this.measurementTotalDistance += distanceNM;
+            this.updateMeasurementDisplay();
         }
     }
     
@@ -4163,6 +4420,12 @@ class DroneMap {
         console.log('=== handleMapClick called ===');
         console.log('Click location:', e.latlng);
         console.log('Container point:', e.containerPoint);
+        
+        // Check if measurement mode is active
+        if (this.measurementMode) {
+            this.handleMeasurementClick(e);
+            return;
+        }
         
         // Don't handle clicks on popups or controls
         const target = e.originalEvent?.target;
