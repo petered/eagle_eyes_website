@@ -1358,10 +1358,10 @@ class DroneMap {
                     // Raw properties toggle
                     const featureId = `feature-${props.id || props._id || props.icaoCode || props.name}`;
                     popupContent += `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; text-align: center;">
                             <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
-                                    style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
-                                Show raw properties
+                                    style="background: transparent; border: 2px solid #6c757d; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; color: #6c757d;">
+                                👁️
                             </button>
                             <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
                         </div>
@@ -4523,10 +4523,10 @@ class DroneMap {
         // Raw properties toggle
         const featureId = `feature-${this.getFeatureStableId(feature)}`;
         content += `
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; text-align: center;">
                 <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
-                        style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
-                    Show raw properties
+                        style="background: transparent; border: 2px solid #6c757d; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; color: #6c757d;">
+                    👁️
                 </button>
                 <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
             </div>
