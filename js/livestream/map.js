@@ -66,6 +66,9 @@ class DroneMap {
         this.myLocationMarker = null;
         this.myLocationCircle = null;
         this.watchId = null;
+        
+        // Airport radius circles
+        this.airportRadiusCircles = [];
         this.isMyLocationVisible = false;
         this.myLocationAccuracy = null;
 
@@ -1174,14 +1177,16 @@ class DroneMap {
             if (typeCode === 3 || typeCode === 9) {
                 // International Airport or IFR Airport
                 size = 'large';
-            } else if (typeCode === 0 || typeCode === 2 || typeCode === 5) {
-                // Airport, Airfield Civil, Military Aerodrome
+            } else if (typeCode === 0 || typeCode === 2 || typeCode === 5 || typeCode === 4 || typeCode === 7 || typeCode === 10) {
+                // Airport, Airfield Civil, Military Aerodrome, Heliport Military, Heliport Civil, Water Aerodrome
                 size = 'medium';
             } else if (typeCode === 11 || typeCode === 13) {
                 // Landing Strip, Altiport
                 size = 'small';
+            } else {
+                // Unknown type - default to medium to ensure airports match heliport visibility
+                size = 'medium';
             }
-            // Heliports and Water Aerodromes default to medium
         }
         
         return size;
@@ -1479,10 +1484,17 @@ class DroneMap {
                         popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Mag Var:</strong> ${props.magVar}°</div>`;
                     }
                     
-                    // Raw properties toggle
+                    // Raw properties toggle and Add Radius button
                     const featureId = `feature-${props.id || props._id || props.icaoCode || props.name}`;
+                    const airportName = props.name || 'Unknown';
+                    const airportLat = props.latitude || marker._latlng.lat;
+                    const airportLng = props.longitude || marker._latlng.lng;
                     popupContent += `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                            <button onclick="event.stopPropagation(); window.droneMap.showAddRadiusDialog('${airportName}', ${airportLat}, ${airportLng}); return false;" 
+                                    style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                                Add Radius
+                            </button>
                             <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
                                     style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
                                 i
@@ -4762,6 +4774,172 @@ class DroneMap {
             this.multiHitOriginalLatLng = null;
             this.unhighlightAirspaceLayer(); // Remove highlight when popup closes
         }
+    }
+    
+    showAddRadiusDialog(airportName, lat, lng) {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.id = 'addRadiusModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            margin: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        `;
+        
+        modalContent.innerHTML = `
+            <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #333;">Add Radius Around Airport</h2>
+            <p style="margin: 0 0 16px 0; line-height: 1.5; color: #666; font-size: 14px;">
+                Airport: <strong>${airportName}</strong>
+            </p>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 14px; color: #333;">Distance:</label>
+                <input type="number" id="radiusValue" value="5" step="0.01" min="0.01" max="1000" 
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 14px; color: #333;">Unit:</label>
+                <select id="radiusUnit" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+                    <option value="NM">Nautical Miles</option>
+                    <option value="MI">Miles</option>
+                    <option value="KM">Kilometers</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="cancelRadiusBtn" style="
+                    background: #6c757d;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                ">Cancel</button>
+                <button id="generateRadiusBtn" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                ">Generate Radius</button>
+            </div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // Handle cancel button
+        const cancelBtn = modalContent.querySelector('#cancelRadiusBtn');
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        // Handle generate button
+        const generateBtn = modalContent.querySelector('#generateRadiusBtn');
+        generateBtn.addEventListener('click', () => {
+            const value = parseFloat(document.getElementById('radiusValue').value);
+            const unit = document.getElementById('radiusUnit').value;
+            
+            if (isNaN(value) || value <= 0) {
+                alert('Please enter a valid distance greater than 0.');
+                return;
+            }
+            
+            this.addAirportRadius(lat, lng, value, unit, airportName);
+            document.body.removeChild(modal);
+        });
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
+    
+    addAirportRadius(lat, lng, value, unit, airportName) {
+        // Convert to nautical miles for consistent storage
+        let radiusNM = value;
+        if (unit === 'MI') {
+            radiusNM = value / 1.15078; // Convert miles to NM
+        } else if (unit === 'KM') {
+            radiusNM = value / 1.852; // Convert kilometers to NM
+        }
+        
+        // Convert NM to meters for Leaflet (1 NM = 1852 m)
+        const radiusM = radiusNM * 1852;
+        
+        // Create circle
+        const circle = L.circle([lat, lng], {
+            radius: radiusM,
+            color: '#ff0000',
+            fillColor: '#ff0000',
+            fillOpacity: 0.1,
+            weight: 2,
+            opacity: 0.8
+        }).addTo(this.map);
+        
+        // Store reference with metadata
+        this.airportRadiusCircles.push({
+            circle: circle,
+            airportName: airportName,
+            radiusNM: radiusNM.toFixed(2),
+            unit: unit,
+            originalValue: value.toFixed(2),
+            lat: lat,
+            lng: lng
+        });
+        
+        // Add popup to circle
+        const radiusLabel = `${radiusNM.toFixed(2)} NM`;
+        const circleIndex = this.airportRadiusCircles.length - 1;
+        circle.bindPopup(`
+            <div style="font-family: Arial, sans-serif; min-width: 200px;">
+                <div style="margin-bottom: 8px;"><strong>Airport:</strong> ${airportName}</div>
+                <div style="margin-bottom: 8px;"><strong>Radius:</strong> ${radiusLabel}</div>
+                <button onclick="window.droneMap.removeAirportRadiusByIndex(${circleIndex}); return false;" 
+                        style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                    Remove
+                </button>
+            </div>
+        `);
+        
+        console.log(`Added radius circle: ${radiusLabel} around ${airportName}`);
+    }
+    
+    removeAirportRadiusByIndex(index) {
+        if (index >= 0 && index < this.airportRadiusCircles.length) {
+            const radiusData = this.airportRadiusCircles[index];
+            this.map.removeLayer(radiusData.circle);
+            this.airportRadiusCircles.splice(index, 1);
+            console.log(`Removed radius circle around ${radiusData.airportName}`);
+        }
+    }
+    
+    removeAirportRadius(index) {
+        // Alias for backwards compatibility
+        this.removeAirportRadiusByIndex(index);
     }
 }
 
