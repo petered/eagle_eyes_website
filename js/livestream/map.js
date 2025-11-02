@@ -329,6 +329,9 @@ class DroneMap {
     }
 
     addCustomControls() {
+        // Standard widget spacing constant
+        const WIDGET_SPACING = 50; // pixels between widgets
+        
         // Add center on drone control first (top left)
         const centerControl = L.Control.extend({
             options: {
@@ -336,6 +339,12 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                // Ensure consistent styling
+                container.style.marginTop = '0px';
+                container.style.marginLeft = '10px';
+                container.style.width = '30px';
+                container.style.height = '30px';
+                
                 const button = L.DomUtil.create('a', 'leaflet-control-center', container);
                 button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/map_drone_flyer.png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
                 button.href = '#';
@@ -344,6 +353,8 @@ class DroneMap {
                 button.style.display = 'flex';
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
+                button.style.width = '100%';
+                button.style.height = '100%';
 
                 // Store reference to button for later styling updates
                 this.recenterButton = button;
@@ -357,13 +368,13 @@ class DroneMap {
         this.map.addControl(new centerControl());
         
         // Add measurement control second (below center control)
-        this.addMeasurementControl();
+        this.addMeasurementControl(WIDGET_SPACING);
         
         // Add custom base map switching control third (below measurement control)
-        this.addBaseMapControl();
+        this.addBaseMapControl(WIDGET_SPACING * 2);
     }
     
-    addMeasurementControl() {
+    addMeasurementControl(topOffset) {
         const MeasurementControl = L.Control.extend({
             options: {
                 position: 'topleft'
@@ -371,19 +382,15 @@ class DroneMap {
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                 // Add top offset to position below the center on drone control
-                container.style.marginTop = '44px';
+                container.style.marginTop = `${topOffset}px`;
+                container.style.marginLeft = '10px';
+                container.style.width = '30px';
+                container.style.height = '30px';
+                
                 const button = L.DomUtil.create('a', 'leaflet-control-measurement', container);
                 
-                // Create ruler icon using SVG
-                button.innerHTML = `
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12h18M3 12v8M3 12V4"></path>
-                        <path d="M21 12v8M21 12V4"></path>
-                        <path d="M3 6h6M15 6h6"></path>
-                        <circle cx="6" cy="6" r="2"></circle>
-                        <circle cx="18" cy="6" r="2"></circle>
-                    </svg>
-                `;
+                // Use ruler.png image
+                button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/ruler.png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
                 
                 button.href = '#';
                 button.role = 'button';
@@ -391,7 +398,8 @@ class DroneMap {
                 button.style.display = 'flex';
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
-                button.style.color = '#333';
+                button.style.width = '100%';
+                button.style.height = '100%';
 
                 L.DomEvent.on(button, 'click', L.DomEvent.stop)
                           .on(button, 'click', () => {
@@ -404,7 +412,7 @@ class DroneMap {
         this.map.addControl(new MeasurementControl());
     }
     
-    addBaseMapControl() {
+    addBaseMapControl(topOffset) {
         const BaseMapControl = L.Control.extend({
             options: {
                 position: 'topleft'
@@ -412,20 +420,15 @@ class DroneMap {
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                 // Add top offset to position below the measurement control
-                container.style.marginTop = '88px';
+                container.style.marginTop = `${topOffset}px`;
+                container.style.marginLeft = '10px';
+                container.style.width = '30px';
+                container.style.height = '30px';
+                
                 const button = L.DomUtil.create('a', 'leaflet-control-basemap', container);
                 
                 // Create layers icon using image
-                button.innerHTML = `
-                    <div style="
-                        width: 20px;
-                        height: 20px;
-                        background: url('${this.getAssetPath('/images/Map Layers (1).png')}') no-repeat center;
-                        background-size: 20px 20px;
-                        display: block;
-                        margin: auto;
-                    "></div>
-                `;
+                button.innerHTML = `<img src="${this.getAssetPath('/images/Map Layers (1).png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
                 
                 button.href = '#';
                 button.role = 'button';
@@ -433,6 +436,8 @@ class DroneMap {
                 button.style.display = 'flex';
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
+                button.style.width = '100%';
+                button.style.height = '100%';
 
                 L.DomEvent.on(button, 'click', L.DomEvent.stop)
                           .on(button, 'click', () => {
