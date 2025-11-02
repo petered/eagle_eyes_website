@@ -3139,7 +3139,7 @@ class DroneMap {
         });
     }
     
-    createCoordinateMarker(latlng) {
+    async createCoordinateMarker(latlng) {
         // Remove any existing coordinate marker
         if (this.coordinateMarker) {
             this.map.removeLayer(this.coordinateMarker);
@@ -3167,30 +3167,79 @@ class DroneMap {
             })
         }).addTo(this.map);
         
-        // Create popup with coordinates
-        const popup = L.popup({
-            closeButton: true,
-            autoClose: false,
-            closeOnClick: false
-        }).setLatLng(latlng).setContent(`
+        // Store coordinates in marker for radius functionality
+        this.coordinateMarker.latlng = latlng;
+        
+        // Function to create popup content with elevation
+        const createPopupContent = (elevationText) => `
             <div style="text-align: center; min-width: 200px;">
                 <strong>Coordinates</strong><br>
                 <div style="font-family: monospace; margin: 8px 0;">
                     Lat: ${lat}<br>
-                    Lng: ${lng}
+                    Lng: ${lng}<br>
+                    Elevation: ${elevationText}
                 </div>
                 <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
-                        style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px;">
+                        style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px; margin-top: 8px;">
                     Copy Coordinates
                 </button>
+                <button onclick="window.droneMap.showAddRadiusDialog('Coordinate Point', ${lat}, ${lng}); return false;" 
+                        style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px; margin-top: 8px;">
+                    Add Radius
+                </button>
                 <button onclick="window.droneMap.removeCoordinateMarker()" 
-                        style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                        style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 8px;">
                     Remove Marker
                 </button>
             </div>
-        `);
+        `;
+        
+        // Create popup with coordinates (elevation will be updated after fetch)
+        const popup = L.popup({
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: false
+        }).setLatLng(latlng).setContent(createPopupContent('Loading...'));
         
         this.coordinateMarker.bindPopup(popup).openPopup();
+        
+        // Fetch elevation using Open Elevation API (free, no API key required)
+        // Source: https://api.open-elevation.com/api/v1/lookup
+        // This API uses SRTM (Shuttle Radar Topography Mission) data for global elevation
+        // SRTM is a NASA mission that provides elevation data for most of Earth's surface (between 60°N and 56°S)
+        // The API returns elevation in meters above sea level (MSL)
+        try {
+            const elevationUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`;
+            const elevationResponse = await fetch(elevationUrl);
+            if (elevationResponse.ok) {
+                const elevationData = await elevationResponse.json();
+                if (elevationData.results && elevationData.results.length > 0) {
+                    const elevation = elevationData.results[0].elevation;
+                    const elevationDisplay = `${Math.round(elevation)} m (${Math.round(elevation * 3.28084)} ft) MSL`;
+                    
+                    // Update popup with elevation if it's still open
+                    if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
+                        this.coordinateMarker.getPopup().setContent(createPopupContent(elevationDisplay));
+                    }
+                } else {
+                    // Update to N/A
+                    if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
+                        this.coordinateMarker.getPopup().setContent(createPopupContent('N/A'));
+                    }
+                }
+            } else {
+                // Update to N/A
+                if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
+                    this.coordinateMarker.getPopup().setContent(createPopupContent('N/A'));
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching elevation:', error);
+            // Update to N/A
+            if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
+                this.coordinateMarker.getPopup().setContent(createPopupContent('N/A'));
+            }
+        }
     }
     
     removeCoordinateMarker() {
