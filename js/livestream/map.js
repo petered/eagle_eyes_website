@@ -329,18 +329,15 @@ class DroneMap {
     }
 
     addCustomControls() {
-        // Standard widget spacing constant
-        const WIDGET_SPACING = 50; // pixels between widgets
-        
-        // Add center on drone control first (top left)
+        // Add center on drone control first (top left) - slightly lowered
         const centerControl = L.Control.extend({
             options: {
                 position: 'topleft'
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Ensure consistent styling
-                container.style.marginTop = '0px';
+                // Lower the center on drone widget slightly
+                container.style.marginTop = '8px';
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
@@ -367,22 +364,22 @@ class DroneMap {
         });
         this.map.addControl(new centerControl());
         
-        // Add measurement control second (below center control)
-        this.addMeasurementControl(WIDGET_SPACING);
+        // Add measurement control second (right below center control)
+        this.addMeasurementControl();
         
         // Add custom base map switching control third (below measurement control)
-        this.addBaseMapControl(WIDGET_SPACING * 2);
+        this.addBaseMapControl();
     }
     
-    addMeasurementControl(topOffset) {
+    addMeasurementControl() {
         const MeasurementControl = L.Control.extend({
             options: {
                 position: 'topleft'
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Add top offset to position below the center on drone control
-                container.style.marginTop = `${topOffset}px`;
+                // Position ruler widget directly below center on drone widget (same left margin, 38px from top = 8px + 30px widget)
+                container.style.marginTop = '38px';
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
@@ -412,15 +409,15 @@ class DroneMap {
         this.map.addControl(new MeasurementControl());
     }
     
-    addBaseMapControl(topOffset) {
+    addBaseMapControl() {
         const BaseMapControl = L.Control.extend({
             options: {
                 position: 'topleft'
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Add top offset to position below the measurement control
-                container.style.marginTop = `${topOffset}px`;
+                // Position basemap widget right below ruler widget (68px from top = 38px + 30px widget)
+                container.style.marginTop = '68px';
                 container.style.marginLeft = '10px';
                 container.style.width = '30px';
                 container.style.height = '30px';
