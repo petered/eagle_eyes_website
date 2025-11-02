@@ -3085,12 +3085,12 @@ class DroneMap {
 
     addLongPressHandler() {
         let pressTimer = null;
-        let isLongPress = false;
+        let pressStartPos = null;
         
+        // Handle mouse events (desktop)
         this.map.on('mousedown', (e) => {
             // Start timer for long press (800ms)
             pressTimer = setTimeout(() => {
-                isLongPress = true;
                 this.createCoordinateMarker(e.latlng);
             }, 800);
         });
@@ -3111,28 +3111,55 @@ class DroneMap {
             }
         });
         
-        // Handle touch events for mobile
-        this.map.on('touchstart', (e) => {
-            const touch = e.originalEvent.touches[0];
-            const latlng = this.map.containerPointToLatLng(this.map.mouseEventToContainerPoint(touch));
-            
-            pressTimer = setTimeout(() => {
-                isLongPress = true;
-                this.createCoordinateMarker(latlng);
-            }, 800);
+        // Handle touch events for mobile - attach directly to map container
+        const mapContainer = this.map.getContainer();
+        
+        mapContainer.addEventListener('touchstart', (e) => {
+            // Only handle if touching the map itself, not controls or markers
+            if (e.target === mapContainer || e.target.classList.contains('leaflet-tile-container') || 
+                e.target.closest('.leaflet-pane')) {
+                
+                const touch = e.touches[0];
+                const startX = touch.clientX;
+                const startY = touch.clientY;
+                pressStartPos = { x: startX, y: startY };
+                
+                // Save the initial touch position for creating the marker
+                const initialContainerPoint = this.map.mouseEventToContainerPoint(touch);
+                const initialLatlng = this.map.containerPointToLatLng(initialContainerPoint);
+                
+                pressTimer = setTimeout(() => {
+                    // Only create marker if still pressed and not moved significantly
+                    if (pressStartPos) {
+                        this.createCoordinateMarker(initialLatlng);
+                    }
+                    pressStartPos = null;
+                }, 800);
+            }
         });
         
-        this.map.on('touchend', () => {
+        mapContainer.addEventListener('touchend', () => {
             if (pressTimer) {
                 clearTimeout(pressTimer);
                 pressTimer = null;
             }
+            pressStartPos = null;
         });
         
-        this.map.on('touchmove', () => {
+        mapContainer.addEventListener('touchmove', (e) => {
             if (pressTimer) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
+                // Cancel if moved too far
+                if (pressStartPos && e.touches[0]) {
+                    const touch = e.touches[0];
+                    const deltaX = Math.abs(touch.clientX - pressStartPos.x);
+                    const deltaY = Math.abs(touch.clientY - pressStartPos.y);
+                    
+                    if (deltaX > 10 || deltaY > 10) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                        pressStartPos = null;
+                    }
+                }
             }
         });
     }
