@@ -487,6 +487,15 @@ class DroneMap {
             });
         });
         
+        // Prevent all clicks inside popup from reaching map
+        this.baseMapPopup.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        this.baseMapPopup.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+        });
+        
         // Add to map container
         mapContainer.appendChild(this.baseMapPopup);
         
