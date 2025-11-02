@@ -127,7 +127,7 @@ class DroneMap {
             
             this.map = L.map('map', {
                 tap: false,  // Fix for iOS Safari popup issues
-                zoomControl: true,
+                zoomControl: false,
                 attributionControl: true
             }).setView(this.defaultCenter, this.defaultZoom);
 
@@ -320,10 +320,7 @@ class DroneMap {
     }
 
     addCustomControls() {
-        // Add custom base map switching control first (so it appears above)
-        this.addBaseMapControl();
-        
-        // Add center on drone control
+        // Add center on drone control first (top left)
         const centerControl = L.Control.extend({
             options: {
                 position: 'topleft'
@@ -349,6 +346,9 @@ class DroneMap {
             }
         });
         this.map.addControl(new centerControl());
+        
+        // Add custom base map switching control second (below center control)
+        this.addBaseMapControl();
     }
     
     addBaseMapControl() {
@@ -358,6 +358,8 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                // Add top offset to position below the center on drone control
+                container.style.marginTop = '44px';
                 const button = L.DomUtil.create('a', 'leaflet-control-basemap', container);
                 
                 // Create layers icon using image
