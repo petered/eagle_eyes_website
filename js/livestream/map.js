@@ -759,10 +759,11 @@ class DroneMap {
                 <div style="font-size: 24px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
                 <div style="font-size: 11px; color: #666; margin-top: 4px;" id="measurementUnitLabel">NM</div>
             </div>
-            <div style="margin-top: 12px;">
+            <div style="margin-top: 12px; text-align: left;">
                 <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
-                        style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%;">
-                    Undo Last Point
+                        style="background: transparent; border: 1px solid #ddd; color: #666; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 16px; width: auto; display: inline-flex; align-items: center; justify-content: center;"
+                        title="Undo Last Point">
+                    ←
                 </button>
             </div>
         `;
@@ -5150,10 +5151,10 @@ class DroneMap {
         `;
         
         modalContent.innerHTML = `
-            <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #333;">Add Radius Around Airport</h2>
-            <p style="margin: 0 0 16px 0; line-height: 1.5; color: #666; font-size: 14px;">
+            <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #333;">${airportName === 'Coordinate Point' ? 'Add Radius Around Point' : 'Add Radius Around Airport'}</h2>
+            ${airportName !== 'Coordinate Point' ? `<p style="margin: 0 0 16px 0; line-height: 1.5; color: #666; font-size: 14px;">
                 Airport: <strong>${airportName}</strong>
-            </p>
+            </p>` : ''}
             <div style="margin-bottom: 16px;">
                 <label style="display: block; margin-bottom: 6px; font-size: 14px; color: #333;">Distance:</label>
                 <input type="number" id="radiusValue" value="5" step="0.01" min="0.01" max="1000" 
