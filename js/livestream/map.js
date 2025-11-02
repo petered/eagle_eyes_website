@@ -2147,18 +2147,9 @@ class DroneMap {
         // - Any airspace with lower limit at ground, surface, or GND
         const props = feature.properties || {};
         
-        // Check lower limit reference datum
+        // Check lower limit reference datum (0 = Ground/Surface)
         const lowerLimitReferenceDatum = props.lowerLimitReferenceDatum;
-        if (lowerLimitReferenceDatum === 0) { // Ground/Surface
-            return true;
-        }
-        
-        // Check lower limit value for GND, ground, or surface
-        const lowerLimitRaw = props.lowerLimitRaw;
-        const lowerLimit = props.lowerLimit;
-        const lowerLimitStr = (lowerLimitRaw ? String(lowerLimitRaw) : (lowerLimit ? String(lowerLimit) : '')).toUpperCase();
-        
-        if (lowerLimitStr === 'GND' || lowerLimitStr === 'SFC' || lowerLimitStr === 'GROUND' || lowerLimitStr === 'SURFACE' || lowerLimitStr === '0') {
+        if (lowerLimitReferenceDatum === 0) {
             return true;
         }
         
