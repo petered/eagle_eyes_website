@@ -1209,17 +1209,17 @@ class DroneMap {
         
         // Icon symbols - using single Unicode character symbols
         // One symbol per map point for better performance and compatibility
-        let iconSymbol = '✈'; // Default airport icon (U+2708 AIRPLANE)
+        let iconSymbol = '✈️'; // Default airport icon (U+2708 AIRPLANE)
         
         if (typeCode === 7 || typeCode === 4) {
             // Heliport Civil or Military
             iconSymbol = '🚁'; // Helicopter (U+1F681, single Unicode character)
         } else if (typeCode === 10) {
             // Water Aerodrome
-            iconSymbol = '⚓'; // Anchor (U+2693, single Unicode character)
+            iconSymbol = '🛩️'; // Small Airplane (U+1F6E9, single Unicode character)
         } else {
             // Airport, Airfield, Landing Strip, Altiport, etc.
-            iconSymbol = '✈'; // Airplane (U+2708, single Unicode character)
+            iconSymbol = '✈️'; // Airplane (U+2708, single Unicode character)
         }
         
         // Create colored icon using DivIcon (could be replaced with SVG icons)
