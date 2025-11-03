@@ -1833,7 +1833,7 @@ permalink: /livestream/
             }
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
             
-            // Center map - zoom to drone if connected, otherwise North America
+            // Center map - zoom to drone if connected, otherwise user location, otherwise North America
             if (window.droneMap && window.droneMap.map) {
               setTimeout(() => {
                 // Check if a drone is connected (has current location)
@@ -1841,14 +1841,24 @@ permalink: /livestream/
                   // Zoom to connected drone location
                   window.droneMap.map.setView(window.droneMap.currentLocation, 15);
                   console.log('Zooming to connected drone location:', window.droneMap.currentLocation);
+                } else if (window.droneMap.isMyLocationVisible && window.droneMap.myLocationMarker) {
+                  // No drone, but user location is available - zoom to user location
+                  const userLatlng = window.droneMap.myLocationMarker.getLatLng();
+                  window.droneMap.map.invalidateSize();
+                  window.droneMap.map.setView(userLatlng, 15, { animate: false });
+                  // Force another invalidate after setting view
+                  setTimeout(() => {
+                    window.droneMap.map.invalidateSize();
+                  }, 50);
+                  console.log('Zooming to user location in map-only mode:', userLatlng);
                 } else {
-                  // No drone connected - show North America scale
+                  // No drone or user location - show North America scale
                   window.droneMap.map.setView([45.0, -100.0], 3);
-                  console.log('No drone connected - showing North America scale');
+                  console.log('No drone or user location - showing North America scale');
                 }
                 // Invalidate size to ensure map tiles render properly
                 window.droneMap.map.invalidateSize();
-              }, 100);
+              }, 200);
             } else if (window.droneMap && typeof window.droneMap.resize === 'function') {
               // If map exists but tiles aren't loading, try resize
               setTimeout(() => {

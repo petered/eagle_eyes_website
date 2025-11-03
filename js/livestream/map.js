@@ -71,15 +71,21 @@ class DroneMap {
         this.airportRadiusCircles = [];
         this.isMyLocationVisible = false;
         this.myLocationAccuracy = null;
+        this.isAutoLocationRequest = false; // Track if this is automatic initialization
+        this.hasZoomedToUserLocation = false; // Track if we've already zoomed to user location
         
         // Measurement tool state
         this.measurementMode = false;
+        this.measurementType = 'line'; // 'line' or 'polygon'
         this.measurementPoints = [];
         this.measurementMarkers = [];
         this.measurementPolylines = [];
+        this.measurementPolygon = null; // For polygon mode
         this.measurementPopup = null;
-        this.measurementUnit = 'NM'; // Default: Nautical Miles
+        this.measurementUnit = 'NM'; // Default: Nautical Miles (for line mode)
+        this.measurementAreaUnit = 'NM²'; // Default: Nautical Miles squared (for polygon mode)
         this.measurementTotalDistance = 0;
+        this.measurementArea = 0; // Area in square meters
         
         // User-added coordinate markers (array to support multiple markers)
         this.coordinateMarkers = []; // Array of { marker, latlng, number }
@@ -310,6 +316,13 @@ class DroneMap {
                 this.handleMapClick(e);
             });
             
+            // Handle double-click for completing polygon
+            this.map.on('dblclick', (e) => {
+                if (this.measurementMode && this.measurementType === 'polygon') {
+                    this.completePolygon();
+                }
+            });
+            
             // Initial load if layers are enabled
             if (this.isDroneAirspaceEnabled) {
                 this.loadDroneAirspaceDataDebounced();
@@ -325,6 +338,13 @@ class DroneMap {
 
             console.log('Drone map initialized with Leaflet');
             console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
+            
+            // Automatically start location tracking on page load
+            // This will try to center on user's location, with fallback to default view
+            setTimeout(() => {
+                this.isAutoLocationRequest = true;
+                this.startLocationTracking();
+            }, 500); // Small delay to ensure map is fully initialized
 
         } catch (error) {
             console.error('Error initializing map:', error);
@@ -729,9 +749,17 @@ class DroneMap {
             font-family: Arial, sans-serif;
         `;
         
+        // Generate unit options based on mode
+        const isLineMode = this.measurementType === 'line';
+        const unitOptions = isLineMode ? this.getLineUnitOptions() : this.getPolygonUnitOptions();
+        const currentUnit = isLineMode ? this.measurementUnit : this.measurementAreaUnit;
+        const instructions = isLineMode 
+            ? 'Click on the map to measure approximate distance between points.'
+            : 'Click on the map to draw a polygon for approximate measurement.';
+        
         this.measurementPopup.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div style="font-weight: bold; color: #000; font-size: 12px;">Measure Distance</div>
+                <div style="font-weight: bold; color: #000; font-size: 12px;">Measuring Tool</div>
                 <button id="closeMeasurementBtn" style="
                     background: transparent;
                     border: none;
@@ -744,24 +772,40 @@ class DroneMap {
                     height: 20px;
                 ">×</button>
             </div>
+            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                <button id="lineModeBtn" style="
+                    flex: 1;
+                    padding: 6px 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    ${isLineMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
+                ">Line</button>
+                <button id="polygonModeBtn" style="
+                    flex: 1;
+                    padding: 6px 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    ${!isLineMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
+                ">Polygon</button>
+            </div>
             <div style="margin-bottom: 8px;">
                 <label style="display: block; margin-bottom: 4px; font-size: 11px; color: #666;">Unit:</label>
                 <select id="measurementUnit" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; box-sizing: border-box;">
-                    <option value="NM" ${this.measurementUnit === 'NM' ? 'selected' : ''}>Nautical Miles</option>
-                    <option value="MI" ${this.measurementUnit === 'MI' ? 'selected' : ''}>Miles</option>
-                    <option value="KM" ${this.measurementUnit === 'KM' ? 'selected' : ''}>Kilometers</option>
-                    <option value="M" ${this.measurementUnit === 'M' ? 'selected' : ''}>Meters</option>
-                    <option value="FT" ${this.measurementUnit === 'FT' ? 'selected' : ''}>Feet</option>
+                    ${unitOptions}
                 </select>
             </div>
             <div style="margin-bottom: 8px; padding: 6px; background: #f0f8ff; border-radius: 3px; border-left: 2px solid #0066cc;">
                 <div style="font-size: 10px; color: #333; line-height: 1.4;">
-                    Click on the map to measure distance between points.
+                    ${instructions}
                 </div>
             </div>
             <div style="padding: 8px; background: #f5f5f5; border-radius: 3px; text-align: center;">
                 <div style="font-size: 18px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
-                <div style="font-size: 9px; color: #666; margin-top: 2px;" id="measurementUnitLabel">NM</div>
+                <div style="font-size: 9px; color: #666; margin-top: 2px;" id="measurementUnitLabel">${isLineMode ? currentUnit : currentUnit}</div>
             </div>
             <div style="margin-top: 8px; text-align: left;">
                 <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
@@ -778,9 +822,24 @@ class DroneMap {
             this.closeMeasurementPopup();
         });
         
+        const lineBtn = this.measurementPopup.querySelector('#lineModeBtn');
+        const polygonBtn = this.measurementPopup.querySelector('#polygonModeBtn');
+        
+        lineBtn.addEventListener('click', () => {
+            this.switchMeasurementType('line');
+        });
+        
+        polygonBtn.addEventListener('click', () => {
+            this.switchMeasurementType('polygon');
+        });
+        
         const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
         unitSelect.addEventListener('change', (e) => {
-            this.measurementUnit = e.target.value;
+            if (this.measurementType === 'line') {
+                this.measurementUnit = e.target.value;
+            } else {
+                this.measurementAreaUnit = e.target.value;
+            }
             this.updateMeasurementDisplay();
         });
         
@@ -800,8 +859,47 @@ class DroneMap {
         this.measurementPoints = [];
         this.measurementMarkers = [];
         this.measurementPolylines = [];
+        this.measurementPolygon = null;
         this.measurementTotalDistance = 0;
+        this.measurementArea = 0;
         this.updateMeasurementDisplay();
+    }
+    
+    getLineUnitOptions() {
+        const units = [
+            { value: 'NM', label: 'Nautical Miles' },
+            { value: 'MI', label: 'Miles' },
+            { value: 'KM', label: 'Kilometers' },
+            { value: 'M', label: 'Meters' },
+            { value: 'FT', label: 'Feet' }
+        ];
+        return units.map(u => `<option value="${u.value}" ${this.measurementUnit === u.value ? 'selected' : ''}>${u.label}</option>`).join('');
+    }
+    
+    getPolygonUnitOptions() {
+        const units = [
+            { value: 'NM²', label: 'Nautical Miles²' },
+            { value: 'MI²', label: 'Miles²' },
+            { value: 'KM²', label: 'Kilometers²' },
+            { value: 'M²', label: 'Meters²' },
+            { value: 'FT²', label: 'Feet²' },
+            { value: 'HA', label: 'Hectares' },
+            { value: 'AC', label: 'Acres' }
+        ];
+        return units.map(u => `<option value="${u.value}" ${this.measurementAreaUnit === u.value ? 'selected' : ''}>${u.label}</option>`).join('');
+    }
+    
+    switchMeasurementType(type) {
+        if (this.measurementType === type) return;
+        
+        // Clear current measurements
+        this.clearMeasurements();
+        
+        // Switch type
+        this.measurementType = type;
+        
+        // Rebuild popup
+        this.showMeasurementPopup();
     }
     
     closeMeasurementPopup() {
@@ -824,10 +922,17 @@ class DroneMap {
             this.map.removeLayer(polyline);
         });
         
+        // Remove polygon if it exists
+        if (this.measurementPolygon) {
+            this.map.removeLayer(this.measurementPolygon);
+            this.measurementPolygon = null;
+        }
+        
         this.measurementPoints = [];
         this.measurementMarkers = [];
         this.measurementPolylines = [];
         this.measurementTotalDistance = 0;
+        this.measurementArea = 0;
     }
     
     updateMeasurementDisplay() {
@@ -837,9 +942,16 @@ class DroneMap {
         const unitLabelDiv = document.getElementById('measurementUnitLabel');
         
         if (distanceDiv && unitLabelDiv) {
-            const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
-            distanceDiv.textContent = convertedDistance.toFixed(2);
-            unitLabelDiv.textContent = this.measurementUnit;
+            if (this.measurementType === 'line') {
+                const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
+                distanceDiv.textContent = convertedDistance.toFixed(2);
+                unitLabelDiv.textContent = this.measurementUnit;
+            } else {
+                // Polygon mode - show area
+                const convertedArea = this.convertArea(this.measurementArea, this.measurementAreaUnit);
+                distanceDiv.textContent = convertedArea.toFixed(2);
+                unitLabelDiv.textContent = this.measurementAreaUnit;
+            }
         }
     }
     
@@ -878,6 +990,14 @@ class DroneMap {
         
         const latlng = e.latlng;
         
+        if (this.measurementType === 'line') {
+            this.handleLineMeasurementClick(latlng);
+        } else {
+            this.handlePolygonMeasurementClick(latlng);
+        }
+    }
+    
+    handleLineMeasurementClick(latlng) {
         // Create small pin marker
         const pinIcon = L.divIcon({
             className: 'measurement-pin',
@@ -914,38 +1034,158 @@ class DroneMap {
         }
     }
     
+    handlePolygonMeasurementClick(latlng) {
+        // Create small pin marker
+        const pinIcon = L.divIcon({
+            className: 'measurement-pin',
+            html: '<div style="width: 8px; height: 8px; background: #ff0000; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [8, 8],
+            iconAnchor: [4, 4]
+        });
+        
+        const marker = L.marker(latlng, { icon: pinIcon }).addTo(this.map);
+        this.measurementMarkers.push(marker);
+        this.measurementPoints.push(latlng);
+        
+        // Update polygon display
+        this.updatePolygonDisplay();
+    }
+    
+    updatePolygonDisplay() {
+        // Remove existing polygon
+        if (this.measurementPolygon) {
+            this.map.removeLayer(this.measurementPolygon);
+        }
+        
+        if (this.measurementPoints.length >= 2) {
+            // Draw polygon outline
+            const polygon = L.polygon(this.measurementPoints, {
+                color: '#ff0000',
+                weight: 2,
+                opacity: 0.7,
+                fillColor: '#ff0000',
+                fillOpacity: 0.2
+            }).addTo(this.map);
+            
+            this.measurementPolygon = polygon;
+            
+            // Calculate area if we have at least 3 points
+            if (this.measurementPoints.length >= 3) {
+                this.measurementArea = this.calculatePolygonArea(this.measurementPoints);
+                this.updateMeasurementDisplay();
+            }
+        }
+    }
+    
+    completePolygon() {
+        if (this.measurementType === 'polygon' && this.measurementPoints.length >= 3) {
+            // Close the polygon by connecting last point to first
+            this.updatePolygonDisplay();
+        }
+    }
+    
+    calculatePolygonArea(points) {
+        // Calculate area using spherical excess formula
+        // This is accurate for lat/lng coordinates on Earth's surface
+        if (points.length < 3) return 0;
+        
+        // Close the polygon if not already closed
+        const closedPoints = [...points];
+        if (closedPoints.length < 3 || 
+            closedPoints[0].lat !== closedPoints[closedPoints.length - 1].lat || 
+            closedPoints[0].lng !== closedPoints[closedPoints.length - 1].lng) {
+            closedPoints.push(L.latLng(closedPoints[0].lat, closedPoints[0].lng));
+        }
+        
+        const R = 6371000; // Earth radius in meters
+        let area = 0;
+        
+        // Convert to radians and calculate spherical excess
+        for (let i = 0; i < closedPoints.length - 1; i++) {
+            const p1 = closedPoints[i];
+            const p2 = closedPoints[i + 1];
+            
+            const lat1 = p1.lat * Math.PI / 180;
+            const lon1 = p1.lng * Math.PI / 180;
+            const lat2 = p2.lat * Math.PI / 180;
+            const lon2 = p2.lng * Math.PI / 180;
+            
+            area += (lon2 - lon1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+        }
+        
+        area = Math.abs(area * R * R / 2);
+        return area;
+    }
+    
+    convertArea(areaM2, toUnit) {
+        // Convert from square meters to target unit
+        switch (toUnit) {
+            case 'M²':
+                return areaM2;
+            case 'KM²':
+                return areaM2 / 1000000;
+            case 'MI²':
+                return areaM2 / 2589988.11; // square meters to square miles
+            case 'NM²':
+                return areaM2 / 3429904; // square meters to square nautical miles
+            case 'FT²':
+                return areaM2 * 10.7639; // square meters to square feet
+            case 'HA':
+                return areaM2 / 10000; // square meters to hectares
+            case 'AC':
+                return areaM2 / 4046.86; // square meters to acres
+            default:
+                return areaM2;
+        }
+    }
+    
     undoLastMeasurement() {
         if (this.measurementPoints.length === 0) return;
         
-        // Remove the last point
-        this.measurementPoints.pop();
-        
-        // Remove the last marker
-        const lastMarker = this.measurementMarkers.pop();
-        if (lastMarker) {
-            this.map.removeLayer(lastMarker);
-        }
-        
-        // If we had a line to the last point, remove it and update distance
-        if (this.measurementPoints.length > 0 && this.measurementPolylines.length > 0) {
-            const lastPolyline = this.measurementPolylines.pop();
-            if (lastPolyline) {
-                this.map.removeLayer(lastPolyline);
-                
-                // Recalculate total distance
-                if (this.measurementPoints.length >= 2) {
-                    // Subtract the distance from the removed line
-                    const secondLastPoint = this.measurementPoints[this.measurementPoints.length - 2];
-                    const lastPoint = this.measurementPoints[this.measurementPoints.length - 1];
+        if (this.measurementType === 'line') {
+            // Remove the last point
+            this.measurementPoints.pop();
+            
+            // Remove the last marker
+            const lastMarker = this.measurementMarkers.pop();
+            if (lastMarker) {
+                this.map.removeLayer(lastMarker);
+            }
+            
+            // If we had a line to the last point, remove it and update distance
+            if (this.measurementPoints.length > 0 && this.measurementPolylines.length > 0) {
+                const lastPolyline = this.measurementPolylines.pop();
+                if (lastPolyline) {
+                    this.map.removeLayer(lastPolyline);
                     
-                    const distanceM = secondLastPoint.distanceTo(lastPoint);
-                    const distanceNM = distanceM / 1852;
-                    this.measurementTotalDistance -= distanceNM;
+                    // Recalculate total distance
+                    if (this.measurementPoints.length >= 2) {
+                        // Subtract the distance from the removed line
+                        const secondLastPoint = this.measurementPoints[this.measurementPoints.length - 2];
+                        const lastPoint = this.measurementPoints[this.measurementPoints.length - 1];
+                        
+                        const distanceM = secondLastPoint.distanceTo(lastPoint);
+                        const distanceNM = distanceM / 1852;
+                        this.measurementTotalDistance -= distanceNM;
+                    }
                 }
+            } else {
+                // No line to remove, just reset distance to 0
+                this.measurementTotalDistance = 0;
             }
         } else {
-            // No line to remove, just reset distance to 0
-            this.measurementTotalDistance = 0;
+            // Polygon mode
+            // Remove the last point
+            this.measurementPoints.pop();
+            
+            // Remove the last marker
+            const lastMarker = this.measurementMarkers.pop();
+            if (lastMarker) {
+                this.map.removeLayer(lastMarker);
+            }
+            
+            // Update polygon display
+            this.updatePolygonDisplay();
         }
         
         this.updateMeasurementDisplay();
@@ -1539,7 +1779,7 @@ class DroneMap {
             html: `<div style="
                 width: ${width}px;
                 height: ${height}px;
-                background-color: #0066cc;
+                background-color: #dc3545;
                 border: 2px solid white;
                 border-radius: 50%;
                 display: flex;
@@ -2248,7 +2488,7 @@ class DroneMap {
                     // Simple icon - just a circle
                     const icon = L.divIcon({
                         className: 'test-airport-icon',
-                        html: '<div style="width:20px;height:20px;background:#0066cc;border:2px solid white;border-radius:50%;"></div>',
+                        html: '<div style="width:20px;height:20px;background:#dc3545;border:2px solid white;border-radius:50%;"></div>',
                         iconSize: [20, 20],
                         iconAnchor: [10, 10]
                     });
@@ -3670,6 +3910,22 @@ class DroneMap {
             if (mobileOffcanvas) {
                 mobileOffcanvas.style.display = 'none';
             }
+            
+            // Zoom to user location if it's visible
+            if (this.isMyLocationVisible && this.myLocationMarker) {
+                const latlng = this.myLocationMarker.getLatLng();
+                // Use longer timeout to ensure it runs after any view mode changes
+                setTimeout(() => {
+                    this.map.invalidateSize(); // Ensure map size is correct in fullscreen
+                    this.map.setView(latlng, 15, { animate: false });
+                    // Force another invalidate after setting view
+                    setTimeout(() => {
+                        this.map.invalidateSize();
+                    }, 50);
+                    console.log('Zoomed to user location in fallback fullscreen mode:', latlng);
+                }, 300);
+            }
+            
             console.log('Entered fallback fullscreen mode - top bar hidden');
         } else {
             // Show top bar
@@ -3737,6 +3993,31 @@ class DroneMap {
             if (mobileOffcanvas) {
                 mobileOffcanvas.style.display = 'none';
             }
+            
+            // Zoom to user location if it's visible
+            if (this.isMyLocationVisible && this.myLocationMarker) {
+                const latlng = this.myLocationMarker.getLatLng();
+                console.log('Fullscreen: User location available, will zoom to:', latlng);
+                // Use longer timeout to ensure it runs after any view mode changes
+                setTimeout(() => {
+                    this.map.invalidateSize(); // Ensure map size is correct in fullscreen
+                    this.map.setView(latlng, 15, { animate: false });
+                    // Force another invalidate after setting view and ensure zoom persists
+                    setTimeout(() => {
+                        this.map.invalidateSize();
+                        // Double-check that we're still at the right zoom/location
+                        const currentZoom = this.map.getZoom();
+                        if (currentZoom < 10) {
+                            console.log('Zoom was reset, re-zooming to user location');
+                            this.map.setView(latlng, 15, { animate: false });
+                        }
+                    }, 100);
+                    console.log('Zoomed to user location in fullscreen mode:', latlng, 'zoom: 15');
+                }, 300);
+            } else {
+                console.log('Fullscreen: User location not available. isMyLocationVisible:', this.isMyLocationVisible, 'myLocationMarker:', this.myLocationMarker);
+            }
+            
             console.log('Entered fullscreen - navbar hidden');
         } else {
             // Show navbar and mobile offcanvas when exiting fullscreen
@@ -4453,7 +4734,10 @@ class DroneMap {
         console.log('Starting location tracking...');
         
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by this browser.');
+            if (!this.isAutoLocationRequest) {
+                alert('Geolocation is not supported by this browser.');
+            }
+            this.isAutoLocationRequest = false;
             return;
         }
 
@@ -4469,6 +4753,7 @@ class DroneMap {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 console.log('Current position received:', position);
+                this.isAutoLocationRequest = false; // Reset flag after successful location
                 this.onLocationSuccess(position);
             },
             (error) => {
@@ -4483,6 +4768,7 @@ class DroneMap {
         this.watchId = navigator.geolocation.watchPosition(
             (position) => {
                 console.log('Position update received:', position);
+                this.isAutoLocationRequest = false; // Reset flag after successful location
                 this.onLocationSuccess(position);
             },
             (error) => {
@@ -4551,20 +4837,42 @@ class DroneMap {
                 icon: L.divIcon({
                     html: iconHtml,
                     className: 'my-location-marker',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
                 })
             }).addTo(this.map);
         }
 
-        // Center map on user location if it's the first time
-        if (isFirstTime) {
-            this.map.setView([lat, lng], 15);
+        // Center and zoom map on user location if it's the first time (on page load)
+        if (isFirstTime && !this.hasZoomedToUserLocation) {
+            // Use a slight delay to ensure map is fully rendered
+            setTimeout(() => {
+                this.map.invalidateSize(); // Ensure map size is correct
+                this.map.setView([lat, lng], 15, { animate: false });
+                this.hasZoomedToUserLocation = true; // Mark that we've zoomed to user location
+                // Force another invalidate after setting view to ensure it takes
+                setTimeout(() => {
+                    this.map.invalidateSize();
+                }, 50);
+                console.log('Centered and zoomed map on user location:', lat, lng, 'zoom level: 15');
+            }, 100);
         }
     }
 
     onLocationError(error) {
         console.error('Location error:', error);
+        const wasAutoRequest = this.isAutoLocationRequest;
+        this.isAutoLocationRequest = false; // Reset flag
+        
+        // On page load, silently fail and keep default map view
+        // Only show error if user manually clicked the button
+        if (wasAutoRequest) {
+            // This is from automatic initialization, just log and keep default view
+            console.log('Location not available on page load, using default map view');
+            this.stopLocationTracking(); // Clean up tracking state
+            return;
+        }
+        
         let message = 'Unable to retrieve your location. ';
         
         switch(error.code) {
@@ -4588,31 +4896,31 @@ class DroneMap {
     }
 
     createLocationIcon() {
-        // Google Maps style location marker (simple blue dot, no orientation indicator)
+        // Google Maps style location marker (simple blue dot, no orientation indicator) - smaller size
         return `
             <div class="google-maps-location-marker" style="
                 position: relative;
-                width: 24px;
-                height: 24px;
+                width: 16px;
+                height: 16px;
             ">
                 <!-- White outer ring (shadow effect) -->
                 <div style="
                     position: absolute;
                     top: 0;
                     left: 0;
-                    width: 24px;
-                    height: 24px;
+                    width: 16px;
+                    height: 16px;
                     background-color: white;
                     border-radius: 50%;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
                 "></div>
                 <!-- Blue center dot -->
                 <div style="
                     position: absolute;
-                    top: 2px;
-                    left: 2px;
-                    width: 20px;
-                    height: 20px;
+                    top: 1px;
+                    left: 1px;
+                    width: 14px;
+                    height: 14px;
                     background-color: #4285f4;
                     border-radius: 50%;
                     z-index: 1;
@@ -4627,13 +4935,13 @@ class DroneMap {
         if (button) {
             if (this.isMyLocationVisible) {
                 button.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Hide My Location';
-                button.style.backgroundColor = '#ffc107';
-                button.style.borderColor = '#ffc107';
-                button.style.color = '#000';
+                button.style.backgroundColor = '#6c757d'; // Gray when on
+                button.style.borderColor = '#6c757d';
+                button.style.color = '#fff';
             } else {
                 button.innerHTML = '<i class="bi bi-geo-alt"></i> Show My Location';
-                button.style.backgroundColor = '#314268';
-                button.style.borderColor = '#314268';
+                button.style.backgroundColor = '#007bff'; // Blue when off
+                button.style.borderColor = '#007bff';
                 button.style.color = 'white';
             }
         }
