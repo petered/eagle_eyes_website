@@ -80,6 +80,10 @@ class DroneMap {
         this.measurementPopup = null;
         this.measurementUnit = 'NM'; // Default: Nautical Miles
         this.measurementTotalDistance = 0;
+        
+        // User-added coordinate markers (array to support multiple markers)
+        this.coordinateMarkers = []; // Array of { marker, latlng, number }
+        this.coordinateMarkerCounter = 0; // Counter for numbering markers
 
         // North arrow control
         this.northArrowMode = 'north'; // 'north' or 'user-facing'
@@ -329,18 +333,18 @@ class DroneMap {
     }
 
     addCustomControls() {
-        // Add center on drone control first (top left) - slightly lowered
+        // Add center on drone control first (top left)
         const centerControl = L.Control.extend({
             options: {
                 position: 'topleft'
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Lower the center on drone widget slightly
-                container.style.marginTop = '8px';
+                container.style.marginTop = '10px';
                 container.style.marginLeft = '10px';
-                container.style.width = '30px';
-                container.style.height = '30px';
+                container.style.marginBottom = '0px';
+                container.style.width = '40px';
+                container.style.height = '40px';
                 
                 const button = L.DomUtil.create('a', 'leaflet-control-center', container);
                 button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/map_drone_flyer.png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
@@ -364,11 +368,11 @@ class DroneMap {
         });
         this.map.addControl(new centerControl());
         
-        // Add measurement control second (right below center control)
-        this.addMeasurementControl();
-        
-        // Add custom base map switching control third (below measurement control)
+        // Add custom base map switching control second (right below center control)
         this.addBaseMapControl();
+        
+        // Add measurement control third (below basemap control)
+        this.addMeasurementControl();
     }
     
     addMeasurementControl() {
@@ -378,16 +382,17 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Position ruler widget directly below center on drone widget
-                container.style.marginTop = '40px'; // 8px (drone) + 30px (widget) + 2px gap
-                container.style.marginLeft = '10px';
-                container.style.width = '30px';
-                container.style.height = '30px';
+                // Position ruler widget all the way to the left, same row
+                container.style.marginTop = '10px'; // Same as other widgets
+                container.style.marginLeft = '10px'; // All the way to the left
+                container.style.marginBottom = '0px';
+                container.style.width = '40px';
+                container.style.height = '40px';
                 
                 const button = L.DomUtil.create('a', 'leaflet-control-measurement', container);
                 
-                // Use ruler.png image - keep aspect ratio (4:3)
-                button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/ruler.png')}" style="width: 20px; height: 15px; display: block; margin: auto;">`;
+                // Use ruler.png image - same 20x20 size as drone icon
+                button.innerHTML = `<img src="${this.getAssetPath('/images/livestream/ruler.png')}" style="width: 20px; height: 20px; display: block; margin: auto;">`;
                 
                 button.href = '#';
                 button.role = 'button';
@@ -416,11 +421,12 @@ class DroneMap {
             },
             onAdd: (map) => {
                 const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                // Position basemap widget right below ruler widget
-                container.style.marginTop = '72px'; // 40px (ruler) + 30px (widget) + 2px gap
-                container.style.marginLeft = '10px';
-                container.style.width = '30px';
-                container.style.height = '30px';
+                // Position basemap widget all the way to the left, same as center on drone widget
+                container.style.marginTop = '10px'; // Same as center on drone widget
+                container.style.marginLeft = '10px'; // All the way to the left, same as center on drone widget
+                container.style.marginBottom = '0px';
+                container.style.width = '40px';
+                container.style.height = '40px';
                 
                 const button = L.DomUtil.create('a', 'leaflet-control-basemap', container);
                 
@@ -716,30 +722,31 @@ class DroneMap {
             border: 1px solid #ccc;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            padding: 12px;
-            min-width: 200px;
+            padding: 8px;
+            min-width: 160px;
+            max-width: 180px;
             z-index: 2000;
             font-family: Arial, sans-serif;
         `;
         
         this.measurementPopup.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div style="font-weight: bold; color: #000; font-size: 14px;">Measure Distance</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-weight: bold; color: #000; font-size: 12px;">Measure Distance</div>
                 <button id="closeMeasurementBtn" style="
                     background: transparent;
                     border: none;
-                    font-size: 18px;
+                    font-size: 16px;
                     color: #666;
                     cursor: pointer;
                     padding: 0;
                     line-height: 1;
-                    width: 24px;
-                    height: 24px;
+                    width: 20px;
+                    height: 20px;
                 ">×</button>
             </div>
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 6px; font-size: 13px; color: #666;">Unit:</label>
-                <select id="measurementUnit" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+            <div style="margin-bottom: 8px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 11px; color: #666;">Unit:</label>
+                <select id="measurementUnit" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; box-sizing: border-box;">
                     <option value="NM" ${this.measurementUnit === 'NM' ? 'selected' : ''}>Nautical Miles</option>
                     <option value="MI" ${this.measurementUnit === 'MI' ? 'selected' : ''}>Miles</option>
                     <option value="KM" ${this.measurementUnit === 'KM' ? 'selected' : ''}>Kilometers</option>
@@ -747,18 +754,18 @@ class DroneMap {
                     <option value="FT" ${this.measurementUnit === 'FT' ? 'selected' : ''}>Feet</option>
                 </select>
             </div>
-            <div style="margin-bottom: 12px; padding: 10px; background: #f0f8ff; border-radius: 4px; border-left: 3px solid #0066cc;">
-                <div style="font-size: 12px; color: #333; line-height: 1.5;">
+            <div style="margin-bottom: 8px; padding: 6px; background: #f0f8ff; border-radius: 3px; border-left: 2px solid #0066cc;">
+                <div style="font-size: 10px; color: #333; line-height: 1.4;">
                     Click on the map to measure distance between points.
                 </div>
             </div>
-            <div style="padding: 10px; background: #f5f5f5; border-radius: 4px; text-align: center;">
-                <div style="font-size: 24px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
-                <div style="font-size: 11px; color: #666; margin-top: 4px;" id="measurementUnitLabel">NM</div>
+            <div style="padding: 8px; background: #f5f5f5; border-radius: 3px; text-align: center;">
+                <div style="font-size: 18px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
+                <div style="font-size: 9px; color: #666; margin-top: 2px;" id="measurementUnitLabel">NM</div>
             </div>
-            <div style="margin-top: 12px; text-align: left;">
+            <div style="margin-top: 8px; text-align: left;">
                 <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
-                        style="background: transparent; border: 1px solid #ddd; color: #666; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 16px; width: auto; display: inline-flex; align-items: center; justify-content: center;"
+                        style="background: transparent; border: 1px solid #ddd; color: #666; padding: 3px 6px; border-radius: 3px; cursor: pointer; font-size: 14px; width: auto; display: inline-flex; align-items: center; justify-content: center;"
                         title="Undo Last Point">
                     ←
                 </button>
@@ -3165,16 +3172,15 @@ class DroneMap {
     }
     
     async createCoordinateMarker(latlng) {
-        // Remove any existing coordinate marker
-        if (this.coordinateMarker) {
-            this.map.removeLayer(this.coordinateMarker);
-        }
+        // Increment counter and get marker number
+        this.coordinateMarkerCounter++;
+        const markerNumber = this.coordinateMarkerCounter;
         
         const lat = latlng.lat.toFixed(6);
         const lng = latlng.lng.toFixed(6);
         
-        // Create a temporary marker
-        this.coordinateMarker = L.marker(latlng, {
+        // Create a marker
+        const marker = L.marker(latlng, {
             icon: L.divIcon({
                 html: `
                     <div style="
@@ -3193,40 +3199,58 @@ class DroneMap {
         }).addTo(this.map);
         
         // Store coordinates in marker for radius functionality
-        this.coordinateMarker.latlng = latlng;
+        marker.latlng = latlng;
+        marker.markerNumber = markerNumber;
         
-        // Function to create popup content with elevation
-        const createPopupContent = (elevationText) => `
-            <div style="text-align: center; min-width: 200px;">
-                <strong>Coordinates</strong><br>
-                <div style="font-family: monospace; margin: 8px 0;">
-                    Lat: ${lat}<br>
-                    Lng: ${lng}<br>
-                    Elevation: ${elevationText}
+        // Function to create popup content with elevation - compact and mobile-friendly
+        const createPopupContent = (elevationText, displayNum) => {
+            const displayNumber = displayNum || (this.coordinateMarkers.findIndex(m => m.marker === marker) + 1);
+            return `
+                <div style="padding: 4px; max-width: 180px; min-width: 140px;">
+                    <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px; color: #333;">User Added Marker ${displayNumber}</div>
+                    <div style="font-size: 10px; font-family: monospace; color: #555; margin-bottom: 6px; line-height: 1.4;">
+                        ${lat}, ${lng}<br>
+                        Elev: ${elevationText}
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
+                                style="background: #007bff; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
+                            Copy Coordinates
+                        </button>
+                        <button onclick="window.droneMap.showAddRadiusDialog('User Added Marker ${displayNumber}', ${lat}, ${lng}); return false;" 
+                                style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
+                            Add Radius
+                        </button>
+                        <button onclick="window.droneMap.removeCoordinateMarker(${markerNumber})" 
+                                style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
+                            Remove Marker
+                        </button>
+                    </div>
                 </div>
-                <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
-                        style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px; margin-top: 8px;">
-                    Copy Coordinates
-                </button>
-                <button onclick="window.droneMap.showAddRadiusDialog('Coordinate Point', ${lat}, ${lng}); return false;" 
-                        style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 8px; margin-top: 8px;">
-                    Add Radius
-                </button>
-                <button onclick="window.droneMap.removeCoordinateMarker()" 
-                        style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 8px;">
-                    Remove Marker
-                </button>
-            </div>
-        `;
+            `;
+        };
         
         // Create popup with coordinates (elevation will be updated after fetch)
         const popup = L.popup({
             closeButton: true,
             autoClose: false,
-            closeOnClick: false
-        }).setLatLng(latlng).setContent(createPopupContent('Loading...'));
+            closeOnClick: false,
+            className: 'user-marker-popup',
+            maxWidth: 180
+        }).setLatLng(latlng).setContent(createPopupContent('Loading...', this.coordinateMarkers.length + 1));
         
-        this.coordinateMarker.bindPopup(popup).openPopup();
+        marker.bindPopup(popup);
+        
+        // Add marker to array
+        this.coordinateMarkers.push({ marker, latlng, number: markerNumber });
+        
+        // Renumber all markers to ensure sequential numbering
+        this.renumberCoordinateMarkers();
+        
+        // Open popup for the new marker with correct number
+        const finalDisplayNumber = this.coordinateMarkers.length;
+        popup.setContent(createPopupContent('Loading...', finalDisplayNumber));
+        marker.openPopup();
         
         // Fetch elevation using Open Elevation API (free, no API key required)
         // Source: https://api.open-elevation.com/api/v1/lookup
@@ -3243,35 +3267,113 @@ class DroneMap {
                     const elevationDisplay = `${Math.round(elevation)} m (${Math.round(elevation * 3.28084)} ft) MSL`;
                     
                     // Update popup with elevation if it's still open
-                    if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
-                        this.coordinateMarker.getPopup().setContent(createPopupContent(elevationDisplay));
+                    if (marker && marker.isPopupOpen()) {
+                        const displayNum = this.coordinateMarkers.findIndex(m => m.marker === marker) + 1;
+                        marker.getPopup().setContent(createPopupContent(elevationDisplay, displayNum));
                     }
                 } else {
                     // Update to N/A
-                    if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
-                        this.coordinateMarker.getPopup().setContent(createPopupContent('N/A'));
+                    if (marker && marker.isPopupOpen()) {
+                        const displayNum = this.coordinateMarkers.findIndex(m => m.marker === marker) + 1;
+                        marker.getPopup().setContent(createPopupContent('N/A', displayNum));
                     }
                 }
             } else {
                 // Update to N/A
-                if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
-                    this.coordinateMarker.getPopup().setContent(createPopupContent('N/A'));
+                if (marker && marker.isPopupOpen()) {
+                    const displayNum = this.coordinateMarkers.findIndex(m => m.marker === marker) + 1;
+                    marker.getPopup().setContent(createPopupContent('N/A', displayNum));
                 }
             }
         } catch (error) {
             console.error('Error fetching elevation:', error);
             // Update to N/A
-            if (this.coordinateMarker && this.coordinateMarker.isPopupOpen()) {
-                this.coordinateMarker.getPopup().setContent(createPopupContent('N/A'));
+            if (marker && marker.isPopupOpen()) {
+                const displayNum = this.coordinateMarkers.findIndex(m => m.marker === marker) + 1;
+                marker.getPopup().setContent(createPopupContent('N/A', displayNum));
             }
         }
     }
     
-    removeCoordinateMarker() {
-        if (this.coordinateMarker) {
-            this.map.removeLayer(this.coordinateMarker);
-            this.coordinateMarker = null;
-            console.log('Coordinate marker removed');
+    renumberCoordinateMarkers() {
+        // Renumber all markers sequentially based on their order in the array
+        this.coordinateMarkers.forEach((markerData, index) => {
+            const displayNumber = index + 1;
+            // Update popup content (whether open or not) so it shows correct number when opened
+            if (markerData.marker) {
+                const popup = markerData.marker.getPopup();
+                const currentContent = popup ? popup.getContent() : '';
+                // Extract existing data from popup content (lat, lng, elevation)
+                const lat = markerData.latlng.lat.toFixed(6);
+                const lng = markerData.latlng.lng.toFixed(6);
+                
+                // Try to extract elevation from current content
+                let elevationText = 'N/A';
+                if (currentContent) {
+                    const elevationMatch = currentContent.match(/Elev:\s*(.+?)</);
+                    if (elevationMatch) {
+                        elevationText = elevationMatch[1].trim();
+                    } else {
+                        // Check if it's still loading
+                        if (currentContent.includes('Loading...')) {
+                            elevationText = 'Loading...';
+                        }
+                    }
+                }
+                
+                // Recreate popup content with new number
+                const createPopupContent = (elevationText) => {
+                    return `
+                        <div style="padding: 4px; max-width: 180px; min-width: 140px;">
+                            <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px; color: #333;">User Added Marker ${displayNumber}</div>
+                            <div style="font-size: 10px; font-family: monospace; color: #555; margin-bottom: 6px; line-height: 1.4;">
+                                ${lat}, ${lng}<br>
+                                Elev: ${elevationText}
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
+                                        style="background: #007bff; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
+                                    Copy Coordinates
+                                </button>
+                                <button onclick="window.droneMap.showAddRadiusDialog('User Added Marker ${displayNumber}', ${lat}, ${lng}); return false;" 
+                                        style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
+                                    Add Radius
+                                </button>
+                                <button onclick="window.droneMap.removeCoordinateMarker(${markerData.number})" 
+                                        style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
+                                    Remove Marker
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                };
+                if (popup) {
+                    popup.setContent(createPopupContent(elevationText));
+                }
+            }
+        });
+    }
+    
+    removeCoordinateMarker(markerNumber) {
+        // Find the marker by number
+        const markerIndex = this.coordinateMarkers.findIndex(m => m.number === markerNumber);
+        if (markerIndex !== -1) {
+            const markerData = this.coordinateMarkers[markerIndex];
+            
+            // Remove marker from map
+            if (markerData.marker) {
+                this.map.removeLayer(markerData.marker);
+            }
+            
+            // Remove from array
+            this.coordinateMarkers.splice(markerIndex, 1);
+            
+            // Renumber remaining markers
+            this.renumberCoordinateMarkers();
+            
+            console.log(`Coordinate marker ${markerNumber} removed`);
+        } else {
+            console.warn(`Marker ${markerNumber} not found`);
         }
     }
     
