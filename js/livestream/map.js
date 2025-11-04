@@ -31,6 +31,43 @@ class DroneMap {
         this.airspaceProxyError = false; // Track if proxy is unreachable
         this.airspaceLoading = false; // Track if airspace is currently loading
         
+        // Country to airspace authority URL mapping
+        this.airspaceAuthorityUrls = {
+            'CA': 'https://nrc.canada.ca/en/drone-tool-2/index.html', // Canada - DSST-2
+            'US': 'https://faa.maps.arcgis.com/apps/webappviewer/index.html?id=9c2e4406710048e19806ebf6a06754ad', // USA - FAA UAS Facility Maps
+            'GB': 'https://dronesafetymap.com/', // UK - NATS Drone Assist
+            'AU': 'https://spatial.infrastructure.gov.au/portal/apps/experiencebuilder/experience/?id=5e871e08e09849308677bf4b9f45ccd9', // Australia - CASA AvSoft RPAS Maps
+            'NZ': 'https://pilot.airshare-utm.io/info', // New Zealand - AirShare NZ
+            // European countries (EASA Drone Zones)
+            'AT': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Austria
+            'BE': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Belgium
+            'BG': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Bulgaria
+            'HR': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Croatia
+            'CY': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Cyprus
+            'CZ': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Czech Republic
+            'DK': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Denmark
+            'EE': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Estonia
+            'FI': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Finland
+            'FR': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // France
+            'DE': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Germany
+            'GR': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Greece
+            'HU': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Hungary
+            'IE': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Ireland
+            'IT': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Italy
+            'LV': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Latvia
+            'LT': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Lithuania
+            'LU': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Luxembourg
+            'MT': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Malta
+            'NL': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Netherlands
+            'PL': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Poland
+            'PT': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Portugal
+            'RO': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Romania
+            'SK': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Slovakia
+            'SI': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Slovenia
+            'ES': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Spain
+            'SE': 'https://www.easa.europa.eu/en/domains/civil-drones/naa', // Sweden
+        };
+        
         // OpenAIPAirspace (At Ground) layer (Class F airways and drone-relevant airspace)
         this.droneAirspaceLayer = null;
         this.isDroneAirspaceEnabled = false; // Disabled by default
@@ -57,11 +94,6 @@ class DroneMap {
         this.airportsFeatureIds = new Set(); // For deduplication by _id
         this.airportsIndex = new Map(); // Index airports by name and ICAO for lookup
         
-        // Airports and Heliports Test layer (minimal implementation)
-        this.airportsTestMarkerCluster = null;
-        this.isAirportsTestEnabled = false;
-        this.airportsTestDebounceTimer = null;
-        
         // My location tracking
         this.myLocationMarker = null;
         this.myLocationCircle = null;
@@ -70,6 +102,44 @@ class DroneMap {
         // Airport radius circles
         this.airportRadiusCircles = [];
         this.isMyLocationVisible = false;
+        
+        // USA FAA Airspace layer
+        this.faaAirspaceLayer = null;
+        this.isFAAAirspaceEnabled = false;
+        
+        // USA FAA UAS Map layer
+        this.faaUASMapLayer = null;
+        this.isFAAUASMapEnabled = false;
+        
+        // Runways layer
+        this.runwaysLayer = null;
+        this.isRunwaysEnabled = false;
+        
+        // USA FAA Airports layer
+        this.faaAirportsLayer = null;
+        this.isFAAAirportsEnabled = false;
+        
+        this.faaLayersAcknowledged = {
+            'runways': false,
+            'uas': false,
+            'airspace': false,
+            'airports': false
+        }; // Track acknowledgment for each USA FAA layer separately
+        
+        // Track loading state for each layer type
+        this.layerLoadingStates = {
+            'airspace': false,
+            'droneAirspace': false,
+            'faaAirports': false,
+            'faaRunways': false,
+            'faaUASMap': false,
+            'faaAirspace': false
+        };
+        
+        // Track whether airports was enabled before airspace layers were turned on
+        // This helps us decide whether to auto-disable airports when airspace is turned off
+        this.airportsWasEnabledBeforeAirspace = false;
+        this.airportsWasEnabledBeforeDroneAirspace = false;
         this.myLocationAccuracy = null;
         this.isAutoLocationRequest = false; // Track if this is automatic initialization
         this.hasZoomedToUserLocation = false; // Track if we've already zoomed to user location
@@ -314,24 +384,288 @@ class DroneMap {
                 chunkedLoading: true
             });
             
-            // Initialize airports test marker cluster layer
-            this.airportsTestMarkerCluster = L.markerClusterGroup({
-                maxClusterRadius: 80,
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: true,
-                zoomToBoundsOnClick: false,
-                chunkedLoading: true
-            });
-            
             // Add map move event listener for airports auto-loading
             this.map.on('moveend', () => {
                 if (this.isAirportsEnabled) {
                     this.loadAirportsDataDebounced();
                 }
-                if (this.isAirportsTestEnabled) {
-                    this.loadAirportsTestDataDebounced();
-                }
             });
+
+                // Initialize USA FAA layers
+                if (typeof L.esri !== 'undefined' && L.esri.featureLayer) {
+                // Initialize USA FAA Airports layer
+                this.faaAirportsLayer = L.esri.featureLayer({
+                    url: 'https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/US_Airport/FeatureServer/0',
+                    pointToLayer: (feature, latlng) => {
+                        // Create red airport marker (matching other airport markers)
+                        return L.circleMarker(latlng, {
+                            radius: 8,
+                            fillColor: '#dc3545',
+                            color: '#ffffff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                    },
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties) {
+                            const props = feature.properties;
+                            const name = props.NAME || props.name || 'Unnamed';
+                            const ident = props.IDENT || props.ident || '';
+                            const icaoId = props.ICAO_ID || props.icao_id || '';
+                            const elevation = props.ELEVATION !== undefined ? props.ELEVATION : null;
+                            const typeCode = props.TYPE_CODE || props.type_code || '';
+                            const state = props.STATE || props.state || '';
+                            const city = props.SERVCITY || props.servcity || '';
+                            
+                            // Create unique feature ID
+                            const featureId = `faa-airport-${props.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                            
+                            // Format elevation display
+                            let elevationDisplay = 'N/A';
+                            if (elevation !== null && elevation !== undefined) {
+                                elevationDisplay = `${Math.round(elevation)} ft MSL`;
+                            }
+                            
+                            // Build popup content with eye button for raw properties
+                            const popupContent = `
+                                <div style="min-width: 200px;">
+                                    <div style="margin-bottom: 8px;">
+                                        <strong>${name}</strong>
+                                    </div>
+                                    ${ident ? `<div style="margin-bottom: 4px; font-size: 12px;"><strong>IDENT:</strong> ${ident}</div>` : ''}
+                                    ${icaoId ? `<div style="margin-bottom: 4px; font-size: 12px;"><strong>ICAO:</strong> ${icaoId}</div>` : ''}
+                                    ${elevationDisplay !== 'N/A' ? `<div style="margin-bottom: 4px; font-size: 12px;"><strong>Elevation:</strong> ${elevationDisplay}</div>` : ''}
+                                    ${typeCode ? `<div style="margin-bottom: 4px; font-size: 12px;"><strong>Type:</strong> ${typeCode}</div>` : ''}
+                                    ${city && state ? `<div style="margin-bottom: 4px; font-size: 12px;"><strong>Location:</strong> ${city}, ${state}</div>` : ''}
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                                        <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
+                                                style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                                            i
+                                        </button>
+                                        <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; max-height: 300px; overflow-y: auto;">${JSON.stringify(props, null, 2)}</pre>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            layer.bindPopup(popupContent);
+                            
+                            // Store feature reference for multi-hit system
+                            layer.feature = feature;
+                            layer.faaLayerType = 'airports';
+                        }
+                    }
+                });
+                
+                // Add loading event handlers for FAA Airports layer
+                this.faaAirportsLayer.on('loading', () => {
+                    this.layerLoadingStates.faaAirports = true;
+                    this.showLoadingMessage('faaAirports');
+                });
+                this.faaAirportsLayer.on('load', () => {
+                    this.layerLoadingStates.faaAirports = false;
+                    this.hideLoadingMessage('faaAirports');
+                });
+                
+                // Initialize USA FAA Airspace layer (filtered by VERTLIMITS_TXT containing "surface" or "SFC" OR (VERTLIMITS_TXT is null AND DISTVERTLOWER_VAL = 0), CLASS_CODE is not null, and CLASS_CODE is not "A" or "G")
+                this.faaAirspaceLayer = L.esri.featureLayer({
+                    url: 'https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/Airspace/FeatureServer/0',
+                    where: "(VERTLIMITS_TXT LIKE '%SURFACE%' OR VERTLIMITS_TXT LIKE '%SFC%' OR (VERTLIMITS_TXT IS NULL AND DISTVERTLOWER_VAL = 0)) AND CLASS_CODE IS NOT NULL AND CLASS_CODE <> 'A' AND CLASS_CODE <> 'G'",
+                    style: (feature) => {
+                        const props = feature.properties || {};
+                        const classCode = props.CLASS_CODE || props.class_code || '';
+                        const color = this.getFAAAirspaceClassCodeColor(classCode);
+                        const codeUpper = String(classCode).toUpperCase().trim();
+                        
+                        // Class D should have dashed blue lines
+                        const dashArray = (codeUpper === 'D') ? '5, 5' : null;
+                        
+                        return {
+                            color: color,
+                            weight: 1,
+                            fillOpacity: 0.2,
+                            fillColor: color,
+                            dashArray: dashArray
+                        };
+                    },
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties) {
+                            const props = feature.properties;
+                            const name = props.NAME_TXT || props.name_txt || props.NAME || props.name || 'Unnamed';
+                            const classCode = props.CLASS_CODE || props.class_code || props.CLASS || props.class || 'Unknown';
+                            const icaoTxt = props.ICAO_TXT || props.icao_txt || '';
+                            const milCode = props.MIL_CODE || props.mil_code || '';
+                            const vertLimitsTxt = props.VERTLIMITS_TXT || props.VERT_LIMITS_TXT || props.vert_limits_txt || '';
+                            const distVertLowerVal = props.DISTVERTLOWER_VAL !== undefined ? props.DISTVERTLOWER_VAL : (props.distvertlower_val !== undefined ? props.distvertlower_val : null);
+                            const distVertLowerCode = props.DISTVERTLOWER_CODE || props.distvertlower_code || '';
+                            const distVertUpperVal = props.DISTVERTUPPER_VAL !== undefined ? props.DISTVERTUPPER_VAL : (props.distvertupper_val !== undefined ? props.distvertupper_val : null);
+                            const distVertUpperCode = props.DISTVERTUPPER_CODE || props.distvertupper_code || '';
+                            
+                            // Create unique feature ID
+                            const featureId = `faa-${props.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                            
+                            // Format altitude display - use DISTVERTLOWER_VAL for lower (just the value)
+                            let lowerDisplay = 'N/A';
+                            if (distVertLowerVal !== null && distVertLowerVal !== undefined) {
+                                lowerDisplay = `${distVertLowerVal}`;
+                            }
+                            
+                            // Format altitude display - use DISTVERTUPPER_VAL for upper
+                            let upperDisplay = 'N/A';
+                            if (distVertUpperVal !== null && distVertUpperVal !== undefined) {
+                                const upperCode = distVertUpperCode || 'FT';
+                                upperDisplay = `${distVertUpperVal} ${upperCode}`;
+                            }
+                            
+                            // Build popup content with eye button for raw properties (narrow popup)
+                            const popupContent = `
+                                <div style="min-width: 140px; max-width: 160px;">
+                                    <div style="margin-bottom: 6px;">
+                                        <strong style="font-size: 12px;">${name}</strong>
+                                        ${icaoTxt ? `<br><span style="font-size: 10px; color: #666;">ICAO: ${icaoTxt}</span>` : ''}
+                                        <br><span style="font-size: 11px; color: #666;">Class: ${classCode}</span>
+                                        ${milCode ? `<br><span style="font-size: 10px; color: #666;">${milCode}</span>` : ''}
+                                    </div>
+                                    ${vertLimitsTxt ? `<div style="margin-bottom: 6px; font-size: 10px; color: #666; font-style: italic;">${vertLimitsTxt}</div>` : ''}
+                                    <div style="margin-bottom: 6px; font-size: 10px; line-height: 1.3;">
+                                        <div><strong>Lower:</strong> ${lowerDisplay}</div>
+                                        <div><strong>Upper:</strong> ${upperDisplay}</div>
+                                    </div>
+                                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+                                        <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
+                                                style="background: #6c757d; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; pointer-events: auto;">
+                                            i
+                                        </button>
+                                        <pre id="${featureId}" style="display: none; margin-top: 6px; padding: 6px; background: #f5f5f5; border-radius: 3px; overflow-x: auto; font-size: 9px; max-height: 200px; overflow-y: auto;">${JSON.stringify(props, null, 2)}</pre>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            layer.bindPopup(popupContent);
+                            
+                            // Store feature reference for multi-hit system
+                            layer.feature = feature;
+                            layer.faaLayerType = 'airspace';
+                        }
+                    }
+                });
+                
+                // Add loading event handlers for FAA Airspace layer
+                this.faaAirspaceLayer.on('loading', () => {
+                    this.layerLoadingStates.faaAirspace = true;
+                    this.showLoadingMessage('faaAirspace');
+                });
+                this.faaAirspaceLayer.on('load', () => {
+                    this.layerLoadingStates.faaAirspace = false;
+                    this.hideLoadingMessage('faaAirspace');
+                });
+                
+                // Initialize Runways layer
+                this.runwaysLayer = L.esri.featureLayer({
+                    url: 'https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/RunwayArea/FeatureServer/0',
+                    style: function(feature) {
+                        return {
+                            color: '#0066cc',
+                            weight: 2,
+                            fillOpacity: 0.2
+                        };
+                    },
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties) {
+                            // Create unique feature ID
+                            const featureId = `runway-${feature.properties.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                            
+                            // Build popup content with eye button for raw properties
+                            const props = feature.properties;
+                            const name = props.name || props.NAME || props.Runway || 'Runway Area';
+                            const popupContent = `
+                                <div style="min-width: 200px;">
+                                    <div style="margin-bottom: 8px;">
+                                        <strong>${name}</strong>
+                                    </div>
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                                        <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
+                                                style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                                            i
+                                        </button>
+                                        <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; max-height: 300px; overflow-y: auto;">${JSON.stringify(props, null, 2)}</pre>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            layer.bindPopup(popupContent);
+                            
+                            // Store feature reference for multi-hit system
+                            layer.feature = feature;
+                            layer.faaLayerType = 'runways';
+                        }
+                    }
+                });
+                
+                // Add loading event handlers for Runways layer
+                this.runwaysLayer.on('loading', () => {
+                    this.layerLoadingStates.faaRunways = true;
+                    this.showLoadingMessage('faaRunways');
+                });
+                this.runwaysLayer.on('load', () => {
+                    this.layerLoadingStates.faaRunways = false;
+                    this.hideLoadingMessage('faaRunways');
+                });
+                
+                // Initialize USA FAA UAS Map layer
+                this.faaUASMapLayer = L.esri.featureLayer({
+                    url: 'https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/ArcGIS/rest/services/FAA_UAS_FacilityMap_Data/FeatureServer/0',
+                    style: function(feature) {
+                        return {
+                            color: '#ff8800',
+                            weight: 1,
+                            fillOpacity: 0.15
+                        };
+                    },
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties) {
+                            // Create unique feature ID
+                            const featureId = `faauas-${feature.properties.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                            
+                            // Build popup content with eye button for raw properties
+                            const props = feature.properties;
+                            const name = props.name || props.NAME || props.Facility || 'UAS Facility Area';
+                            const popupContent = `
+                                <div style="min-width: 200px;">
+                                    <div style="margin-bottom: 8px;">
+                                        <strong>${name}</strong>
+                                    </div>
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                                        <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
+                                                style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                                            i
+                                        </button>
+                                        <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; max-height: 300px; overflow-y: auto;">${JSON.stringify(props, null, 2)}</pre>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            layer.bindPopup(popupContent);
+                            
+                            // Store feature reference for multi-hit system
+                            layer.feature = feature;
+                            layer.faaLayerType = 'uas';
+                        }
+                    }
+                });
+                
+                // Add loading event handlers for FAA UAS Map layer
+                this.faaUASMapLayer.on('loading', () => {
+                    this.layerLoadingStates.faaUASMap = true;
+                    this.showLoadingMessage('faaUASMap');
+                });
+                this.faaUASMapLayer.on('load', () => {
+                    this.layerLoadingStates.faaUASMap = false;
+                    this.hideLoadingMessage('faaUASMap');
+                });
+            } else {
+                console.warn('Esri Leaflet not loaded. FAA Airspace, FAA UAS Map, and Runways layers will not be available.');
+            }
 
             this.addCustomControls();
 
@@ -615,13 +949,13 @@ class DroneMap {
                 </button>
                 <div id="otherBasemapsList" style="display: ${isOtherBasemapsOpen ? 'block' : 'none'}; margin-top: 6px; padding-left: 4px;">
                     ${Object.keys(this.otherBaseMaps).map(name => `
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
-                            <input type="radio" name="basemap" value="${name}" 
-                                   ${name === this.currentBaseMap ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
-                            ${name}
-                        </label>
-                    `).join('')}
+                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                    <input type="radio" name="basemap" value="${name}" 
+                           ${name === this.currentBaseMap ? 'checked' : ''} 
+                           style="margin-right: 8px;">
+                    ${name}
+                </label>
+            `).join('')}
                 </div>
             </div>
             
@@ -632,30 +966,60 @@ class DroneMap {
                            style="margin-right: 8px;">
                     Airspace (At Ground)
                 </label>
-                <div id="droneAirspaceSubLayers" style="margin-left: 20px; margin-top: 4px; display: ${this.isDroneAirspaceEnabled ? 'block' : 'none'};">
-                    <label style="display: block; margin: 4px 0; cursor: pointer; font-size: 12px; padding: 2px 0; color: #666; font-weight: 400;">
-                        <input type="checkbox" id="droneAirspaceAirportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
-                               style="margin-right: 8px;">
-                        Airports/Heliports
-                    </label>
-                </div>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
                     Airspace (All)
                 </label>
-                <div id="airspaceSubLayers" style="margin-left: 20px; margin-top: 4px; display: ${this.isAirspaceEnabled ? 'block' : 'none'};">
-                    <label style="display: block; margin: 4px 0; cursor: pointer; font-size: 12px; padding: 2px 0; color: #666; font-weight: 400;">
-                        <input type="checkbox" id="airspaceAirportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
-                               style="margin-right: 8px;">
-                        Airports/Heliports
-                    </label>
-                </div>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
                     Airports/Heliports
                 </label>
+                
+                <!-- USA FAA Layers dropdown -->
+                <div style="margin: 8px 0;">
+                    <button id="faaLayersToggle" type="button" style="
+                        width: 100%;
+                        background: #f8f9fa;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                        padding: 6px 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        color: #000;
+                        text-align: left;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <span>USAFAA layers</span>
+                        <span style="font-size: 10px;">▶</span>
+                    </button>
+                    <div id="faaLayersList" style="display: none; margin-top: 6px; padding-left: 4px;">
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            USA FAA Airports
+                        </label>
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="checkbox" id="runwaysToggle" ${this.isRunwaysEnabled ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            USA FAA Runways
+                        </label>
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="checkbox" id="faaUASMapToggle" ${this.isFAAUASMapEnabled ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            USA FAA UAS Map
+                        </label>
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="checkbox" id="faaAirspaceToggle" ${this.isFAAAirspaceEnabled ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            USA FAA airspace<br>
+                            <span style="margin-left: 24px; font-size: 11px;">(At Ground)</span>
+                        </label>
+                    </div>
+                </div>
             </div>
         `;
         
@@ -684,6 +1048,54 @@ class DroneMap {
             });
         }
         
+        // Add event listener for USA FAA Airports toggle
+        const faaAirportsToggle = this.baseMapPopup.querySelector('#faaAirportsToggle');
+        if (faaAirportsToggle) {
+            faaAirportsToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            faaAirportsToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleFAAAirports(e.target.checked);
+            });
+        }
+
+        // Add event listener for Runways toggle
+        const runwaysToggle = this.baseMapPopup.querySelector('#runwaysToggle');
+        if (runwaysToggle) {
+            runwaysToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            runwaysToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleRunways(e.target.checked);
+            });
+        }
+
+        // Add event listener for FAA UAS Map toggle
+        const faaUASMapToggle = this.baseMapPopup.querySelector('#faaUASMapToggle');
+        if (faaUASMapToggle) {
+            faaUASMapToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            faaUASMapToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleFAAUASMap(e.target.checked);
+            });
+        }
+
+        // Add event listener for FAA Airspace toggle
+        const faaAirspaceToggle = this.baseMapPopup.querySelector('#faaAirspaceToggle');
+        if (faaAirspaceToggle) {
+            faaAirspaceToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            faaAirspaceToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleFAAAirspace(e.target.checked);
+            });
+        }
+
         // Add event listener for airports toggle
         const airportsToggle = this.baseMapPopup.querySelector('#airportsToggle');
         if (airportsToggle) {
@@ -693,40 +1105,6 @@ class DroneMap {
             airportsToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirports(e.target.checked);
-            });
-        }
-        
-        // Add event listener for drone airspace airports sublayer toggle
-        const droneAirspaceAirportsToggle = this.baseMapPopup.querySelector('#droneAirspaceAirportsToggle');
-        if (droneAirspaceAirportsToggle) {
-            droneAirspaceAirportsToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            droneAirspaceAirportsToggle.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent event from bubbling to document
-                this.toggleAirports(e.target.checked);
-                // Sync the standalone airports toggle
-                const airportsToggle = document.querySelector('#airportsToggle');
-                if (airportsToggle) {
-                    airportsToggle.checked = e.target.checked;
-                }
-            });
-        }
-        
-        // Add event listener for airspace airports sublayer toggle
-        const airspaceAirportsToggle = this.baseMapPopup.querySelector('#airspaceAirportsToggle');
-        if (airspaceAirportsToggle) {
-            airspaceAirportsToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            airspaceAirportsToggle.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent event from bubbling to document
-                this.toggleAirports(e.target.checked);
-                // Sync the standalone airports toggle
-                const airportsToggle = document.querySelector('#airportsToggle');
-                if (airportsToggle) {
-                    airportsToggle.checked = e.target.checked;
-                }
             });
         }
         
@@ -742,6 +1120,24 @@ class DroneMap {
                 const isOpen = otherBasemapsList.style.display !== 'none';
                 otherBasemapsList.style.display = isOpen ? 'none' : 'block';
                 const arrow = otherBasemapsToggle.querySelector('span:last-child');
+                if (arrow) {
+                    arrow.textContent = isOpen ? '▶' : '▼';
+                }
+            });
+        }
+        
+        // Add event listener for "USAFAA layers" toggle button
+        const faaLayersToggle = this.baseMapPopup.querySelector('#faaLayersToggle');
+        const faaLayersList = this.baseMapPopup.querySelector('#faaLayersList');
+        if (faaLayersToggle && faaLayersList) {
+            faaLayersToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            faaLayersToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = faaLayersList.style.display !== 'none';
+                faaLayersList.style.display = isOpen ? 'none' : 'block';
+                const arrow = faaLayersToggle.querySelector('span:last-child');
                 if (arrow) {
                     arrow.textContent = isOpen ? '▶' : '▼';
                 }
@@ -966,7 +1362,7 @@ class DroneMap {
         const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
         unitSelect.addEventListener('change', (e) => {
             if (this.measurementType === 'line') {
-                this.measurementUnit = e.target.value;
+            this.measurementUnit = e.target.value;
             } else {
                 this.measurementAreaUnit = e.target.value;
             }
@@ -1073,9 +1469,9 @@ class DroneMap {
         
         if (distanceDiv && unitLabelDiv) {
             if (this.measurementType === 'line') {
-                const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
-                distanceDiv.textContent = convertedDistance.toFixed(2);
-                unitLabelDiv.textContent = this.measurementUnit;
+            const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
+            distanceDiv.textContent = convertedDistance.toFixed(2);
+            unitLabelDiv.textContent = this.measurementUnit;
             } else {
                 // Polygon mode - show area
                 const convertedArea = this.convertArea(this.measurementArea, this.measurementAreaUnit);
@@ -1273,35 +1669,35 @@ class DroneMap {
         if (this.measurementPoints.length === 0) return;
         
         if (this.measurementType === 'line') {
-            // Remove the last point
-            this.measurementPoints.pop();
-            
-            // Remove the last marker
-            const lastMarker = this.measurementMarkers.pop();
-            if (lastMarker) {
-                this.map.removeLayer(lastMarker);
-            }
-            
-            // If we had a line to the last point, remove it and update distance
-            if (this.measurementPoints.length > 0 && this.measurementPolylines.length > 0) {
-                const lastPolyline = this.measurementPolylines.pop();
-                if (lastPolyline) {
-                    this.map.removeLayer(lastPolyline);
+        // Remove the last point
+        this.measurementPoints.pop();
+        
+        // Remove the last marker
+        const lastMarker = this.measurementMarkers.pop();
+        if (lastMarker) {
+            this.map.removeLayer(lastMarker);
+        }
+        
+        // If we had a line to the last point, remove it and update distance
+        if (this.measurementPoints.length > 0 && this.measurementPolylines.length > 0) {
+            const lastPolyline = this.measurementPolylines.pop();
+            if (lastPolyline) {
+                this.map.removeLayer(lastPolyline);
+                
+                // Recalculate total distance
+                if (this.measurementPoints.length >= 2) {
+                    // Subtract the distance from the removed line
+                    const secondLastPoint = this.measurementPoints[this.measurementPoints.length - 2];
+                    const lastPoint = this.measurementPoints[this.measurementPoints.length - 1];
                     
-                    // Recalculate total distance
-                    if (this.measurementPoints.length >= 2) {
-                        // Subtract the distance from the removed line
-                        const secondLastPoint = this.measurementPoints[this.measurementPoints.length - 2];
-                        const lastPoint = this.measurementPoints[this.measurementPoints.length - 1];
-                        
-                        const distanceM = secondLastPoint.distanceTo(lastPoint);
-                        const distanceNM = distanceM / 1852;
-                        this.measurementTotalDistance -= distanceNM;
-                    }
+                    const distanceM = secondLastPoint.distanceTo(lastPoint);
+                    const distanceNM = distanceM / 1852;
+                    this.measurementTotalDistance -= distanceNM;
                 }
-            } else {
-                // No line to remove, just reset distance to 0
-                this.measurementTotalDistance = 0;
+            }
+        } else {
+            // No line to remove, just reset distance to 0
+            this.measurementTotalDistance = 0;
             }
         } else {
             // Polygon mode
@@ -1351,6 +1747,9 @@ class DroneMap {
         this.isDroneAirspaceEnabled = enabled;
         
         if (enabled) {
+            // Track whether airports was already enabled before we turn on airspace
+            this.airportsWasEnabledBeforeDroneAirspace = this.isAirportsEnabled;
+            
             // Add layer to map
             if (!this.map.hasLayer(this.droneAirspaceLayer)) {
                 this.droneAirspaceLayer.addTo(this.map);
@@ -1362,19 +1761,12 @@ class DroneMap {
             // Auto-enable airports if not already enabled
             if (!this.isAirportsEnabled) {
                 this.toggleAirports(true);
-                // Update checkboxes to sync
-                const droneAirspaceAirportsToggle = document.querySelector('#droneAirspaceAirportsToggle');
-                if (droneAirspaceAirportsToggle) {
-                    droneAirspaceAirportsToggle.checked = true;
-                }
+                // Update checkbox to sync
                 const airportsToggle = document.querySelector('#airportsToggle');
                 if (airportsToggle) {
                     airportsToggle.checked = true;
                 }
             }
-            
-            // Show sublayers
-            this.updateAirspaceSublayers();
         } else {
             // Remove layer from map
             if (this.map.hasLayer(this.droneAirspaceLayer)) {
@@ -1384,8 +1776,19 @@ class DroneMap {
             this.droneAirspaceCache.clear();
             this.droneAirspaceFeatureIds.clear();
             
-            // Hide sublayers
-            this.updateAirspaceSublayers();
+            // Auto-disable airports only if we auto-enabled it (it wasn't enabled before)
+            if (!this.airportsWasEnabledBeforeDroneAirspace && this.isAirportsEnabled) {
+                // Check if the other airspace layer is also enabled
+                // If it is, we should check if airports was enabled before that one too
+                if (!this.isAirspaceEnabled || !this.airportsWasEnabledBeforeAirspace) {
+                    this.toggleAirports(false);
+                    // Update checkbox to sync
+                    const airportsToggle = document.querySelector('#airportsToggle');
+                    if (airportsToggle) {
+                        airportsToggle.checked = false;
+                    }
+                }
+            }
         }
     }
 
@@ -1401,6 +1804,9 @@ class DroneMap {
         this.isAirspaceEnabled = enabled;
         
         if (enabled) {
+            // Track whether airports was already enabled before we turn on airspace
+            this.airportsWasEnabledBeforeAirspace = this.isAirportsEnabled;
+            
             // Add layer to map
             if (!this.map.hasLayer(this.airspaceLayer)) {
                 this.airspaceLayer.addTo(this.map);
@@ -1412,19 +1818,12 @@ class DroneMap {
             // Auto-enable airports if not already enabled
             if (!this.isAirportsEnabled) {
                 this.toggleAirports(true);
-                // Update checkboxes to sync
-                const airspaceAirportsToggle = document.querySelector('#airspaceAirportsToggle');
-                if (airspaceAirportsToggle) {
-                    airspaceAirportsToggle.checked = true;
-                }
+                // Update checkbox to sync
                 const airportsToggle = document.querySelector('#airportsToggle');
                 if (airportsToggle) {
                     airportsToggle.checked = true;
                 }
             }
-            
-            // Show sublayers
-            this.updateAirspaceSublayers();
         } else {
             // Remove layer from map
             if (this.map.hasLayer(this.airspaceLayer)) {
@@ -1436,25 +1835,22 @@ class DroneMap {
             this.airspaceProxyError = false;
             this.hideProxyErrorMessage();
             
-            // Hide sublayers
-            this.updateAirspaceSublayers();
+            // Auto-disable airports only if we auto-enabled it (it wasn't enabled before)
+            if (!this.airportsWasEnabledBeforeAirspace && this.isAirportsEnabled) {
+                // Check if the other airspace layer is also enabled
+                // If it is, we should check if airports was enabled before that one too
+                if (!this.isDroneAirspaceEnabled || !this.airportsWasEnabledBeforeDroneAirspace) {
+                    this.toggleAirports(false);
+                    // Update checkbox to sync
+                    const airportsToggle = document.querySelector('#airportsToggle');
+                    if (airportsToggle) {
+                        airportsToggle.checked = false;
+                    }
+                }
+            }
         }
     }
     
-    updateAirspaceSublayers() {
-        // Show/hide sublayers based on airspace layer states
-        if (!this.baseMapPopup) return;
-        
-        const droneAirspaceSubLayers = this.baseMapPopup.querySelector('#droneAirspaceSubLayers');
-        const airspaceSubLayers = this.baseMapPopup.querySelector('#airspaceSubLayers');
-        
-        if (droneAirspaceSubLayers) {
-            droneAirspaceSubLayers.style.display = this.isDroneAirspaceEnabled ? 'block' : 'none';
-        }
-        if (airspaceSubLayers) {
-            airspaceSubLayers.style.display = this.isAirspaceEnabled ? 'block' : 'none';
-        }
-    }
 
     showAirspaceAcknowledgment() {
         // Create modal overlay
@@ -1477,35 +1873,67 @@ class DroneMap {
         modalContent.style.cssText = `
             background: white;
             border-radius: 8px;
-            padding: 24px;
-            max-width: 500px;
+            padding: 0;
+            max-width: 420px;
+            width: calc(100% - 40px);
             margin: 20px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
         `;
 
         modalContent.innerHTML = `
-            <h2 style="margin: 0 0 16px 0; font-size: 20px; color: #333;">Airspace Data Notice</h2>
-            <p style="margin: 0 0 16px 0; line-height: 1.6; color: #555;">
-                This airspace layer may be incomplete. Some restricted or controlled airspace may not be shown on this map.<br><br>
-                Data source: <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP</a>.<br><br>
-                If you notice missing or incorrect airspace or aerodrome information, you can contribute updates on the <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP website</a>.
-            </p>
-            <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+            <div style="
+                background: #dc3545;
+                color: white;
+                padding: 12px 16px;
+                font-weight: bold;
+                font-size: 15px;
+                text-align: center;
+            ">
+                Warning: Incomplete Airspace Data
+            </div>
+            <div style="padding: 18px 16px;">
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    This airspace layer may be incomplete or outdated.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Some restricted, controlled, or sensitive airspace may not appear on this map.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Data source: <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP</a> — a free, open-source, community-maintained airspace dataset.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    If you notice missing or incorrect information — such as airspace boundaries, frequencies, or aerodrome details — you can contribute updates directly on the <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP website</a>.
+                </p>
+                <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    ✈️ For authoritative and up-to-date airspace information, always refer to your local airspace authority before flight. <button id="localAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0 4px; vertical-align: middle; font-weight: bold;" title="View alternative airspace map">ℹ️</button>
+                </p>
+            </div>
+            <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
                 <button id="airspaceAcknowledgeBtn" style="
                     background: #28a745;
                     color: white;
                     border: none;
-                    padding: 10px 20px;
+                    padding: 10px 28px;
                     border-radius: 4px;
                     cursor: pointer;
                     font-size: 14px;
                     font-weight: 600;
-                ">Acknowledge</button>
+                    min-width: 180px;
+                ">Acknowledge & Continue</button>
             </div>
         `;
 
         modal.appendChild(modalContent);
         document.body.appendChild(modal);
+
+        // Handle local airspace authority info button
+        const localAuthorityInfoBtn = modalContent.querySelector('#localAirspaceAuthorityInfoBtn');
+        localAuthorityInfoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showAirspaceAuthorityInfoPopup(modal);
+        });
 
         // Handle acknowledge button
         const acknowledgeBtn = modalContent.querySelector('#airspaceAcknowledgeBtn');
@@ -1523,12 +1951,13 @@ class DroneMap {
                     this.droneAirspaceLayer.addTo(this.map);
                 }
                 this.loadDroneAirspaceDataDebounced();
+                // Track whether airports was already enabled before we turn on airspace
+                this.airportsWasEnabledBeforeDroneAirspace = this.isAirportsEnabled;
                 // Auto-enable airports
                 if (!this.isAirportsEnabled) {
                     this.airportsAcknowledged = true; // Already shown
                     this.toggleAirports(true);
                 }
-                this.updateAirspaceSublayers();
             } else if (airspaceToggle && airspaceToggle.checked) {
                 this.airspaceAcknowledged = true;
                 this.isAirspaceEnabled = true; // Set the enabled flag
@@ -1537,12 +1966,13 @@ class DroneMap {
                     this.airspaceLayer.addTo(this.map);
                 }
                 this.loadAirspaceDataDebounced();
+                // Track whether airports was already enabled before we turn on airspace
+                this.airportsWasEnabledBeforeAirspace = this.isAirportsEnabled;
                 // Auto-enable airports
                 if (!this.isAirportsEnabled) {
                     this.airportsAcknowledged = true; // Already shown
                     this.toggleAirports(true);
                 }
-                this.updateAirspaceSublayers();
             } else if (airportsToggle && airportsToggle.checked) {
                 this.airportsAcknowledged = true;
                 this.isAirportsEnabled = true; // Set the enabled flag
@@ -1578,6 +2008,222 @@ class DroneMap {
                 document.body.removeChild(modal);
             }
         });
+    }
+
+    async handleLocalAirspaceAuthorityClick(modal) {
+        let lat, lng;
+
+        // Check if we already have location from the user's location marker
+        if (this.myLocationMarker) {
+            const latlng = this.myLocationMarker.getLatLng();
+            lat = latlng.lat;
+            lng = latlng.lng;
+            console.log('Using existing location:', lat, lng);
+            await this.openAirspaceAuthorityUrl(lat, lng);
+            return;
+        }
+
+        // Check if geolocation is available
+        if (!navigator.geolocation) {
+            this.showLocationAccessDeniedMessage(modal);
+            return;
+        }
+
+        // Request location permission
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                lat = position.coords.latitude;
+                lng = position.coords.longitude;
+                console.log('Location obtained:', lat, lng);
+                await this.openAirspaceAuthorityUrl(lat, lng);
+            },
+            (error) => {
+                console.error('Location access denied or error:', error);
+                this.showLocationAccessDeniedMessage(modal);
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 60000 // Accept cached location up to 1 minute old
+            }
+        );
+    }
+
+    async openAirspaceAuthorityUrl(lat, lng) {
+        try {
+            // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key needed)
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=3&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'EagleEyes-Viewer/1.0' // Required by Nominatim
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Reverse geocoding failed');
+            }
+
+            const data = await response.json();
+            const countryCode = data.address?.country_code?.toUpperCase();
+
+            if (countryCode && this.airspaceAuthorityUrls[countryCode]) {
+                // Open the country-specific airspace authority URL
+                window.open(this.airspaceAuthorityUrls[countryCode], '_blank', 'noopener,noreferrer');
+            } else {
+                // Country not in our mapping yet
+                alert('We don\'t currently have an airspace map available for your location. Please consult your local aviation authority for official airspace information.');
+            }
+        } catch (error) {
+            console.error('Error getting country from location:', error);
+            alert('We don\'t currently have an airspace map available for your location. Please consult your local aviation authority for official airspace information.');
+        }
+    }
+
+    showAirspaceAuthorityInfoPopup(parentModal) {
+        // Create a small info popup
+        const infoPopup = document.createElement('div');
+        infoPopup.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 320px;
+            width: calc(100% - 40px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            z-index: 10001;
+            font-family: Arial, sans-serif;
+        `;
+
+        infoPopup.innerHTML = `
+            <div style="margin-bottom: 18px;">
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Open an alternative airspace map for your location.
+                </p>
+                <p style="margin: 0 0 0 0; line-height: 1.6; color: #666; font-size: 12px; font-style: italic;">
+                    Note: This map may not be the authoritative source. Always verify with official authorities.
+                </p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="openAirspaceMapBtn" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 10px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 600;
+                    width: 100%;
+                ">Open Local Map</button>
+                <button id="openDJIMapBtn" style="
+                    background: #314268;
+                    color: white;
+                    border: none;
+                    padding: 10px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    width: 100%;
+                ">See DJI GEO Zone Map</button>
+                <button id="cancelInfoBtn" style="
+                    background: #6c757d;
+                    color: white;
+                    border: none;
+                    padding: 10px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    width: 100%;
+                ">Cancel</button>
+            </div>
+        `;
+
+        // Create backdrop first
+        const backdrop = document.createElement('div');
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+        `;
+        document.body.appendChild(backdrop);
+        document.body.appendChild(infoPopup);
+
+        // Handle cancel button
+        const cancelBtn = infoPopup.querySelector('#cancelInfoBtn');
+        cancelBtn.addEventListener('click', () => {
+            if (backdrop.parentElement) {
+                document.body.removeChild(backdrop);
+            }
+            if (infoPopup.parentElement) {
+                document.body.removeChild(infoPopup);
+            }
+        });
+
+        // Handle DJI GEO Zone Map button
+        const openDJIMapBtn = infoPopup.querySelector('#openDJIMapBtn');
+        openDJIMapBtn.addEventListener('click', () => {
+            window.open('https://fly-safe.dji.com/nfz/nfz-query', '_blank', 'noopener,noreferrer');
+            if (backdrop.parentElement) {
+                document.body.removeChild(backdrop);
+            }
+            if (infoPopup.parentElement) {
+                document.body.removeChild(infoPopup);
+            }
+        });
+
+        // Handle open local map button
+        const openMapBtn = infoPopup.querySelector('#openAirspaceMapBtn');
+        openMapBtn.addEventListener('click', async () => {
+            if (backdrop.parentElement) {
+                document.body.removeChild(backdrop);
+            }
+            if (infoPopup.parentElement) {
+                document.body.removeChild(infoPopup);
+            }
+            await this.handleLocalAirspaceAuthorityClick(parentModal);
+        });
+        
+        // Close on background click
+        backdrop.addEventListener('click', () => {
+            if (infoPopup.parentElement) {
+                document.body.removeChild(infoPopup);
+            }
+            if (backdrop.parentElement) {
+                document.body.removeChild(backdrop);
+            }
+        });
+    }
+
+    showLocationAccessDeniedMessage(modal) {
+        const modalContent = modal.querySelector('div[style*="background: white"]');
+        if (modalContent) {
+            const errorMessage = document.createElement('div');
+            errorMessage.style.cssText = `
+                background: #fff3cd;
+                border: 1px solid #ffc107;
+                color: #856404;
+                padding: 12px;
+                border-radius: 4px;
+                margin-top: 12px;
+                font-size: 13px;
+            `;
+            errorMessage.textContent = 'We couldn\'t determine your local airspace authority without location access.';
+            
+            // Insert after the last paragraph
+            const lastParagraph = modalContent.querySelector('p:last-of-type');
+            if (lastParagraph && lastParagraph.parentElement) {
+                lastParagraph.parentElement.insertBefore(errorMessage, lastParagraph.nextSibling);
+            }
+        }
     }
 
     loadAirspaceDataDebounced() {
@@ -1756,6 +2402,277 @@ class DroneMap {
         return 'http://localhost:8081';
     }
 
+    // ===== USA FAA Airports Layer Methods =====
+
+    toggleFAAAirports(enabled) {
+        if (!this.faaAirportsLayer) {
+            console.warn('USA FAA Airports layer not available. Esri Leaflet may not be loaded.');
+            return;
+        }
+
+        if (enabled && !this.faaLayersAcknowledged.airports) {
+            // Show acknowledgment modal if not already acknowledged
+            this.showFAAAirspaceAcknowledgment('airports');
+            return; // Will enable after acknowledgment
+        }
+
+        this.isFAAAirportsEnabled = enabled;
+
+        if (enabled) {
+            // Add layer to map
+            if (!this.map.hasLayer(this.faaAirportsLayer)) {
+                this.faaAirportsLayer.addTo(this.map);
+            }
+        } else {
+            // Remove layer from map
+            if (this.map.hasLayer(this.faaAirportsLayer)) {
+                this.map.removeLayer(this.faaAirportsLayer);
+            }
+        }
+    }
+
+    // ===== Runways Layer Methods =====
+
+    toggleRunways(enabled) {
+        if (!this.runwaysLayer) {
+            console.warn('Runways layer not available. Esri Leaflet may not be loaded.');
+            return;
+        }
+
+        if (enabled && !this.faaLayersAcknowledged.runways) {
+            // Show acknowledgment modal if not already acknowledged
+            this.showFAAAirspaceAcknowledgment('runways');
+            return; // Will enable after acknowledgment
+        }
+
+        this.isRunwaysEnabled = enabled;
+
+        if (enabled) {
+            // Add layer to map
+            if (!this.map.hasLayer(this.runwaysLayer)) {
+                this.runwaysLayer.addTo(this.map);
+            }
+        } else {
+            // Remove layer from map
+            if (this.map.hasLayer(this.runwaysLayer)) {
+                this.map.removeLayer(this.runwaysLayer);
+            }
+        }
+    }
+
+    // ===== USA FAA UAS Map Layer Methods =====
+
+    toggleFAAUASMap(enabled) {
+        if (!this.faaUASMapLayer) {
+            console.warn('FAA UAS Map layer not available. Esri Leaflet may not be loaded.');
+            return;
+        }
+
+        if (enabled && !this.faaLayersAcknowledged.uas) {
+            // Show acknowledgment modal if not already acknowledged
+            this.showFAAAirspaceAcknowledgment('uas');
+            return; // Will enable after acknowledgment
+        }
+
+        this.isFAAUASMapEnabled = enabled;
+
+        if (enabled) {
+            // Add layer to map
+            if (!this.map.hasLayer(this.faaUASMapLayer)) {
+                this.faaUASMapLayer.addTo(this.map);
+            }
+        } else {
+            // Remove layer from map
+            if (this.map.hasLayer(this.faaUASMapLayer)) {
+                this.map.removeLayer(this.faaUASMapLayer);
+            }
+        }
+    }
+
+    // ===== USA FAA Airspace Layer Methods =====
+
+    toggleFAAAirspace(enabled) {
+        if (!this.faaAirspaceLayer) {
+            console.warn('FAA Airspace layer not available. Esri Leaflet may not be loaded.');
+            return;
+        }
+
+        if (enabled && !this.faaLayersAcknowledged.airspace) {
+            // Show acknowledgment modal if not already acknowledged
+            this.showFAAAirspaceAcknowledgment('airspace');
+            return; // Will enable after acknowledgment
+        }
+
+        this.isFAAAirspaceEnabled = enabled;
+
+        if (enabled) {
+            // Add layer to map
+            if (!this.map.hasLayer(this.faaAirspaceLayer)) {
+                this.faaAirspaceLayer.addTo(this.map);
+            }
+        } else {
+            // Remove layer from map
+            if (this.map.hasLayer(this.faaAirspaceLayer)) {
+                this.map.removeLayer(this.faaAirspaceLayer);
+            }
+        }
+    }
+
+    // ===== USA FAA Layers Disclaimer =====
+
+    showFAAAirspaceAcknowledgment(layerType) {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            padding: 0;
+            max-width: 420px;
+            width: calc(100% - 40px);
+            margin: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
+        `;
+
+        modalContent.innerHTML = `
+            <div style="
+                background: #dc3545;
+                color: white;
+                padding: 12px 16px;
+                font-weight: bold;
+                font-size: 15px;
+                text-align: center;
+            ">
+                Warning: Airspace May Not Be Complete
+            </div>
+            <div style="padding: 18px 16px;">
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    This airspace layer may be incomplete or outdated.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Some restricted, controlled, or sensitive airspace may not appear on this map.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Data source: <a href="https://adds-faa.opendata.arcgis.com/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">Federal Aviation Authority</a>.
+                </p>
+                <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    ✈️ For authoritative and up-to-date airspace information, always refer to your local airspace authority before flight. <button id="localAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0 4px; vertical-align: middle; font-weight: bold;" title="View alternative airspace map">ℹ️</button>
+                </p>
+            </div>
+            <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
+                <button id="faaAcknowledgeBtn" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 10px 28px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    min-width: 180px;
+                ">Acknowledge & Continue</button>
+            </div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // Handle local airspace authority info button
+        const localAuthorityInfoBtn = modalContent.querySelector('#localAirspaceAuthorityInfoBtn');
+        localAuthorityInfoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showAirspaceAuthorityInfoPopup(modal);
+        });
+
+        // Handle acknowledge button
+        const acknowledgeBtn = modalContent.querySelector('#faaAcknowledgeBtn');
+        acknowledgeBtn.addEventListener('click', () => {
+            // Mark only this specific layer as acknowledged
+            if (layerType === 'runways') {
+                this.faaLayersAcknowledged.runways = true;
+            } else if (layerType === 'uas') {
+                this.faaLayersAcknowledged.uas = true;
+            } else if (layerType === 'airspace') {
+                this.faaLayersAcknowledged.airspace = true;
+            } else if (layerType === 'airports') {
+                this.faaLayersAcknowledged.airports = true;
+            }
+            
+            // Enable the layer that was being toggled
+            const runwaysToggle = document.querySelector('#runwaysToggle');
+            const faaUASMapToggle = document.querySelector('#faaUASMapToggle');
+            const faaAirspaceToggle = document.querySelector('#faaAirspaceToggle');
+            const faaAirportsToggle = document.querySelector('#faaAirportsToggle');
+            
+            if (layerType === 'runways' && runwaysToggle && runwaysToggle.checked) {
+                this.isRunwaysEnabled = true;
+                if (!this.map.hasLayer(this.runwaysLayer)) {
+                    this.runwaysLayer.addTo(this.map);
+                }
+            } else if (layerType === 'uas' && faaUASMapToggle && faaUASMapToggle.checked) {
+                this.isFAAUASMapEnabled = true;
+                if (!this.map.hasLayer(this.faaUASMapLayer)) {
+                    this.faaUASMapLayer.addTo(this.map);
+                }
+            } else if (layerType === 'airspace' && faaAirspaceToggle && faaAirspaceToggle.checked) {
+                this.isFAAAirspaceEnabled = true;
+                if (!this.map.hasLayer(this.faaAirspaceLayer)) {
+                    this.faaAirspaceLayer.addTo(this.map);
+                }
+            } else if (layerType === 'airports' && faaAirportsToggle && faaAirportsToggle.checked) {
+                this.isFAAAirportsEnabled = true;
+                if (!this.map.hasLayer(this.faaAirportsLayer)) {
+                    this.faaAirportsLayer.addTo(this.map);
+                }
+            }
+            
+            document.body.removeChild(modal);
+        });
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                // User clicked outside, disable the layer that was being toggled
+                const runwaysToggle = document.querySelector('#runwaysToggle');
+                const faaUASMapToggle = document.querySelector('#faaUASMapToggle');
+                const faaAirspaceToggle = document.querySelector('#faaAirspaceToggle');
+                const faaAirportsToggle = document.querySelector('#faaAirportsToggle');
+                
+                if (layerType === 'runways' && runwaysToggle) {
+                    this.isRunwaysEnabled = false;
+                    runwaysToggle.checked = false;
+                } else if (layerType === 'uas' && faaUASMapToggle) {
+                    this.isFAAUASMapEnabled = false;
+                    faaUASMapToggle.checked = false;
+                } else if (layerType === 'airspace' && faaAirspaceToggle) {
+                    this.isFAAAirspaceEnabled = false;
+                    faaAirspaceToggle.checked = false;
+                } else if (layerType === 'airports' && faaAirportsToggle) {
+                    this.isFAAAirportsEnabled = false;
+                    faaAirportsToggle.checked = false;
+                }
+                
+                document.body.removeChild(modal);
+            }
+        });
+    }
+
     // ===== Airports/Heliports Layer Methods =====
     
     toggleAirports(enabled) {
@@ -1786,19 +2703,11 @@ class DroneMap {
             this.airportsFeatureIds.clear();
         }
         
-        // Sync all airport toggles
+        // Sync airport toggle
         const airportsToggle = document.querySelector('#airportsToggle');
-        const droneAirspaceAirportsToggle = document.querySelector('#droneAirspaceAirportsToggle');
-        const airspaceAirportsToggle = document.querySelector('#airspaceAirportsToggle');
         
         if (airportsToggle) {
             airportsToggle.checked = enabled;
-        }
-        if (droneAirspaceAirportsToggle) {
-            droneAirspaceAirportsToggle.checked = enabled;
-        }
-        if (airspaceAirportsToggle) {
-            airspaceAirportsToggle.checked = enabled;
         }
     }
 
@@ -2563,84 +3472,6 @@ class DroneMap {
         return { west: w, south: s, east: e, north: n };
     }
     
-    // ===== Airports Test Layer (Minimal Implementation) =====
-    
-    toggleAirportsTest(enabled) {
-        this.isAirportsTestEnabled = enabled;
-        
-        if (enabled) {
-            // Add cluster layer to map if not already added
-            if (!this.map.hasLayer(this.airportsTestMarkerCluster)) {
-                this.airportsTestMarkerCluster.addTo(this.map);
-            }
-            // Load airport data for current view
-            this.loadAirportsTestDataDebounced();
-        } else {
-            // Remove cluster layer from map
-            if (this.map.hasLayer(this.airportsTestMarkerCluster)) {
-                this.map.removeLayer(this.airportsTestMarkerCluster);
-                this.airportsTestMarkerCluster.clearLayers();
-            }
-        }
-    }
-    
-    loadAirportsTestDataDebounced() {
-        clearTimeout(this.airportsTestDebounceTimer);
-        this.airportsTestDebounceTimer = setTimeout(() => {
-            this.loadAirportsTestData();
-        }, 300);
-    }
-    
-    async loadAirportsTestData() {
-        if (!this.isAirportsTestEnabled || !this.map) return;
-        
-        const bounds = this.map.getBounds();
-        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        
-        const proxyBase = this.getOpenAIPProxyUrl();
-        const airportUrl = `${proxyBase}/openaip/airports?bbox=${bbox}`;
-        
-        try {
-            const response = await fetch(airportUrl);
-            if (!response.ok) return;
-            
-            const data = await response.json();
-            const features = data.features || (data.items ? data.items.map(item => this.convertOpenAIPAirportToGeoJSON(item)) : []);
-            
-            // Create simple markers with basic popup
-            const markers = [];
-            features.forEach(airport => {
-                if (airport.geometry && airport.geometry.type === 'Point') {
-                    const coords = airport.geometry.coordinates;
-                    const latlng = [coords[1], coords[0]];
-                    const props = airport.properties;
-                    
-                    // Simple icon - just a circle
-                    const icon = L.divIcon({
-                        className: 'test-airport-icon',
-                        html: '<div style="width:20px;height:20px;background:#dc3545;border:2px solid white;border-radius:50%;"></div>',
-                        iconSize: [20, 20],
-                        iconAnchor: [10, 10]
-                    });
-                    
-                    const marker = L.marker(latlng, { icon: icon });
-                    
-                    // Simple popup with just name
-                    const popupContent = `<div><strong>${props.name || 'Unknown'}</strong><br>${props.icaoCode || ''}</div>`;
-                    marker.bindPopup(popupContent);
-                    
-                    markers.push(marker);
-                }
-            });
-            
-            if (markers.length > 0) {
-                this.airportsTestMarkerCluster.addLayers(markers);
-            }
-        } catch (error) {
-            console.error('Error loading test airport data:', error);
-        }
-    }
-
     async loadAirspaceData() {
         if (!this.isAirspaceEnabled || !this.map) return;
 
@@ -3115,19 +3946,29 @@ class DroneMap {
         }
     }
     
-    showAirspaceLoadingMessage(layerName = 'airspace') {
-        // Remove any existing loading message
-        this.hideAirspaceLoadingMessage();
-        
+    showLoadingMessage(layerName, bannerId = null) {
         // Map layer names to display names
         const displayNames = {
             'airspace': 'Open AIP Airspace (All)',
-            'droneAirspace': 'Open AIP Airspace (At Ground)'
+            'droneAirspace': 'Open AIP Airspace (At Ground)',
+            'faaAirports': 'USA FAA Airports',
+            'faaRunways': 'USA FAA Runways',
+            'faaUASMap': 'USA FAA UAS Map',
+            'faaAirspace': 'USA FAA airspace'
         };
-        const displayName = displayNames[layerName] || 'airspace';
+        const displayName = displayNames[layerName] || layerName;
+        
+        // Use provided bannerId or generate one from layerName
+        const id = bannerId || `${layerName}Loading`;
+        
+        // Remove any existing loading message for this layer
+        const existingDiv = document.getElementById(id);
+        if (existingDiv) {
+            existingDiv.remove();
+        }
         
         const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'airspaceLoading';
+        loadingDiv.id = id;
         loadingDiv.style.cssText = `
             position: fixed;
             top: 70px;
@@ -3171,11 +4012,20 @@ class DroneMap {
         document.body.appendChild(loadingDiv);
     }
     
-    hideAirspaceLoadingMessage() {
-        const loadingDiv = document.getElementById('airspaceLoading');
+    hideLoadingMessage(layerName, bannerId = null) {
+        const id = bannerId || `${layerName}Loading`;
+        const loadingDiv = document.getElementById(id);
         if (loadingDiv) {
             loadingDiv.remove();
         }
+    }
+    
+    showAirspaceLoadingMessage(layerName = 'airspace') {
+        this.showLoadingMessage(layerName, 'airspaceLoading');
+    }
+    
+    hideAirspaceLoadingMessage() {
+        this.hideLoadingMessage('airspace', 'airspaceLoading');
     }
 
     createAirportCircle(coordinates, radiusNM, properties) {
@@ -3328,21 +4178,50 @@ class DroneMap {
         this.highlightedAirspaceLayer = {
             layer: leafletLayer,
             feature: feature,
-            isDroneAirspace: isDroneAirspace || false
+            isDroneAirspace: isDroneAirspace || false,
+            isFaaLayer: leafletLayer?.faaLayerType !== undefined
         };
         
         // Apply highlight style (thicker border, brighter fill)
         if (leafletLayer && leafletLayer.setStyle) {
             const props = feature.properties || {};
-            const baseColor = isDroneAirspace ? '#9333ea' : (props.icaoClassNumeric !== undefined ? 
-                this.getAirspaceColor(props.icaoClassNumeric) : '#808080');
+            
+            // Get base color based on layer type
+            let baseColor = '#808080';
+            if (isDroneAirspace) {
+                baseColor = '#9333ea';
+            } else if (props.icaoClassNumeric !== undefined) {
+                baseColor = this.getAirspaceColor(props.icaoClassNumeric);
+            } else if (leafletLayer.faaLayerType === 'runways') {
+                baseColor = '#0066cc';
+            } else if (leafletLayer.faaLayerType === 'uas') {
+                baseColor = '#ff8800';
+            } else if (leafletLayer.faaLayerType === 'airspace') {
+                // Get color based on CLASS_CODE field
+                const classCode = props.CLASS_CODE || props.class_code || props.CLASS || props.class || '';
+                baseColor = this.getFAAAirspaceClassCodeColor(classCode);
+            }
+            
+            // Store original style for restoration
+            if (!leafletLayer._originalStyle) {
+                const codeUpper = String(props.CLASS_CODE || props.class_code || '').toUpperCase().trim();
+                const originalDashArray = (codeUpper === 'D') ? '5, 5' : null;
+                
+                leafletLayer._originalStyle = {
+                    color: leafletLayer.options?.color || props.color || baseColor,
+                    weight: leafletLayer.options?.weight || props.weight || 1,
+                    fillOpacity: leafletLayer.options?.fillOpacity || props.fillOpacity || 0.2,
+                    dashArray: leafletLayer.options?.dashArray || originalDashArray
+                };
+            }
             
             leafletLayer.setStyle({
                 weight: 8, // Much thicker border so it shows through layers
                 opacity: 1.0,
                 fillOpacity: 0.6, // More opaque fill for visibility
                 color: '#00d9ff', // Bright turquoise/cyan highlight color
-                fillColor: baseColor
+                fillColor: baseColor,
+                dashArray: null // No dash for highlight
             });
             
             // Bring to front to ensure it shows above other layers
@@ -3366,17 +4245,53 @@ class DroneMap {
             default: return '#808080';
         }
     }
+    
+    getFAAAirspaceColor(airspaceClass) {
+        // Map FAA airspace CLASS values to colors (matching ICAO standard)
+        const classUpper = String(airspaceClass).toUpperCase().trim();
+        
+        switch (classUpper) {
+            case 'A': return '#dc3545'; // Red
+            case 'B': return '#fd7e14'; // Orange
+            case 'C': return '#ffc107'; // Yellow
+            case 'D': return '#28a745'; // Green
+            case 'E': return '#17a2b8'; // Cyan
+            case 'F': return '#e83e8c'; // Magenta
+            case 'G': return '#0066cc'; // Blue
+            default: return '#808080'; // Gray for unknown/unclassified
+        }
+    }
+    
+    getFAAAirspaceClassCodeColor(classCode) {
+        // Map FAA airspace CLASS_CODE values to colors based on user's specification
+        // Class B = blue, Class C = magenta/purple, Class D = blue (dashed), Class E = magenta/blue (shaded)
+        const codeUpper = String(classCode).toUpperCase().trim();
+        
+        switch (codeUpper) {
+            case 'B': return '#0066cc'; // Blue
+            case 'C': return '#e83e8c'; // Magenta/Purple
+            case 'D': return '#0066cc'; // Blue (dashed - handled by style)
+            case 'E': return '#e83e8c'; // Magenta (shaded - handled by fillOpacity)
+            default: return '#808080'; // Gray for unknown/unclassified
+        }
+    }
 
     unhighlightAirspaceLayer() {
         if (this.highlightedAirspaceLayer) {
-            const { layer, feature, isDroneAirspace } = this.highlightedAirspaceLayer;
+            const { layer, feature, isDroneAirspace, isFaaLayer } = this.highlightedAirspaceLayer;
             
             // Restore original style
             if (layer && layer.setStyle) {
-                const style = isDroneAirspace ? 
-                    this.getDroneAirspaceStyle(feature) : 
-                    this.getAirspaceStyle(feature);
+                if (isFaaLayer && layer._originalStyle) {
+                    // Restore original style for FAA layers
+                    layer.setStyle(layer._originalStyle);
+                } else if (isDroneAirspace) {
+                    const style = this.getDroneAirspaceStyle(feature);
+                    layer.setStyle(style);
+                } else {
+                    const style = this.getAirspaceStyle(feature);
                 layer.setStyle(style);
+                }
             }
             
             this.highlightedAirspaceLayer = null;
@@ -3581,23 +4496,23 @@ class DroneMap {
                     <div style="font-size: 10px; font-family: monospace; color: #555; margin-bottom: 6px; line-height: 1.4;">
                         ${lat}, ${lng}<br>
                         Elev: ${elevationText}
-                    </div>
+                </div>
                     <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
+                <button onclick="navigator.clipboard.writeText('${lat}, ${lng}').then(() => window.droneMap.showCopyToast())" 
                                 style="background: #007bff; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
-                            Copy Coordinates
-                        </button>
+                    Copy Coordinates
+                </button>
                         <button onclick="window.droneMap.showAddRadiusDialog('User Added Marker ${displayNumber}', ${lat}, ${lng}); return false;" 
                                 style="background: #28a745; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
-                            Add Radius
-                        </button>
+                    Add Radius
+                </button>
                         <button onclick="window.droneMap.removeCoordinateMarker(${markerNumber})" 
                                 style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; width: 100%;">
-                            Remove Marker
-                        </button>
+                    Remove Marker
+                </button>
                     </div>
-                </div>
-            `;
+            </div>
+        `;
         };
         
         // Create popup with coordinates (elevation will be updated after fetch)
@@ -3758,11 +4673,8 @@ class DroneMap {
                 container.style.height = '40px';
                 
                 const button = L.DomUtil.create('a', 'leaflet-control-north', container);
-                // Image is 459x684, so aspect ratio is ~0.67:1 (taller than wide)
-                // To fit in 20px width: height = 20 / (459/684) = ~29.8px
-                // To fit in 20px height: width = 20 * (459/684) = ~13.4px
                 // Use max-width and max-height to preserve aspect ratio
-                button.innerHTML = `<img src="${self.getAssetPath('/images/north arrow (1).png')}" style="max-width: 20px; max-height: 30px; width: auto; height: auto; display: block; margin: auto; object-fit: contain;">`;
+                button.innerHTML = `<img src="${self.getAssetPath('/images/north arrow (2).png')}" style="max-width: 20px; max-height: 30px; width: auto; height: auto; display: block; margin: auto; object-fit: contain;">`;
                 button.href = '#';
                 button.role = 'button';
                 button.title = 'Reset to North Up';
@@ -3774,7 +4686,7 @@ class DroneMap {
 
                 L.DomEvent.on(button, 'click', L.DomEvent.stop)
                           .on(button, 'click', () => {
-                              window.droneMap.resetToNorthUp();
+                    window.droneMap.resetToNorthUp();
                           }, this);
                 
                 return container;
@@ -3889,16 +4801,25 @@ class DroneMap {
     }
     
     resetToNorthUp() {
-        // Reset map rotation to north-up
-        this.applyMapRotation();
         console.log('Reset map to north-up');
         
-        // Center on user's location if available, with default zoom level (15)
+        // Only center on user's location if we're not already there
         if (this.isMyLocationVisible && this.myLocationMarker) {
             const latlng = this.myLocationMarker.getLatLng();
-            this.map.invalidateSize();
-            this.map.setView(latlng, 15, { animate: true });
-            console.log('Centered on user location:', latlng, 'zoom level: 15');
+            const currentCenter = this.map.getCenter();
+            const currentZoom = this.map.getZoom();
+            
+            // Check if we're already centered on user location at zoom 15
+            const distance = currentCenter.distanceTo(latlng);
+            const isAlreadyCentered = distance < 100 && currentZoom === 15; // Within 100 meters and same zoom
+            
+            if (!isAlreadyCentered) {
+                this.map.invalidateSize();
+                this.map.setView(latlng, 15, { animate: true });
+                console.log('Centered on user location:', latlng, 'zoom level: 15');
+            } else {
+                console.log('Already centered on user location, skipping setView');
+            }
         }
     }
     
@@ -4125,21 +5046,6 @@ class DroneMap {
             closeIcon.style.opacity = '0';
             container.title = 'Enter fullscreen mode';
         }
-    }
-    
-    
-    applyMapRotation() {
-        const mapContainer = this.map.getContainer();
-        const tileContainer = mapContainer.querySelector('.leaflet-tile-container');
-        
-        if (tileContainer) {
-            // Always stay north-up (no rotation)
-            tileContainer.style.transform = `rotate(0deg)`;
-        }
-    }
-    
-    updateMapRotation() {
-        this.applyMapRotation();
     }
     
 
@@ -4792,8 +5698,29 @@ class DroneMap {
     toggleMyLocation() {
         console.log('toggleMyLocation called, isMyLocationVisible:', this.isMyLocationVisible);
         if (this.isMyLocationVisible) {
+            // If location is already visible, center on it (same as North Arrow behavior)
+            if (this.myLocationMarker) {
+                const latlng = this.myLocationMarker.getLatLng();
+                const currentCenter = this.map.getCenter();
+                const currentZoom = this.map.getZoom();
+                
+                // Check if we're already centered on user location at zoom 15
+                const distance = currentCenter.distanceTo(latlng);
+                const isAlreadyCentered = distance < 100 && currentZoom === 15; // Within 100 meters and same zoom
+                
+                if (!isAlreadyCentered) {
+                    this.map.invalidateSize();
+                    this.map.setView(latlng, 15, { animate: true });
+                    console.log('Centered on user location:', latlng, 'zoom level: 15');
+                } else {
+                    console.log('Already centered on user location, skipping setView');
+                }
+            } else {
+                // Location visible but no marker yet, just stop tracking
             this.stopLocationTracking();
+            }
         } else {
+            // Start tracking and center once location is available
             this.startLocationTracking();
         }
     }
@@ -4803,7 +5730,7 @@ class DroneMap {
         
         if (!navigator.geolocation) {
             if (!this.isAutoLocationRequest) {
-                alert('Geolocation is not supported by this browser.');
+            alert('Geolocation is not supported by this browser.');
             }
             this.isAutoLocationRequest = false;
             return;
@@ -5008,8 +5935,8 @@ class DroneMap {
                 button.style.color = '#fff';
             } else {
                 button.innerHTML = '<i class="bi bi-geo-alt"></i> Show My Location';
-                button.style.backgroundColor = '#007bff'; // Blue when off
-                button.style.borderColor = '#007bff';
+                button.style.backgroundColor = '#314268'; // Match Share Livestream and Connect buttons
+                button.style.borderColor = '#314268';
                 button.style.color = 'white';
             }
         }
@@ -5207,6 +6134,75 @@ class DroneMap {
             console.log('Skipping airport markers - not enabled or cluster not found');
         }
         
+        // Collect from USA FAA Runways layer
+        if (this.isRunwaysEnabled && this.runwaysLayer) {
+            this.runwaysLayer.eachLayer((layer) => {
+                if (layer.feature) {
+                    const feature = layer.feature;
+                    const id = `runway-${feature.properties?.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                    
+                    if (seenIds.has(id)) return;
+                    
+                    // Check if point is in polygon (with tolerance)
+                    if (layer.feature.geometry && this.isPointNearPolygon(latlng, layer.feature.geometry, tolerancePoint1, tolerancePoint2)) {
+                        seenIds.add(id);
+                        features.push({
+                            feature: layer.feature,
+                            layerType: 'faa-runways',
+                            leafletLayer: layer,
+                            drawOrder: features.length
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Collect from USA FAA UAS Map layer
+        if (this.isFAAUASMapEnabled && this.faaUASMapLayer) {
+            this.faaUASMapLayer.eachLayer((layer) => {
+                if (layer.feature) {
+                    const feature = layer.feature;
+                    const id = `faauas-${feature.properties?.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                    
+                    if (seenIds.has(id)) return;
+                    
+                    // Check if point is in polygon (with tolerance)
+                    if (layer.feature.geometry && this.isPointNearPolygon(latlng, layer.feature.geometry, tolerancePoint1, tolerancePoint2)) {
+                        seenIds.add(id);
+                        features.push({
+                            feature: layer.feature,
+                            layerType: 'faa-uas',
+                            leafletLayer: layer,
+                            drawOrder: features.length
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Collect from USA FAA Airspace layer
+        if (this.isFAAAirspaceEnabled && this.faaAirspaceLayer) {
+            this.faaAirspaceLayer.eachLayer((layer) => {
+                if (layer.feature) {
+                    const feature = layer.feature;
+                    const id = `faa-${feature.properties?.OBJECTID || feature.id || Math.random().toString(36).substr(2, 9)}`;
+                    
+                    if (seenIds.has(id)) return;
+                    
+                    // Check if point is in polygon (with tolerance)
+                    if (layer.feature.geometry && this.isPointNearPolygon(latlng, layer.feature.geometry, tolerancePoint1, tolerancePoint2)) {
+                        seenIds.add(id);
+                        features.push({
+                            feature: layer.feature,
+                            layerType: 'faa-airspace',
+                            leafletLayer: layer,
+                            drawOrder: features.length
+                        });
+                    }
+                }
+            });
+        }
+        
         // Don't collect test airport markers - they have their own popups
         
         console.log('=== collectFeaturesAtPoint summary ===');
@@ -5331,9 +6327,13 @@ class DroneMap {
         .setContent(content)
         .openOn(this.map);
         
-        // Highlight the currently selected airspace layer
+        // Highlight the currently selected airspace layer (including USA FAA layers)
         const currentItem = this.multiHitFeatures[this.multiHitCurrentIndex];
-        if (currentItem.layerType === 'airspace' && currentItem.leafletLayer) {
+        if ((currentItem.layerType === 'airspace' || 
+             currentItem.layerType === 'faa-runways' || 
+             currentItem.layerType === 'faa-uas' || 
+             currentItem.layerType === 'faa-airspace') && 
+            currentItem.leafletLayer) {
             this.highlightAirspaceLayer(currentItem.leafletLayer, currentItem.feature, currentItem.isDroneAirspace);
         }
         
@@ -5441,6 +6441,15 @@ class DroneMap {
         if (layerType === 'airspace') {
             layerName = isDroneAirspace ? 'Airspace (At Ground)' : 'Airspace (All)';
             typeLabel = props.type || props.typeCode || '';
+        } else if (layerType === 'faa-runways') {
+            layerName = 'USA FAA Runways';
+            typeLabel = props.type || props.TYPE || '';
+        } else if (layerType === 'faa-uas') {
+            layerName = 'USA FAA UAS Map';
+            typeLabel = props.type || props.TYPE || '';
+        } else if (layerType === 'faa-airspace') {
+            layerName = 'USA FAA airspace (At Ground)';
+            typeLabel = props.CLASS_CODE || props.class_code || props.CLASS || props.class || props.TYPE || props.type || '';
         } else if (layerType === 'airport') {
             layerName = airportType === 'water' ? 'Water Aerodrome' : 
                        airportType === 'heliport' ? 'Heliport' : 'Airport';
@@ -5476,7 +6485,12 @@ class DroneMap {
                 
                 <!-- Name -->
                 <div style="margin-bottom: 8px;">
-                    <strong style="font-size: 14px; color: #333;">${props.name || 'Unknown'}</strong>
+                    <strong style="font-size: 14px; color: #333;">${
+                        layerType === 'faa-runways' ? (props.name || props.NAME || props.Runway || 'Runway Area') :
+                        layerType === 'faa-uas' ? (props.name || props.NAME || props.Facility || 'UAS Facility Area') :
+                        layerType === 'faa-airspace' ? (props.NAME_TXT || props.name_txt || props.NAME || props.name || 'Unnamed Airspace') :
+                        (props.name || 'Unknown')
+                    }</strong>
                 </div>
         `;
         
@@ -5488,18 +6502,21 @@ class DroneMap {
             }
         }
         
-        // ICAO class
+        // ICAO class (for OpenAIP airspace only)
+        if (layerType === 'airspace') {
         const icaoClass = props.icaoClass || (props.icaoClassNumeric !== undefined ? ['A','B','C','D','E','F','G',null,'Unclassified'][props.icaoClassNumeric] : null);
         if (icaoClass) {
             content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO Class:</strong> ${icaoClass}</div>`;
+            }
         }
         
-        // Type label (for airspace)
-        if (layerType === 'airspace' && typeLabel) {
+        // Type label (for all layers)
+        if (typeLabel) {
             content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Type:</strong> ${typeLabel}</div>`;
         }
         
-        // Altitude limits
+        // Altitude limits (for OpenAIP airspace only)
+        if (layerType === 'airspace') {
         const lowerLimit = this.formatAltitudeWithDatum(
             props.lowerLimitRaw !== undefined ? props.lowerLimitRaw : props.lowerLimit,
             props.lowerLimitUnit,
@@ -5518,6 +6535,38 @@ class DroneMap {
                     <strong>Upper:</strong> ${upperLimit}
                 </div>
             `;
+            }
+        }
+        
+        // Additional properties for USA FAA layers
+        if (layerType === 'faa-runways' || layerType === 'faa-uas' || layerType === 'faa-airspace') {
+            // Show name if available
+            const displayName = props.name || props.NAME || props.Facility || props.Runway || 'Unnamed';
+            if (displayName && displayName !== props.name) {
+                // Name was already shown in title, but show if different
+            }
+            
+            // Show Lower and Upper for FAA airspace layers (use DISTVERTLOWER_VAL and DISTVERTUPPER_VAL)
+            if (layerType === 'faa-airspace') {
+                const distVertLowerVal = props.DISTVERTLOWER_VAL !== undefined ? props.DISTVERTLOWER_VAL : (props.distvertlower_val !== undefined ? props.distvertlower_val : null);
+                const distVertUpperVal = props.DISTVERTUPPER_VAL !== undefined ? props.DISTVERTUPPER_VAL : (props.distvertupper_val !== undefined ? props.distvertupper_val : null);
+                const distVertUpperCode = props.DISTVERTUPPER_CODE || props.distvertupper_code || 'FT';
+                
+                const lowerDisplay = (distVertLowerVal !== null && distVertLowerVal !== undefined) ? `${distVertLowerVal}` : 'N/A';
+                const upperDisplay = (distVertUpperVal !== null && distVertUpperVal !== undefined) ? `${distVertUpperVal} ${distVertUpperCode}` : 'N/A';
+                
+                content += `
+                    <div style="margin-bottom: 6px; font-size: 12px;">
+                        <strong>Lower:</strong> ${lowerDisplay}<br>
+                        <strong>Upper:</strong> ${upperDisplay}
+                    </div>
+                `;
+            }
+            
+            // Show any other relevant properties
+            if (props.altitude || props.ALTITUDE) {
+                content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Altitude:</strong> ${props.altitude || props.ALTITUDE}</div>`;
+            }
         }
         
         // Associated airport link for airspace
@@ -5583,9 +6632,13 @@ class DroneMap {
             this.multiHitPopup.setContent(content);
             this.multiHitPopup.setLatLng(this.multiHitOriginalLatLng);
             
-            // Update highlight for the newly selected layer
+            // Update highlight for the newly selected layer (including USA FAA layers)
             const currentItem = this.multiHitFeatures[this.multiHitCurrentIndex];
-            if (currentItem.layerType === 'airspace' && currentItem.leafletLayer) {
+            if ((currentItem.layerType === 'airspace' || 
+                 currentItem.layerType === 'faa-runways' || 
+                 currentItem.layerType === 'faa-uas' || 
+                 currentItem.layerType === 'faa-airspace') && 
+                currentItem.leafletLayer) {
                 this.highlightAirspaceLayer(currentItem.leafletLayer, currentItem.feature, currentItem.isDroneAirspace);
             } else {
                 // If switching to non-airspace, unhighlight previous
