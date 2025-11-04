@@ -72,6 +72,7 @@ class DroneMap {
         this.droneAirspaceLayer = null;
         this.isDroneAirspaceEnabled = false; // Disabled by default
         this.droneAirspaceAcknowledged = false; // Track acknowledgment for drone airspace
+        this.isAirspaceAllExpanded = false; // Track if "Airspace (All)" sub-bullet is expanded
         this.droneAirspaceCache = new Map(); // Cache by bbox string
         this.droneAirspaceDebounceTimer = null;
         this.droneAirspaceFeatureIds = new Set(); // For deduplication by stable id
@@ -392,6 +393,14 @@ class DroneMap {
             this.map.on('moveend', () => {
                 if (this.isAirportsEnabled) {
                     this.loadAirportsDataDebounced();
+                }
+                // Reload airspace data when map moves
+                if (this.isAirspaceEnabled) {
+                    this.loadAirspaceDataDebounced();
+                }
+                // Reload drone airspace data when map moves
+                if (this.isDroneAirspaceEnabled) {
+                    this.loadDroneAirspaceDataDebounced();
                 }
             });
 
@@ -965,16 +974,35 @@ class DroneMap {
             
             <div style="border-top: 1px solid #ddd; margin: 12px 0; padding-top: 12px;">
                 <div style="font-weight: bold; margin-bottom: 12px; color: #000; font-size: 14px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">Map Layers</div>
-                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
-                    <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
-                           style="margin-right: 8px;">
-                    Airspace (At Ground)
-                </label>
-                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                <div style="display: flex; align-items: center; margin: 6px 0;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500; flex: 1;">
+                        <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
+                               style="margin-right: 8px;">
+                        Airspace (At Ground)
+                    </label>
+                    <button id="airspaceAllExpandBtn" type="button" style="
+                        background: none;
+                        border: none;
+                        cursor: pointer;
+                        padding: 4px 8px;
+                        font-size: 12px;
+                        color: #666;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-left: 8px;
+                        line-height: 1;
+                    " onclick="event.stopPropagation(); window.droneMap.toggleAirspaceAllExpand(); return false;" title="${this.isAirspaceAllExpanded ? 'Hide' : 'Show'} Airspace (All)">
+                        <span style="transform: rotate(${this.isAirspaceAllExpanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
+                    </button>
+                </div>
+                ${this.isAirspaceAllExpanded || this.isAirspaceEnabled ? `
+                <label style="display: block; margin: 2px 0 6px 24px; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
                     Airspace (All)
                 </label>
+                ` : ''}
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
@@ -1023,6 +1051,20 @@ class DroneMap {
                             USA FAA Runways
                         </label>
                     </div>
+                </div>
+                
+                <!-- Local Airspace Map link -->
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; margin-bottom: 0; padding-bottom: 0;">
+                    <a href="#" id="localAirspaceMapLink" style="
+                        display: block;
+                        color: #007bff;
+                        text-decoration: none;
+                        font-size: 13px;
+                        padding: 4px 0;
+                        cursor: pointer;
+                    " onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+                        Local Airspace Map
+                    </a>
                 </div>
             </div>
         `;
@@ -1145,6 +1187,30 @@ class DroneMap {
                 if (arrow) {
                     arrow.textContent = isOpen ? '▶' : '▼';
                 }
+            });
+        }
+        
+        // Add event listener for Local Airspace Map link
+        const localAirspaceMapLink = this.baseMapPopup.querySelector('#localAirspaceMapLink');
+        if (localAirspaceMapLink) {
+            localAirspaceMapLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Close the base map popup first
+                if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+                    this.baseMapPopup.remove();
+                    this.baseMapPopup = null;
+                }
+                // Show the airspace authority info popup
+                this.showAirspaceAuthorityInfoPopup(null);
+            });
+        }
+        
+        // Add event listener for Airspace All expand button
+        const airspaceAllExpandBtn = this.baseMapPopup.querySelector('#airspaceAllExpandBtn');
+        if (airspaceAllExpandBtn) {
+            airspaceAllExpandBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
             });
         }
         
@@ -1903,6 +1969,14 @@ class DroneMap {
     }
 
     // OpenAIP Airspace Layer Methods
+    toggleAirspaceAllExpand() {
+        this.isAirspaceAllExpanded = !this.isAirspaceAllExpanded;
+        // Refresh popup if it's open to update the arrow and sub-bullet visibility
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
+        }
+    }
+
     toggleDroneAirspace(enabled) {
         if (enabled) {
             // Show acknowledgment modal if not already acknowledged
@@ -1917,6 +1991,11 @@ class DroneMap {
         if (enabled) {
             // Track whether airports was already enabled before we turn on airspace
             this.airportsWasEnabledBeforeDroneAirspace = this.isAirportsEnabled;
+            
+            // Auto-expand the "Airspace (All)" sub-bullet when enabling
+            if (!this.isAirspaceAllExpanded) {
+                this.isAirspaceAllExpanded = true;
+            }
             
             // Add layer to map
             if (!this.map.hasLayer(this.droneAirspaceLayer)) {
@@ -1958,6 +2037,11 @@ class DroneMap {
                 }
             }
         }
+        
+        // Refresh popup if it's open to show/hide the sub-bullet
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
+        }
     }
 
     toggleAirspace(enabled) {
@@ -1974,6 +2058,11 @@ class DroneMap {
         if (enabled) {
             // Track whether airports was already enabled before we turn on airspace
             this.airportsWasEnabledBeforeAirspace = this.isAirportsEnabled;
+            
+            // If drone airspace is enabled, expand the sub-bullet so user can see "Airspace (All)" is now on
+            if (this.isDroneAirspaceEnabled && !this.isAirspaceAllExpanded) {
+                this.isAirspaceAllExpanded = true;
+            }
             
             // Add layer to map
             if (!this.map.hasLayer(this.airspaceLayer)) {
@@ -2016,6 +2105,11 @@ class DroneMap {
                     }
                 }
             }
+        }
+        
+        // Refresh popup if it's open to show/hide the sub-bullet
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
         }
     }
     
@@ -5866,27 +5960,8 @@ class DroneMap {
     toggleMyLocation() {
         console.log('toggleMyLocation called, isMyLocationVisible:', this.isMyLocationVisible);
         if (this.isMyLocationVisible) {
-            // If location is already visible, center on it (same as North Arrow behavior)
-            if (this.myLocationMarker) {
-                const latlng = this.myLocationMarker.getLatLng();
-                const currentCenter = this.map.getCenter();
-                const currentZoom = this.map.getZoom();
-                
-                // Check if we're already centered on user location at zoom 15
-                const distance = currentCenter.distanceTo(latlng);
-                const isAlreadyCentered = distance < 100 && currentZoom === 15; // Within 100 meters and same zoom
-                
-                if (!isAlreadyCentered) {
-                    this.map.invalidateSize();
-                    this.map.setView(latlng, 15, { animate: true });
-                    console.log('Centered on user location:', latlng, 'zoom level: 15');
-                } else {
-                    console.log('Already centered on user location, skipping setView');
-                }
-            } else {
-                // Location visible but no marker yet, just stop tracking
+            // Hide location - stop tracking and remove markers
             this.stopLocationTracking();
-            }
         } else {
             // Start tracking and center once location is available
             this.startLocationTracking();
@@ -6482,18 +6557,38 @@ class DroneMap {
         // Create popup content for current feature
         const content = this.buildPopupContent(this.multiHitFeatures[this.multiHitCurrentIndex]);
         
-        // Create Leaflet popup
+        // Create Leaflet popup with fixed dimensions
+        const isMobile = window.innerWidth < 768;
+        const popupMaxWidth = isMobile ? 300 : 320;
+        const popupMaxHeight = isMobile ? 270 : 300;
+        
         this.multiHitPopup = L.popup({
             className: 'multi-hit-popup',
             closeButton: true,
             autoClose: false,
             closeOnClick: false,
-            maxWidth: 450,
-            maxHeight: 500
+            maxWidth: popupMaxWidth,
+            maxHeight: popupMaxHeight
         })
         .setLatLng(latlng)
         .setContent(content)
         .openOn(this.map);
+        
+        // Set fixed width and height after popup is created
+        const popupEl = this.multiHitPopup.getElement();
+        if (popupEl) {
+            // Use responsive width for mobile, fixed for desktop
+            const isMobile = window.innerWidth < 768;
+            const width = isMobile ? '280px' : '300px';
+            const height = isMobile ? '250px' : '280px';
+            
+            popupEl.style.width = width;
+            popupEl.style.height = height;
+            popupEl.style.maxWidth = width;
+            popupEl.style.maxHeight = height;
+            popupEl.style.minWidth = width;
+            popupEl.style.minHeight = height;
+        }
         
         // Highlight the currently selected airspace layer (including USA FAA layers)
         const currentItem = this.multiHitFeatures[this.multiHitCurrentIndex];
@@ -6625,13 +6720,18 @@ class DroneMap {
             typeLabel = typeCategory || '';
         }
         
-        // Build content
+        // Build content with fixed dimensions and scrollable content area
+        // Use responsive width for mobile
+        const isMobile = window.innerWidth < 768;
+        const containerWidth = isMobile ? '280px' : '300px';
+        const containerHeight = isMobile ? '250px' : '280px';
+        
         let content = `
-            <div style="font-family: Arial, sans-serif; min-width: 250px; max-height: 450px; overflow-y: auto; overflow-x: hidden;">
-                <!-- Pager UI -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ddd;">
+            <div style="font-family: Arial, sans-serif; width: ${containerWidth}; height: ${containerHeight}; display: flex; flex-direction: column; box-sizing: border-box; padding: 12px; padding-top: 16px;">
+                <!-- Pager UI - fixed at top with spacing for close button -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; padding-right: 36px; border-bottom: 1px solid #e0e0e0; flex-shrink: 0;">
                     <button onclick="event.stopPropagation(); window.droneMap.navigatePopup(-1); return false;" 
-                            style="${this.multiHitCurrentIndex > 0 ? 'background: #007bff; color: white; cursor: pointer;' : 'background: #ccc; color: #666; cursor: not-allowed;'} border: none; padding: 4px 12px; border-radius: 4px; font-size: 16px; pointer-events: auto;" 
+                            style="${this.multiHitCurrentIndex > 0 ? 'background: #007bff; color: white; cursor: pointer;' : 'background: #ccc; color: #666; cursor: not-allowed;'} border: none; padding: 6px 10px; border-radius: 4px; font-size: 16px; pointer-events: auto; min-width: 36px;" 
                             ${this.multiHitCurrentIndex <= 0 ? 'disabled' : ''}>
                         ↑
                     </button>
@@ -6639,34 +6739,36 @@ class DroneMap {
                         ${this.multiHitCurrentIndex + 1} of ${this.multiHitFeatures.length}
                     </span>
                     <button onclick="event.stopPropagation(); window.droneMap.navigatePopup(1); return false;" 
-                            style="${this.multiHitCurrentIndex < this.multiHitFeatures.length - 1 ? 'background: #007bff; color: white; cursor: pointer;' : 'background: #ccc; color: #666; cursor: not-allowed;'} border: none; padding: 4px 12px; border-radius: 4px; font-size: 16px; pointer-events: auto;" 
+                            style="${this.multiHitCurrentIndex < this.multiHitFeatures.length - 1 ? 'background: #007bff; color: white; cursor: pointer;' : 'background: #ccc; color: #666; cursor: not-allowed;'} border: none; padding: 6px 10px; border-radius: 4px; font-size: 16px; pointer-events: auto; min-width: 36px;" 
                             ${this.multiHitCurrentIndex >= this.multiHitFeatures.length - 1 ? 'disabled' : ''}>
                         ↓
                     </button>
                 </div>
                 
-                <!-- Title line -->
-                <div style="margin-bottom: 10px;">
-                    <strong style="font-size: 13px; color: #666;">${layerName}</strong>
-                    ${typeLabel ? `<span style="font-size: 12px; color: #999; margin-left: 8px;">(${typeLabel})</span>` : ''}
-                </div>
-                
-                <!-- Name -->
-                <div style="margin-bottom: 8px;">
-                    <strong style="font-size: 14px; color: #333;">${
-                        layerType === 'faa-runways' ? (props.name || props.NAME || props.Runway || 'Runway Area') :
-                        layerType === 'faa-uas' ? (props.name || props.NAME || props.Facility || 'UAS Facility Area') :
-                        layerType === 'faa-airspace' ? (props.NAME_TXT || props.name_txt || props.NAME || props.name || 'Unnamed Airspace') :
-                        (props.name || 'Unknown')
-                    }</strong>
-                </div>
+                <!-- Scrollable content area -->
+                <div class="popup-scrollable-content" style="overflow-y: scroll; overflow-x: hidden; flex: 1; padding-right: 8px; padding-left: 2px; -webkit-overflow-scrolling: touch;">
+                    <!-- Title line -->
+                    <div style="margin-bottom: 12px;">
+                        <strong style="font-size: 13px; color: #666; word-wrap: break-word;">${layerName}</strong>
+                        ${typeLabel ? `<span style="font-size: 12px; color: #999; margin-left: 8px; word-wrap: break-word;">(${typeLabel})</span>` : ''}
+                    </div>
+                    
+                    <!-- Name -->
+                    <div style="margin-bottom: 10px;">
+                        <strong style="font-size: 14px; color: #333; word-wrap: break-word; display: block; line-height: 1.4;">${
+                            layerType === 'faa-runways' ? (props.name || props.NAME || props.Runway || 'Runway Area') :
+                            layerType === 'faa-uas' ? (props.name || props.NAME || props.Facility || 'UAS Facility Area') :
+                            layerType === 'faa-airspace' ? (props.NAME_TXT || props.name_txt || props.NAME || props.name || 'Unnamed Airspace') :
+                            (props.name || 'Unknown')
+                        }</strong>
+                    </div>
         `;
         
         // ICAO code for airports/heliports
         if (layerType === 'airport') {
             const icaoCodeDisplay = props.icaoCode || props.icao || props.code;
             if (icaoCodeDisplay) {
-                content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO Code:</strong> ${icaoCodeDisplay}</div>`;
+                content += `<div style="margin-bottom: 8px; font-size: 12px; word-wrap: break-word; line-height: 1.5;"><strong>ICAO Code:</strong> ${icaoCodeDisplay}</div>`;
             }
         }
         
@@ -6674,13 +6776,13 @@ class DroneMap {
         if (layerType === 'airspace') {
         const icaoClass = props.icaoClass || (props.icaoClassNumeric !== undefined ? ['A','B','C','D','E','F','G',null,'Unclassified'][props.icaoClassNumeric] : null);
         if (icaoClass) {
-            content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO Class:</strong> ${icaoClass}</div>`;
+            content += `<div style="margin-bottom: 8px; font-size: 12px; word-wrap: break-word; line-height: 1.5;"><strong>ICAO Class:</strong> ${icaoClass}</div>`;
             }
         }
         
         // Type label (for all layers)
         if (typeLabel) {
-            content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Type:</strong> ${typeLabel}</div>`;
+            content += `<div style="margin-bottom: 8px; font-size: 12px; word-wrap: break-word; line-height: 1.5;"><strong>Type:</strong> ${typeLabel}</div>`;
         }
         
         // Altitude limits (for OpenAIP airspace only)
@@ -6698,7 +6800,7 @@ class DroneMap {
         
         if (lowerLimit !== 'N/A' || upperLimit !== 'N/A') {
             content += `
-                <div style="margin-bottom: 6px; font-size: 12px;">
+                <div style="margin-bottom: 8px; font-size: 12px; word-wrap: break-word; line-height: 1.5;">
                     <strong>Lower:</strong> ${lowerLimit}<br>
                     <strong>Upper:</strong> ${upperLimit}
                 </div>
@@ -6724,7 +6826,7 @@ class DroneMap {
                 const upperDisplay = (distVertUpperVal !== null && distVertUpperVal !== undefined) ? `${distVertUpperVal} ${distVertUpperCode}` : 'N/A';
                 
                 content += `
-                    <div style="margin-bottom: 6px; font-size: 12px;">
+                    <div style="margin-bottom: 8px; font-size: 12px; word-wrap: break-word; line-height: 1.5;">
                         <strong>Lower:</strong> ${lowerDisplay}<br>
                         <strong>Upper:</strong> ${upperDisplay}
                     </div>
@@ -6733,7 +6835,7 @@ class DroneMap {
             
             // Show any other relevant properties
             if (props.altitude || props.ALTITUDE) {
-                content += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Altitude:</strong> ${props.altitude || props.ALTITUDE}</div>`;
+                content += `<div style="margin-bottom: 8px; font-size: 12px; word-wrap: break-word; line-height: 1.5;"><strong>Altitude:</strong> ${props.altitude || props.ALTITUDE}</div>`;
             }
         }
         
@@ -6743,11 +6845,11 @@ class DroneMap {
             if (associatedAirport && associatedAirport.id) {
                 const airportUrl = `https://www.openaip.net/data/airports/${associatedAirport.id}`;
                 content += `
-                    <div style="margin-top: 10px; margin-bottom: 6px; padding-top: 10px; border-top: 1px solid #eee;">
-                        <div style="font-size: 12px; margin-bottom: 4px;"><strong>Associated Airport:</strong> ${associatedAirport.name || 'Unknown'}</div>
+                    <div style="margin-top: 12px; margin-bottom: 8px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+                        <div style="font-size: 12px; margin-bottom: 6px; word-wrap: break-word; line-height: 1.5;"><strong>Associated Airport:</strong> ${associatedAirport.name || 'Unknown'}</div>
                         <a href="${airportUrl}" target="_blank" rel="noopener noreferrer"
                            onclick="window.open('${airportUrl}', '_blank'); return false;"
-                           style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
+                           style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer; word-wrap: break-word; display: block; line-height: 1.5;">
                             View Airport on OpenAIP
                         </a>
                     </div>
@@ -6758,7 +6860,7 @@ class DroneMap {
         // Fallback circle note
         if (props.isFallback && props.fallbackRadiusNM !== undefined) {
             content += `
-                <div style="margin-top: 8px; font-style: italic; color: #666; font-size: 11px;">
+                <div style="margin-top: 10px; margin-bottom: 8px; font-style: italic; color: #666; font-size: 11px; word-wrap: break-word; line-height: 1.5;">
                     Default radius ${props.fallbackRadiusNM} NM used
                 </div>
             `;
@@ -6767,16 +6869,16 @@ class DroneMap {
         // Raw properties toggle
         const featureId = `feature-${this.getFeatureStableId(feature)}`;
         content += `
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
                 <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
-                        style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
+                        style="background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; pointer-events: auto; min-width: 32px; min-height: 32px;">
                     i
                 </button>
-                <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
+                <pre id="${featureId}" style="display: none; margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible; word-wrap: break-word; white-space: pre-wrap; line-height: 1.4;">${JSON.stringify(props, null, 2)}</pre>
+            </div>
+                </div>
             </div>
         `;
-        
-        content += `</div>`;
         
         return content;
     }
@@ -6799,6 +6901,22 @@ class DroneMap {
             // Keep popup at original click location
             this.multiHitPopup.setContent(content);
             this.multiHitPopup.setLatLng(this.multiHitOriginalLatLng);
+            
+            // Ensure fixed dimensions are maintained
+            const popupEl = this.multiHitPopup.getElement();
+            if (popupEl) {
+                // Use responsive width for mobile, fixed for desktop
+                const isMobile = window.innerWidth < 768;
+                const width = isMobile ? '280px' : '300px';
+                const height = isMobile ? '250px' : '280px';
+                
+                popupEl.style.width = width;
+                popupEl.style.height = height;
+                popupEl.style.maxWidth = width;
+                popupEl.style.maxHeight = height;
+                popupEl.style.minWidth = width;
+                popupEl.style.minHeight = height;
+            }
             
             // Update highlight for the newly selected layer (including USA FAA layers)
             const currentItem = this.multiHitFeatures[this.multiHitCurrentIndex];
