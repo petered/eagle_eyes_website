@@ -146,16 +146,20 @@ class DroneMap {
         
         // Measurement tool state
         this.measurementMode = false;
-        this.measurementType = 'line'; // 'line' or 'polygon'
+        this.measurementType = 'line'; // 'line', 'polygon', or 'radius'
         this.measurementPoints = [];
         this.measurementMarkers = [];
         this.measurementPolylines = [];
         this.measurementPolygon = null; // For polygon mode
+        this.measurementRadiusCircle = null; // For radius mode
+        this.measurementRadiusCenter = null; // For radius mode
+        this.measurementRadius = 0; // Radius in meters
         this.measurementPopup = null;
         this.measurementUnit = 'NM'; // Default: Nautical Miles (for line mode)
         this.measurementAreaUnit = 'NM²'; // Default: Nautical Miles squared (for polygon mode)
         this.measurementTotalDistance = 0;
         this.measurementArea = 0; // Area in square meters
+        this.isDraggingRadius = false; // Track if user is dragging to set radius
         
         // User-added coordinate markers (array to support multiple markers)
         this.coordinateMarkers = []; // Array of { marker, latlng, number }
@@ -977,7 +981,7 @@ class DroneMap {
                     Airports/Heliports
                 </label>
                 
-                <!-- USA FAA Layers dropdown -->
+                <!-- USA FFA Layers dropdown -->
                 <div style="margin: 8px 0;">
                     <button id="faaLayersToggle" type="button" style="
                         width: 100%;
@@ -993,20 +997,10 @@ class DroneMap {
                         justify-content: space-between;
                         align-items: center;
                     ">
-                        <span>USAFAA layers</span>
+                        <span>USA FFA Layers</span>
                         <span style="font-size: 10px;">▶</span>
                     </button>
                     <div id="faaLayersList" style="display: none; margin-top: 6px; padding-left: 4px;">
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
-                            <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
-                            USA FAA Airports
-                        </label>
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
-                            <input type="checkbox" id="runwaysToggle" ${this.isRunwaysEnabled ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
-                            USA FAA Runways
-                        </label>
                         <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                             <input type="checkbox" id="faaUASMapToggle" ${this.isFAAUASMapEnabled ? 'checked' : ''} 
                                    style="margin-right: 8px;">
@@ -1017,6 +1011,16 @@ class DroneMap {
                                    style="margin-right: 8px;">
                             USA FAA airspace<br>
                             <span style="margin-left: 24px; font-size: 11px;">(At Ground)</span>
+                        </label>
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            USA FAA Airports
+                        </label>
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="checkbox" id="runwaysToggle" ${this.isRunwaysEnabled ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            USA FAA Runways
                         </label>
                     </div>
                 </div>
@@ -1126,7 +1130,7 @@ class DroneMap {
             });
         }
         
-        // Add event listener for "USAFAA layers" toggle button
+        // Add event listener for "USA FFA Layers" toggle button
         const faaLayersToggle = this.baseMapPopup.querySelector('#faaLayersToggle');
         const faaLayersList = this.baseMapPopup.querySelector('#faaLayersList');
         if (faaLayersToggle && faaLayersList) {
@@ -1277,11 +1281,15 @@ class DroneMap {
         
         // Generate unit options based on mode
         const isLineMode = this.measurementType === 'line';
-        const unitOptions = isLineMode ? this.getLineUnitOptions() : this.getPolygonUnitOptions();
-        const currentUnit = isLineMode ? this.measurementUnit : this.measurementAreaUnit;
+        const isPolygonMode = this.measurementType === 'polygon';
+        const isRadiusMode = this.measurementType === 'radius';
+        const unitOptions = (isLineMode || isRadiusMode) ? this.getLineUnitOptions() : this.getPolygonUnitOptions();
+        const currentUnit = (isLineMode || isRadiusMode) ? this.measurementUnit : this.measurementAreaUnit;
         const instructions = isLineMode 
             ? 'Click on the map to measure approximate distance between points.'
-            : 'Click on the map to draw a polygon for approximate measurement.';
+            : isPolygonMode
+            ? 'Click on the map to draw a polygon for approximate measurement.'
+            : 'Click on the map to set center point, then drag to set radius.';
         
         this.measurementPopup.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -1315,8 +1323,18 @@ class DroneMap {
                     border-radius: 3px;
                     cursor: pointer;
                     font-size: 11px;
-                    ${!isLineMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
+                    ${isPolygonMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
                 ">Polygon</button>
+            </div>
+            <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+                <button id="radiusModeBtn" style="
+                    padding: 6px 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    ${isRadiusMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
+                ">Radius</button>
             </div>
             <div style="margin-bottom: 8px;">
                 <label style="display: block; margin-bottom: 4px; font-size: 11px; color: #666;">Unit:</label>
@@ -1330,8 +1348,9 @@ class DroneMap {
                 </div>
             </div>
             <div style="padding: 8px; background: #f5f5f5; border-radius: 3px; text-align: center;">
+                ${isRadiusMode ? '<div style="font-size: 10px; color: #666; margin-bottom: 4px;">Radius</div>' : ''}
                 <div style="font-size: 18px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
-                <div style="font-size: 9px; color: #666; margin-top: 2px;" id="measurementUnitLabel">${isLineMode ? currentUnit : currentUnit}</div>
+                <div style="font-size: 9px; color: #666; margin-top: 2px;" id="measurementUnitLabel">${currentUnit}</div>
             </div>
             <div style="margin-top: 8px; text-align: left;">
                 <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
@@ -1350,6 +1369,7 @@ class DroneMap {
         
         const lineBtn = this.measurementPopup.querySelector('#lineModeBtn');
         const polygonBtn = this.measurementPopup.querySelector('#polygonModeBtn');
+        const radiusBtn = this.measurementPopup.querySelector('#radiusModeBtn');
         
         lineBtn.addEventListener('click', () => {
             this.switchMeasurementType('line');
@@ -1359,10 +1379,14 @@ class DroneMap {
             this.switchMeasurementType('polygon');
         });
         
+        radiusBtn.addEventListener('click', () => {
+            this.switchMeasurementType('radius');
+        });
+        
         const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
         unitSelect.addEventListener('change', (e) => {
-            if (this.measurementType === 'line') {
-            this.measurementUnit = e.target.value;
+            if (this.measurementType === 'line' || this.measurementType === 'radius') {
+                this.measurementUnit = e.target.value;
             } else {
                 this.measurementAreaUnit = e.target.value;
             }
@@ -1386,6 +1410,10 @@ class DroneMap {
         this.measurementMarkers = [];
         this.measurementPolylines = [];
         this.measurementPolygon = null;
+        this.measurementRadiusCircle = null;
+        this.measurementRadiusCenter = null;
+        this.measurementRadius = 0;
+        this.isDraggingRadius = false;
         this.measurementTotalDistance = 0;
         this.measurementArea = 0;
         this.updateMeasurementDisplay();
@@ -1418,8 +1446,9 @@ class DroneMap {
     switchMeasurementType(type) {
         if (this.measurementType === type) return;
         
-        // Clear current measurements
+        // Clear current measurements (including radius)
         this.clearMeasurements();
+        this.clearRadius();
         
         // Switch type
         this.measurementType = type;
@@ -1437,6 +1466,7 @@ class DroneMap {
         // Disable measurement mode and clear all measurements
         this.measurementMode = false;
         this.clearMeasurements();
+        this.clearRadius();
     }
     
     clearMeasurements() {
@@ -1454,9 +1484,23 @@ class DroneMap {
             this.measurementPolygon = null;
         }
         
+        // Remove radius circle if it exists
+        if (this.measurementRadiusCircle) {
+            this.map.removeLayer(this.measurementRadiusCircle);
+            this.measurementRadiusCircle = null;
+        }
+        
+        // Remove radius center marker if it exists
+        if (this.measurementRadiusCenter) {
+            this.map.removeLayer(this.measurementRadiusCenter);
+            this.measurementRadiusCenter = null;
+        }
+        
         this.measurementPoints = [];
         this.measurementMarkers = [];
         this.measurementPolylines = [];
+        this.measurementRadius = 0;
+        this.isDraggingRadius = false;
         this.measurementTotalDistance = 0;
         this.measurementArea = 0;
     }
@@ -1469,9 +1513,16 @@ class DroneMap {
         
         if (distanceDiv && unitLabelDiv) {
             if (this.measurementType === 'line') {
-            const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
-            distanceDiv.textContent = convertedDistance.toFixed(2);
-            unitLabelDiv.textContent = this.measurementUnit;
+                const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
+                distanceDiv.textContent = convertedDistance.toFixed(2);
+                unitLabelDiv.textContent = this.measurementUnit;
+            } else if (this.measurementType === 'radius') {
+                // Radius mode - convert from meters to selected unit
+                const radiusM = this.measurementRadius;
+                const radiusNM = radiusM / 1852; // Convert to nautical miles
+                const convertedRadius = this.convertDistance(radiusNM, 'NM', this.measurementUnit);
+                distanceDiv.textContent = convertedRadius.toFixed(2);
+                unitLabelDiv.textContent = this.measurementUnit;
             } else {
                 // Polygon mode - show area
                 const convertedArea = this.convertArea(this.measurementArea, this.measurementAreaUnit);
@@ -1518,6 +1569,8 @@ class DroneMap {
         
         if (this.measurementType === 'line') {
             this.handleLineMeasurementClick(latlng);
+        } else if (this.measurementType === 'radius') {
+            this.handleRadiusMeasurementClick(latlng);
         } else {
             this.handlePolygonMeasurementClick(latlng);
         }
@@ -1575,6 +1628,115 @@ class DroneMap {
         
         // Update polygon display
         this.updatePolygonDisplay();
+    }
+    
+    handleRadiusMeasurementClick(latlng) {
+        if (!this.measurementRadiusCenter) {
+            // First click - set center point
+            const centerIcon = L.divIcon({
+                className: 'measurement-pin',
+                html: '<div style="width: 10px; height: 10px; background: #ff0000; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                iconSize: [10, 10],
+                iconAnchor: [5, 5]
+            });
+            
+            this.measurementRadiusCenter = L.marker(latlng, { icon: centerIcon }).addTo(this.map);
+            this.isDraggingRadius = true;
+            
+            // Set up mouse move handler for dragging - store bound function for cleanup
+            this._radiusDragHandler = this.handleRadiusDrag.bind(this);
+            this.map.on('mousemove', this._radiusDragHandler);
+            
+            // Change cursor to indicate dragging
+            this.map.getContainer().style.cursor = 'crosshair';
+        } else if (this.isDraggingRadius) {
+            // Second click after dragging - lock in the radius at current position
+            const currentLatLng = latlng;
+            const centerLatLng = this.measurementRadiusCenter.getLatLng();
+            
+            // Calculate final radius in meters
+            const radiusM = centerLatLng.distanceTo(currentLatLng);
+            this.measurementRadius = radiusM;
+            
+            // Update circle with final radius
+            if (this.measurementRadiusCircle) {
+                this.measurementRadiusCircle.setRadius(radiusM);
+            } else {
+                this.measurementRadiusCircle = L.circle(centerLatLng, {
+                    radius: radiusM,
+                    color: '#ff0000',
+                    weight: 2,
+                    opacity: 0.7,
+                    fillColor: '#ff0000',
+                    fillOpacity: 0.2
+                }).addTo(this.map);
+            }
+            
+            // Lock in the radius - stop dragging
+            this.isDraggingRadius = false;
+            this.map.getContainer().style.cursor = '';
+            
+            // Remove mouse move handler
+            if (this._radiusDragHandler) {
+                this.map.off('mousemove', this._radiusDragHandler);
+                this._radiusDragHandler = null;
+            }
+            
+            // Update display
+            this.updateMeasurementDisplay();
+        } else {
+            // Click again when radius is locked - reset to start over
+            this.clearRadius();
+        }
+    }
+    
+    handleRadiusDrag(e) {
+        if (!this.isDraggingRadius || !this.measurementRadiusCenter) return;
+        
+        const currentLatLng = e.latlng;
+        const centerLatLng = this.measurementRadiusCenter.getLatLng();
+        
+        // Calculate radius in meters
+        const radiusM = centerLatLng.distanceTo(currentLatLng);
+        this.measurementRadius = radiusM;
+        
+        // Update or create circle
+        if (this.measurementRadiusCircle) {
+            this.measurementRadiusCircle.setRadius(radiusM);
+        } else {
+            this.measurementRadiusCircle = L.circle(centerLatLng, {
+                radius: radiusM,
+                color: '#ff0000',
+                weight: 2,
+                opacity: 0.7,
+                fillColor: '#ff0000',
+                fillOpacity: 0.2
+            }).addTo(this.map);
+        }
+        
+        // Update display
+        this.updateMeasurementDisplay();
+    }
+    
+    clearRadius() {
+        if (this.measurementRadiusCircle) {
+            this.map.removeLayer(this.measurementRadiusCircle);
+            this.measurementRadiusCircle = null;
+        }
+        if (this.measurementRadiusCenter) {
+            this.map.removeLayer(this.measurementRadiusCenter);
+            this.measurementRadiusCenter = null;
+        }
+        this.measurementRadius = 0;
+        this.isDraggingRadius = false;
+        this.map.getContainer().style.cursor = '';
+        this.updateMeasurementDisplay();
+        
+        // Remove event listeners
+        if (this._radiusDragHandler) {
+            this.map.off('mousemove', this._radiusDragHandler);
+            this._radiusDragHandler = null;
+        }
     }
     
     updatePolygonDisplay() {
@@ -1666,6 +1828,12 @@ class DroneMap {
     }
     
     undoLastMeasurement() {
+        if (this.measurementType === 'radius') {
+            // For radius mode, clear the entire radius
+            this.clearRadius();
+            return;
+        }
+        
         if (this.measurementPoints.length === 0) return;
         
         if (this.measurementType === 'line') {
