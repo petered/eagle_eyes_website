@@ -159,6 +159,7 @@ class DroneMap {
             this.map.getPane('droneMarkerPane').style.zIndex = 650; // Above markerPane and polygons
 
             // Create high-quality base map layers
+            // Default basemap: Google Satellite
             const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
                 maxZoom: 25,
                 maxNativeZoom: 20,
@@ -189,18 +190,83 @@ class DroneMap {
                 attribution: '© OpenStreetMap contributors'
             });
 
+            // Additional basemaps
+            const esriWorldImageryLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 25,
+                maxNativeZoom: 19,
+                attribution: '© Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community'
+            });
+
+            const esriWorldTopoLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 25,
+                maxNativeZoom: 19,
+                attribution: '© Esri, DeLorme, NAVTEQ'
+            });
+
+            const openTopoMapLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                maxZoom: 25,
+                maxNativeZoom: 17,
+                attribution: '© OpenTopoMap contributors, © OpenStreetMap contributors'
+            });
+
+            const cartoLightLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 25,
+                maxNativeZoom: 20,
+                attribution: '© OpenStreetMap contributors, © CARTO'
+            });
+
+            const cartoDarkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 25,
+                maxNativeZoom: 20,
+                attribution: '© OpenStreetMap contributors, © CARTO'
+            });
+
+            const cyclOSMLayer = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+                maxZoom: 25,
+                maxNativeZoom: 20,
+                attribution: '© OpenStreetMap contributors, CyclOSM'
+            });
+
+            const usgsTopoLayer = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 25,
+                maxNativeZoom: 16,
+                attribution: '© USGS'
+            });
+
+            const humanitarianOSMLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 25,
+                maxNativeZoom: 19,
+                attribution: '© OpenStreetMap contributors, Humanitarian OSM'
+            });
+
             // Add default satellite layer
             satelliteLayer.addTo(this.map);
 
-            // Store base map layers for custom control
-            this.baseMaps = {
-                "Satellite": satelliteLayer,
+            // Store base map layers
+            // Default basemap (shown at top)
+            this.defaultBaseMap = "Google Satellite";
+            
+            // Other basemaps (shown in dropdown)
+            this.otherBaseMaps = {
                 "Google Hybrid": googleHybridLayer,
-                "Terrain": terrainLayer,
-                "Street": streetLayer
+                "Esri World Imagery": esriWorldImageryLayer,
+                "Esri World Topo": esriWorldTopoLayer,
+                "OpenStreetMap": streetLayer,
+                "OpenTopoMap": openTopoMapLayer,
+                "Carto Light": cartoLightLayer,
+                "Carto Dark": cartoDarkLayer,
+                "CyclOSM": cyclOSMLayer,
+                "USGS Topo": usgsTopoLayer,
+                "Humanitarian OSM": humanitarianOSMLayer
             };
             
-            this.currentBaseMap = "Satellite";
+            // Combine all basemaps for easy switching
+            this.baseMaps = {
+                "Google Satellite": satelliteLayer,
+                ...this.otherBaseMaps
+            };
+            
+            this.currentBaseMap = "Google Satellite";
             
             console.log('Base maps stored:', this.baseMaps);
 
@@ -514,17 +580,53 @@ class DroneMap {
             font-family: Arial, sans-serif;
         `;
         
+        // Determine if "Other Basemaps" dropdown should be open
+        const isOtherBasemapsOpen = Object.keys(this.otherBaseMaps).includes(this.currentBaseMap);
+        
         this.baseMapPopup.innerHTML = `
             <div style="font-weight: bold; margin-bottom: 12px; color: #000; font-size: 14px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">Base Maps</div>
-            ${Object.keys(this.baseMaps).map(name => `
-                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
-                    <input type="radio" name="basemap" value="${name}" 
-                           ${name === this.currentBaseMap ? 'checked' : ''} 
-                           style="margin-right: 8px;">
-                    ${name}
-                </label>
-            `).join('')}
+            
+            <!-- Default basemap (Google Satellite) -->
+            <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                <input type="radio" name="basemap" value="${this.defaultBaseMap}" 
+                       ${this.currentBaseMap === this.defaultBaseMap ? 'checked' : ''} 
+                       style="margin-right: 8px;">
+                ${this.defaultBaseMap}
+            </label>
+            
+            <!-- Other Basemaps dropdown button -->
+            <div style="margin: 8px 0;">
+                <button id="otherBasemapsToggle" type="button" style="
+                    width: 100%;
+                    background: #f8f9fa;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 6px 8px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    color: #000;
+                    text-align: left;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                ">
+                    <span>Other Basemaps</span>
+                    <span style="font-size: 10px;">${isOtherBasemapsOpen ? '▼' : '▶'}</span>
+                </button>
+                <div id="otherBasemapsList" style="display: ${isOtherBasemapsOpen ? 'block' : 'none'}; margin-top: 6px; padding-left: 4px;">
+                    ${Object.keys(this.otherBaseMaps).map(name => `
+                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                            <input type="radio" name="basemap" value="${name}" 
+                                   ${name === this.currentBaseMap ? 'checked' : ''} 
+                                   style="margin-right: 8px;">
+                            ${name}
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+            
             <div style="border-top: 1px solid #ddd; margin: 12px 0; padding-top: 12px;">
+                <div style="font-weight: bold; margin-bottom: 12px; color: #000; font-size: 14px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">Map Layers</div>
                 <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
                     <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
                            style="margin-right: 8px;">
@@ -628,6 +730,24 @@ class DroneMap {
             });
         }
         
+        // Add event listener for "Other Basemaps" toggle button
+        const otherBasemapsToggle = this.baseMapPopup.querySelector('#otherBasemapsToggle');
+        const otherBasemapsList = this.baseMapPopup.querySelector('#otherBasemapsList');
+        if (otherBasemapsToggle && otherBasemapsList) {
+            otherBasemapsToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            otherBasemapsToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = otherBasemapsList.style.display !== 'none';
+                otherBasemapsList.style.display = isOpen ? 'none' : 'block';
+                const arrow = otherBasemapsToggle.querySelector('span:last-child');
+                if (arrow) {
+                    arrow.textContent = isOpen ? '▶' : '▼';
+                }
+            });
+        }
+        
         // Add event listeners to radio buttons
         const radioButtons = this.baseMapPopup.querySelectorAll('input[name="basemap"]');
         radioButtons.forEach(radio => {
@@ -638,6 +758,16 @@ class DroneMap {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 if (e.target.checked) {
                     this.switchBaseMap(e.target.value);
+                    // If switching to an "other" basemap, open the dropdown
+                    if (Object.keys(this.otherBaseMaps).includes(e.target.value)) {
+                        if (otherBasemapsList) {
+                            otherBasemapsList.style.display = 'block';
+                            const arrow = otherBasemapsToggle?.querySelector('span:last-child');
+                            if (arrow) {
+                                arrow.textContent = '▼';
+                            }
+                        }
+                    }
                 }
             });
         });
@@ -3619,92 +3749,33 @@ class DroneMap {
     
     addNorthArrowControl() {
         // Create custom north arrow control
+        const self = this; // Capture DroneMap instance
         const NorthArrowControl = L.Control.extend({
             onAdd: function(map) {
-                const container = L.DomUtil.create('div', 'north-arrow-control');
-                container.style.cssText = `
-                    background: linear-gradient(135deg, #ffffff, #f8f9fa);
-                    border: 2px solid #2c3e50;
-                    border-radius: 4px;
-                    width: 40px;
-                    height: 40px;
-                    cursor: pointer;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                    transition: all 0.3s ease;
-                    position: relative;
-                    margin-bottom: 5px;
-                    font-family: Arial, sans-serif;
-                `;
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                container.style.marginBottom = '0px';
+                container.style.width = '40px';
+                container.style.height = '40px';
                 
-                // Create the main arrow element (pointing up)
-                const arrow = L.DomUtil.create('div', 'north-arrow', container);
-                arrow.style.cssText = `
-                    width: 0;
-                    height: 0;
-                    border-left: 5px solid transparent;
-                    border-right: 5px solid transparent;
-                    border-bottom: 12px solid #e74c3c;
-                    transition: transform 0.3s ease;
-                    transform-origin: center bottom;
-                    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-                `;
-                
-                // Add "N" label below arrow
-                const label = L.DomUtil.create('div', 'north-label', container);
-                label.textContent = 'N';
-                label.style.cssText = `
-                    font-size: 8px;
-                    font-weight: bold;
-                    color: #2c3e50;
-                    margin-top: 1px;
-                    text-shadow: 0 1px 2px rgba(255,255,255,0.8);
-                `;
-                
-                // Add mode indicator
-                const modeIndicator = L.DomUtil.create('div', 'mode-indicator', container);
-                modeIndicator.style.cssText = `
-                position: absolute;
-                    top: -4px;
-                    right: -4px;
-                    width: 10px;
-                    height: 10px;
-                    border-radius: 50%;
-                    background: #27ae60;
-                    border: 1px solid white;
-                    font-size: 6px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-weight: bold;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-                `;
-                modeIndicator.textContent = 'N';
-                
-                // Add hover effects
-                container.onmouseover = function(e) {
-                    e.stopPropagation();
-                    this.style.background = 'linear-gradient(135deg, #ffffff, #e8f4fd)';
-                    this.style.transform = 'scale(1.05)';
-                    this.style.boxShadow = '0 6px 16px rgba(0,0,0,0.5)';
-                };
-                container.onmouseout = function(e) {
-                    e.stopPropagation();
-                    this.style.background = 'linear-gradient(135deg, #ffffff, #f8f9fa)';
-                    this.style.transform = 'scale(1)';
-                    this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-                };
-                
-                // Add click handler only (no long-press)
-                container.onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.droneMap.resetToNorthUp();
-                };
+                const button = L.DomUtil.create('a', 'leaflet-control-north', container);
+                // Image is 459x684, so aspect ratio is ~0.67:1 (taller than wide)
+                // To fit in 20px width: height = 20 / (459/684) = ~29.8px
+                // To fit in 20px height: width = 20 * (459/684) = ~13.4px
+                // Use max-width and max-height to preserve aspect ratio
+                button.innerHTML = `<img src="${self.getAssetPath('/images/north arrow (1).png')}" style="max-width: 20px; max-height: 30px; width: auto; height: auto; display: block; margin: auto; object-fit: contain;">`;
+                button.href = '#';
+                button.role = 'button';
+                button.title = 'Reset to North Up';
+                button.style.display = 'flex';
+                button.style.alignItems = 'center';
+                button.style.justifyContent = 'center';
+                button.style.width = '100%';
+                button.style.height = '100%';
+
+                L.DomEvent.on(button, 'click', L.DomEvent.stop)
+                          .on(button, 'click', () => {
+                              window.droneMap.resetToNorthUp();
+                          }, this);
                 
                 return container;
             },
@@ -3821,29 +3892,26 @@ class DroneMap {
         // Reset map rotation to north-up
         this.applyMapRotation();
         console.log('Reset map to north-up');
+        
+        // Center on user's location if available, with default zoom level (15)
+        if (this.isMyLocationVisible && this.myLocationMarker) {
+            const latlng = this.myLocationMarker.getLatLng();
+            this.map.invalidateSize();
+            this.map.setView(latlng, 15, { animate: true });
+            console.log('Centered on user location:', latlng, 'zoom level: 15');
+        }
     }
     
     updateNorthArrowRotation() {
-        console.log('updateNorthArrowRotation called, northArrowControl:', this.northArrowControl);
         if (!this.northArrowControl) return;
         
         const container = this.northArrowControl.getContainer();
-        console.log('North arrow container:', container);
-        const arrow = container.querySelector('.north-arrow');
-        const modeIndicator = container.querySelector('.mode-indicator');
+        const arrow = container.querySelector('img');
         
-        console.log('Arrow element:', arrow, 'Mode indicator:', modeIndicator);
+        if (!arrow) return;
         
-        if (!arrow || !modeIndicator) return;
-        
-        // Always set to north-oriented mode
+        // Always set to north-oriented mode (no rotation needed)
         arrow.style.transform = 'rotate(0deg)';
-        modeIndicator.textContent = 'N';
-        modeIndicator.style.background = '#27ae60';
-        container.classList.remove('user-facing');
-        container.classList.add('north-oriented');
-        container.title = 'North-oriented mode (click to reset to north-up)';
-        console.log('Set to north-oriented mode');
     }
     
     toggleFullscreen() {
