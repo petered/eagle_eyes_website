@@ -1,0 +1,225 @@
+<style>
+    .floating-question-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+
+    .floating-question-btn.collapsed .btn-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #1e90ff 0%, #0066cc 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .floating-question-btn.collapsed .btn-trigger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(30, 144, 255, 0.4);
+        background: linear-gradient(135deg, #2196f3 0%, #0077dd 100%);
+    }
+
+    .floating-question-btn.collapsed .question-form-container {
+        display: none;
+    }
+
+    .floating-question-btn.expanded .btn-trigger {
+        display: none;
+    }
+
+    .floating-question-btn.expanded .question-form-container {
+        display: block;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        padding: 20px;
+        min-width: 320px;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .question-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .question-form-header h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s ease;
+    }
+
+    .close-btn:hover {
+        color: #333;
+    }
+
+    .question-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 80px;
+        transition: border-color 0.2s ease;
+    }
+
+    .question-input:focus {
+        outline: none;
+        border-color: #1e90ff;
+    }
+
+    .question-input::placeholder {
+        color: #999;
+    }
+
+    .submit-question-btn {
+        width: 100%;
+        margin-top: 12px;
+        padding: 12px;
+        background: linear-gradient(135deg, #1e90ff 0%, #0066cc 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .submit-question-btn:hover {
+        background: linear-gradient(135deg, #2196f3 0%, #0077dd 100%);
+        transform: translateY(-1px);
+    }
+
+    .submit-question-btn:active {
+        transform: translateY(0);
+    }
+
+    .submit-question-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .floating-question-btn {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .floating-question-btn.expanded .question-form-container {
+            min-width: calc(100vw - 40px);
+            max-width: 320px;
+        }
+    }
+</style>
+
+<div class="floating-question-btn collapsed" id="floatingQuestionBtn">
+    <button class="btn-trigger" id="questionBtnTrigger">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Ask a question...
+    </button>
+
+    <div class="question-form-container">
+        <div class="question-form-header">
+            <h4>Ask a question</h4>
+            <button class="close-btn" id="closeQuestionBtn" aria-label="Close">&times;</button>
+        </div>
+        <form id="questionForm">
+            <textarea
+                class="question-input"
+                id="questionInput"
+                placeholder="e.g., Do flight logs sync to airdata?"
+                required
+            ></textarea>
+            <button type="submit" class="submit-question-btn">Submit Question</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const floatingBtn = document.getElementById('floatingQuestionBtn');
+        const triggerBtn = document.getElementById('questionBtnTrigger');
+        const closeBtn = document.getElementById('closeQuestionBtn');
+        const questionForm = document.getElementById('questionForm');
+        const questionInput = document.getElementById('questionInput');
+
+        // Open the form
+        triggerBtn.addEventListener('click', function() {
+            floatingBtn.classList.remove('collapsed');
+            floatingBtn.classList.add('expanded');
+            questionInput.focus();
+        });
+
+        // Close the form
+        closeBtn.addEventListener('click', function() {
+            floatingBtn.classList.remove('expanded');
+            floatingBtn.classList.add('collapsed');
+            questionInput.value = '';
+        });
+
+        // Handle form submission
+        questionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const query = questionInput.value.trim();
+            if (query) {
+                // Redirect to FAQ page with query parameter
+                const encodedQuery = encodeURIComponent(query);
+                window.location.href = '/faq?query=' + encodedQuery;
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && floatingBtn.classList.contains('expanded')) {
+                closeBtn.click();
+            }
+        });
+    })();
+</script>
