@@ -135,6 +135,7 @@ layout: main
                         <div class="faq-question">
                             <span class="faq-question-text">{{ faq.emoji }} {{ faq.question }}</span>
                             <div class="faq-actions">
+                                <span class="copy-link-icon" title="Copy link">🔗</span>
                                 <span class="toggle-icon">+</span>
                             </div>
                         </div>
@@ -307,6 +308,26 @@ layout: main
     gap: 10px;
 }
 
+.copy-link-icon {
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    color: #314268;
+    min-width: 20px;
+    text-align: center;
+}
+
+.faq-item.active .copy-link-icon {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.copy-link-icon:hover {
+    opacity: 0.7;
+}
+
 .toggle-icon {
     font-size: 24px;
     font-weight: bold;
@@ -358,13 +379,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle click events on FAQ questions
     faqQuestions.forEach(question => {
-        question.addEventListener('click', function() {
+        question.addEventListener('click', function(e) {
+            // Don't toggle if clicking on the copy link icon
+            if (e.target.classList.contains('copy-link-icon')) {
+                return;
+            }
             const parent = this.parentNode;
             if (parent.classList.contains('active')) {
                 parent.classList.remove('active');
             } else {
                 openFaqItem(parent);
             }
+        });
+    });
+
+    // Handle copy link functionality
+    const copyLinkIcons = document.querySelectorAll('.copy-link-icon');
+    copyLinkIcons.forEach(icon => {
+        icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const faqItem = this.closest('.faq-item');
+            const faqId = faqItem.id;
+            const url = 'https://www.eagleeyessearch.com' + window.location.pathname + '#' + faqId;
+
+            navigator.clipboard.writeText(url).then(() => {
+                // Show copied notification
+                const originalTitle = this.title;
+                this.title = 'Copied!';
+                this.style.opacity = '1';
+
+                setTimeout(() => {
+                    this.title = originalTitle;
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy link:', err);
+            });
         });
     });
 
