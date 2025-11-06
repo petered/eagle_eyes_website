@@ -1387,8 +1387,15 @@ permalink: /download/
                     <!-- Controller compatibility sections will be populated here -->
                 </div>
             </div>
+
+            <!-- Skip Link for Advanced Users -->
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                <a href="#" onclick="skipToDownloads(); return false;" style="color: #007bff; text-decoration: underline; font-size: 14px;">
+                    Skip these Steps (Advanced users only)
+                </a>
+            </div>
         </div>
-        
+
         <!-- Step 3: Download Options -->
         <div id="step3-downloads" class="step-content">
             <h2 class="step-title" id="download-title">Download Software</h2>
@@ -2473,10 +2480,10 @@ permalink: /download/
         document.querySelectorAll('.step-content').forEach(step => {
             step.classList.remove('active');
         });
-        
+
         // Show step 3
         document.getElementById('step3-downloads').classList.add('active');
-        
+
         // Show/hide Intel warning for desktop downloads
         const intelWarning = document.getElementById('intel-warning-step3');
         if (selectedPlatform === 'desktop' && selectedOSPlatform === 'macos-intel') {
@@ -2484,14 +2491,33 @@ permalink: /download/
         } else {
             intelWarning.style.display = 'none';
         }
-        
+
         // Update navigation
         document.getElementById('prevButton').disabled = false;
         document.getElementById('nextButton').disabled = false;
         document.getElementById('stepIndicator').textContent = 'Step 3 of 4';
-        
+
         // Load downloads based on platform
         loadDownloads();
+    }
+
+    function skipToDownloads() {
+        // Advanced users can skip device selection and go directly to downloads
+        // Make sure platform is set to mobile
+        selectedPlatform = 'mobile';
+
+        // Jump to step 3 (downloads)
+        currentStep = 3;
+        showStep3();
+
+        // Update progress
+        updateProgress();
+
+        // Scroll to top
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
     }
     
     function showStep4() {
