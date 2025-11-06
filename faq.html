@@ -1870,13 +1870,16 @@ document.addEventListener('DOMContentLoaded', function() {
             results = chosenResults; // BM25 results already in correct format
         }
 
+        // Limit to top 5 results when filtering by query
+        const limitedResults = results.slice(0, 5);
+
         // Create a map of id -> rank for sorting
         const idToRank = {};
-        results.forEach((r, idx) => {
+        limitedResults.forEach((r, idx) => {
             idToRank[r.id] = idx;
         });
 
-        const resultIds = new Set(results.map(r => r.id));
+        const resultIds = new Set(limitedResults.map(r => r.id));
         
         // Sort FAQ items by BM25 rank
         const sortedFaqData = [...faqData].sort((a, b) => {
@@ -1905,12 +1908,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get the contact section
         const contactSection = document.querySelector('.faq-contact-section');
         
-        if (results.length === 0) {
+        if (limitedResults.length === 0) {
             searchMeta.innerHTML = `<span style="font-size: 1.6rem; line-height: 1.6;">We're updating our FAQ resources and don't have an answer available for your specific question at this time. Please reach out to us at <span class="faq-email-link" onclick="copyEmailToClipboard()" style="color: #1e90ff; cursor: pointer; text-decoration: underline; font-weight: 500; font-size: 1.6rem;">info@EagleEyesSearch.com</span> with your question and we'll be happy to get back to you with an answer.</span>`;
             // Hide contact section when no results (it's redundant)
             if (contactSection) contactSection.style.display = 'none';
         } else {
-            searchMeta.innerHTML = `<span style="font-size: 1.2rem;">${results.length} result${results.length === 1 ? '' : 's'} for "${escapeHtml(q)}"</span>`;
+            searchMeta.innerHTML = `<span style="font-size: 1.2rem;">${limitedResults.length} result${limitedResults.length === 1 ? '' : 's'} for "${escapeHtml(q)}"</span>`;
             // Show contact section when there are results
             if (contactSection) contactSection.style.display = 'block';
         }
