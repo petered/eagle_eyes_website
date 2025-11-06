@@ -771,6 +771,10 @@ class WebRTCViewer {
       setTimeout(() => {
         console.log('Resizing map');
         window.droneMap.resize();
+        // Check if map is visible and show beta disclaimer if needed
+        if (window.droneMap.checkMapVisibilityAndShowDisclaimer) {
+          window.droneMap.checkMapVisibilityAndShowDisclaimer();
+        }
       }, 100);
     }
   }

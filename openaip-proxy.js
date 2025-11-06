@@ -4,9 +4,12 @@ const app = express();
 
 // Node.js 18+ has built-in fetch, no need for node-fetch
 
+// Load environment variables
+require('dotenv').config();
+
 // OpenAIP API configuration
 const OPENAIP_API_BASE = 'https://api.core.openaip.net/api';
-const OPENAIP_API_KEY = 'b0e3bef31f5e57bc6c642e5c4069a4b9';
+const OPENAIP_API_KEY = process.env.OPENAIP_API_KEY || 'b0e3bef31f5e57bc6c642e5c4069a4b9';
 
 // Middleware
 app.use(cors()); // Enable CORS for all origins

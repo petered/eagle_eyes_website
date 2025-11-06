@@ -174,6 +174,9 @@ class DroneMap {
         // Full screen control
         this.isFullscreen = false;
         this.fullscreenControl = null;
+        
+        // Beta disclaimer tracking
+        this.hasShownBetaDisclaimer = false;
         this.originalNavbarDisplay = null; // Store original navbar display value
 
         this.defaultCenter = [45.0, -100.0];
@@ -917,27 +920,27 @@ class DroneMap {
             position: absolute;
             top: 50px;
             left: 10px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            padding: 12px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
+            padding: 16px;
             min-width: 180px;
             z-index: 2000;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         `;
         
         // Determine if "Other Basemaps" dropdown should be open
         const isOtherBasemapsOpen = Object.keys(this.otherBaseMaps).includes(this.currentBaseMap);
         
         this.baseMapPopup.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 12px; color: #000; font-size: 14px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">Base Maps</div>
+            <div style="font-weight: 600; margin-bottom: 14px; color: #1f2937; font-size: 15px; letter-spacing: -0.01em;">Base Maps</div>
             
             <!-- Default basemap (Google Satellite) -->
-            <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+            <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                 <input type="radio" name="basemap" value="${this.defaultBaseMap}" 
                        ${this.currentBaseMap === this.defaultBaseMap ? 'checked' : ''} 
-                       style="margin-right: 8px;">
+                       style="margin-right: 10px; accent-color: #3b82f6;">
                 ${this.defaultBaseMap}
             </label>
             
@@ -945,39 +948,41 @@ class DroneMap {
             <div style="margin: 8px 0;">
                 <button id="otherBasemapsToggle" type="button" style="
                     width: 100%;
-                    background: #f8f9fa;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    padding: 6px 8px;
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 6px;
+                    padding: 8px 12px;
                     cursor: pointer;
                     font-size: 13px;
-                    color: #000;
+                    color: #374151;
+                    font-weight: 500;
                     text-align: left;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                ">
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db';" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb';">
                     <span>Other Basemaps</span>
-                    <span style="font-size: 10px;">${isOtherBasemapsOpen ? '▼' : '▶'}</span>
+                    <span style="font-size: 10px; color: #6b7280;">${isOtherBasemapsOpen ? '▼' : '▶'}</span>
                 </button>
-                <div id="otherBasemapsList" style="display: ${isOtherBasemapsOpen ? 'block' : 'none'}; margin-top: 6px; padding-left: 4px;">
+                <div id="otherBasemapsList" style="display: ${isOtherBasemapsOpen ? 'block' : 'none'}; margin-top: 8px; padding-left: 8px;">
                     ${Object.keys(this.otherBaseMaps).map(name => `
-                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                     <input type="radio" name="basemap" value="${name}" 
                            ${name === this.currentBaseMap ? 'checked' : ''} 
-                           style="margin-right: 8px;">
+                           style="margin-right: 10px; accent-color: #3b82f6;">
                     ${name}
                 </label>
             `).join('')}
                 </div>
             </div>
             
-            <div style="border-top: 1px solid #ddd; margin: 12px 0; padding-top: 12px;">
-                <div style="font-weight: bold; margin-bottom: 12px; color: #000; font-size: 14px; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">Map Layers</div>
-                <div style="display: flex; align-items: center; margin: 6px 0;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500; flex: 1;">
+            <div style="border-top: 1px solid #e5e7eb; margin: 14px 0; padding-top: 14px;">
+                <div style="font-weight: 600; margin-bottom: 14px; color: #1f2937; font-size: 15px; letter-spacing: -0.01em;">Map Layers</div>
+                <div style="display: flex; align-items: center; margin: 8px 0;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; flex: 1; transition: color 0.2s;">
                         <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
-                               style="margin-right: 8px;">
+                               style="margin-right: 10px; accent-color: #3b82f6;">
                         Airspace (At Ground)
                     </label>
                     <button id="airspaceAllExpandBtn" type="button" style="
@@ -986,26 +991,27 @@ class DroneMap {
                         cursor: pointer;
                         padding: 4px 8px;
                         font-size: 12px;
-                        color: #666;
+                        color: #6b7280;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         margin-left: 8px;
                         line-height: 1;
-                    " onclick="event.stopPropagation(); window.droneMap.toggleAirspaceAllExpand(); return false;" title="${this.isAirspaceAllExpanded ? 'Hide' : 'Show'} Airspace (All)">
+                        transition: color 0.2s;
+                    " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.toggleAirspaceAllExpand(); return false;" title="${this.isAirspaceAllExpanded ? 'Hide' : 'Show'} Airspace (All)">
                         <span style="transform: rotate(${this.isAirspaceAllExpanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
                     </button>
                 </div>
                 ${this.isAirspaceAllExpanded || this.isAirspaceEnabled ? `
-                <label style="display: block; margin: 2px 0 6px 24px; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                <label style="display: block; margin: 4px 0 8px 24px; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                     <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
-                           style="margin-right: 8px;">
+                           style="margin-right: 10px; accent-color: #3b82f6;">
                     Airspace (All)
                 </label>
                 ` : ''}
-                <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                     <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
-                           style="margin-right: 8px;">
+                           style="margin-right: 10px; accent-color: #3b82f6;">
                     Airports/Heliports
                 </label>
                 
@@ -1013,56 +1019,60 @@ class DroneMap {
                 <div style="margin: 8px 0;">
                     <button id="faaLayersToggle" type="button" style="
                         width: 100%;
-                        background: #f8f9fa;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        padding: 6px 8px;
+                        background: #f9fafb;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 6px;
+                        padding: 8px 12px;
                         cursor: pointer;
                         font-size: 13px;
-                        color: #000;
+                        color: #374151;
+                        font-weight: 500;
                         text-align: left;
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                    ">
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db';" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb';">
                         <span>USA FFA Layers</span>
-                        <span style="font-size: 10px;">▶</span>
+                        <span style="font-size: 10px; color: #6b7280;">▶</span>
                     </button>
-                    <div id="faaLayersList" style="display: none; margin-top: 6px; padding-left: 4px;">
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                    <div id="faaLayersList" style="display: none; margin-top: 8px; padding-left: 8px;">
+                        <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                             <input type="checkbox" id="faaUASMapToggle" ${this.isFAAUASMapEnabled ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
+                                   style="margin-right: 10px; accent-color: #3b82f6;">
                             USA FAA UAS Map
                         </label>
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                        <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                             <input type="checkbox" id="faaAirspaceToggle" ${this.isFAAAirspaceEnabled ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
+                                   style="margin-right: 10px; accent-color: #3b82f6;">
                             USA FAA airspace<br>
-                            <span style="margin-left: 24px; font-size: 11px;">(At Ground)</span>
+                            <span style="margin-left: 24px; font-size: 11px; color: #6b7280;">(At Ground)</span>
                         </label>
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                        <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                             <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
+                                   style="margin-right: 10px; accent-color: #3b82f6;">
                             USA FAA Airports
                         </label>
-                        <label style="display: block; margin: 6px 0; cursor: pointer; font-size: 13px; padding: 2px 0; color: #000; font-weight: 500;">
+                        <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                             <input type="checkbox" id="runwaysToggle" ${this.isRunwaysEnabled ? 'checked' : ''} 
-                                   style="margin-right: 8px;">
+                                   style="margin-right: 10px; accent-color: #3b82f6;">
                             USA FAA Runways
                         </label>
                     </div>
                 </div>
                 
                 <!-- Local Airspace Map link -->
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd; margin-bottom: 0; padding-bottom: 0;">
+                <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; margin-bottom: 0; padding-bottom: 0;">
                     <a href="#" id="localAirspaceMapLink" style="
                         display: block;
-                        color: #007bff;
+                        color: #3b82f6;
                         text-decoration: none;
                         font-size: 13px;
-                        padding: 4px 0;
+                        font-weight: 500;
+                        padding: 6px 0;
                         cursor: pointer;
-                    " onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+                        transition: color 0.2s;
+                    " onmouseover="this.style.color='#2563eb'; this.style.textDecoration='underline'" onmouseout="this.style.color='#3b82f6'; this.style.textDecoration='none'">
                         Local Airspace Map
                     </a>
                 </div>
@@ -1334,15 +1344,15 @@ class DroneMap {
             position: absolute;
             top: 50px;
             left: 10px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            padding: 8px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
+            padding: 12px;
             min-width: 160px;
             max-width: 180px;
             z-index: 2000;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         `;
         
         // Generate unit options based on mode
@@ -1358,69 +1368,81 @@ class DroneMap {
             : 'Click on the map to set center point, then drag to set radius.';
         
         this.measurementPopup.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div style="font-weight: bold; color: #000; font-size: 12px;">Measuring Tool</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="font-weight: 600; color: #1f2937; font-size: 13px; letter-spacing: -0.01em;">Measuring Tool</div>
                 <button id="closeMeasurementBtn" style="
                     background: transparent;
                     border: none;
-                    font-size: 16px;
-                    color: #666;
+                    font-size: 18px;
+                    color: #6b7280;
                     cursor: pointer;
                     padding: 0;
                     line-height: 1;
-                    width: 20px;
-                    height: 20px;
-                ">×</button>
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 4px;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#f3f4f6'; this.style.color='#374151'" onmouseout="this.style.background='transparent'; this.style.color='#6b7280'">×</button>
             </div>
-            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+            <div style="display: flex; gap: 6px; margin-bottom: 10px;">
                 <button id="lineModeBtn" style="
                     flex: 1;
-                    padding: 6px 8px;
-                    border: 1px solid #ddd;
-                    border-radius: 3px;
+                    padding: 8px 10px;
+                    border: none;
+                    border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
-                    ${isLineMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
-                ">Line</button>
+                    font-weight: 500;
+                    transition: all 0.2s;
+                    ${isLineMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
+                " onmouseover="${isLineMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isLineMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Line</button>
                 <button id="polygonModeBtn" style="
                     flex: 1;
-                    padding: 6px 8px;
-                    border: 1px solid #ddd;
-                    border-radius: 3px;
+                    padding: 8px 10px;
+                    border: none;
+                    border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
-                    ${isPolygonMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
-                ">Polygon</button>
+                    font-weight: 500;
+                    transition: all 0.2s;
+                    ${isPolygonMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
+                " onmouseover="${isPolygonMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isPolygonMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Polygon</button>
             </div>
-            <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: center; margin-bottom: 10px;">
                 <button id="radiusModeBtn" style="
-                    padding: 6px 8px;
-                    border: 1px solid #ddd;
-                    border-radius: 3px;
+                    padding: 8px 10px;
+                    border: none;
+                    border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
-                    ${isRadiusMode ? 'background: #6c757d; color: white;' : 'background: #007bff; color: white;'}
-                ">Radius</button>
+                    font-weight: 500;
+                    transition: all 0.2s;
+                    ${isRadiusMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
+                " onmouseover="${isRadiusMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isRadiusMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Radius</button>
             </div>
-            <div style="margin-bottom: 8px;">
-                <label style="display: block; margin-bottom: 4px; font-size: 11px; color: #666;">Unit:</label>
-                <select id="measurementUnit" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; box-sizing: border-box;">
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 11px; color: #6b7280; font-weight: 500;">Unit:</label>
+                <select id="measurementUnit" style="width: 100%; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 11px; box-sizing: border-box; background: #ffffff; color: #374151; transition: border-color 0.2s;" onmouseover="this.style.borderColor='#d1d5db'" onmouseout="this.style.borderColor='#e5e7eb'">
                     ${unitOptions}
                 </select>
             </div>
-            <div style="margin-bottom: 8px; padding: 6px; background: #f0f8ff; border-radius: 3px; border-left: 2px solid #0066cc;">
-                <div style="font-size: 10px; color: #333; line-height: 1.4;">
+            <div style="margin-bottom: 10px; padding: 8px; background: #eff6ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                <div style="font-size: 10px; color: #374151; line-height: 1.5;">
                     ${instructions}
                 </div>
             </div>
-            <div style="padding: 8px; background: #f5f5f5; border-radius: 3px; text-align: center;">
-                ${isRadiusMode ? '<div style="font-size: 10px; color: #666; margin-bottom: 4px;">Radius</div>' : ''}
-                <div style="font-size: 18px; font-weight: bold; color: #0066cc;" id="measurementDistance">0.00</div>
-                <div style="font-size: 9px; color: #666; margin-top: 2px;" id="measurementUnitLabel">${currentUnit}</div>
+            <div style="padding: 10px; background: #f9fafb; border-radius: 6px; text-align: center; border: 1px solid #e5e7eb;">
+                ${isRadiusMode ? '<div style="font-size: 10px; color: #6b7280; margin-bottom: 6px; font-weight: 500;">Radius</div>' : ''}
+                <div style="font-size: 20px; font-weight: 600; color: #3b82f6; letter-spacing: -0.02em;" id="measurementDistance">0.00</div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 4px; font-weight: 500;" id="measurementUnitLabel">${currentUnit}</div>
             </div>
-            <div style="margin-top: 8px; text-align: left;">
+            <div style="margin-top: 10px; text-align: left;">
                 <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
-                        style="background: transparent; border: 1px solid #ddd; color: #666; padding: 3px 6px; border-radius: 3px; cursor: pointer; font-size: 14px; width: auto; display: inline-flex; align-items: center; justify-content: center;"
+                        style="background: transparent; border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; width: auto; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-weight: 500;"
+                        onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'; this.style.color='#374151'" onmouseout="this.style.background='transparent'; this.style.borderColor='#e5e7eb'; this.style.color='#6b7280'"
                         title="Undo Last Point">
                     ←
                 </button>
@@ -2147,28 +2169,32 @@ class DroneMap {
             <div style="
                 background: #dc3545;
                 color: white;
-                padding: 12px 16px;
+                padding: 16px;
                 font-weight: bold;
-                font-size: 15px;
+                font-size: 18px;
                 text-align: center;
+                text-transform: uppercase;
             ">
-                Warning: Incomplete Airspace Data
+                ⚠️ WARNING
             </div>
             <div style="padding: 18px 16px;">
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    This airspace layer may be incomplete or outdated.
+                    Airspace layer may be incomplete or outdated.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Some restricted, controlled, or sensitive airspace may not appear on this map.
+                    Some restricted or controlled airspace may not be displayed.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Data source: <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP</a> — a free, open-source, community-maintained airspace dataset.
+                    Source: <a href="https://www.openaip.net/map#7.69/48.9067/-123.3034" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP</a> (open-source, community-maintained).
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    If you notice missing or incorrect information — such as airspace boundaries, frequencies, or aerodrome details — you can contribute updates directly on the <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP website</a>.
+                    You can request updates or contribute directly via the <a href="https://www.openaip.net" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">OpenAIP website</a>.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Eagle Eyes Search Inc. makes no guarantee as to the accuracy, completeness, or reliability of the airspace data displayed in this map. We assume no liability for how this information is used.
                 </p>
                 <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    ✈️ For authoritative and up-to-date airspace information, always refer to your local airspace authority before flight. <button id="localAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0 4px; vertical-align: middle; font-weight: bold;" title="View alternative airspace map">ℹ️</button>
+                    Always consult your official local airspace authority before flight. <button id="localAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0 4px; vertical-align: middle; font-weight: bold;" title="View alternative airspace map">ℹ️</button>
                 </p>
             </div>
             <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
@@ -2275,6 +2301,12 @@ class DroneMap {
     async handleLocalAirspaceAuthorityClick(modal) {
         let lat, lng;
 
+        // Check if geolocation is available
+        if (!navigator.geolocation) {
+            this.showLocationAccessDeniedMessage(modal);
+            return;
+        }
+
         // Check if we already have location from the user's location marker
         if (this.myLocationMarker) {
             const latlng = this.myLocationMarker.getLatLng();
@@ -2285,28 +2317,31 @@ class DroneMap {
             return;
         }
 
-        // Check if geolocation is available
-        if (!navigator.geolocation) {
-            this.showLocationAccessDeniedMessage(modal);
-            return;
-        }
-
-        // Request location permission
+        // Always try to get location - browser will prompt if permission not granted
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 lat = position.coords.latitude;
                 lng = position.coords.longitude;
                 console.log('Location obtained:', lat, lng);
                 await this.openAirspaceAuthorityUrl(lat, lng);
+                // Close the modal/popup if it exists
+                if (modal && modal.parentElement) {
+                    modal.remove();
+                }
+                // Also close any backdrop
+                const backdrop = document.querySelector('div[style*="background: rgba(0, 0, 0, 0.3)"]');
+                if (backdrop && backdrop.parentElement) {
+                    backdrop.remove();
+                }
             },
             (error) => {
-                console.error('Location access denied or error:', error);
+                console.error('Location access error:', error);
                 this.showLocationAccessDeniedMessage(modal);
             },
             {
                 enableHighAccuracy: false,
                 timeout: 10000,
-                maximumAge: 60000 // Accept cached location up to 1 minute old
+                maximumAge: 60000
             }
         );
     }
@@ -2445,13 +2480,9 @@ class DroneMap {
         // Handle open local map button
         const openMapBtn = infoPopup.querySelector('#openAirspaceMapBtn');
         openMapBtn.addEventListener('click', async () => {
-            if (backdrop.parentElement) {
-                document.body.removeChild(backdrop);
-            }
-            if (infoPopup.parentElement) {
-                document.body.removeChild(infoPopup);
-            }
-            await this.handleLocalAirspaceAuthorityClick(parentModal);
+            // Don't close the popup yet - let handleLocalAirspaceAuthorityClick show messages in it if needed
+            // We'll pass the infoPopup as the modal so messages can be shown there
+            await this.handleLocalAirspaceAuthorityClick(infoPopup);
         });
         
         // Close on background click
@@ -2466,25 +2497,59 @@ class DroneMap {
     }
 
     showLocationAccessDeniedMessage(modal) {
-        const modalContent = modal.querySelector('div[style*="background: white"]');
-        if (modalContent) {
-            const errorMessage = document.createElement('div');
-            errorMessage.style.cssText = `
-                background: #fff3cd;
-                border: 1px solid #ffc107;
-                color: #856404;
-                padding: 12px;
-                border-radius: 4px;
-                margin-top: 12px;
-                font-size: 13px;
-            `;
-            errorMessage.textContent = 'We couldn\'t determine your local airspace authority without location access.';
-            
-            // Insert after the last paragraph
+        if (!modal) return;
+        
+        // Try to find the modal content - it might be the modal itself or a child
+        let modalContent = modal;
+        if (modal.querySelector) {
+            const whiteBg = modal.querySelector('div[style*="background: white"]');
+            if (whiteBg) {
+                modalContent = whiteBg;
+            } else if (modal.style && modal.style.background) {
+                // Modal itself might be the content
+                modalContent = modal;
+            }
+        }
+        
+        // Check if message already exists to avoid duplicates
+        const existingMessage = modalContent.querySelector ? modalContent.querySelector('#locationAccessDeniedMessage') : null;
+        if (existingMessage) {
+            return; // Message already shown
+        }
+
+        const errorMessage = document.createElement('div');
+        errorMessage.id = 'locationAccessDeniedMessage';
+        errorMessage.style.cssText = `
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 12px;
+            font-size: 13px;
+        `;
+        
+        const messageText = document.createElement('div');
+        messageText.textContent = 'Grant location access to display local data.';
+        errorMessage.appendChild(messageText);
+        
+        // Insert the message - try different locations
+        if (modalContent.querySelector) {
+            // Try to insert after the last paragraph
             const lastParagraph = modalContent.querySelector('p:last-of-type');
             if (lastParagraph && lastParagraph.parentElement) {
                 lastParagraph.parentElement.insertBefore(errorMessage, lastParagraph.nextSibling);
+            } else {
+                // Insert after the content div or at the end
+                const buttonContainer = modalContent.querySelector('div[style*="display: flex; flex-direction: column"]');
+                if (buttonContainer && buttonContainer.parentElement) {
+                    buttonContainer.parentElement.insertBefore(errorMessage, buttonContainer.nextSibling);
+                } else {
+                    modalContent.appendChild(errorMessage);
+                }
             }
+        } else {
+            modalContent.appendChild(errorMessage);
         }
     }
 
@@ -2660,8 +2725,17 @@ class DroneMap {
     }
 
     getOpenAIPProxyUrl() {
-        // Always use localhost:8081 proxy (as per requirements)
-        return 'http://localhost:8081';
+        // Use localhost for development, production URL for production
+        // Check if we're on localhost or production domain
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:8081';
+        } else {
+            // Production: use relative path (same pattern as FAQ backend)
+            // The proxy should be deployed on the same domain
+            // This will work if proxy is at /openaip-proxy or handled by reverse proxy
+            return `${window.location.protocol}//${window.location.host}/openaip-proxy`;
+        }
     }
 
     // ===== USA FAA Airports Layer Methods =====
@@ -2780,6 +2854,153 @@ class DroneMap {
         }
     }
 
+    // ===== Beta Disclaimer =====
+    
+    showBetaDisclaimer() {
+        // Only show once per session
+        if (this.hasShownBetaDisclaimer) {
+            return;
+        }
+        
+        // Mark as shown
+        this.hasShownBetaDisclaimer = true;
+        
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 10px;
+            padding: 0;
+            max-width: 480px;
+            width: calc(100% - 40px);
+            max-height: calc(100vh - 40px);
+            margin: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        `;
+
+        modalContent.innerHTML = `
+            <div style="
+                background: #f59e0b;
+                color: white;
+                padding: 14px 16px;
+                font-weight: bold;
+                font-size: clamp(16px, 4vw, 18px);
+                text-align: center;
+                text-transform: uppercase;
+                flex-shrink: 0;
+            ">
+                ⚠️ NOTICE
+            </div>
+            <div style="padding: 16px; overflow-y: auto; flex: 1; min-height: 0;">
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
+                    This is a <span style="
+                        display: inline-block;
+                        background-color: #ffc107;
+                        color: #000;
+                        font-size: 0.7rem;
+                        font-weight: 600;
+                        padding: 0.2rem 0.4rem;
+                        border-radius: 4px;
+                        margin: 0 2px;
+                        vertical-align: middle;
+                    ">BETA</span> release of the Eagle Eyes Viewer.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
+                    Displayed map and drone data may not always reflect real-time conditions. Eagle Eyes Search Inc. accepts no liability for actions taken based on this information.
+                </p>
+                <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
+                    Always refer to regulations for your local jurisdiction and consult official airspace sources for current information. <button id="betaLocalAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 14px; padding: 4px 6px; vertical-align: middle; font-weight: bold; min-width: 24px; min-height: 24px; touch-action: manipulation;" title="View alternative airspace map">ℹ️</button>
+                </p>
+            </div>
+            <div style="padding: 12px 16px 16px; display: flex; justify-content: center; flex-shrink: 0; border-top: 1px solid #e5e7eb;">
+                <button id="betaAcknowledgeBtn" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: clamp(13px, 3.5vw, 14px);
+                    font-weight: 600;
+                    min-width: 160px;
+                    width: 100%;
+                    max-width: 280px;
+                    transition: background 0.2s;
+                    touch-action: manipulation;
+                " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'" ontouchstart="this.style.background='#218838'" ontouchend="this.style.background='#28a745'">Acknowledge & Continue</button>
+            </div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // Handle local airspace authority info button
+        const localAuthorityInfoBtn = modalContent.querySelector('#betaLocalAirspaceAuthorityInfoBtn');
+        localAuthorityInfoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showAirspaceAuthorityInfoPopup(modal);
+        });
+
+        // Handle acknowledge button
+        const acknowledgeBtn = modalContent.querySelector('#betaAcknowledgeBtn');
+        acknowledgeBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+    
+    // Check if map is visible and show beta disclaimer if needed
+    checkMapVisibilityAndShowDisclaimer() {
+        // Check if map container is visible
+        const mapContainer = document.getElementById('map');
+        const mapPanel = document.getElementById('map-panel');
+        
+        if (!mapContainer || !mapPanel) {
+            return;
+        }
+        
+        // Check if map panel is visible
+        const mapPanelStyle = window.getComputedStyle(mapPanel);
+        const isMapPanelVisible = mapPanelStyle.display !== 'none' && 
+                                  mapPanelStyle.visibility !== 'hidden' &&
+                                  mapPanelStyle.opacity !== '0';
+        
+        // Check if map container is visible
+        const mapContainerStyle = window.getComputedStyle(mapContainer);
+        const isMapContainerVisible = mapContainerStyle.display !== 'none' &&
+                                      mapContainerStyle.visibility !== 'hidden' &&
+                                      mapContainerStyle.opacity !== '0';
+        
+        // If map is visible and we haven't shown the disclaimer yet, show it
+        if (isMapPanelVisible && isMapContainerVisible && !this.hasShownBetaDisclaimer) {
+            // Small delay to ensure map is fully rendered
+            setTimeout(() => {
+                this.showBetaDisclaimer();
+            }, 300);
+        }
+    }
+
     // ===== USA FAA Layers Disclaimer =====
 
     showFAAAirspaceAcknowledgment(layerType) {
@@ -2815,25 +3036,29 @@ class DroneMap {
             <div style="
                 background: #dc3545;
                 color: white;
-                padding: 12px 16px;
+                padding: 16px;
                 font-weight: bold;
-                font-size: 15px;
+                font-size: 18px;
                 text-align: center;
+                text-transform: uppercase;
             ">
-                Warning: Airspace May Not Be Complete
+                ⚠️ WARNING
             </div>
             <div style="padding: 18px 16px;">
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    This airspace layer may be incomplete or outdated.
+                    Airspace layer may be incomplete or outdated.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Some restricted, controlled, or sensitive airspace may not appear on this map.
+                    Some restricted or controlled airspace may not be displayed.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Data source: <a href="https://adds-faa.opendata.arcgis.com/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">Federal Aviation Authority</a>.
+                    Source: <a href="https://adds-faa.opendata.arcgis.com/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">Federal Aviation Authority</a>.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Eagle Eyes Search Inc. makes no guarantee as to the accuracy, completeness, or reliability of the airspace data displayed in this map. We assume no liability for how this information is used.
                 </p>
                 <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    ✈️ For authoritative and up-to-date airspace information, always refer to your local airspace authority before flight. <button id="localAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0 4px; vertical-align: middle; font-weight: bold;" title="View alternative airspace map">ℹ️</button>
+                    Always consult your official local airspace authority before flight. <button id="faaLocalAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #0066cc; cursor: pointer; font-size: 12px; padding: 0 4px; vertical-align: middle; font-weight: bold;" title="View alternative airspace map">ℹ️</button>
                 </p>
             </div>
             <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
@@ -2855,12 +3080,14 @@ class DroneMap {
         document.body.appendChild(modal);
 
         // Handle local airspace authority info button
-        const localAuthorityInfoBtn = modalContent.querySelector('#localAirspaceAuthorityInfoBtn');
-        localAuthorityInfoBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.showAirspaceAuthorityInfoPopup(modal);
-        });
+        const localAuthorityInfoBtn = modalContent.querySelector('#faaLocalAirspaceAuthorityInfoBtn');
+        if (localAuthorityInfoBtn) {
+            localAuthorityInfoBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showAirspaceAuthorityInfoPopup(modal);
+            });
+        }
 
         // Handle acknowledge button
         const acknowledgeBtn = modalContent.querySelector('#faaAcknowledgeBtn');
@@ -5244,6 +5471,11 @@ class DroneMap {
             if (mobileOffcanvas) {
                 mobileOffcanvas.style.display = 'none';
             }
+            
+            // Check if map is visible and show beta disclaimer if needed
+            setTimeout(() => {
+                this.checkMapVisibilityAndShowDisclaimer();
+            }, 300);
             
             // Zoom to user location if it's visible
             if (this.isMyLocationVisible && this.myLocationMarker) {
