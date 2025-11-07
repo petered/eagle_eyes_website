@@ -1,6 +1,15 @@
 // Global constants
 const POLYGON_FILL_OPACITY = 0.05;
 
+// OpenSky Network Configuration
+const OPENSKY_CONFIG = {
+    endpoint: 'https://opensky-network.org/api', // Base endpoint
+    username: null, // Set to your OpenSky username for higher rate limits (optional)
+    password: null, // Set to your OpenSky password (optional)
+    updateInterval: 10000, // Update every 10 seconds (10000ms)
+    bboxBuffer: 0.5 // ±degrees from map center for bounding box
+};
+
 class DroneMap {
     constructor() {
         this.map = null;
@@ -93,6 +102,14 @@ class DroneMap {
         this.multiHitCurrentIndex = 0; // Current feature index in pager
         this.multiHitOriginalLatLng = null; // Original click location to keep popup anchored
         this.highlightedAirspaceLayer = null; // Currently highlighted airspace layer
+        
+        // OpenSky ADS-B layer
+        this.openSkyMarkerCluster = null;
+        this.isOpenSkyEnabled = false;
+        this.openSkyAcknowledged = false;
+        this.openSkyUpdateInterval = null;
+        this.openSkyAircraftData = new Map(); // icao24 -> aircraft data
+        this.openSkyLoading = false;
         
         // OpenAIP Airports/Heliports layer
         this.airportsLayer = null;
@@ -391,6 +408,23 @@ class DroneMap {
             if (this.isDroneAirspaceEnabled) {
                 this.droneAirspaceLayer.addTo(this.map);
             }
+            
+            // Initialize OpenSky ADS-B aircraft marker cluster layer
+            this.openSkyMarkerCluster = L.markerClusterGroup({
+                maxClusterRadius: 60,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                disableClusteringAtZoom: 12,
+                iconCreateFunction: (cluster) => {
+                    const count = cluster.getChildCount();
+                    return L.divIcon({
+                        html: `<div style="background-color: #ff6b35; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${count}</div>`,
+                        className: 'opensky-cluster-icon',
+                        iconSize: L.point(40, 40)
+                    });
+                }
+            });
             
             // Initialize OpenAIP airports marker cluster layer
             this.airportsMarkerCluster = L.markerClusterGroup({
@@ -1035,6 +1069,13 @@ class DroneMap {
                     Airports/Heliports
                 </label>
                 
+                <!-- OpenSky ADS-B Aircraft Layer -->
+                <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
+                    <input type="checkbox" id="openSkyToggle" ${this.isOpenSkyEnabled ? 'checked' : ''} 
+                           style="margin-right: 10px; accent-color: #3b82f6;">
+                    OpenSky ADS-B Aircraft
+                </label>
+                
                 <!-- USA FFA Layers dropdown -->
                 <div style="margin: 8px 0;">
                     <button id="faaLayersToggle" type="button" style="
@@ -1256,6 +1297,18 @@ class DroneMap {
             airportsToggle.addEventListener('change', (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to document
                 this.toggleAirports(e.target.checked);
+            });
+        }
+        
+        // Add event listener for OpenSky ADS-B toggle
+        const openSkyToggle = this.baseMapPopup.querySelector('#openSkyToggle');
+        if (openSkyToggle) {
+            openSkyToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            openSkyToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleOpenSky(e.target.checked);
             });
         }
         
@@ -3385,6 +3438,346 @@ class DroneMap {
         }
     }
 
+    // ===== OpenSky ADS-B Aircraft Layer Methods =====
+    
+    toggleOpenSky(enabled) {
+        if (enabled && !this.openSkyAcknowledged) {
+            // Show acknowledgment modal
+            this.showOpenSkyAcknowledgment();
+            return; // Will enable after acknowledgment
+        }
+        
+        this.isOpenSkyEnabled = enabled;
+        
+        if (enabled) {
+            // Add cluster layer to map
+            if (!this.map.hasLayer(this.openSkyMarkerCluster)) {
+                this.openSkyMarkerCluster.addTo(this.map);
+            }
+            
+            // Start fetching aircraft data
+            this.fetchOpenSkyData();
+            
+            // Set up interval to update every N seconds
+            this.openSkyUpdateInterval = setInterval(() => {
+                this.fetchOpenSkyData();
+            }, OPENSKY_CONFIG.updateInterval);
+            
+            console.log(`OpenSky ADS-B layer enabled, updating every ${OPENSKY_CONFIG.updateInterval / 1000}s`);
+        } else {
+            // Remove cluster layer from map
+            if (this.map.hasLayer(this.openSkyMarkerCluster)) {
+                this.map.removeLayer(this.openSkyMarkerCluster);
+                this.openSkyMarkerCluster.clearLayers();
+            }
+            
+            // Clear interval
+            if (this.openSkyUpdateInterval) {
+                clearInterval(this.openSkyUpdateInterval);
+                this.openSkyUpdateInterval = null;
+            }
+            
+            // Clear data
+            this.openSkyAircraftData.clear();
+            
+            console.log('OpenSky ADS-B layer disabled');
+        }
+        
+        // Sync toggle checkbox
+        const openSkyToggle = document.querySelector('#openSkyToggle');
+        if (openSkyToggle) {
+            openSkyToggle.checked = enabled;
+        }
+    }
+    
+    async fetchOpenSkyData() {
+        if (!this.map || this.openSkyLoading) return;
+        
+        // Get map center and build bounding box
+        const center = this.map.getCenter();
+        const buffer = OPENSKY_CONFIG.bboxBuffer;
+        
+        // OpenSky API expects: lamin, lomin, lamax, lomax
+        const lamin = center.lat - buffer;
+        const lomin = center.lng - buffer;
+        const lamax = center.lat + buffer;
+        const lomax = center.lng + buffer;
+        
+        const url = `${OPENSKY_CONFIG.endpoint}/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
+        
+        this.openSkyLoading = true;
+        this.showLoadingMessage('openSky');
+        
+        try {
+            const options = {};
+            
+            // Add basic auth if credentials are provided
+            if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
+                const auth = btoa(`${OPENSKY_CONFIG.username}:${OPENSKY_CONFIG.password}`);
+                options.headers = {
+                    'Authorization': `Basic ${auth}`
+                };
+            }
+            
+            const response = await fetch(url, options);
+            
+            if (!response.ok) {
+                console.error('OpenSky API error:', response.status, response.statusText);
+                this.openSkyLoading = false;
+                this.hideLoadingMessage('openSky');
+                return;
+            }
+            
+            const data = await response.json();
+            
+            // Parse state vectors and update aircraft markers
+            if (data && data.states && Array.isArray(data.states)) {
+                this.updateOpenSkyAircraft(data.states, data.time);
+                console.log(`OpenSky: Received ${data.states.length} aircraft`);
+            } else {
+                console.log('OpenSky: No aircraft in area');
+                // Clear all markers if no aircraft
+                this.openSkyMarkerCluster.clearLayers();
+                this.openSkyAircraftData.clear();
+            }
+            
+            this.openSkyLoading = false;
+            this.hideLoadingMessage('openSky');
+        } catch (error) {
+            console.error('Error fetching OpenSky data:', error);
+            this.openSkyLoading = false;
+            this.hideLoadingMessage('openSky');
+        }
+    }
+    
+    updateOpenSkyAircraft(states, timestamp) {
+        const currentIcaos = new Set();
+        
+        // Clear existing markers
+        this.openSkyMarkerCluster.clearLayers();
+        
+        states.forEach(state => {
+            // State vector format: [icao24, callsign, origin_country, time_position, last_contact, 
+            //                       longitude, latitude, baro_altitude, on_ground, velocity, 
+            //                       true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source]
+            const [
+                icao24, callsign, origin_country, time_position, last_contact,
+                longitude, latitude, baro_altitude, on_ground, velocity,
+                true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source
+            ] = state;
+            
+            // Skip if no position data or aircraft is on ground
+            if (latitude == null || longitude == null || on_ground) {
+                return;
+            }
+            
+            currentIcaos.add(icao24);
+            
+            // Create or update aircraft marker
+            this.createOpenSkyAircraftMarker(icao24, {
+                callsign: callsign ? callsign.trim() : icao24,
+                latitude,
+                longitude,
+                geo_altitude,
+                baro_altitude,
+                true_track,
+                velocity,
+                vertical_rate,
+                origin_country,
+                last_contact,
+                timestamp
+            });
+        });
+        
+        console.log(`OpenSky: Rendered ${currentIcaos.size} aircraft markers`);
+    }
+    
+    createOpenSkyAircraftMarker(icao24, aircraftData) {
+        const { callsign, latitude, longitude, geo_altitude, true_track } = aircraftData;
+        
+        // Create aircraft icon (rotated based on heading)
+        const rotation = true_track != null ? true_track : 0;
+        
+        const aircraftIcon = L.divIcon({
+            html: `<div style="transform: rotate(${rotation}deg); font-size: 24px; line-height: 1;">✈️</div>`,
+            className: 'opensky-aircraft-icon',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+        
+        const marker = L.marker([latitude, longitude], {
+            icon: aircraftIcon,
+            title: callsign || icao24
+        });
+        
+        // Bind popup with aircraft information
+        const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
+        marker.bindPopup(popupContent, {
+            maxWidth: 300,
+            className: 'aircraft-popup'
+        });
+        
+        // Add marker to cluster
+        this.openSkyMarkerCluster.addLayer(marker);
+        
+        // Store aircraft data
+        this.openSkyAircraftData.set(icao24, aircraftData);
+    }
+    
+    generateAircraftPopupContent(icao24, data) {
+        const {
+            callsign, origin_country, geo_altitude, baro_altitude,
+            velocity, vertical_rate, true_track, last_contact
+        } = data;
+        
+        const altitudeText = geo_altitude != null ? `${geo_altitude.toFixed(0)} m` : 
+                            baro_altitude != null ? `${baro_altitude.toFixed(0)} m (baro)` : 'N/A';
+        const headingText = true_track != null ? `${true_track.toFixed(1)}°` : 'N/A';
+        const velocityText = velocity != null ? `${velocity.toFixed(1)} m/s` : 'N/A';
+        const verticalRateText = vertical_rate != null ? `${vertical_rate.toFixed(1)} m/s` : 'N/A';
+        
+        // Format last contact time
+        let lastContactText = 'N/A';
+        if (last_contact) {
+            const lastContactDate = new Date(last_contact * 1000);
+            const now = new Date();
+            const secondsAgo = Math.floor((now - lastContactDate) / 1000);
+            lastContactText = secondsAgo < 60 ? `${secondsAgo}s ago` : 
+                            secondsAgo < 3600 ? `${Math.floor(secondsAgo / 60)}m ago` : 
+                            `${Math.floor(secondsAgo / 3600)}h ago`;
+        }
+        
+        return `
+            <div style="min-width: 200px;">
+                <strong style="font-size: 1.1em;">${callsign || icao24}</strong><br><br>
+                <strong>ICAO24:</strong> ${icao24}<br>
+                <strong>Country:</strong> ${origin_country || 'N/A'}<br>
+                <strong>Altitude:</strong> ${altitudeText}<br>
+                <strong>Heading:</strong> ${headingText}<br>
+                <strong>Velocity:</strong> ${velocityText}<br>
+                <strong>Vertical Rate:</strong> ${verticalRateText}<br>
+                <strong>Last Contact:</strong> ${lastContactText}
+            </div>
+        `;
+    }
+    
+    showOpenSkyAcknowledgment() {
+        // Get the map panel to append modal to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show OpenSky acknowledgment');
+            return;
+        }
+        
+        // Create modal overlay - positioned relative to map panel
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            padding: 0;
+            max-width: 420px;
+            width: calc(100% - 40px);
+            margin: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
+        `;
+
+        modalContent.innerHTML = `
+            <div style="
+                background: #ff6b35;
+                color: white;
+                padding: 16px;
+                font-weight: bold;
+                font-size: 18px;
+                text-align: center;
+                text-transform: uppercase;
+            ">
+                ⚠️ NOTICE
+            </div>
+            <div style="padding: 18px 16px;">
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    This layer displays real-time ADS-B aircraft data from <a href="https://opensky-network.org/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">The OpenSky Network</a>.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Data may be incomplete or delayed. Not all aircraft transmit ADS-B signals, and coverage varies by location.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Eagle Eyes Search Inc. makes no guarantee as to the accuracy, completeness, or reliability of the aircraft data displayed. This information is for situational awareness only.
+                </p>
+                <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Always maintain visual separation and follow all aviation regulations.
+                </p>
+            </div>
+            <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
+                <button id="openSkyAcknowledgeBtn" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 10px 28px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    min-width: 180px;
+                ">Acknowledge & Continue</button>
+            </div>
+        `;
+
+        modal.appendChild(modalContent);
+        mapPanel.appendChild(modal);
+
+        // Handle acknowledge button
+        const acknowledgeBtn = modalContent.querySelector('#openSkyAcknowledgeBtn');
+        acknowledgeBtn.addEventListener('click', () => {
+            this.openSkyAcknowledged = true;
+            modal.remove();
+            
+            // Enable the layer
+            this.isOpenSkyEnabled = true;
+            const openSkyToggle = document.querySelector('#openSkyToggle');
+            if (openSkyToggle) {
+                openSkyToggle.checked = true;
+            }
+            
+            // Add cluster layer to map
+            if (!this.map.hasLayer(this.openSkyMarkerCluster)) {
+                this.openSkyMarkerCluster.addTo(this.map);
+            }
+            
+            // Start fetching data
+            this.fetchOpenSkyData();
+            this.openSkyUpdateInterval = setInterval(() => {
+                this.fetchOpenSkyData();
+            }, OPENSKY_CONFIG.updateInterval);
+        });
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                const openSkyToggle = document.querySelector('#openSkyToggle');
+                if (openSkyToggle) {
+                    openSkyToggle.checked = false;
+                }
+                modal.remove();
+            }
+        });
+    }
+
     loadAirportsDataDebounced() {
         // Clear existing timer
         if (this.airportsDebounceTimer) {
@@ -4628,7 +5021,8 @@ class DroneMap {
             'faaAirports': 'USA FAA Airports',
             'faaRunways': 'USA FAA Runways',
             'faaUASMap': 'USA FAA UAS Map',
-            'faaAirspace': 'USA FAA airspace'
+            'faaAirspace': 'USA FAA airspace',
+            'openSky': 'OpenSky ADS-B Aircraft'
         };
         const displayName = displayNames[layerName] || layerName;
         
@@ -6618,8 +7012,18 @@ class DroneMap {
         if (this.geojsonLayer) {
             this.geojsonLayer.clearLayers();
         }
+        
+        // Clear OpenSky interval
+        if (this.openSkyUpdateInterval) {
+            clearInterval(this.openSkyUpdateInterval);
+            this.openSkyUpdateInterval = null;
+        }
 
         this.currentLocation = null;
+        this.currentDroneData = null;
+        this.currentDroneName = null;
+        this.currentLivestreamId = null;
+        this.lastDroneUpdate = null;
         this.caltopoInfo = null;
         this.updateCaltopoButton();
     }
