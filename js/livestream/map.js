@@ -3657,9 +3657,12 @@ class DroneMap {
             marker.setLatLng([latitude, longitude]);
             marker.setIcon(aircraftIcon);
             
-            // Update popup content
-            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
-            marker.setPopupContent(popupContent);
+            // Update popup content only if popup is open
+            // This prevents triggering popupclose event during routine updates
+            if (marker.isPopupOpen()) {
+                const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
+                marker.setPopupContent(popupContent);
+            }
         } else {
             // Create new marker
             marker = L.marker([latitude, longitude], {
@@ -3672,11 +3675,6 @@ class DroneMap {
             marker.bindPopup(popupContent, {
                 maxWidth: 300,
                 className: 'aircraft-popup'
-            });
-            
-            // Add event listener for popup close to clean up track
-            marker.on('popupclose', () => {
-                this.hideAircraftTrack(icao24);
             });
             
             // Store marker
@@ -3803,6 +3801,16 @@ class DroneMap {
         }
     }
     
+    hideAllAircraftTracks() {
+        // Hide all visible tracks (called when popup closes)
+        this.openSkyAircraftTracks.forEach((trackData, icao24) => {
+            if (trackData.isVisible && trackData.polyline && this.map.hasLayer(trackData.polyline)) {
+                this.map.removeLayer(trackData.polyline);
+                trackData.isVisible = false;
+            }
+        });
+    }
+    
     generateAircraftPopupContent(icao24, data) {
         const {
             callsign, origin_country, geo_altitude, baro_altitude,
@@ -3834,7 +3842,7 @@ class DroneMap {
         return `
             <div style="min-width: 200px;">
                 <strong style="font-size: 1.1em;">${callsign || icao24}</strong><br><br>
-                <strong>ICAO24:</strong> <a href="https://opensky-network.org/aircraft-profile?icao24=${icao24}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${icao24}</a><br>
+                <strong>ICAO24:</strong> <a href="https://map.opensky-network.org/?icao=${icao24}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${icao24}</a><br>
                 <strong>Country:</strong> ${origin_country || 'N/A'}<br>
                 <strong>Altitude:</strong> ${altitudeText}<br>
                 <strong>Heading:</strong> ${headingText}<br>
@@ -3919,7 +3927,7 @@ class DroneMap {
                     Always maintain visual separation and follow all aviation regulations.
                 </p>
                 <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Learn how to contribute to The OpenSky Network <a href="https://opensky-network.org/contribute" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">here</a>.
+                    Learn how to contribute to The OpenSky Network <a href="https://opensky-network.org/feed" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">here</a>.
                 </p>
             </div>
             <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
