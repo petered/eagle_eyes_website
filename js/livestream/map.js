@@ -6,8 +6,9 @@ const OPENSKY_CONFIG = {
     endpoint: 'https://opensky-network.org/api', // Base endpoint
     username: null, // Set to your OpenSky username for higher rate limits (optional)
     password: null, // Set to your OpenSky password (optional)
-    updateInterval: 10000, // Update every 10 seconds (10000ms)
-    bboxBuffer: 0.5 // ±degrees from map center for bounding box
+    updateInterval: 5000, // Update every 5 seconds (5000ms) for more frequent updates
+    bboxBuffer: 0.5, // ±degrees from map center for bounding box
+    trailDuration: 60000 // Keep trail for 60 seconds (1 minute)
 };
 
 class DroneMap {
@@ -109,6 +110,8 @@ class DroneMap {
         this.openSkyAcknowledged = false;
         this.openSkyUpdateInterval = null;
         this.openSkyAircraftData = new Map(); // icao24 -> aircraft data
+        this.openSkyAircraftMarkers = new Map(); // icao24 -> marker
+        this.openSkyAircraftTrails = new Map(); // icao24 -> { polyline, positions: [{lat, lng, timestamp}] }
         this.openSkyLoading = false;
         
         // OpenAIP Airports/Heliports layer
@@ -3477,8 +3480,17 @@ class DroneMap {
                 this.openSkyUpdateInterval = null;
             }
             
+            // Remove all trails
+            this.openSkyAircraftTrails.forEach((trail, icao24) => {
+                if (trail.polyline && this.map.hasLayer(trail.polyline)) {
+                    this.map.removeLayer(trail.polyline);
+                }
+            });
+            
             // Clear data
             this.openSkyAircraftData.clear();
+            this.openSkyAircraftMarkers.clear();
+            this.openSkyAircraftTrails.clear();
             
             console.log('OpenSky ADS-B layer disabled');
         }
@@ -3552,8 +3564,9 @@ class DroneMap {
     
     updateOpenSkyAircraft(states, timestamp) {
         const currentIcaos = new Set();
+        const now = Date.now();
         
-        // Clear existing markers
+        // Clear existing markers from cluster
         this.openSkyMarkerCluster.clearLayers();
         
         states.forEach(state => {
@@ -3573,8 +3586,7 @@ class DroneMap {
             
             currentIcaos.add(icao24);
             
-            // Create or update aircraft marker
-            this.createOpenSkyAircraftMarker(icao24, {
+            const aircraftData = {
                 callsign: callsign ? callsign.trim() : icao24,
                 latitude,
                 longitude,
@@ -3586,13 +3598,90 @@ class DroneMap {
                 origin_country,
                 last_contact,
                 timestamp
-            });
+            };
+            
+            // Update aircraft position trail
+            this.updateAircraftTrail(icao24, latitude, longitude, now);
+            
+            // Create or update aircraft marker
+            this.createOrUpdateOpenSkyAircraftMarker(icao24, aircraftData);
         });
+        
+        // Clean up trails for aircraft that are no longer present
+        // But keep the trails visible for a while
+        this.cleanupOldAircraftTrails(currentIcaos, now);
         
         console.log(`OpenSky: Rendered ${currentIcaos.size} aircraft markers`);
     }
     
-    createOpenSkyAircraftMarker(icao24, aircraftData) {
+    updateAircraftTrail(icao24, latitude, longitude, timestamp) {
+        // Get or create trail data structure
+        if (!this.openSkyAircraftTrails.has(icao24)) {
+            // Create new trail
+            const polyline = L.polyline([], {
+                color: '#ff6b35',
+                weight: 2,
+                opacity: 0.7,
+                smoothFactor: 1
+            }).addTo(this.map);
+            
+            this.openSkyAircraftTrails.set(icao24, {
+                polyline: polyline,
+                positions: []
+            });
+        }
+        
+        const trail = this.openSkyAircraftTrails.get(icao24);
+        
+        // Add new position with timestamp
+        trail.positions.push({
+            lat: latitude,
+            lng: longitude,
+            timestamp: timestamp
+        });
+        
+        // Remove positions older than trailDuration
+        const cutoffTime = timestamp - OPENSKY_CONFIG.trailDuration;
+        trail.positions = trail.positions.filter(pos => pos.timestamp > cutoffTime);
+        
+        // Update polyline with current positions
+        const latLngs = trail.positions.map(pos => [pos.lat, pos.lng]);
+        trail.polyline.setLatLngs(latLngs);
+    }
+    
+    cleanupOldAircraftTrails(currentIcaos, now) {
+        const cutoffTime = now - OPENSKY_CONFIG.trailDuration;
+        const trailsToRemove = [];
+        
+        this.openSkyAircraftTrails.forEach((trail, icao24) => {
+            // Remove old positions from trail
+            trail.positions = trail.positions.filter(pos => pos.timestamp > cutoffTime);
+            
+            // Update polyline
+            const latLngs = trail.positions.map(pos => [pos.lat, pos.lng]);
+            trail.polyline.setLatLngs(latLngs);
+            
+            // If trail is empty and aircraft is not present, remove the trail completely
+            if (trail.positions.length === 0 && !currentIcaos.has(icao24)) {
+                this.map.removeLayer(trail.polyline);
+                trailsToRemove.push(icao24);
+            }
+        });
+        
+        // Remove empty trails
+        trailsToRemove.forEach(icao24 => {
+            this.openSkyAircraftTrails.delete(icao24);
+        });
+        
+        // Remove markers for aircraft no longer present
+        this.openSkyAircraftMarkers.forEach((marker, icao24) => {
+            if (!currentIcaos.has(icao24)) {
+                this.openSkyAircraftMarkers.delete(icao24);
+            }
+        });
+    }
+    
+    createOrUpdateOpenSkyAircraftMarker(icao24, aircraftData) {
         const { callsign, latitude, longitude, geo_altitude, true_track } = aircraftData;
         
         // Create aircraft icon (rotated based on heading)
@@ -3605,19 +3694,36 @@ class DroneMap {
             iconAnchor: [12, 12]
         });
         
-        const marker = L.marker([latitude, longitude], {
-            icon: aircraftIcon,
-            title: callsign || icao24
-        });
+        // Check if marker already exists
+        let marker = this.openSkyAircraftMarkers.get(icao24);
         
-        // Bind popup with aircraft information
-        const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
-        marker.bindPopup(popupContent, {
-            maxWidth: 300,
-            className: 'aircraft-popup'
-        });
+        if (marker) {
+            // Update existing marker position and icon
+            marker.setLatLng([latitude, longitude]);
+            marker.setIcon(aircraftIcon);
+            
+            // Update popup content
+            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
+            marker.setPopupContent(popupContent);
+        } else {
+            // Create new marker
+            marker = L.marker([latitude, longitude], {
+                icon: aircraftIcon,
+                title: callsign || icao24
+            });
+            
+            // Bind popup with aircraft information
+            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
+            marker.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'aircraft-popup'
+            });
+            
+            // Store marker
+            this.openSkyAircraftMarkers.set(icao24, marker);
+        }
         
-        // Add marker to cluster
+        // Add marker to cluster (will update if already exists)
         this.openSkyMarkerCluster.addLayer(marker);
         
         // Store aircraft data
@@ -7013,10 +7119,28 @@ class DroneMap {
             this.geojsonLayer.clearLayers();
         }
         
-        // Clear OpenSky interval
+        // Clear OpenSky interval and trails
         if (this.openSkyUpdateInterval) {
             clearInterval(this.openSkyUpdateInterval);
             this.openSkyUpdateInterval = null;
+        }
+        
+        // Remove all OpenSky trails
+        if (this.openSkyAircraftTrails) {
+            this.openSkyAircraftTrails.forEach((trail, icao24) => {
+                if (trail.polyline && this.map.hasLayer(trail.polyline)) {
+                    this.map.removeLayer(trail.polyline);
+                }
+            });
+            this.openSkyAircraftTrails.clear();
+        }
+        
+        // Clear OpenSky data
+        if (this.openSkyAircraftData) {
+            this.openSkyAircraftData.clear();
+        }
+        if (this.openSkyAircraftMarkers) {
+            this.openSkyAircraftMarkers.clear();
         }
 
         this.currentLocation = null;
