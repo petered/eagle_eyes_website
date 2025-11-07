@@ -3542,6 +3542,17 @@ class DroneMap {
             const response = await fetch(url, options);
             
             if (!response.ok) {
+                if (response.status === 429) {
+                    console.error('⚠️ OpenSky API rate limit exceeded!');
+                    this.showOpenSkyRateLimitWarning();
+                    this.openSkyLoading = false;
+                    // Stop fetching to avoid more rate limit hits
+                    if (this.openSkyUpdateInterval) {
+                        clearInterval(this.openSkyUpdateInterval);
+                        this.openSkyUpdateInterval = null;
+                    }
+                    return;
+                }
                 console.error('OpenSky API error:', response.status, response.statusText);
                 this.openSkyLoading = false;
                 return;
@@ -3605,8 +3616,11 @@ class DroneMap {
                 timestamp
             };
             
-            // Update aircraft position trail
+            // Update aircraft position trail (disabled)
             this.updateAircraftTrail(icao24, latitude, longitude, now);
+            
+            // If this aircraft has a visible historical track, append new position to it
+            this.appendToHistoricalTrack(icao24, latitude, longitude);
             
             // Create or update aircraft marker
             this.createOrUpdateOpenSkyAircraftMarker(icao24, aircraftData);
@@ -3623,6 +3637,33 @@ class DroneMap {
         // Trail feature disabled per user request
         // Keeping structure for potential future re-enable
         return;
+    }
+    
+    appendToHistoricalTrack(icao24, latitude, longitude) {
+        // Check if this aircraft has a visible historical track
+        const trackData = this.openSkyAircraftTracks.get(icao24);
+        
+        if (!trackData || !trackData.isVisible || !trackData.polyline) {
+            return; // No track to append to
+        }
+        
+        // Get current path
+        const currentPath = trackData.path || [];
+        
+        // Check if this position is new (different from last position)
+        const lastPos = currentPath[currentPath.length - 1];
+        if (lastPos && lastPos[0] === latitude && lastPos[1] === longitude) {
+            return; // Same position, don't add duplicate
+        }
+        
+        // Append new position
+        currentPath.push([latitude, longitude]);
+        trackData.path = currentPath;
+        
+        // Update the polyline on the map
+        trackData.polyline.setLatLngs(currentPath);
+        
+        console.log(`Appended position to track for ${icao24}, total positions: ${currentPath.length}`);
     }
     
     cleanupOldAircraftTrails(currentIcaos, now) {
@@ -3780,13 +3821,14 @@ class DroneMap {
                     this.showTrackPopup(icao24, e.latlng);
                 });
                 
-                // Store track
+                // Store track with path data for continuous growth
                 this.openSkyAircraftTracks.set(icao24, {
                     polyline: trackPolyline,
-                    isVisible: true
+                    isVisible: true,
+                    path: latLngs // Store current path so we can append to it
                 });
                 
-                console.log(`Displayed track for ${icao24}: ${latLngs.length} positions`);
+                console.log(`Displayed track for ${icao24}: ${latLngs.length} positions, track will continue to grow`);
             } else {
                 alert('No track data available for this aircraft.');
             }
@@ -3930,6 +3972,52 @@ class DroneMap {
                 ">${trackButtonText}</button>
             </div>
         `;
+    }
+    
+    showOpenSkyRateLimitWarning() {
+        // Get the map panel to append banner to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) return;
+        
+        // Remove any existing rate limit warning
+        const existingWarning = document.getElementById('openSkyRateLimitWarning');
+        if (existingWarning) {
+            existingWarning.remove();
+        }
+        
+        const warningDiv = document.createElement('div');
+        warningDiv.id = 'openSkyRateLimitWarning';
+        warningDiv.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(220, 53, 69, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            max-width: 90%;
+            text-align: center;
+        `;
+        warningDiv.innerHTML = `
+            ⚠️ OpenSky API Rate Limit Reached<br>
+            <span style="font-size: 12px; font-weight: 400; margin-top: 4px; display: block;">
+                Layer updates paused. Add OpenSky credentials for higher limits or wait 24 hours.
+            </span>
+        `;
+        
+        mapPanel.appendChild(warningDiv);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (warningDiv.parentElement) {
+                warningDiv.remove();
+            }
+        }, 10000);
     }
     
     showOpenSkyAcknowledgment() {
