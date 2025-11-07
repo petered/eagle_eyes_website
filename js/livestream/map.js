@@ -3518,7 +3518,6 @@ class DroneMap {
         const url = `${OPENSKY_CONFIG.endpoint}/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
         
         this.openSkyLoading = true;
-        this.showLoadingMessage('openSky');
         
         try {
             const options = {};
@@ -3536,7 +3535,6 @@ class DroneMap {
             if (!response.ok) {
                 console.error('OpenSky API error:', response.status, response.statusText);
                 this.openSkyLoading = false;
-                this.hideLoadingMessage('openSky');
                 return;
             }
             
@@ -3554,11 +3552,9 @@ class DroneMap {
             }
             
             this.openSkyLoading = false;
-            this.hideLoadingMessage('openSky');
         } catch (error) {
             console.error('Error fetching OpenSky data:', error);
             this.openSkyLoading = false;
-            this.hideLoadingMessage('openSky');
         }
     }
     
