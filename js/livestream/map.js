@@ -911,13 +911,15 @@ class DroneMap {
         if (!this.recenterButton) return;
 
         if (this.droneMapCenteringState === 'CONTINUOUS') {
-            // Active state: add outline
-            this.recenterButton.style.outline = '1px solid #3b82f6';
-            this.recenterButton.style.outlineOffset = '-1px';
+            // Active state: add prominent blue outline with glow effect
+            this.recenterButton.style.outline = '3px solid #3b82f6';
+            this.recenterButton.style.outlineOffset = '0px';
+            this.recenterButton.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 8px rgba(59, 130, 246, 0.3)';
             this.recenterButton.title = 'Continuous Centering Active (click to disable)';
         } else {
-            // Inactive state: remove outline
+            // Inactive state: remove outline and shadow
             this.recenterButton.style.outline = 'none';
+            this.recenterButton.style.boxShadow = 'none';
             this.recenterButton.title = 'Center on Drone';
         }
     }
@@ -1548,40 +1550,40 @@ class DroneMap {
                 <button id="lineModeBtn" style="
                     flex: 1;
                     padding: 8px 10px;
-                    border: ${isLineMode ? '2px solid #1f2937' : 'none'};
+                    border: ${isLineMode ? '3px solid #93c5fd' : 'none'};
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
                     font-weight: 500;
                     transition: all 0.2s;
-                    box-shadow: ${isLineMode ? '0 4px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
-                    ${isLineMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
-                " onmouseover="${isLineMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isLineMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Line</button>
+                    box-shadow: ${isLineMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
+                    ${isLineMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
+                " onmouseover="${isLineMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isLineMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Line</button>
                 <button id="polygonModeBtn" style="
                     flex: 1;
                     padding: 8px 10px;
-                    border: ${isPolygonMode ? '2px solid #1f2937' : 'none'};
+                    border: ${isPolygonMode ? '3px solid #93c5fd' : 'none'};
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
                     font-weight: 500;
                     transition: all 0.2s;
-                    box-shadow: ${isPolygonMode ? '0 4px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
-                    ${isPolygonMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
-                " onmouseover="${isPolygonMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isPolygonMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Polygon</button>
+                    box-shadow: ${isPolygonMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
+                    ${isPolygonMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
+                " onmouseover="${isPolygonMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isPolygonMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Polygon</button>
             </div>
             <div style="display: flex; justify-content: center; margin-bottom: 10px;">
                 <button id="radiusModeBtn" style="
                     padding: 8px 10px;
-                    border: ${isRadiusMode ? '2px solid #1f2937' : 'none'};
+                    border: ${isRadiusMode ? '3px solid #93c5fd' : 'none'};
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
                     font-weight: 500;
                     transition: all 0.2s;
-                    box-shadow: ${isRadiusMode ? '0 4px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
-                    ${isRadiusMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
-                " onmouseover="${isRadiusMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isRadiusMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Radius</button>
+                    box-shadow: ${isRadiusMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
+                    ${isRadiusMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
+                " onmouseover="${isRadiusMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isRadiusMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Radius</button>
             </div>
             <div style="margin-bottom: 10px;">
                 <label style="display: block; margin-bottom: 6px; font-size: 11px; color: #6b7280; font-weight: 500;">Unit:</label>
