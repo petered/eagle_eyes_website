@@ -3,17 +3,9 @@ const POLYGON_FILL_OPACITY = 0.05;
 
 // OpenSky Network Configuration
 const OPENSKY_CONFIG = {
-    endpoint: 'https://opensky-network.org/api', // Base endpoint
-    
-    // OAuth2 Client Credentials
-    useOAuth: true, // Set to true to use OAuth2 instead of basic auth
-    clientId: 'patrick@eagleeyessearch.com-api-client',
-    clientSecret: 'PWwJRYt0XA5gzB8BkjTSQwEKez1xRhfi',
-    tokenEndpoint: 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
-    
-    // Legacy Basic Auth (fallback if OAuth disabled)
-    username: null,
-    password: null,
+    // Proxy Configuration (OAuth2 handled server-side)
+    useProxy: true, // Use local proxy server
+    proxyEndpoint: 'http://localhost:3001', // Local proxy for development
     
     updateInterval: 5000, // Update every 5 seconds (5000ms) for more frequent updates
     bboxBuffer: 0.5, // ±degrees from map center for bounding box
@@ -128,9 +120,7 @@ class DroneMap {
         this.openSkyAircraftTracks = new Map(); // icao24 -> { polyline, isVisible: boolean }
         this.openSkyLoading = false;
         
-        // OpenSky OAuth2 token management
-        this.openSkyAccessToken = null;
-        this.openSkyTokenExpiry = null;
+        // OpenSky credits tracking
         this.openSkyCreditsUsed = 0;
         this.openSkyCreditsResetTime = this.getNextCreditsResetTime();
         this.openSkyCreditsCounter = null; // DOM element for credits display
@@ -3550,60 +3540,6 @@ class DroneMap {
         return resetTime;
     }
     
-    async getOpenSkyAccessToken() {
-        // Check if we have a valid token
-        if (this.openSkyAccessToken && this.openSkyTokenExpiry && Date.now() < this.openSkyTokenExpiry) {
-            console.log('Using cached OpenSky token');
-            return this.openSkyAccessToken;
-        }
-        
-        // Need to fetch new token
-        if (!OPENSKY_CONFIG.clientId || !OPENSKY_CONFIG.clientSecret) {
-            console.error('❌ OpenSky OAuth2 credentials not configured');
-            return null;
-        }
-        
-        console.log('🔑 Fetching OpenSky OAuth2 token...');
-        console.log('   Client ID:', OPENSKY_CONFIG.clientId);
-        console.log('   Token Endpoint:', OPENSKY_CONFIG.tokenEndpoint);
-        
-        try {
-            const response = await fetch(OPENSKY_CONFIG.tokenEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    grant_type: 'client_credentials',
-                    client_id: OPENSKY_CONFIG.clientId,
-                    client_secret: OPENSKY_CONFIG.clientSecret
-                })
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Failed to obtain OpenSky access token:', response.status, response.statusText);
-                console.error('   Error response:', errorText);
-                return null;
-            }
-            
-            const data = await response.json();
-            
-            // Store token and expiry (subtract 60s as buffer)
-            this.openSkyAccessToken = data.access_token;
-            this.openSkyTokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
-            
-            console.log('✅ OpenSky access token obtained successfully!');
-            console.log('   Expires in:', data.expires_in, 'seconds');
-            console.log('   Token (first 20 chars):', data.access_token.substring(0, 20) + '...');
-            
-            return this.openSkyAccessToken;
-        } catch (error) {
-            console.error('❌ Error fetching OpenSky access token:', error);
-            return null;
-        }
-    }
-    
     async fetchOpenSkyData() {
         if (!this.map || this.openSkyLoading) return;
         
@@ -3624,37 +3560,16 @@ class DroneMap {
         const lamax = center.lat + buffer;
         const lomax = center.lng + buffer;
         
-        const url = `${OPENSKY_CONFIG.endpoint}/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
+        // Use proxy for authenticated requests
+        const url = OPENSKY_CONFIG.useProxy 
+            ? `${OPENSKY_CONFIG.proxyEndpoint}/opensky/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`
+            : `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
         
         this.openSkyLoading = true;
         
         try {
-            const options = {
-                headers: {}
-            };
-            
-            // Use OAuth2 if configured
-            if (OPENSKY_CONFIG.useOAuth && OPENSKY_CONFIG.clientId && OPENSKY_CONFIG.clientSecret) {
-                console.log('🔐 Using OAuth2 authentication for OpenSky');
-                const token = await this.getOpenSkyAccessToken();
-                if (token) {
-                    options.headers['Authorization'] = `Bearer ${token}`;
-                    console.log('✅ Added Bearer token to request');
-                } else {
-                    console.warn('⚠️ Failed to get OAuth2 token, making unauthenticated request');
-                }
-            }
-            // Fallback to basic auth if credentials are provided
-            else if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
-                const auth = btoa(`${OPENSKY_CONFIG.username}:${OPENSKY_CONFIG.password}`);
-                options.headers['Authorization'] = `Basic ${auth}`;
-                console.log('Using Basic Auth for OpenSky');
-            } else {
-                console.log('⚠️ Making anonymous OpenSky request (no auth configured)');
-            }
-            
             console.log('📡 Fetching OpenSky data from:', url);
-            const response = await fetch(url, options);
+            const response = await fetch(url);
             console.log('📥 OpenSky response status:', response.status, response.statusText);
             
             if (!response.ok) {
@@ -3890,22 +3805,14 @@ class DroneMap {
             this.openSkyAircraftTracks.delete(icao24);
         }
         
-        // Fetch track data from OpenSky
-        const url = `${OPENSKY_CONFIG.endpoint}/tracks/all?icao24=${icao24}&time=0`;
+        // Fetch track data from OpenSky via proxy
+        const url = OPENSKY_CONFIG.useProxy
+            ? `${OPENSKY_CONFIG.proxyEndpoint}/opensky/tracks/all?icao24=${icao24}&time=0`
+            : `https://opensky-network.org/api/tracks/all?icao24=${icao24}&time=0`;
         
         try {
-            const options = {};
-            
-            // Add basic auth if credentials are provided
-            if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
-                const auth = btoa(`${OPENSKY_CONFIG.username}:${OPENSKY_CONFIG.password}`);
-                options.headers = {
-                    'Authorization': `Basic ${auth}`
-                };
-            }
-            
             console.log(`Fetching track for ${icao24}...`);
-            const response = await fetch(url, options);
+            const response = await fetch(url);
             
             if (!response.ok) {
                 console.error('OpenSky track API error:', response.status);
