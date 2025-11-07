@@ -8,7 +8,7 @@ const OPENSKY_CONFIG = {
     // OAuth2 Client Credentials
     useOAuth: true, // Set to true to use OAuth2 instead of basic auth
     clientId: 'patrick@eagleeyessearch.com-api-client',
-    clientSecret: null, // REQUIRED: Set your client secret here
+    clientSecret: 'PWwJRYt0XA5gzB8BkjTSQwEKez1xRhfi',
     tokenEndpoint: 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
     
     // Legacy Basic Auth (fallback if OAuth disabled)
