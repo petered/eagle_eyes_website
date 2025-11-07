@@ -4,11 +4,24 @@ const POLYGON_FILL_OPACITY = 0.05;
 // OpenSky Network Configuration
 const OPENSKY_CONFIG = {
     endpoint: 'https://opensky-network.org/api', // Base endpoint
-    username: null, // Set to your OpenSky username for higher rate limits (optional)
-    password: null, // Set to your OpenSky password (optional)
+    
+    // OAuth2 Client Credentials
+    useOAuth: true, // Set to true to use OAuth2 instead of basic auth
+    clientId: 'patrick@eagleeyessearch.com-api-client',
+    clientSecret: null, // REQUIRED: Set your client secret here
+    tokenEndpoint: 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token',
+    
+    // Legacy Basic Auth (fallback if OAuth disabled)
+    username: null,
+    password: null,
+    
     updateInterval: 5000, // Update every 5 seconds (5000ms) for more frequent updates
     bboxBuffer: 0.5, // ±degrees from map center for bounding box
-    trailDuration: 60000 // Keep trail for 60 seconds (1 minute)
+    trailDuration: 60000, // Keep trail for 60 seconds (1 minute)
+    
+    // Rate limit tracking
+    creditsPerDay: 4000, // Credits available with authenticated access
+    creditsResetHour: 0 // Hour when credits reset (UTC)
 };
 
 class DroneMap {
@@ -114,6 +127,13 @@ class DroneMap {
         this.openSkyAircraftTrails = new Map(); // icao24 -> { polyline, positions: [{lat, lng, timestamp}] }
         this.openSkyAircraftTracks = new Map(); // icao24 -> { polyline, isVisible: boolean }
         this.openSkyLoading = false;
+        
+        // OpenSky OAuth2 token management
+        this.openSkyAccessToken = null;
+        this.openSkyTokenExpiry = null;
+        this.openSkyCreditsUsed = 0;
+        this.openSkyCreditsResetTime = this.getNextCreditsResetTime();
+        this.openSkyCreditsCounter = null; // DOM element for credits display
         
         // OpenAIP Airports/Heliports layer
         this.airportsLayer = null;
@@ -3459,6 +3479,9 @@ class DroneMap {
                 this.openSkyMarkerCluster.addTo(this.map);
             }
             
+            // Show credits counter
+            this.showCreditsDisplay();
+            
             // Start fetching aircraft data
             this.fetchOpenSkyData();
             
@@ -3501,6 +3524,9 @@ class DroneMap {
             this.openSkyAircraftTrails.clear();
             this.openSkyAircraftTracks.clear();
             
+            // Hide credits display
+            this.hideCreditsDisplay();
+            
             console.log('OpenSky ADS-B layer disabled');
         }
         
@@ -3511,8 +3537,73 @@ class DroneMap {
         }
     }
     
+    getNextCreditsResetTime() {
+        const now = new Date();
+        const resetTime = new Date(now);
+        resetTime.setUTCHours(OPENSKY_CONFIG.creditsResetHour, 0, 0, 0);
+        
+        // If reset time has passed today, set for tomorrow
+        if (resetTime <= now) {
+            resetTime.setUTCDate(resetTime.getUTCDate() + 1);
+        }
+        
+        return resetTime;
+    }
+    
+    async getOpenSkyAccessToken() {
+        // Check if we have a valid token
+        if (this.openSkyAccessToken && this.openSkyTokenExpiry && Date.now() < this.openSkyTokenExpiry) {
+            return this.openSkyAccessToken;
+        }
+        
+        // Need to fetch new token
+        if (!OPENSKY_CONFIG.clientId || !OPENSKY_CONFIG.clientSecret) {
+            console.error('OpenSky OAuth2 credentials not configured');
+            return null;
+        }
+        
+        try {
+            const response = await fetch(OPENSKY_CONFIG.tokenEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    grant_type: 'client_credentials',
+                    client_id: OPENSKY_CONFIG.clientId,
+                    client_secret: OPENSKY_CONFIG.clientSecret
+                })
+            });
+            
+            if (!response.ok) {
+                console.error('Failed to obtain OpenSky access token:', response.status);
+                return null;
+            }
+            
+            const data = await response.json();
+            
+            // Store token and expiry (subtract 60s as buffer)
+            this.openSkyAccessToken = data.access_token;
+            this.openSkyTokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
+            
+            console.log('✅ OpenSky access token obtained, expires in', data.expires_in, 'seconds');
+            
+            return this.openSkyAccessToken;
+        } catch (error) {
+            console.error('Error fetching OpenSky access token:', error);
+            return null;
+        }
+    }
+    
     async fetchOpenSkyData() {
         if (!this.map || this.openSkyLoading) return;
+        
+        // Check if credits have reset
+        if (Date.now() >= this.openSkyCreditsResetTime) {
+            this.openSkyCreditsUsed = 0;
+            this.openSkyCreditsResetTime = this.getNextCreditsResetTime();
+            console.log('🔄 OpenSky credits reset');
+        }
         
         // Get map center and build bounding box
         const center = this.map.getCenter();
@@ -3529,14 +3620,21 @@ class DroneMap {
         this.openSkyLoading = true;
         
         try {
-            const options = {};
+            const options = {
+                headers: {}
+            };
             
-            // Add basic auth if credentials are provided
-            if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
+            // Use OAuth2 if configured
+            if (OPENSKY_CONFIG.useOAuth && OPENSKY_CONFIG.clientId && OPENSKY_CONFIG.clientSecret) {
+                const token = await this.getOpenSkyAccessToken();
+                if (token) {
+                    options.headers['Authorization'] = `Bearer ${token}`;
+                }
+            }
+            // Fallback to basic auth if credentials are provided
+            else if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
                 const auth = btoa(`${OPENSKY_CONFIG.username}:${OPENSKY_CONFIG.password}`);
-                options.headers = {
-                    'Authorization': `Basic ${auth}`
-                };
+                options.headers['Authorization'] = `Basic ${auth}`;
             }
             
             const response = await fetch(url, options);
@@ -3560,10 +3658,14 @@ class DroneMap {
             
             const data = await response.json();
             
+            // Track credits usage (approximate: 1 credit per request)
+            this.openSkyCreditsUsed++;
+            this.updateCreditsDisplay();
+            
             // Parse state vectors and update aircraft markers
             if (data && data.states && Array.isArray(data.states)) {
                 this.updateOpenSkyAircraft(data.states, data.time);
-                console.log(`OpenSky: Received ${data.states.length} aircraft`);
+                console.log(`OpenSky: Received ${data.states.length} aircraft (Credits used: ${this.openSkyCreditsUsed}/${OPENSKY_CONFIG.creditsPerDay})`);
             } else {
                 console.log('OpenSky: No aircraft in area');
                 // Clear all markers if no aircraft
@@ -3972,6 +4074,62 @@ class DroneMap {
                 ">${trackButtonText}</button>
             </div>
         `;
+    }
+    
+    showCreditsDisplay() {
+        // Remove existing counter if present
+        this.hideCreditsDisplay();
+        
+        const mapContainer = this.map.getContainer();
+        
+        this.openSkyCreditsCounter = document.createElement('div');
+        this.openSkyCreditsCounter.id = 'openSkyCreditsCounter';
+        this.openSkyCreditsCounter.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #374151;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            z-index: 999;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        `;
+        
+        this.updateCreditsDisplay();
+        
+        mapContainer.appendChild(this.openSkyCreditsCounter);
+    }
+    
+    updateCreditsDisplay() {
+        if (!this.openSkyCreditsCounter) return;
+        
+        const percentage = (this.openSkyCreditsUsed / OPENSKY_CONFIG.creditsPerDay) * 100;
+        let colorClass = '#10b981'; // green
+        
+        if (percentage > 80) {
+            colorClass = '#ef4444'; // red
+        } else if (percentage > 50) {
+            colorClass = '#f59e0b'; // orange
+        }
+        
+        this.openSkyCreditsCounter.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="color: ${colorClass}; font-weight: 600;">●</span>
+                <span>OpenSky: ${this.openSkyCreditsUsed}/${OPENSKY_CONFIG.creditsPerDay}</span>
+            </div>
+        `;
+    }
+    
+    hideCreditsDisplay() {
+        if (this.openSkyCreditsCounter && this.openSkyCreditsCounter.parentElement) {
+            this.openSkyCreditsCounter.remove();
+            this.openSkyCreditsCounter = null;
+        }
     }
     
     showOpenSkyRateLimitWarning() {
