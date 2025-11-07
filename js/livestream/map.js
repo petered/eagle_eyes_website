@@ -112,6 +112,7 @@ class DroneMap {
         this.openSkyAircraftData = new Map(); // icao24 -> aircraft data
         this.openSkyAircraftMarkers = new Map(); // icao24 -> marker
         this.openSkyAircraftTrails = new Map(); // icao24 -> { polyline, positions: [{lat, lng, timestamp}] }
+        this.openSkyAircraftTracks = new Map(); // icao24 -> { polyline, isVisible: boolean }
         this.openSkyLoading = false;
         
         // OpenAIP Airports/Heliports layer
@@ -3487,10 +3488,18 @@ class DroneMap {
                 }
             });
             
+            // Remove all historical tracks
+            this.openSkyAircraftTracks.forEach((track, icao24) => {
+                if (track.polyline && this.map.hasLayer(track.polyline)) {
+                    this.map.removeLayer(track.polyline);
+                }
+            });
+            
             // Clear data
             this.openSkyAircraftData.clear();
             this.openSkyAircraftMarkers.clear();
             this.openSkyAircraftTrails.clear();
+            this.openSkyAircraftTracks.clear();
             
             console.log('OpenSky ADS-B layer disabled');
         }
@@ -3715,6 +3724,11 @@ class DroneMap {
                 className: 'aircraft-popup'
             });
             
+            // Add event listener for popup close to clean up track
+            marker.on('popupclose', () => {
+                this.hideAircraftTrack(icao24);
+            });
+            
             // Store marker
             this.openSkyAircraftMarkers.set(icao24, marker);
         }
@@ -3724,6 +3738,119 @@ class DroneMap {
         
         // Store aircraft data
         this.openSkyAircraftData.set(icao24, aircraftData);
+    }
+    
+    async toggleAircraftTrack(icao24) {
+        const trackData = this.openSkyAircraftTracks.get(icao24);
+        
+        if (trackData && trackData.isVisible) {
+            // Hide existing track
+            this.hideAircraftTrack(icao24);
+        } else {
+            // Show track (fetch if needed)
+            await this.showAircraftTrack(icao24);
+        }
+        
+        // Update popup content to reflect new button state
+        const marker = this.openSkyAircraftMarkers.get(icao24);
+        if (marker && marker.isPopupOpen()) {
+            const aircraftData = this.openSkyAircraftData.get(icao24);
+            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
+            marker.setPopupContent(popupContent);
+        }
+    }
+    
+    async showAircraftTrack(icao24) {
+        // Check if already have the track polyline
+        let trackData = this.openSkyAircraftTracks.get(icao24);
+        
+        if (trackData && trackData.polyline) {
+            // Just show existing track
+            trackData.polyline.addTo(this.map);
+            trackData.isVisible = true;
+            console.log(`Showing cached track for ${icao24}`);
+            return;
+        }
+        
+        // Fetch track data from OpenSky
+        const url = `${OPENSKY_CONFIG.endpoint}/tracks/all?icao24=${icao24}&time=0`;
+        
+        try {
+            const options = {};
+            
+            // Add basic auth if credentials are provided
+            if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
+                const auth = btoa(`${OPENSKY_CONFIG.username}:${OPENSKY_CONFIG.password}`);
+                options.headers = {
+                    'Authorization': `Basic ${auth}`
+                };
+            }
+            
+            console.log(`Fetching track for ${icao24}...`);
+            const response = await fetch(url, options);
+            
+            if (!response.ok) {
+                console.error('OpenSky track API error:', response.status);
+                alert('Unable to fetch aircraft track. Track data may not be available for this aircraft.');
+                return;
+            }
+            
+            const data = await response.json();
+            
+            // Parse track data
+            if (data && data.path && Array.isArray(data.path) && data.path.length > 0) {
+                // Convert path to LatLng array
+                // Path format: [[time, latitude, longitude, baro_altitude, true_track, on_ground], ...]
+                const latLngs = data.path
+                    .filter(point => point[1] != null && point[2] != null) // Filter out null positions
+                    .map(point => [point[1], point[2]]); // [latitude, longitude]
+                
+                if (latLngs.length === 0) {
+                    alert('No valid track positions found for this aircraft.');
+                    return;
+                }
+                
+                // Create polyline for track
+                const trackPolyline = L.polyline(latLngs, {
+                    color: '#9333ea', // Purple color to distinguish from real-time trail
+                    weight: 3,
+                    opacity: 0.8,
+                    dashArray: '10, 5', // Dashed line to distinguish from real-time trail
+                    smoothFactor: 1
+                }).addTo(this.map);
+                
+                // Store track
+                this.openSkyAircraftTracks.set(icao24, {
+                    polyline: trackPolyline,
+                    isVisible: true
+                });
+                
+                console.log(`Displayed track for ${icao24}: ${latLngs.length} positions`);
+                
+                // Optionally zoom to track bounds
+                if (latLngs.length > 1) {
+                    this.map.fitBounds(trackPolyline.getBounds(), { padding: [50, 50] });
+                }
+            } else {
+                alert('No track data available for this aircraft.');
+            }
+        } catch (error) {
+            console.error('Error fetching aircraft track:', error);
+            alert('Failed to fetch aircraft track. Please try again.');
+        }
+    }
+    
+    hideAircraftTrack(icao24) {
+        const trackData = this.openSkyAircraftTracks.get(icao24);
+        
+        if (trackData && trackData.polyline) {
+            // Remove from map
+            if (this.map.hasLayer(trackData.polyline)) {
+                this.map.removeLayer(trackData.polyline);
+            }
+            trackData.isVisible = false;
+            console.log(`Hiding track for ${icao24}`);
+        }
     }
     
     generateAircraftPopupContent(icao24, data) {
@@ -3749,16 +3876,33 @@ class DroneMap {
                             `${Math.floor(secondsAgo / 3600)}h ago`;
         }
         
+        // Check if track is currently shown
+        const trackData = this.openSkyAircraftTracks.get(icao24);
+        const trackButtonText = trackData?.isVisible ? 'Hide Aircraft Track' : 'Show Aircraft Track';
+        const trackButtonBg = trackData?.isVisible ? '#dc3545' : '#314268';
+        
         return `
             <div style="min-width: 200px;">
                 <strong style="font-size: 1.1em;">${callsign || icao24}</strong><br><br>
-                <strong>ICAO24:</strong> ${icao24}<br>
+                <strong>ICAO24:</strong> <a href="https://opensky-network.org/aircraft-profile?icao24=${icao24}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${icao24}</a><br>
                 <strong>Country:</strong> ${origin_country || 'N/A'}<br>
                 <strong>Altitude:</strong> ${altitudeText}<br>
                 <strong>Heading:</strong> ${headingText}<br>
                 <strong>Velocity:</strong> ${velocityText}<br>
                 <strong>Vertical Rate:</strong> ${verticalRateText}<br>
-                <strong>Last Contact:</strong> ${lastContactText}
+                <strong>Last Contact:</strong> ${lastContactText}<br><br>
+                <button onclick="window.droneMap.toggleAircraftTrack('${icao24}'); return false;" style="
+                    background: ${trackButtonBg};
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 600;
+                    width: 100%;
+                    margin-top: 4px;
+                ">${trackButtonText}</button>
             </div>
         `;
     }
@@ -7129,6 +7273,16 @@ class DroneMap {
                 }
             });
             this.openSkyAircraftTrails.clear();
+        }
+        
+        // Remove all OpenSky historical tracks
+        if (this.openSkyAircraftTracks) {
+            this.openSkyAircraftTracks.forEach((track, icao24) => {
+                if (track.polyline && this.map.hasLayer(track.polyline)) {
+                    this.map.removeLayer(track.polyline);
+                }
+            });
+            this.openSkyAircraftTracks.clear();
         }
         
         // Clear OpenSky data
