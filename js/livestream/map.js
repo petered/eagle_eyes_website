@@ -12,6 +12,13 @@ class DroneMap {
         this.currentLocation = null;
         this.trailCoordinates = [];
         this.caltopoInfo = null;
+        
+        // Caltopo layer toggle state
+        this.isCaltopoLayerEnabled = true; // Default to enabled when present
+        this.isCaltopoFoldersExpanded = false; // Whether folder sub-bullets are visible
+        this.caltopoFolders = {}; // { folderName: { enabled: true, featureIds: [] } }
+        this.caltopoFeatureToFolder = new Map(); // featureId -> folder name
+        
         this.staleDataOverlay = null;
         this.isDataStale = false;
         this.disconnectedOverlay = null;
@@ -981,10 +988,10 @@ class DroneMap {
                 <div style="font-weight: 600; margin-bottom: 14px; color: #1f2937; font-size: 15px; letter-spacing: -0.01em;">Map Layers</div>
                 <div style="display: flex; align-items: center; margin: 8px 0;">
                     <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; flex: 1; transition: color 0.2s;">
-                        <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
+                    <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
                                style="margin-right: 10px; accent-color: #3b82f6;">
-                        Airspace (At Ground)
-                    </label>
+                    Airspace (At Ground)
+                </label>
                     <button id="airspaceAllExpandBtn" type="button" style="
                         background: none;
                         border: none;
@@ -1049,17 +1056,60 @@ class DroneMap {
                             <span style="margin-left: 24px; font-size: 11px; color: #6b7280;">(At Ground)</span>
                         </label>
                         <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
-                            <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
+                    <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
                                    style="margin-right: 10px; accent-color: #3b82f6;">
-                            USA FAA Airports
-                        </label>
+                    USA FAA Airports
+                </label>
                         <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
-                            <input type="checkbox" id="runwaysToggle" ${this.isRunwaysEnabled ? 'checked' : ''} 
+                    <input type="checkbox" id="runwaysToggle" ${this.isRunwaysEnabled ? 'checked' : ''} 
                                    style="margin-right: 10px; accent-color: #3b82f6;">
-                            USA FAA Runways
-                        </label>
+                    USA FAA Runways
+                </label>
                     </div>
                 </div>
+                
+                ${this.caltopoInfo && this.caltopoInfo.map_id ? `
+                <!-- Caltopo Map Data -->
+                <div style="margin: 8px 0;">
+                    <div style="display: flex; align-items: center; margin: 8px 0;">
+                        <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; flex: 1; transition: color 0.2s;">
+                            <input type="checkbox" id="caltopoLayerToggle" ${this.isCaltopoLayerEnabled ? 'checked' : ''} 
+                                   style="margin-right: 10px; accent-color: #3b82f6;">
+                            Caltopo Map Data
+                        </label>
+                        ${Object.keys(this.caltopoFolders).length > 0 ? `
+                        <button id="caltopoFoldersExpandBtn" type="button" style="
+                            background: none;
+                            border: none;
+                            cursor: pointer;
+                            padding: 4px 8px;
+                            font-size: 12px;
+                            color: #6b7280;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-left: 8px;
+                            line-height: 1;
+                            transition: color 0.2s;
+                        " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.toggleCaltopoFoldersExpand(); return false;" title="${this.isCaltopoFoldersExpanded ? 'Hide' : 'Show'} Folders">
+                            <span style="transform: rotate(${this.isCaltopoFoldersExpanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
+                        </button>
+                        ` : ''}
+                    </div>
+                    ${this.isCaltopoFoldersExpanded && Object.keys(this.caltopoFolders).length > 0 ? Object.keys(this.caltopoFolders).sort().map(folderName => {
+                        const folder = this.caltopoFolders[folderName];
+                        // Sanitize folder name for HTML ID (remove spaces and special chars)
+                        const safeFolderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
+                        return `
+                        <label style="display: block; margin: 4px 0 8px 24px; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
+                            <input type="checkbox" id="caltopoFolder-${safeFolderId}" data-folder-name="${folderName}" ${folder.enabled ? 'checked' : ''} 
+                                   style="margin-right: 10px; accent-color: #3b82f6;">
+                            ${folderName} (${folder.featureIds.length})
+                        </label>
+                        `;
+                    }).join('') : ''}
+                </div>
+                ` : ''}
                 
                 <!-- Local Airspace Map link -->
                 <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; margin-bottom: 0; padding-bottom: 0;">
@@ -1215,6 +1265,44 @@ class DroneMap {
                 this.showAirspaceAuthorityInfoPopup(null);
             });
         }
+        
+        // Add event listener for Caltopo layer toggle
+        const caltopoLayerToggle = this.baseMapPopup.querySelector('#caltopoLayerToggle');
+        if (caltopoLayerToggle) {
+            caltopoLayerToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            caltopoLayerToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.toggleCaltopoLayer(e.target.checked);
+            });
+        }
+        
+        // Add event listener for Caltopo folders expand button
+        const caltopoFoldersExpandBtn = this.baseMapPopup.querySelector('#caltopoFoldersExpandBtn');
+        if (caltopoFoldersExpandBtn) {
+            caltopoFoldersExpandBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+        }
+        
+        // Add event listeners for all Caltopo folder toggles
+        const caltopoFolderToggles = this.baseMapPopup.querySelectorAll('[id^="caltopoFolder-"]');
+        caltopoFolderToggles.forEach(folderToggle => {
+            folderToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            folderToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                // Get the actual folder name from data attribute
+                const folderName = e.target.getAttribute('data-folder-name');
+                if (folderName) {
+                    this.toggleCaltopoFolder(folderName, e.target.checked);
+                } else {
+                    console.error("No data-folder-name attribute found on toggle");
+                }
+            });
+        });
         
         // Add event listener for Airspace All expand button
         const airspaceAllExpandBtn = this.baseMapPopup.querySelector('#airspaceAllExpandBtn');
@@ -1474,7 +1562,7 @@ class DroneMap {
         const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
         unitSelect.addEventListener('change', (e) => {
             if (this.measurementType === 'line' || this.measurementType === 'radius') {
-                this.measurementUnit = e.target.value;
+            this.measurementUnit = e.target.value;
             } else {
                 this.measurementAreaUnit = e.target.value;
             }
@@ -1601,9 +1689,9 @@ class DroneMap {
         
         if (distanceDiv && unitLabelDiv) {
             if (this.measurementType === 'line') {
-                const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
-                distanceDiv.textContent = convertedDistance.toFixed(2);
-                unitLabelDiv.textContent = this.measurementUnit;
+            const convertedDistance = this.convertDistance(this.measurementTotalDistance, 'NM', this.measurementUnit);
+            distanceDiv.textContent = convertedDistance.toFixed(2);
+            unitLabelDiv.textContent = this.measurementUnit;
             } else if (this.measurementType === 'radius') {
                 // Radius mode - convert from meters to selected unit
                 const radiusM = this.measurementRadius;
@@ -2014,11 +2102,6 @@ class DroneMap {
             // Track whether airports was already enabled before we turn on airspace
             this.airportsWasEnabledBeforeDroneAirspace = this.isAirportsEnabled;
             
-            // Auto-expand the "Airspace (All)" sub-bullet when enabling
-            if (!this.isAirspaceAllExpanded) {
-                this.isAirspaceAllExpanded = true;
-            }
-            
             // Add layer to map
             if (!this.map.hasLayer(this.droneAirspaceLayer)) {
                 this.droneAirspaceLayer.addTo(this.map);
@@ -2081,17 +2164,14 @@ class DroneMap {
             // Track whether airports was already enabled before we turn on airspace
             this.airportsWasEnabledBeforeAirspace = this.isAirportsEnabled;
             
-            // If drone airspace is enabled, expand the sub-bullet so user can see "Airspace (All)" is now on
-            if (this.isDroneAirspaceEnabled && !this.isAirspaceAllExpanded) {
-                this.isAirspaceAllExpanded = true;
-            }
-            
             // Add layer to map
             if (!this.map.hasLayer(this.airspaceLayer)) {
                 this.airspaceLayer.addTo(this.map);
+                console.log("✅ Airspace (All) layer added to map");
             }
             
             // Load airspace data for current view
+            console.log("🔄 Loading Airspace (All) data...");
             this.loadAirspaceDataDebounced();
             
             // Auto-enable airports if not already enabled
@@ -2517,17 +2597,17 @@ class DroneMap {
             return; // Message already shown
         }
 
-        const errorMessage = document.createElement('div');
+            const errorMessage = document.createElement('div');
         errorMessage.id = 'locationAccessDeniedMessage';
-        errorMessage.style.cssText = `
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            color: #856404;
-            padding: 12px;
-            border-radius: 4px;
-            margin-top: 12px;
-            font-size: 13px;
-        `;
+            errorMessage.style.cssText = `
+                background: #fff3cd;
+                border: 1px solid #ffc107;
+                color: #856404;
+                padding: 12px;
+                border-radius: 4px;
+                margin-top: 12px;
+                font-size: 13px;
+            `;
         
         const messageText = document.createElement('div');
         messageText.textContent = 'Grant location access to display local data.';
@@ -2729,7 +2809,7 @@ class DroneMap {
         // Check if we're on localhost or production domain
         const hostname = window.location.hostname;
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://localhost:8081';
+        return 'http://localhost:8081';
         } else {
             // Production: use relative path (same pattern as FAQ backend)
             // The proxy should be deployed on the same domain
@@ -3082,11 +3162,11 @@ class DroneMap {
         // Handle local airspace authority info button
         const localAuthorityInfoBtn = modalContent.querySelector('#faaLocalAirspaceAuthorityInfoBtn');
         if (localAuthorityInfoBtn) {
-            localAuthorityInfoBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.showAirspaceAuthorityInfoPopup(modal);
-            });
+        localAuthorityInfoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showAirspaceAuthorityInfoPopup(modal);
+        });
         }
 
         // Handle acknowledge button
@@ -3960,7 +4040,7 @@ class DroneMap {
         
         return { west: w, south: s, east: e, north: n };
     }
-    
+
     async loadAirspaceData() {
         if (!this.isAirspaceEnabled || !this.map) return;
 
@@ -5763,19 +5843,264 @@ class DroneMap {
         this.caltopoInfo = caltopoInfo;
         this.updateCaltopoButton();
 
+        // Log feature structure to analyze folder organization
+        if (parsedData && parsedData.features && this.caltopoInfo && this.caltopoInfo.map_id) {
+            console.log("🔍 CALTOPO FEATURE ANALYSIS:");
+            console.log(`   Total features: ${parsedData.features.length}`);
+            
+            // Sample first 5 features to see their properties
+            const sampleFeatures = parsedData.features.slice(0, 5);
+            sampleFeatures.forEach((feature, idx) => {
+                console.log(`   Feature ${idx + 1}:`, {
+                    type: feature.geometry?.type,
+                    properties: feature.properties
+                });
+            });
+            
+            // Check for common folder/group property names across all features
+            const propertyNames = new Set();
+            parsedData.features.forEach(feature => {
+                if (feature.properties) {
+                    Object.keys(feature.properties).forEach(key => propertyNames.add(key));
+                }
+            });
+            const allPropertyNames = Array.from(propertyNames).sort();
+            console.log(`   All property names found (${allPropertyNames.length}):`, allPropertyNames.join(', '));
+            
+            // Check for folder-like properties
+            const folderProps = ['folder', 'folderPath', 'group', 'category', 'layer', 'class', 'type'];
+            const foundFolderProps = folderProps.filter(prop => propertyNames.has(prop));
+            console.log(`   Folder-like properties found:`, foundFolderProps.join(', ') || 'none');
+            
+            if (foundFolderProps.length > 0) {
+                console.log("✅ FOLDERS DETECTED! We can organize features by:", foundFolderProps.join(', '));
+                
+                // Build folder structure (use first folder property found, typically "class")
+                const folderPropName = foundFolderProps[0];
+                this.caltopoFolders = {};
+                this.caltopoFeatureToFolder.clear();
+                
+                // Show sample values for each folder property
+                foundFolderProps.forEach(propName => {
+                    const uniqueValues = new Set();
+                    parsedData.features.forEach(feature => {
+                        if (feature.properties && feature.properties[propName]) {
+                            uniqueValues.add(feature.properties[propName]);
+                        }
+                    });
+                    console.log(`   📁 "${propName}" values:`, Array.from(uniqueValues).sort());
+                });
+                
+                // Special analysis for features with class='Folder' to find custom folder names
+                const folderFeatures = parsedData.features.filter(f => f.properties?.class === 'Folder');
+                if (folderFeatures.length > 0) {
+                    console.log(`   🔍 Found ${folderFeatures.length} custom folder(s), analyzing properties:`);
+                    folderFeatures.forEach((feature, idx) => {
+                        console.log(`      Folder ${idx + 1} ALL properties:`, feature.properties);
+                        console.log(`      Folder ${idx + 1} title:`, feature.properties?.title);
+                        console.log(`      Folder ${idx + 1} id:`, feature.id);
+                    });
+                    
+                    // Now check which features have folderId pointing to these folders
+                    console.log(`   🔗 Checking which features belong to custom folders:`);
+                    parsedData.features.forEach((feature, idx) => {
+                        if (feature.properties?.folderId) {
+                            console.log(`      Feature ${idx + 1} (${feature.geometry?.type}) has folderId:`, feature.properties.folderId, 
+                                       `class:`, feature.properties.class,
+                                       `title:`, feature.properties.title);
+                        }
+                    });
+                    
+                    // Also show features WITHOUT folderId
+                    const featuresWithoutFolder = parsedData.features.filter(f => 
+                        f.properties?.class !== 'Folder' && !f.properties?.folderId
+                    );
+                    console.log(`   📍 Features without folderId (${featuresWithoutFolder.length}):`, 
+                               featuresWithoutFolder.map(f => ({
+                                   type: f.geometry?.type,
+                                   class: f.properties?.class,
+                                   title: f.properties?.title
+                               })));
+                }
+                
+                // Build folder ID to name mapping from custom folders (deduplicate)
+                const folderIdToName = new Map();
+                const seenFolderIds = new Set();
+                folderFeatures.forEach(feature => {
+                    const folderId = feature.id;
+                    const folderName = feature.properties?.title || 'Unnamed Folder';
+                    
+                    // Skip if we've already seen this folder ID
+                    if (folderId && !seenFolderIds.has(folderId)) {
+                        folderIdToName.set(folderId, folderName);
+                        seenFolderIds.add(folderId);
+                    }
+                });
+                console.log("📋 Folder ID to name mapping (deduplicated):", Array.from(folderIdToName.entries()));
+                console.log(`   (Found ${folderFeatures.length} folder features, ${seenFolderIds.size} unique folders)`);
+                
+                // Organize features by folder
+                // Store original index in each feature for consistent ID generation
+                parsedData.features.forEach((feature, idx) => {
+                    feature._originalIndex = idx;
+                });
+                
+                // Deduplicate features before organizing
+                const seenFeatureIdsInOrg = new Set();
+                
+                parsedData.features.forEach((feature, idx) => {
+                    const featureClass = feature.properties?.class;
+                    
+                    // Skip folder definition features themselves (don't render these as map objects)
+                    if (featureClass === 'Folder') {
+                        return;
+                    }
+                    
+                    // Generate consistent feature ID
+                    const featureId = feature.id || feature.properties?.id || `feature-${feature._originalIndex}`;
+                    
+                    // Skip if we've already processed this feature ID
+                    if (seenFeatureIdsInOrg.has(featureId)) {
+                        console.log(`   ⏭️ Skipping duplicate in folder organization: ${featureId}`);
+                        return;
+                    }
+                    seenFeatureIdsInOrg.add(featureId);
+                    
+                    let folderName;
+                    
+                    // Check if feature belongs to a custom folder
+                    if (feature.properties?.folderId && folderIdToName.has(feature.properties.folderId)) {
+                        // Feature belongs to custom folder - use custom name
+                        folderName = folderIdToName.get(feature.properties.folderId);
+                        console.log(`   Feature ${featureId} belongs to custom folder "${folderName}"`);
+                    } else {
+                        // Root-level feature, use its class as category with proper naming
+                        if (featureClass === 'Marker') {
+                            folderName = 'Markers';
+                        } else if (featureClass === 'Shape') {
+                            folderName = 'Lines & Polygons';
+                        } else {
+                            folderName = featureClass || 'Uncategorized';
+                        }
+                    }
+                    
+                    if (!this.caltopoFolders[folderName]) {
+                        this.caltopoFolders[folderName] = {
+                            enabled: true,
+                            featureIds: []
+                        };
+                    }
+                    
+                    this.caltopoFolders[folderName].featureIds.push(featureId);
+                    this.caltopoFeatureToFolder.set(featureId, folderName);
+                });
+                
+                console.log("📂 Caltopo folders organized (after deduplication):", this.caltopoFolders);
+                Object.keys(this.caltopoFolders).forEach(folderName => {
+                    console.log(`   ${folderName}: ${this.caltopoFolders[folderName].featureIds.length} features`);
+                });
+            } else {
+                console.log("ℹ️ No folder properties detected. Features cannot be organized.");
+                this.caltopoFolders = {};
+                this.caltopoFeatureToFolder.clear();
+            }
+        }
+
         this.geojsonLayer.clearLayers();
 
         // Configure styling and popups for GeoJSON features
-        this.geojsonLayer = L.geoJSON(parsedData, {
-            style: (feature) => {
-                const style = this.getFeatureStyle(feature);
-                // Ensure polygon/line features use the polygonPane
-                style.pane = 'polygonPane';
-                return style;
-            },
-            pointToLayer: (feature, latlng) => this.createStyledMarker(feature, latlng),
-            onEachFeature: (feature, layer) => this.configureFeaturePopup(feature, layer)
-        }).addTo(this.map);
+        // For Caltopo data with folders, we need to track each feature layer
+        const isCaltopoWithFolders = this.caltopoInfo && this.caltopoInfo.map_id && Object.keys(this.caltopoFolders).length > 0;
+        
+        // Filter out folder definition features (class='Folder') before rendering
+        const filteredFeatures = parsedData.features ? parsedData.features.filter(f => f.properties?.class !== 'Folder') : [];
+        
+        console.log(`🎨 Rendering ${filteredFeatures.length} features (excluded ${(parsedData.features?.length || 0) - filteredFeatures.length} folder definitions)`);
+        
+        // If folders exist, render features individually and track them
+        if (isCaltopoWithFolders) {
+            const featureLayers = new Map();
+            
+            // Deduplicate by feature ID to avoid rendering duplicates
+            const seenFeatureIds = new Set();
+            
+            filteredFeatures.forEach(feature => {
+                // Generate consistent feature ID using _originalIndex
+                const featureId = feature.id || feature.properties?.id || `feature-${feature._originalIndex}`;
+                
+                // Skip if already processed this feature
+                if (seenFeatureIds.has(featureId)) {
+                    console.log(`   ⏭️ Skipping duplicate feature ${featureId}`);
+                    return;
+                }
+                seenFeatureIds.add(featureId);
+                
+                const folderName = this.caltopoFeatureToFolder.get(featureId);
+                
+                console.log(`   📍 Creating feature ${featureId} for folder "${folderName}"`, feature.properties?.title || feature.geometry?.type);
+                
+                // Create layer for this individual feature
+                const featureGeoJSON = L.geoJSON(feature, {
+                    style: (f) => {
+                        const style = this.getFeatureStyle(f);
+                        style.pane = 'polygonPane';
+                        return style;
+                    },
+                    pointToLayer: (f, latlng) => this.createStyledMarker(f, latlng),
+                    onEachFeature: (f, l) => this.configureFeaturePopup(f, l)
+                });
+                
+                // Extract the actual Leaflet layers from the GeoJSON group
+                const actualLayers = [];
+                featureGeoJSON.eachLayer(l => {
+                    actualLayers.push(l);
+                    this.geojsonLayer.addLayer(l);
+                });
+                
+                // Store the actual Leaflet layers (not the GeoJSON group)
+                featureLayers.set(featureId, actualLayers);
+                
+                console.log(`      Stored ${actualLayers.length} actual layer(s) for feature ${featureId}`);
+            });
+            
+            this.caltopoFeatureLayers = featureLayers;
+            console.log(`📌 Stored ${featureLayers.size} feature layers (${filteredFeatures.length - featureLayers.size} duplicates skipped)`);
+            console.log(`📌 Feature to folder mapping has ${this.caltopoFeatureToFolder.size} entries`);
+        } else {
+            // No folders, render normally
+            const filteredData = {
+                type: 'FeatureCollection',
+                features: filteredFeatures
+            };
+            
+            this.geojsonLayer = L.geoJSON(filteredData, {
+                style: (feature) => {
+                    const style = this.getFeatureStyle(feature);
+                    style.pane = 'polygonPane';
+                    return style;
+                },
+                pointToLayer: (feature, latlng) => this.createStyledMarker(feature, latlng),
+                onEachFeature: (feature, layer) => this.configureFeaturePopup(feature, layer)
+            });
+        }
+        
+        // Add to map based on toggle state (only if Caltopo data)
+        if (this.caltopoInfo && this.caltopoInfo.map_id) {
+            if (this.isCaltopoLayerEnabled) {
+                this.geojsonLayer.addTo(this.map);
+                // Apply folder visibility filters if folders exist
+                if (Object.keys(this.caltopoFolders).length > 0) {
+                    this.updateCaltopoFolderVisibility();
+                }
+            }
+            // Refresh base map popup if it's open to show Caltopo toggle
+            if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+                this.showBaseMapPopup();
+            }
+        } else {
+            // Not Caltopo data, always add to map
+            this.geojsonLayer.addTo(this.map);
+        }
     }
 
     updateCaltopoButton() {
@@ -5805,6 +6130,130 @@ class DroneMap {
             if (caltopoBtn) caltopoBtn.style.display = 'none';
             if (caltopoBtnMobile) caltopoBtnMobile.style.display = 'none';
         }
+    }
+    
+    // ===== Caltopo Layer Toggle Methods =====
+    
+    toggleCaltopoLayer(enabled) {
+        this.isCaltopoLayerEnabled = enabled;
+        
+        // Toggle visibility of the entire Caltopo GeoJSON layer
+        if (!this.geojsonLayer || !this.caltopoInfo || !this.caltopoInfo.map_id) {
+            return; // No Caltopo data present
+        }
+        
+        if (enabled) {
+            // Show Caltopo layer
+            if (!this.map.hasLayer(this.geojsonLayer)) {
+                this.geojsonLayer.addTo(this.map);
+            }
+            // Apply folder visibility if folders exist
+            if (Object.keys(this.caltopoFolders).length > 0) {
+                this.updateCaltopoFolderVisibility();
+            }
+        } else {
+            // Hide Caltopo layer (but keep button visible)
+            if (this.map.hasLayer(this.geojsonLayer)) {
+                this.map.removeLayer(this.geojsonLayer);
+            }
+        }
+    }
+    
+    toggleCaltopoFoldersExpand() {
+        this.isCaltopoFoldersExpanded = !this.isCaltopoFoldersExpanded;
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
+        }
+    }
+    
+    toggleCaltopoFolder(folderName, enabled) {
+        if (!this.caltopoFolders[folderName]) {
+            console.warn('Folder not found:', folderName);
+            return;
+        }
+        
+        this.caltopoFolders[folderName].enabled = enabled;
+        console.log(`Toggled folder "${folderName}" to ${enabled ? 'ON' : 'OFF'}`);
+        
+        // Update visibility
+        this.updateCaltopoFolderVisibility();
+        
+        // Refresh popup if open
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
+        }
+    }
+    
+    updateCaltopoFolderVisibility() {
+        // Show/hide individual features based on their folder state
+        if (!this.geojsonLayer || !this.caltopoFeatureLayers || !this.isCaltopoLayerEnabled) {
+            console.log("⚠️ Cannot update folder visibility:", {
+                hasLayer: !!this.geojsonLayer,
+                hasFeatureLayers: !!this.caltopoFeatureLayers,
+                layerEnabled: this.isCaltopoLayerEnabled
+            });
+            return;
+        }
+        
+        console.log("🔄 Updating Caltopo folder visibility...");
+        console.log("   Feature layers map size:", this.caltopoFeatureLayers.size);
+        console.log("   Feature to folder map size:", this.caltopoFeatureToFolder.size);
+        console.log("   Folders:", this.caltopoFolders);
+        
+        let shown = 0, hidden = 0;
+        
+        this.caltopoFeatureLayers.forEach((layers, featureId) => {
+            const folderName = this.caltopoFeatureToFolder.get(featureId);
+            const folder = this.caltopoFolders[folderName];
+            const shouldShow = folder && folder.enabled;
+            
+            console.log(`   Feature ${featureId}: folder="${folderName}", enabled=${folder?.enabled}, shouldShow=${shouldShow}, layerCount=${layers?.length || 0}`);
+            
+            // layers is an array of actual Leaflet layers
+            if (Array.isArray(layers)) {
+                layers.forEach((layer, layerIdx) => {
+                    const hasLayerInGroup = this.geojsonLayer.hasLayer(layer);
+                    const hasLayerOnMap = this.map.hasLayer(layer);
+                    console.log(`      Layer ${layerIdx}: type=${layer.constructor.name}, inGroup=${hasLayerInGroup}, onMap=${hasLayerOnMap}`);
+                    
+                    if (shouldShow) {
+                        // Try both methods to add layer
+                        if (!hasLayerInGroup) {
+                            this.geojsonLayer.addLayer(layer);
+                            shown++;
+                            console.log(`         ✅ Added layer to geojsonLayer group`);
+                        }
+                        if (!hasLayerOnMap) {
+                            layer.addTo(this.map);
+                            shown++;
+                            console.log(`         ✅ Added layer directly to map`);
+                        }
+                    } else {
+                        // Try both methods to remove layer
+                        let removed = false;
+                        if (hasLayerInGroup) {
+                            this.geojsonLayer.removeLayer(layer);
+                            hidden++;
+                            removed = true;
+                            console.log(`         ❌ Removed layer from geojsonLayer group`);
+                        }
+                        if (hasLayerOnMap) {
+                            this.map.removeLayer(layer);
+                            hidden++;
+                            removed = true;
+                            console.log(`         ❌ Removed layer directly from map`);
+                        }
+                        if (!removed) {
+                            console.log(`         ⚠️ Layer not found in group or map, cannot remove`);
+                        }
+                    }
+                });
+            } else {
+                console.warn(`   ⚠️ layers is not an array for feature ${featureId}:`, layers);
+            }
+        });
+        
+        console.log(`✅ Folder visibility updated: ${shown} shown, ${hidden} hidden`);
     }
 
     safeColorConversion(colorString, defaultColor = '#3b82f6') {
@@ -5916,6 +6365,9 @@ class DroneMap {
 
     configureFeaturePopup(feature, layer) {
         const props = feature.properties || {};
+        
+        // Always show popup if there's a title or description
+        // For Caltopo features, title should be available
         if (props.title || props.description) {
             let popupContent = '<div style="word-wrap: break-word; max-width: 200px;">';
             if (props.title) {
@@ -5928,6 +6380,13 @@ class DroneMap {
             popupContent += '</div>';
             
             layer.bindPopup(popupContent, {
+                maxWidth: 250,
+                className: 'custom-popup'
+            });
+        } else {
+            // Even if no title/description, show geometry type
+            const geomType = feature.geometry?.type || 'Feature';
+            layer.bindPopup(`<div style="word-wrap: break-word; max-width: 200px;"><strong>${geomType}</strong></div>`, {
                 maxWidth: 250,
                 className: 'custom-popup'
             });
@@ -6979,21 +7438,21 @@ class DroneMap {
                 
                 <!-- Scrollable content area -->
                 <div class="popup-scrollable-content" style="overflow-y: scroll; overflow-x: hidden; flex: 1; padding-right: 8px; padding-left: 2px; -webkit-overflow-scrolling: touch;">
-                    <!-- Title line -->
+                <!-- Title line -->
                     <div style="margin-bottom: 12px;">
                         <strong style="font-size: 13px; color: #666; word-wrap: break-word;">${layerName}</strong>
                         ${typeLabel ? `<span style="font-size: 12px; color: #999; margin-left: 8px; word-wrap: break-word;">(${typeLabel})</span>` : ''}
-                    </div>
-                    
-                    <!-- Name -->
+                </div>
+                
+                <!-- Name -->
                     <div style="margin-bottom: 10px;">
                         <strong style="font-size: 14px; color: #333; word-wrap: break-word; display: block; line-height: 1.4;">${
-                            layerType === 'faa-runways' ? (props.name || props.NAME || props.Runway || 'Runway Area') :
-                            layerType === 'faa-uas' ? (props.name || props.NAME || props.Facility || 'UAS Facility Area') :
+                        layerType === 'faa-runways' ? (props.name || props.NAME || props.Runway || 'Runway Area') :
+                        layerType === 'faa-uas' ? (props.name || props.NAME || props.Facility || 'UAS Facility Area') :
                             layerType === 'faa-airspace' ? (props.NAME_TXT || props.name_txt || props.NAME || props.name || 'Unnamed Airspace') :
-                            (props.name || 'Unknown')
-                        }</strong>
-                    </div>
+                        (props.name || 'Unknown')
+                    }</strong>
+                </div>
         `;
         
         // ICAO code for airports/heliports
