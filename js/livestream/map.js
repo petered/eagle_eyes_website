@@ -4021,15 +4021,17 @@ class DroneMap {
             border-radius: 6px;
             font-size: 11px;
             font-weight: 500;
-            z-index: 999;
+            z-index: 2001;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(0, 0, 0, 0.1);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            pointer-events: none;
         `;
         
         this.updateCreditsDisplay();
         
         mapContainer.appendChild(this.openSkyCreditsCounter);
+        console.log('✅ Credits counter displayed');
     }
     
     updateCreditsDisplay() {
