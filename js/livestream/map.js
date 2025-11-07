@@ -3553,14 +3553,19 @@ class DroneMap {
     async getOpenSkyAccessToken() {
         // Check if we have a valid token
         if (this.openSkyAccessToken && this.openSkyTokenExpiry && Date.now() < this.openSkyTokenExpiry) {
+            console.log('Using cached OpenSky token');
             return this.openSkyAccessToken;
         }
         
         // Need to fetch new token
         if (!OPENSKY_CONFIG.clientId || !OPENSKY_CONFIG.clientSecret) {
-            console.error('OpenSky OAuth2 credentials not configured');
+            console.error('❌ OpenSky OAuth2 credentials not configured');
             return null;
         }
+        
+        console.log('🔑 Fetching OpenSky OAuth2 token...');
+        console.log('   Client ID:', OPENSKY_CONFIG.clientId);
+        console.log('   Token Endpoint:', OPENSKY_CONFIG.tokenEndpoint);
         
         try {
             const response = await fetch(OPENSKY_CONFIG.tokenEndpoint, {
@@ -3576,7 +3581,9 @@ class DroneMap {
             });
             
             if (!response.ok) {
-                console.error('Failed to obtain OpenSky access token:', response.status);
+                const errorText = await response.text();
+                console.error('❌ Failed to obtain OpenSky access token:', response.status, response.statusText);
+                console.error('   Error response:', errorText);
                 return null;
             }
             
@@ -3586,11 +3593,13 @@ class DroneMap {
             this.openSkyAccessToken = data.access_token;
             this.openSkyTokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
             
-            console.log('✅ OpenSky access token obtained, expires in', data.expires_in, 'seconds');
+            console.log('✅ OpenSky access token obtained successfully!');
+            console.log('   Expires in:', data.expires_in, 'seconds');
+            console.log('   Token (first 20 chars):', data.access_token.substring(0, 20) + '...');
             
             return this.openSkyAccessToken;
         } catch (error) {
-            console.error('Error fetching OpenSky access token:', error);
+            console.error('❌ Error fetching OpenSky access token:', error);
             return null;
         }
     }
@@ -3626,22 +3635,33 @@ class DroneMap {
             
             // Use OAuth2 if configured
             if (OPENSKY_CONFIG.useOAuth && OPENSKY_CONFIG.clientId && OPENSKY_CONFIG.clientSecret) {
+                console.log('🔐 Using OAuth2 authentication for OpenSky');
                 const token = await this.getOpenSkyAccessToken();
                 if (token) {
                     options.headers['Authorization'] = `Bearer ${token}`;
+                    console.log('✅ Added Bearer token to request');
+                } else {
+                    console.warn('⚠️ Failed to get OAuth2 token, making unauthenticated request');
                 }
             }
             // Fallback to basic auth if credentials are provided
             else if (OPENSKY_CONFIG.username && OPENSKY_CONFIG.password) {
                 const auth = btoa(`${OPENSKY_CONFIG.username}:${OPENSKY_CONFIG.password}`);
                 options.headers['Authorization'] = `Basic ${auth}`;
+                console.log('Using Basic Auth for OpenSky');
+            } else {
+                console.log('⚠️ Making anonymous OpenSky request (no auth configured)');
             }
             
+            console.log('📡 Fetching OpenSky data from:', url);
             const response = await fetch(url, options);
+            console.log('📥 OpenSky response status:', response.status, response.statusText);
             
             if (!response.ok) {
                 if (response.status === 429) {
-                    console.error('⚠️ OpenSky API rate limit exceeded!');
+                    console.error('⚠️ OpenSky API rate limit exceeded! Status 429');
+                    console.error('   This may be from earlier anonymous usage.');
+                    console.error('   Rate limits are per IP and reset at midnight UTC.');
                     this.showOpenSkyRateLimitWarning();
                     this.openSkyLoading = false;
                     // Stop fetching to avoid more rate limit hits
