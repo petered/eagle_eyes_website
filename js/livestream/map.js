@@ -3571,8 +3571,8 @@ class DroneMap {
         const currentIcaos = new Set();
         const now = Date.now();
         
-        // Clear existing markers from cluster
-        this.openSkyMarkerCluster.clearLayers();
+        // Don't clear markers - we'll update them in place
+        // this.openSkyMarkerCluster.clearLayers(); // REMOVED to prevent clearing
         
         states.forEach(state => {
             // State vector format: [icao24, callsign, origin_country, time_position, last_contact, 
@@ -3627,11 +3627,19 @@ class DroneMap {
     
     cleanupOldAircraftTrails(currentIcaos, now) {
         // Trail feature disabled per user request
-        // Just remove markers for aircraft no longer present
+        // Remove markers for aircraft no longer present
+        const markersToRemove = [];
         this.openSkyAircraftMarkers.forEach((marker, icao24) => {
             if (!currentIcaos.has(icao24)) {
-                this.openSkyAircraftMarkers.delete(icao24);
+                // Remove marker from cluster
+                this.openSkyMarkerCluster.removeLayer(marker);
+                markersToRemove.push(icao24);
             }
+        });
+        
+        // Clean up marker references
+        markersToRemove.forEach(icao24 => {
+            this.openSkyAircraftMarkers.delete(icao24);
         });
     }
     
