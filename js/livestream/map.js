@@ -16,8 +16,9 @@ class DroneMap {
         // Caltopo layer toggle state
         this.isCaltopoLayerEnabled = true; // Default to enabled when present
         this.isCaltopoFoldersExpanded = false; // Whether folder sub-bullets are visible
-        this.caltopoFolders = {}; // { folderName: { enabled: true, featureIds: [] } }
+        this.caltopoFolders = {}; // { folderName: { enabled: true, expanded: false, featureIds: [], features: {} } }
         this.caltopoFeatureToFolder = new Map(); // featureId -> folder name
+        this.caltopoFeatureStates = new Map(); // featureId -> { enabled: true, name: string }
         
         this.staleDataOverlay = null;
         this.isDataStale = false;
@@ -26,6 +27,7 @@ class DroneMap {
         this.currentDroneData = null;
         this.currentDroneName = null;
         this.currentLivestreamId = null; // Current drone's livestream ID
+        this.lastDroneUpdate = null; // Timestamp of last drone data update
         this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
         
         // OpenAIP Airspace layer
@@ -1101,11 +1103,43 @@ class DroneMap {
                         // Sanitize folder name for HTML ID (remove spaces and special chars)
                         const safeFolderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
                         return `
-                        <label style="display: block; margin: 4px 0 8px 24px; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
-                            <input type="checkbox" id="caltopoFolder-${safeFolderId}" data-folder-name="${folderName}" ${folder.enabled ? 'checked' : ''} 
-                                   style="margin-right: 10px; accent-color: #3b82f6;">
-                            ${folderName} (${folder.featureIds.length})
-                        </label>
+                        <div style="margin: 4px 0;">
+                            <div style="display: flex; align-items: center;">
+                                <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; flex: 1; margin-left: 24px; transition: color 0.2s;">
+                                    <input type="checkbox" id="caltopoFolder-${safeFolderId}" data-folder-name="${folderName}" ${folder.enabled ? 'checked' : ''} 
+                                           style="margin-right: 10px; accent-color: #3b82f6;">
+                                    ${folderName} (${folder.featureIds.length})
+                                </label>
+                                <button id="caltopoFolderExpand-${safeFolderId}" data-folder-name="${folderName}" type="button" style="
+                                    background: none;
+                                    border: none;
+                                    cursor: pointer;
+                                    padding: 4px 8px;
+                                    font-size: 12px;
+                                    color: #6b7280;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    margin-left: 4px;
+                                    line-height: 1;
+                                    transition: color 0.2s;
+                                " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.toggleCaltopoFolderExpand('${folderName.replace(/'/g, "\\'")}'); return false;" title="${folder.expanded ? 'Hide' : 'Show'} Features">
+                                    <span style="transform: rotate(${folder.expanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
+                                </button>
+                            </div>
+                            ${folder.expanded ? folder.featureIds.map(featureId => {
+                                const featureInfo = folder.features[featureId];
+                                const featureState = this.caltopoFeatureStates.get(featureId);
+                                const safeFeatureId = featureId.replace(/[^a-zA-Z0-9]/g, '_');
+                                return `
+                                <label style="display: block; margin: 2px 0 6px 48px; cursor: pointer; font-size: 12px; padding: 2px 0; color: #6b7280; font-weight: 500; transition: color 0.2s;">
+                                    <input type="checkbox" id="caltopoFeature-${safeFeatureId}" data-feature-id="${featureId}" ${featureState?.enabled ? 'checked' : ''} 
+                                           style="margin-right: 8px; accent-color: #3b82f6;">
+                                    ${featureInfo?.name || 'Unnamed'} <span style="font-size: 10px; color: #9ca3af;">(${featureInfo?.type || 'Feature'})</span>
+                                </label>
+                                `;
+                            }).join('') : ''}
+                        </div>
                         `;
                     }).join('') : ''}
                 </div>
@@ -1300,6 +1334,32 @@ class DroneMap {
                     this.toggleCaltopoFolder(folderName, e.target.checked);
                 } else {
                     console.error("No data-folder-name attribute found on toggle");
+                }
+            });
+        });
+        
+        // Add event listeners for all Caltopo folder expand buttons
+        const caltopoFolderExpandBtns = this.baseMapPopup.querySelectorAll('[id^="caltopoFolderExpand-"]');
+        caltopoFolderExpandBtns.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+        });
+        
+        // Add event listeners for all individual Caltopo feature toggles
+        const caltopoFeatureToggles = this.baseMapPopup.querySelectorAll('[id^="caltopoFeature-"]');
+        caltopoFeatureToggles.forEach(featureToggle => {
+            featureToggle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            featureToggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                // Get the actual feature ID from data attribute
+                const featureId = e.target.getAttribute('data-feature-id');
+                if (featureId) {
+                    this.toggleCaltopoFeature(featureId, e.target.checked);
+                } else {
+                    console.error("No data-feature-id attribute found on toggle");
                 }
             });
         });
@@ -2217,10 +2277,17 @@ class DroneMap {
     
 
     showAirspaceAcknowledgment() {
-        // Create modal overlay
+        // Get the map panel to append modal to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show airspace acknowledgment');
+            return;
+        }
+        
+        // Create modal overlay - positioned relative to map panel
         const modal = document.createElement('div');
         modal.style.cssText = `
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -2293,7 +2360,7 @@ class DroneMap {
         `;
 
         modal.appendChild(modalContent);
-        document.body.appendChild(modal);
+        mapPanel.appendChild(modal);
 
         // Handle local airspace authority info button
         const localAuthorityInfoBtn = modalContent.querySelector('#localAirspaceAuthorityInfoBtn');
@@ -2351,7 +2418,7 @@ class DroneMap {
                 this.loadAirportsDataDebounced();
             }
             
-            document.body.removeChild(modal);
+            modal.remove();
         });
 
         // Close on background click
@@ -2373,7 +2440,7 @@ class DroneMap {
                     airportsToggle.checked = false;
                 }
                 
-                document.body.removeChild(modal);
+                modal.remove();
             }
         });
     }
@@ -2459,10 +2526,17 @@ class DroneMap {
     }
 
     showAirspaceAuthorityInfoPopup(parentModal) {
-        // Create a small info popup
+        // Get the map panel to append modal to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show airspace authority info');
+            return;
+        }
+        
+        // Create a small info popup - positioned relative to map panel
         const infoPopup = document.createElement('div');
         infoPopup.style.cssText = `
-            position: fixed;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -2520,10 +2594,10 @@ class DroneMap {
             </div>
         `;
 
-        // Create backdrop first
+        // Create backdrop first - positioned relative to map panel
         const backdrop = document.createElement('div');
         backdrop.style.cssText = `
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -2531,17 +2605,17 @@ class DroneMap {
             background: rgba(0, 0, 0, 0.3);
             z-index: 10000;
         `;
-        document.body.appendChild(backdrop);
-        document.body.appendChild(infoPopup);
+        mapPanel.appendChild(backdrop);
+        mapPanel.appendChild(infoPopup);
 
         // Handle cancel button
         const cancelBtn = infoPopup.querySelector('#cancelInfoBtn');
         cancelBtn.addEventListener('click', () => {
             if (backdrop.parentElement) {
-                document.body.removeChild(backdrop);
+                backdrop.remove();
             }
             if (infoPopup.parentElement) {
-                document.body.removeChild(infoPopup);
+                infoPopup.remove();
             }
         });
 
@@ -2550,10 +2624,10 @@ class DroneMap {
         openDJIMapBtn.addEventListener('click', () => {
             window.open('https://fly-safe.dji.com/nfz/nfz-query', '_blank', 'noopener,noreferrer');
             if (backdrop.parentElement) {
-                document.body.removeChild(backdrop);
+                backdrop.remove();
             }
             if (infoPopup.parentElement) {
-                document.body.removeChild(infoPopup);
+                infoPopup.remove();
             }
         });
 
@@ -2568,10 +2642,10 @@ class DroneMap {
         // Close on background click
         backdrop.addEventListener('click', () => {
             if (infoPopup.parentElement) {
-                document.body.removeChild(infoPopup);
+                infoPopup.remove();
             }
             if (backdrop.parentElement) {
-                document.body.removeChild(backdrop);
+                backdrop.remove();
             }
         });
     }
@@ -2682,7 +2756,8 @@ class DroneMap {
         
         // Show loading indicator
         this.droneAirspaceLoading = true;
-        this.showAirspaceLoadingMessage('droneAirspace');
+        this.showLoadingMessage('droneAirspace');
+        console.log('🔵 Showing drone airspace loading banner');
 
         const proxyBase = this.getOpenAIPProxyUrl();
         const airspaceUrl = `${proxyBase}/openaip/airspaces?bbox=${bbox}&format=geojson`;
@@ -2796,11 +2871,13 @@ class DroneMap {
             
             // Hide loading message
             this.droneAirspaceLoading = false;
-            this.hideAirspaceLoadingMessage();
+            this.hideLoadingMessage('droneAirspace');
+            console.log('🔵 Hiding drone airspace loading banner');
         } catch (error) {
             console.error('Error loading drone airspace data:', error);
             this.droneAirspaceLoading = false;
-            this.hideAirspaceLoadingMessage();
+            this.hideLoadingMessage('droneAirspace');
+            console.log('🔵 Hiding drone airspace loading banner (error)');
         }
     }
 
@@ -2945,10 +3022,17 @@ class DroneMap {
         // Mark as shown
         this.hasShownBetaDisclaimer = true;
         
-        // Create modal overlay
+        // Get the map panel to append modal to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show beta disclaimer');
+            return;
+        }
+        
+        // Create modal overlay - will be positioned relative to map panel
         const modal = document.createElement('div');
         modal.style.cssText = `
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -3033,7 +3117,7 @@ class DroneMap {
         `;
 
         modal.appendChild(modalContent);
-        document.body.appendChild(modal);
+        mapPanel.appendChild(modal);
 
         // Handle local airspace authority info button
         const localAuthorityInfoBtn = modalContent.querySelector('#betaLocalAirspaceAuthorityInfoBtn');
@@ -3084,10 +3168,17 @@ class DroneMap {
     // ===== USA FAA Layers Disclaimer =====
 
     showFAAAirspaceAcknowledgment(layerType) {
-        // Create modal overlay
+        // Get the map panel to append modal to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show FAA airspace acknowledgment');
+            return;
+        }
+        
+        // Create modal overlay - positioned relative to map panel
         const modal = document.createElement('div');
         modal.style.cssText = `
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -3157,7 +3248,7 @@ class DroneMap {
         `;
 
         modal.appendChild(modalContent);
-        document.body.appendChild(modal);
+        mapPanel.appendChild(modal);
 
         // Handle local airspace authority info button
         const localAuthorityInfoBtn = modalContent.querySelector('#faaLocalAirspaceAuthorityInfoBtn');
@@ -3211,7 +3302,7 @@ class DroneMap {
                 }
             }
             
-            document.body.removeChild(modal);
+            modal.remove();
         });
 
         // Close on background click
@@ -3237,7 +3328,7 @@ class DroneMap {
                     faaAirportsToggle.checked = false;
                 }
                 
-                document.body.removeChild(modal);
+                modal.remove();
             }
         });
     }
@@ -4536,11 +4627,18 @@ class DroneMap {
             existingDiv.remove();
         }
         
+        // Get the map panel to append banner to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show loading message');
+            return;
+        }
+        
         const loadingDiv = document.createElement('div');
         loadingDiv.id = id;
         loadingDiv.style.cssText = `
-            position: fixed;
-            top: 70px;
+            position: absolute;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(13, 110, 253, 0.95);
@@ -4578,7 +4676,7 @@ class DroneMap {
             document.head.appendChild(style);
         }
         
-        document.body.appendChild(loadingDiv);
+        mapPanel.appendChild(loadingDiv);
     }
     
     hideLoadingMessage(layerName, bannerId = null) {
@@ -5658,6 +5756,7 @@ class DroneMap {
         this.currentLocation = [latitude, longitude];
         this.currentDroneData = location;
         this.currentDroneName = droneName;
+        this.lastDroneUpdate = new Date(); // Track when data was received
 
         // Add red dot indicator if livestreaming
         const redDot = this.currentLivestreamId ?
@@ -5794,6 +5893,23 @@ class DroneMap {
             `<br><br><button onclick="window.viewer.switchToStream('${streamId}')" style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;">View Livestream</button>` :
             '';
 
+        // Format last update timestamp
+        let lastUpdateText = '';
+        if (this.lastDroneUpdate) {
+            const updateDate = this.lastDroneUpdate;
+            const options = {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            };
+            const formattedTime = updateDate.toLocaleString(undefined, options);
+            lastUpdateText = `<br><br><strong>🕐 Last Updated:</strong> ${formattedTime}`;
+        }
+
         return `
             <div style="min-width: 200px;">
                 ${nameHeader}
@@ -5804,7 +5920,7 @@ class DroneMap {
                 <strong>↑🛰️ Altitude (GPS):</strong> ${altEllipsoidText}<br>
                 <strong>Bearing:</strong> ${bearing.toFixed(1)}°<br>
                 <strong>Pitch:</strong> ${pitchText}<br>
-                <strong>🔋 Battery:</strong> ${batteryText}${livestreamButton}
+                <strong>🔋 Battery:</strong> ${batteryText}${lastUpdateText}${livestreamButton}
             </div>
         `;
     }
@@ -5987,12 +6103,24 @@ class DroneMap {
                     if (!this.caltopoFolders[folderName]) {
                         this.caltopoFolders[folderName] = {
                             enabled: true,
-                            featureIds: []
+                            expanded: false,
+                            featureIds: [],
+                            features: {} // featureId -> { name, type }
                         };
                     }
                     
+                    // Get feature name and type
+                    const featureName = feature.properties?.title || 
+                                       feature.properties?.description || 
+                                       `Unnamed ${feature.geometry?.type || 'Feature'}`;
+                    const featureType = feature.geometry?.type || 'Feature';
+                    
                     this.caltopoFolders[folderName].featureIds.push(featureId);
+                    this.caltopoFolders[folderName].features[featureId] = { name: featureName, type: featureType };
                     this.caltopoFeatureToFolder.set(featureId, folderName);
+                    
+                    // Initialize feature state as enabled
+                    this.caltopoFeatureStates.set(featureId, { enabled: true, name: featureName });
                 });
                 
                 console.log("📂 Caltopo folders organized (after deduplication):", this.caltopoFolders);
@@ -6166,6 +6294,20 @@ class DroneMap {
         }
     }
     
+    toggleCaltopoFolderExpand(folderName) {
+        if (!this.caltopoFolders[folderName]) {
+            console.warn('Folder not found:', folderName);
+            return;
+        }
+        
+        this.caltopoFolders[folderName].expanded = !this.caltopoFolders[folderName].expanded;
+        console.log(`Toggled folder "${folderName}" expand to ${this.caltopoFolders[folderName].expanded ? 'OPEN' : 'CLOSED'}`);
+        
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
+        }
+    }
+    
     toggleCaltopoFolder(folderName, enabled) {
         if (!this.caltopoFolders[folderName]) {
             console.warn('Folder not found:', folderName);
@@ -6174,6 +6316,34 @@ class DroneMap {
         
         this.caltopoFolders[folderName].enabled = enabled;
         console.log(`Toggled folder "${folderName}" to ${enabled ? 'ON' : 'OFF'}`);
+        
+        // When enabling a folder, enable all its features
+        // When disabling a folder, disable all its features
+        this.caltopoFolders[folderName].featureIds.forEach(featureId => {
+            const featureState = this.caltopoFeatureStates.get(featureId);
+            if (featureState) {
+                featureState.enabled = enabled;
+            }
+        });
+        
+        // Update visibility
+        this.updateCaltopoFolderVisibility();
+        
+        // Refresh popup if open
+        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+            this.showBaseMapPopup();
+        }
+    }
+    
+    toggleCaltopoFeature(featureId, enabled) {
+        const featureState = this.caltopoFeatureStates.get(featureId);
+        if (!featureState) {
+            console.warn('Feature not found:', featureId);
+            return;
+        }
+        
+        featureState.enabled = enabled;
+        console.log(`Toggled feature "${featureState.name}" (${featureId}) to ${enabled ? 'ON' : 'OFF'}`);
         
         // Update visibility
         this.updateCaltopoFolderVisibility();
@@ -6205,9 +6375,10 @@ class DroneMap {
         this.caltopoFeatureLayers.forEach((layers, featureId) => {
             const folderName = this.caltopoFeatureToFolder.get(featureId);
             const folder = this.caltopoFolders[folderName];
-            const shouldShow = folder && folder.enabled;
+            const featureState = this.caltopoFeatureStates.get(featureId);
+            const shouldShow = folder && folder.enabled && featureState && featureState.enabled;
             
-            console.log(`   Feature ${featureId}: folder="${folderName}", enabled=${folder?.enabled}, shouldShow=${shouldShow}, layerCount=${layers?.length || 0}`);
+            console.log(`   Feature ${featureId}: folder="${folderName}", folderEnabled=${folder?.enabled}, featureEnabled=${featureState?.enabled}, shouldShow=${shouldShow}, layerCount=${layers?.length || 0}`);
             
             // layers is an array of actual Leaflet layers
             if (Array.isArray(layers)) {

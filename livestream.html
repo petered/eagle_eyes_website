@@ -1568,7 +1568,7 @@ permalink: /livestream/
         </div>
       </div>
 
-      <div id="video-panel">
+      <div id="video-panel" style="position: relative;">
         <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
@@ -1745,7 +1745,7 @@ permalink: /livestream/
         </div>
       </div>
       </div>
-      <div id="map-panel">
+      <div id="map-panel" style="position: relative;">
         <div id="map"></div>
       </div>
     </main>
@@ -1898,6 +1898,8 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            // Reposition disconnected overlay for video mode
+            repositionDisconnectedOverlay();
           } else if (mode === "map") {
             videoPanel.className = "d-none";
             videoPanel.style.flex = "";
@@ -1956,6 +1958,8 @@ permalink: /livestream/
                 }
               }, 100);
             }
+            // Reposition disconnected overlay for map mode
+            repositionDisconnectedOverlay();
           } else {
             // split - let CSS aspect ratio media queries handle layout
             videoPanel.className = "";
@@ -1965,6 +1969,8 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            // Reposition disconnected overlay for split mode
+            repositionDisconnectedOverlay();
             
             // Center map - zoom to drone if connected, otherwise North America
             if (window.droneMap && window.droneMap.map) {
@@ -2075,7 +2081,41 @@ permalink: /livestream/
       function showDisconnectedMessage() {
         const overlay = document.getElementById('sharedDisconnectedOverlay');
         if (overlay) {
+          // Move overlay to the appropriate panel based on current view mode
+          repositionDisconnectedOverlay();
           overlay.style.display = 'flex';
+        }
+      }
+      
+      function repositionDisconnectedOverlay() {
+        const overlay = document.getElementById('sharedDisconnectedOverlay');
+        const videoPanel = document.getElementById('video-panel');
+        const mapPanel = document.getElementById('map-panel');
+        
+        if (!overlay || !videoPanel || !mapPanel) return;
+        
+        // Check which panel is currently visible
+        const isMapFullScreen = mapPanel.classList.contains('full-view');
+        const isVideoFullScreen = videoPanel.classList.contains('full-view');
+        
+        if (isMapFullScreen) {
+          // Full-screen map mode - move overlay to map panel
+          if (overlay.parentElement !== mapPanel) {
+            mapPanel.insertBefore(overlay, mapPanel.firstChild);
+          }
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.borderRadius = '0 0 8px 8px';
+        } else {
+          // Video visible (either full-screen or split) - move overlay to video panel
+          if (overlay.parentElement !== videoPanel) {
+            videoPanel.insertBefore(overlay, videoPanel.firstChild);
+          }
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.borderRadius = '0 0 8px 8px';
         }
       }
 
