@@ -3782,11 +3782,6 @@ class DroneMap {
                 });
                 
                 console.log(`Displayed track for ${icao24}: ${latLngs.length} positions`);
-                
-                // Optionally zoom to track bounds
-                if (latLngs.length > 1) {
-                    this.map.fitBounds(trackPolyline.getBounds(), { padding: [50, 50] });
-                }
             } else {
                 alert('No track data available for this aircraft.');
             }
