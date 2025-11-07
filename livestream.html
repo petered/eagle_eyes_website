@@ -1804,12 +1804,13 @@ permalink: /livestream/
         const video = document.getElementById('remoteVideo');
         
         if (video && 'pictureInPictureEnabled' in document) {
-          // Enter PiP when page loses visibility
+          // Enter PiP when page loses visibility (user switches tabs/apps)
           document.addEventListener('visibilitychange', async () => {
             if (document.hidden && !video.paused && video.style.display !== 'none') {
               try {
                 if (video !== document.pictureInPictureElement) {
                   await video.requestPictureInPicture();
+                  console.log('PiP activated due to page visibility change');
                 }
               } catch (error) {
                 console.log('PiP failed:', error);
@@ -1817,17 +1818,72 @@ permalink: /livestream/
             }
           });
           
-          // Optional: Exit PiP when page becomes visible again
+          // Optional: Exit PiP when page becomes visible again and not in map-only mode
           document.addEventListener('visibilitychange', async () => {
-            if (!document.hidden && document.pictureInPictureElement) {
+            const mapPanel = document.getElementById('map-panel');
+            const isMapFullScreen = mapPanel && mapPanel.classList.contains('full-view');
+            
+            if (!document.hidden && document.pictureInPictureElement && !isMapFullScreen) {
               try {
                 await document.exitPictureInPicture();
+                console.log('PiP exited due to page visibility change');
               } catch (error) {
                 console.log('Exit PiP failed:', error);
               }
             }
           });
         }
+      }
+      
+      // Function to manually trigger PiP
+      async function activatePictureInPicture() {
+        const video = document.getElementById('remoteVideo');
+        
+        if (!video) {
+          console.warn('Video element not found');
+          return false;
+        }
+        
+        if (!('pictureInPictureEnabled' in document)) {
+          console.warn('Picture-in-Picture not supported');
+          return false;
+        }
+        
+        // Check if video is playing and visible
+        if (video.paused || video.style.display === 'none') {
+          console.log('Video not playing or not visible, cannot activate PiP');
+          return false;
+        }
+        
+        // Check if already in PiP mode
+        if (video === document.pictureInPictureElement) {
+          console.log('Already in PiP mode');
+          return true;
+        }
+        
+        try {
+          await video.requestPictureInPicture();
+          console.log('PiP activated manually');
+          return true;
+        } catch (error) {
+          console.error('Failed to activate PiP:', error);
+          return false;
+        }
+      }
+      
+      // Function to exit PiP
+      async function deactivatePictureInPicture() {
+        if (document.pictureInPictureElement) {
+          try {
+            await document.exitPictureInPicture();
+            console.log('PiP deactivated');
+            return true;
+          } catch (error) {
+            console.error('Failed to exit PiP:', error);
+            return false;
+          }
+        }
+        return false;
       }
       
       document.addEventListener("DOMContentLoaded", () => {
@@ -1900,6 +1956,8 @@ permalink: /livestream/
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
             // Reposition disconnected overlay for video mode
             repositionDisconnectedOverlay();
+            // Exit PiP when returning to video or split view
+            deactivatePictureInPicture();
           } else if (mode === "map") {
             videoPanel.className = "d-none";
             videoPanel.style.flex = "";
@@ -1960,6 +2018,12 @@ permalink: /livestream/
             }
             // Reposition disconnected overlay for map mode
             repositionDisconnectedOverlay();
+            
+            // Activate Picture-in-Picture when switching to full-screen map
+            // Wait a bit for the UI transition to complete
+            setTimeout(() => {
+              activatePictureInPicture();
+            }, 300);
           } else {
             // split - let CSS aspect ratio media queries handle layout
             videoPanel.className = "";
@@ -1971,6 +2035,8 @@ permalink: /livestream/
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
             // Reposition disconnected overlay for split mode
             repositionDisconnectedOverlay();
+            // Exit PiP when returning to split view
+            deactivatePictureInPicture();
             
             // Center map - zoom to drone if connected, otherwise North America
             if (window.droneMap && window.droneMap.map) {
