@@ -1134,7 +1134,7 @@ class DroneMap {
                             <input type="checkbox" id="caltopoLayerToggle" ${this.isCaltopoLayerEnabled ? 'checked' : ''} 
                                    style="margin-right: 10px; accent-color: #3b82f6;">
                             Caltopo Map Data
-                        </label>
+                </label>
                         ${Object.keys(this.caltopoFolders).length > 0 ? `
                         <button id="caltopoFoldersExpandBtn" type="button" style="
                             background: none;
@@ -1165,7 +1165,7 @@ class DroneMap {
                                     <input type="checkbox" id="caltopoFolder-${safeFolderId}" data-folder-name="${folderName}" ${folder.enabled ? 'checked' : ''} 
                                            style="margin-right: 10px; accent-color: #3b82f6;">
                                     ${folderName} (${folder.featureIds.length})
-                                </label>
+                </label>
                                 <button id="caltopoFolderExpand-${safeFolderId}" data-folder-name="${folderName}" type="button" style="
                                     background: none;
                                     border: none;
@@ -1182,7 +1182,7 @@ class DroneMap {
                                 " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.toggleCaltopoFolderExpand('${folderName.replace(/'/g, "\\'")}'); return false;" title="${folder.expanded ? 'Hide' : 'Show'} Features">
                                     <span style="transform: rotate(${folder.expanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
                                 </button>
-                            </div>
+            </div>
                             ${folder.expanded ? folder.featureIds.map(featureId => {
                                 const featureInfo = folder.features[featureId];
                                 const featureState = this.caltopoFeatureStates.get(featureId);
@@ -1829,7 +1829,7 @@ class DroneMap {
                 const radiusNM = radiusM / 1852; // Convert to nautical miles
                 const convertedRadius = this.convertDistance(radiusNM, 'NM', this.measurementUnit);
                 distanceDiv.textContent = convertedRadius.toFixed(2);
-                unitLabelDiv.textContent = this.measurementUnit;
+            unitLabelDiv.textContent = this.measurementUnit;
             } else {
                 // Polygon mode - show area
                 const convertedArea = this.convertArea(this.measurementArea, this.measurementAreaUnit);
@@ -3162,7 +3162,7 @@ class DroneMap {
                     ">BETA</span> release of the Eagle Eyes Viewer.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
-                    Displayed map and drone data may not always reflect real-time conditions. Eagle Eyes Search Inc. accepts no liability for actions taken based on this information.
+                    Map and drone data may not always reflect real-time conditions. Eagle Eyes Search Inc. accepts no liability for actions taken based on this information.
                 </p>
                 <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
                     Always refer to regulations for your local jurisdiction and consult official airspace sources for current information. <button id="betaLocalAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 14px; padding: 4px 6px; vertical-align: middle; font-weight: bold; min-width: 24px; min-height: 24px; touch-action: manipulation;" title="View alternative airspace map">ℹ️</button>
@@ -3620,65 +3620,14 @@ class DroneMap {
     }
     
     updateAircraftTrail(icao24, latitude, longitude, timestamp) {
-        // Get or create trail data structure
-        if (!this.openSkyAircraftTrails.has(icao24)) {
-            // Create new trail
-            const polyline = L.polyline([], {
-                color: '#ff6b35',
-                weight: 2,
-                opacity: 0.7,
-                smoothFactor: 1
-            }).addTo(this.map);
-            
-            this.openSkyAircraftTrails.set(icao24, {
-                polyline: polyline,
-                positions: []
-            });
-        }
-        
-        const trail = this.openSkyAircraftTrails.get(icao24);
-        
-        // Add new position with timestamp
-        trail.positions.push({
-            lat: latitude,
-            lng: longitude,
-            timestamp: timestamp
-        });
-        
-        // Remove positions older than trailDuration
-        const cutoffTime = timestamp - OPENSKY_CONFIG.trailDuration;
-        trail.positions = trail.positions.filter(pos => pos.timestamp > cutoffTime);
-        
-        // Update polyline with current positions
-        const latLngs = trail.positions.map(pos => [pos.lat, pos.lng]);
-        trail.polyline.setLatLngs(latLngs);
+        // Trail feature disabled per user request
+        // Keeping structure for potential future re-enable
+        return;
     }
     
     cleanupOldAircraftTrails(currentIcaos, now) {
-        const cutoffTime = now - OPENSKY_CONFIG.trailDuration;
-        const trailsToRemove = [];
-        
-        this.openSkyAircraftTrails.forEach((trail, icao24) => {
-            // Remove old positions from trail
-            trail.positions = trail.positions.filter(pos => pos.timestamp > cutoffTime);
-            
-            // Update polyline
-            const latLngs = trail.positions.map(pos => [pos.lat, pos.lng]);
-            trail.polyline.setLatLngs(latLngs);
-            
-            // If trail is empty and aircraft is not present, remove the trail completely
-            if (trail.positions.length === 0 && !currentIcaos.has(icao24)) {
-                this.map.removeLayer(trail.polyline);
-                trailsToRemove.push(icao24);
-            }
-        });
-        
-        // Remove empty trails
-        trailsToRemove.forEach(icao24 => {
-            this.openSkyAircraftTrails.delete(icao24);
-        });
-        
-        // Remove markers for aircraft no longer present
+        // Trail feature disabled per user request
+        // Just remove markers for aircraft no longer present
         this.openSkyAircraftMarkers.forEach((marker, icao24) => {
             if (!currentIcaos.has(icao24)) {
                 this.openSkyAircraftMarkers.delete(icao24);
@@ -3690,7 +3639,8 @@ class DroneMap {
         const { callsign, latitude, longitude, geo_altitude, true_track } = aircraftData;
         
         // Create aircraft icon (rotated based on heading)
-        const rotation = true_track != null ? true_track : 0;
+        // The airplane emoji is oriented at ~45 degrees by default, so subtract 45 to compensate
+        const rotation = true_track != null ? (true_track - 45) : -45;
         
         const aircraftIcon = L.divIcon({
             html: `<div style="transform: rotate(${rotation}deg); font-size: 24px; line-height: 1;">✈️</div>`,
@@ -3957,16 +3907,19 @@ class DroneMap {
             </div>
             <div style="padding: 18px 16px;">
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    This layer displays real-time ADS-B aircraft data from <a href="https://opensky-network.org/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">The OpenSky Network</a>.
+                    This layer shows real-time ADS-B aircraft data from <a href="https://opensky-network.org/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">The OpenSky Network</a>.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
                     Data may be incomplete or delayed. Not all aircraft transmit ADS-B signals, and coverage varies by location.
                 </p>
                 <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Eagle Eyes Search Inc. makes no guarantee as to the accuracy, completeness, or reliability of the aircraft data displayed. This information is for situational awareness only.
+                    Eagle Eyes Search Inc. makes no guarantee as to the accuracy, completeness, or reliability of the aircraft data. This information is for situational awareness only.
+                </p>
+                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
+                    Always maintain visual separation and follow all aviation regulations.
                 </p>
                 <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Always maintain visual separation and follow all aviation regulations.
+                    Learn how to contribute to The OpenSky Network <a href="https://opensky-network.org/contribute" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">here</a>.
                 </p>
             </div>
             <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
@@ -6856,13 +6809,13 @@ class DroneMap {
             };
             
             this.geojsonLayer = L.geoJSON(filteredData, {
-                style: (feature) => {
-                    const style = this.getFeatureStyle(feature);
-                    style.pane = 'polygonPane';
-                    return style;
-                },
-                pointToLayer: (feature, latlng) => this.createStyledMarker(feature, latlng),
-                onEachFeature: (feature, layer) => this.configureFeaturePopup(feature, layer)
+            style: (feature) => {
+                const style = this.getFeatureStyle(feature);
+                style.pane = 'polygonPane';
+                return style;
+            },
+            pointToLayer: (feature, latlng) => this.createStyledMarker(feature, latlng),
+            onEachFeature: (feature, layer) => this.configureFeaturePopup(feature, layer)
             });
         }
         
