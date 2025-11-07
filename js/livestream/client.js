@@ -1232,6 +1232,7 @@ class WebRTCViewer {
   }
 
   setupGeojsonChannel(channel) {
+    this.geojsonChannel = channel;
     channel.onopen = () => console.log("GeoJSON data channel opened");
     channel.onmessage = (event) => {
       try {
@@ -1244,6 +1245,13 @@ class WebRTCViewer {
       } catch (error) {
         console.error("Error parsing GeoJSON data:", error);
       }
+    };
+    channel.onclose = () => {
+      console.log("GeoJSON data channel closed");
+      this.geojsonChannel = null;
+    };
+    channel.onerror = (error) => {
+      console.error("GeoJSON data channel error:", error);
     };
   }
 
@@ -1370,6 +1378,37 @@ class WebRTCViewer {
     if (window.droneMap) {
       window.droneMap.updateGeojson(geojson);
     }
+  }
+
+  requestCaltopoRefresh() {
+    let requestedFromDrone = false;
+
+    if (this.geojsonChannel && this.geojsonChannel.readyState === 'open') {
+      try {
+        this.geojsonChannel.send(JSON.stringify({
+          type: 'request_geojson_refresh',
+          requestedAt: Date.now()
+        }));
+        requestedFromDrone = true;
+        console.log('Requested CalTopo GeoJSON refresh from drone');
+      } catch (error) {
+        console.error('Failed to request CalTopo refresh via data channel:', error);
+      }
+    } else {
+      console.warn('GeoJSON data channel is not open; unable to request refresh from drone');
+    }
+
+    if (this.currentGeojson && window.droneMap) {
+      window.droneMap.updateGeojson(this.currentGeojson);
+      console.log('Re-rendered most recent CalTopo GeoJSON locally');
+    } else {
+      console.warn('No cached CalTopo GeoJSON available to re-render');
+    }
+
+    const toastMessage = requestedFromDrone
+      ? 'Requested latest CalTopo data from drone...'
+      : 'Re-rendered latest CalTopo data';
+    this.showToast(toastMessage);
   }
 
   initializeCoordinateDisplays() {

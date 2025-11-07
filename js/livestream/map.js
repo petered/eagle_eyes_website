@@ -34,6 +34,7 @@ class DroneMap {
         this.caltopoFolders = {}; // { folderName: { enabled: true, expanded: false, featureIds: [], features: {} } }
         this.caltopoFeatureToFolder = new Map(); // featureId -> folder name
         this.caltopoFeatureStates = new Map(); // featureId -> { enabled: true, name: string }
+        this.latestGeojsonPayload = null; // Store latest GeoJSON payload for manual refreshes
         
         this.staleDataOverlay = null;
         this.isDataStale = false;
@@ -1164,6 +1165,24 @@ class DroneMap {
                         </button>
                         ` : ''}
                     </div>
+                    <div style="margin: 4px 0 0 24px;">
+                        <button id="caltopoRefreshBtn" type="button" style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                            background: #f3f4f6;
+                            border: 1px solid #d1d5db;
+                            border-radius: 6px;
+                            padding: 6px 10px;
+                            font-size: 12px;
+                            color: #1f2937;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        " onmouseover="this.style.background='#e5e7eb'; this.style.borderColor='#9ca3af';" onmouseout="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db';">
+                            <span style="font-size: 12px;">⟳</span>
+                            <span>Refresh CalTopo data</span>
+                        </button>
+                    </div>
                     ${this.isCaltopoFoldersExpanded && Object.keys(this.caltopoFolders).length > 0 ? Object.keys(this.caltopoFolders).sort().map(folderName => {
                         const folder = this.caltopoFolders[folderName];
                         // Sanitize folder name for HTML ID (remove spaces and special chars)
@@ -1441,6 +1460,17 @@ class DroneMap {
                 }
             });
         });
+
+        const caltopoRefreshBtn = this.baseMapPopup.querySelector('#caltopoRefreshBtn');
+        if (caltopoRefreshBtn) {
+            caltopoRefreshBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            caltopoRefreshBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.requestCaltopoRefreshFromDrone();
+            });
+        }
         
         // Add event listener for Airspace All expand button
         const airspaceAllExpandBtn = this.baseMapPopup.querySelector('#airspaceAllExpandBtn');
@@ -6792,6 +6822,27 @@ class DroneMap {
     updateGeojson(geojsonData) {
         if (!this.geojsonLayer) return;
 
+        // Store the raw payload so we can re-render on manual refresh requests
+        this.latestGeojsonPayload = geojsonData;
+
+        // Preserve previous folder and feature toggle states so we can reapply after refreshes
+        const previousFolderStates = {};
+        if (this.caltopoFolders && typeof this.caltopoFolders === 'object') {
+            Object.entries(this.caltopoFolders).forEach(([folderName, folderData]) => {
+                previousFolderStates[folderName] = {
+                    enabled: folderData?.enabled !== undefined ? folderData.enabled : true,
+                    expanded: folderData?.expanded || false
+                };
+            });
+        }
+
+        const previousFeatureStates = new Map();
+        if (this.caltopoFeatureStates && typeof this.caltopoFeatureStates.forEach === 'function') {
+            this.caltopoFeatureStates.forEach((state, featureId) => {
+                previousFeatureStates.set(featureId, { ...state });
+            });
+        }
+
         // Parse the outer JSON structure
         let parsedData = geojsonData;
         let caltopoInfo = null;
@@ -6850,8 +6901,9 @@ class DroneMap {
                 
                 // Build folder structure (use first folder property found, typically "class")
                 const folderPropName = foundFolderProps[0];
-                this.caltopoFolders = {};
-                this.caltopoFeatureToFolder.clear();
+                const newCaltopoFolders = {};
+                const newFeatureToFolder = new Map();
+                const newFeatureStates = new Map();
                 
                 // Show sample values for each folder property
                 foundFolderProps.forEach(propName => {
@@ -6957,10 +7009,11 @@ class DroneMap {
                         }
                     }
                     
-                    if (!this.caltopoFolders[folderName]) {
-                        this.caltopoFolders[folderName] = {
-                            enabled: true,
-                            expanded: false,
+                    if (!newCaltopoFolders[folderName]) {
+                        const prevFolderState = previousFolderStates[folderName];
+                        newCaltopoFolders[folderName] = {
+                            enabled: prevFolderState ? prevFolderState.enabled : true,
+                            expanded: prevFolderState ? prevFolderState.expanded : false,
                             featureIds: [],
                             features: {} // featureId -> { name, type }
                         };
@@ -6972,13 +7025,18 @@ class DroneMap {
                                        `Unnamed ${feature.geometry?.type || 'Feature'}`;
                     const featureType = feature.geometry?.type || 'Feature';
                     
-                    this.caltopoFolders[folderName].featureIds.push(featureId);
-                    this.caltopoFolders[folderName].features[featureId] = { name: featureName, type: featureType };
-                    this.caltopoFeatureToFolder.set(featureId, folderName);
+                    newCaltopoFolders[folderName].featureIds.push(featureId);
+                    newCaltopoFolders[folderName].features[featureId] = { name: featureName, type: featureType };
+                    newFeatureToFolder.set(featureId, folderName);
                     
-                    // Initialize feature state as enabled
-                    this.caltopoFeatureStates.set(featureId, { enabled: true, name: featureName });
+                    const prevFeatureState = previousFeatureStates.get(featureId);
+                    const defaultEnabled = prevFeatureState ? prevFeatureState.enabled : newCaltopoFolders[folderName].enabled;
+                    newFeatureStates.set(featureId, { enabled: defaultEnabled, name: featureName });
                 });
+                
+                this.caltopoFolders = newCaltopoFolders;
+                this.caltopoFeatureToFolder = newFeatureToFolder;
+                this.caltopoFeatureStates = newFeatureStates;
                 
                 console.log("📂 Caltopo folders organized (after deduplication):", this.caltopoFolders);
                 Object.keys(this.caltopoFolders).forEach(folderName => {
@@ -6987,7 +7045,8 @@ class DroneMap {
             } else {
                 console.log("ℹ️ No folder properties detected. Features cannot be organized.");
                 this.caltopoFolders = {};
-                this.caltopoFeatureToFolder.clear();
+                this.caltopoFeatureToFolder = new Map();
+                this.caltopoFeatureStates = new Map();
             }
         }
 
@@ -7141,6 +7200,29 @@ class DroneMap {
             if (this.map.hasLayer(this.geojsonLayer)) {
                 this.map.removeLayer(this.geojsonLayer);
             }
+        }
+    }
+    
+    requestCaltopoRefreshFromDrone() {
+        console.log('Manual CalTopo refresh requested from base map popup');
+
+        if (window.viewer && typeof window.viewer.requestCaltopoRefresh === 'function') {
+            window.viewer.requestCaltopoRefresh();
+            return;
+        }
+
+        if (this.latestGeojsonPayload) {
+            console.log('Re-rendering last known CalTopo GeoJSON payload locally');
+            this.updateGeojson(this.latestGeojsonPayload);
+            if (window.viewer && typeof window.viewer.showToast === 'function') {
+                window.viewer.showToast('Re-rendered latest CalTopo data');
+            }
+            return;
+        }
+
+        console.warn('No CalTopo data available to refresh.');
+        if (window.viewer && typeof window.viewer.showToast === 'function') {
+            window.viewer.showToast('No CalTopo data available to refresh yet');
         }
     }
     
