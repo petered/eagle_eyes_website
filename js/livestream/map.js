@@ -3717,15 +3717,14 @@ class DroneMap {
     }
     
     async showAircraftTrack(icao24) {
-        // Check if already have the track polyline
+        // Always re-fetch track data to get most recent path
+        // Remove old track if it exists
         let trackData = this.openSkyAircraftTracks.get(icao24);
-        
         if (trackData && trackData.polyline) {
-            // Just show existing track
-            trackData.polyline.addTo(this.map);
-            trackData.isVisible = true;
-            console.log(`Showing cached track for ${icao24}`);
-            return;
+            if (this.map.hasLayer(trackData.polyline)) {
+                this.map.removeLayer(trackData.polyline);
+            }
+            this.openSkyAircraftTracks.delete(icao24);
         }
         
         // Fetch track data from OpenSky
@@ -3775,6 +3774,12 @@ class DroneMap {
                     smoothFactor: 1
                 }).addTo(this.map);
                 
+                // Make track clickable
+                trackPolyline.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    this.showTrackPopup(icao24, e.latlng);
+                });
+                
                 // Store track
                 this.openSkyAircraftTracks.set(icao24, {
                     polyline: trackPolyline,
@@ -3812,6 +3817,65 @@ class DroneMap {
                 trackData.isVisible = false;
             }
         });
+    }
+    
+    showTrackPopup(icao24, latlng) {
+        // Get aircraft data for callsign
+        const aircraftData = this.openSkyAircraftData.get(icao24);
+        const callsign = aircraftData?.callsign || icao24;
+        
+        const popupContent = `
+            <div style="min-width: 180px;">
+                <strong style="font-size: 1.1em;">Aircraft Track</strong><br><br>
+                <strong>ICAO24:</strong> <a href="https://map.opensky-network.org/?icao=${icao24}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${icao24}</a><br>
+                ${callsign !== icao24 ? `<strong>Callsign:</strong> ${callsign}<br>` : ''}
+                <br>
+                <button onclick="window.droneMap.removeAircraftTrack('${icao24}'); return false;" style="
+                    background: #dc3545;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 600;
+                    width: 100%;
+                ">Remove Track</button>
+            </div>
+        `;
+        
+        L.popup({
+            maxWidth: 300,
+            className: 'track-popup'
+        })
+        .setLatLng(latlng)
+        .setContent(popupContent)
+        .openOn(this.map);
+    }
+    
+    removeAircraftTrack(icao24) {
+        const trackData = this.openSkyAircraftTracks.get(icao24);
+        
+        if (trackData && trackData.polyline) {
+            // Remove from map
+            if (this.map.hasLayer(trackData.polyline)) {
+                this.map.removeLayer(trackData.polyline);
+            }
+            // Delete the track data completely so it can be re-fetched
+            this.openSkyAircraftTracks.delete(icao24);
+            console.log(`Removed track for ${icao24}`);
+        }
+        
+        // Close any open popups
+        this.map.closePopup();
+        
+        // Update the aircraft marker popup if it's open
+        const marker = this.openSkyAircraftMarkers.get(icao24);
+        if (marker && marker.isPopupOpen()) {
+            const aircraftData = this.openSkyAircraftData.get(icao24);
+            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
+            marker.setPopupContent(popupContent);
+        }
     }
     
     generateAircraftPopupContent(icao24, data) {
