@@ -722,6 +722,15 @@ class DroneMap {
                 }
             });
             
+            // Add zoom event listener to disable continuous centering when user zooms
+            this.map.on('zoomstart', () => {
+                if (this.droneMapCenteringState === 'CONTINUOUS') {
+                    this.droneMapCenteringState = 'OFF';
+                    console.log('Map centering disabled due to user zoom');
+                    this.updateRecenterButtonStyle();
+                }
+            });
+            
             // Add map move event listener for airspace auto-loading
             this.map.on('moveend', () => {
                 if (this.isAirspaceEnabled) {
@@ -1539,35 +1548,38 @@ class DroneMap {
                 <button id="lineModeBtn" style="
                     flex: 1;
                     padding: 8px 10px;
-                    border: none;
+                    border: ${isLineMode ? '2px solid #1f2937' : 'none'};
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
                     font-weight: 500;
                     transition: all 0.2s;
+                    box-shadow: ${isLineMode ? '0 4px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
                     ${isLineMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
                 " onmouseover="${isLineMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isLineMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Line</button>
                 <button id="polygonModeBtn" style="
                     flex: 1;
                     padding: 8px 10px;
-                    border: none;
+                    border: ${isPolygonMode ? '2px solid #1f2937' : 'none'};
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
                     font-weight: 500;
                     transition: all 0.2s;
+                    box-shadow: ${isPolygonMode ? '0 4px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
                     ${isPolygonMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
                 " onmouseover="${isPolygonMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isPolygonMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Polygon</button>
             </div>
             <div style="display: flex; justify-content: center; margin-bottom: 10px;">
                 <button id="radiusModeBtn" style="
                     padding: 8px 10px;
-                    border: none;
+                    border: ${isRadiusMode ? '2px solid #1f2937' : 'none'};
                     border-radius: 6px;
                     cursor: pointer;
                     font-size: 11px;
                     font-weight: 500;
                     transition: all 0.2s;
+                    box-shadow: ${isRadiusMode ? '0 4px 6px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
                     ${isRadiusMode ? 'background: #4b5563; color: white;' : 'background: #3b82f6; color: white;'}
                 " onmouseover="${isRadiusMode ? "this.style.background='#374151'" : "this.style.background='#2563eb'"}" onmouseout="${isRadiusMode ? "this.style.background='#4b5563'" : "this.style.background='#3b82f6'"}">Radius</button>
             </div>
@@ -7826,11 +7838,18 @@ class DroneMap {
     }
     
     showAddRadiusDialog(airportName, lat, lng) {
-        // Create modal overlay
+        // Get the map panel to append modal to it
+        const mapPanel = document.getElementById('map-panel');
+        if (!mapPanel) {
+            console.warn('Map panel not found, cannot show radius dialog');
+            return;
+        }
+        
+        // Create modal overlay - positioned relative to map panel
         const modal = document.createElement('div');
         modal.id = 'addRadiusModal';
         modal.style.cssText = `
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -7896,12 +7915,12 @@ class DroneMap {
         `;
 
         modal.appendChild(modalContent);
-        document.body.appendChild(modal);
+        mapPanel.appendChild(modal);
 
         // Handle cancel button
         const cancelBtn = modalContent.querySelector('#cancelRadiusBtn');
         cancelBtn.addEventListener('click', () => {
-            document.body.removeChild(modal);
+            modal.remove();
         });
 
         // Handle generate button
@@ -7916,13 +7935,13 @@ class DroneMap {
             }
             
             this.addAirportRadius(lat, lng, value, unit, airportName);
-            document.body.removeChild(modal);
+            modal.remove();
         });
 
         // Close on background click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                document.body.removeChild(modal);
+                modal.remove();
             }
         });
     }
