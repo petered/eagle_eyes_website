@@ -922,24 +922,13 @@ class DroneMap {
         
         // Create popup element
         this.baseMapPopup = document.createElement('div');
-        this.baseMapPopup.style.cssText = `
-            position: absolute;
-            top: 50px;
-            left: 10px;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
-            padding: 16px;
-            min-width: 180px;
-            z-index: 2000;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        `;
+        this.baseMapPopup.className = 'basemap-popup';
         
         // Determine if "Other Basemaps" dropdown should be open
         const isOtherBasemapsOpen = Object.keys(this.otherBaseMaps).includes(this.currentBaseMap);
         
         this.baseMapPopup.innerHTML = `
+            <div class="basemap-popup__content">
             <div style="font-weight: 600; margin-bottom: 14px; color: #1f2937; font-size: 15px; letter-spacing: -0.01em;">Base Maps</div>
             
             <!-- Default basemap (Google Satellite) -->
@@ -1121,6 +1110,7 @@ class DroneMap {
                         Local Airspace Map
                     </a>
                 </div>
+            </div>
             </div>
         `;
         
@@ -3802,82 +3792,130 @@ class DroneMap {
     addLongPressHandler() {
         let pressTimer = null;
         let pressStartPos = null;
+        let draggingWasEnabled = null;
+        let initialLatLng = null;
+        let lastTouchDropTs = 0;
         
-        // Handle mouse events (desktop)
+        const clearPressTimer = () => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        };
+        
+        const restoreDragging = () => {
+            if (draggingWasEnabled !== null) {
+                if (draggingWasEnabled && this.map.dragging) {
+                    this.map.dragging.enable();
+                } else if (!draggingWasEnabled && this.map.dragging) {
+                    this.map.dragging.disable();
+                }
+                draggingWasEnabled = null;
+            }
+        };
+        
+        const resetTouchState = () => {
+            clearPressTimer();
+            pressStartPos = null;
+            initialLatLng = null;
+            restoreDragging();
+        };
+        
+        // Handle mouse events (desktop left-click long press)
         this.map.on('mousedown', (e) => {
-            // Start timer for long press (800ms)
-            pressTimer = setTimeout(() => {
+            clearPressTimer();
+            pressTimer = window.setTimeout(() => {
                 this.createCoordinateMarker(e.latlng);
-            }, 800);
+                clearPressTimer();
+            }, 700);
         });
         
-        this.map.on('mouseup', () => {
-            // Clear timer if mouse is released before long press
-            if (pressTimer) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
+        this.map.on('mouseup', clearPressTimer);
+        this.map.on('mouseleave', clearPressTimer);
+        this.map.on('mousemove', clearPressTimer);
+        
+        // Unified context menu handler (right-click / long-press fallback)
+        this.map.on('contextmenu', (e) => {
+            if (Date.now() - lastTouchDropTs < 400) {
+                if (e.originalEvent?.preventDefault) {
+                    e.originalEvent.preventDefault();
+                }
+                return;
             }
-        });
-        
-        this.map.on('mousemove', () => {
-            // Clear timer if mouse moves during press
-            if (pressTimer) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
+            if (e.originalEvent?.preventDefault) {
+                e.originalEvent.preventDefault();
             }
+            this.createCoordinateMarker(e.latlng);
         });
         
-        // Handle touch events for mobile - attach directly to map container
+        // Enhanced touch long-press support
         const mapContainer = this.map.getContainer();
+        if (!mapContainer) return;
+        
+        const isMapInteractiveElement = (target) => {
+            if (!target) return false;
+            if (target.closest('.leaflet-control')) return false;
+            return !!target.closest('.leaflet-container');
+        };
         
         mapContainer.addEventListener('touchstart', (e) => {
-            // Only handle if touching the map itself, not controls or markers
-            if (e.target === mapContainer || e.target.classList.contains('leaflet-tile-container') || 
-                e.target.closest('.leaflet-pane')) {
-                
-                const touch = e.touches[0];
-                const startX = touch.clientX;
-                const startY = touch.clientY;
-                pressStartPos = { x: startX, y: startY };
-                
-                // Save the initial touch position for creating the marker
-                const initialContainerPoint = this.map.mouseEventToContainerPoint(touch);
-                const initialLatlng = this.map.containerPointToLatLng(initialContainerPoint);
-                
-                pressTimer = setTimeout(() => {
-                    // Only create marker if still pressed and not moved significantly
-                    if (pressStartPos) {
-                        this.createCoordinateMarker(initialLatlng);
-                    }
-                    pressStartPos = null;
-                }, 800);
+            if (e.touches.length !== 1) {
+                resetTouchState();
+                return;
             }
-        });
-        
-        mapContainer.addEventListener('touchend', () => {
-            if (pressTimer) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
+            if (!isMapInteractiveElement(e.target)) {
+                resetTouchState();
+                return;
             }
-            pressStartPos = null;
-        });
+            
+            const touch = e.touches[0];
+            pressStartPos = { x: touch.clientX, y: touch.clientY };
+            
+            const containerPoint = this.map.mouseEventToContainerPoint(touch);
+            initialLatLng = this.map.containerPointToLatLng(containerPoint);
+            
+            draggingWasEnabled = this.map.dragging ? this.map.dragging.enabled() : null;
+            if (draggingWasEnabled && this.map.dragging) {
+                this.map.dragging.disable();
+            }
+            
+            clearPressTimer();
+            pressTimer = window.setTimeout(() => {
+                if (pressStartPos && initialLatLng) {
+                    this.createCoordinateMarker(initialLatLng);
+                    lastTouchDropTs = Date.now();
+                }
+                resetTouchState();
+            }, 650);
+            
+            if (draggingWasEnabled) {
+                e.preventDefault();
+            }
+        }, { passive: false });
         
         mapContainer.addEventListener('touchmove', (e) => {
-            if (pressTimer) {
-                // Cancel if moved too far
-                if (pressStartPos && e.touches[0]) {
-                    const touch = e.touches[0];
-                    const deltaX = Math.abs(touch.clientX - pressStartPos.x);
-                    const deltaY = Math.abs(touch.clientY - pressStartPos.y);
-                    
-                    if (deltaX > 10 || deltaY > 10) {
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
-                        pressStartPos = null;
-                    }
-                }
+            if (!pressTimer || !pressStartPos) return;
+            if (e.touches.length !== 1) {
+                resetTouchState();
+                return;
             }
-        });
+            
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - pressStartPos.x);
+            const deltaY = Math.abs(touch.clientY - pressStartPos.y);
+            
+            if (deltaX > 12 || deltaY > 12) {
+                resetTouchState();
+            }
+        }, { passive: false });
+        
+        mapContainer.addEventListener('touchend', () => {
+            resetTouchState();
+        }, { passive: false });
+        
+        mapContainer.addEventListener('touchcancel', () => {
+            resetTouchState();
+        }, { passive: false });
     }
     async createCoordinateMarker(latlng) {
         // Increment counter and get marker number
