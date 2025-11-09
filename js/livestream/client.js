@@ -46,6 +46,7 @@ class WebRTCViewer {
     this.coordinateHistory = [];
     this.currentLocation = null;
     this.lastCoordinateTime = null;
+    this.lastTelemetryTimestamp = null;
     this.staleDataCheckInterval = null;
 
     // Viewer tracking
@@ -1333,21 +1334,52 @@ class WebRTCViewer {
       return;
     }
 
+    const previousLocation = this.currentLocation;
+
+    const incomingTimestamp = Number.isFinite(locationData.timestamp)
+      ? Number(locationData.timestamp)
+      : null;
+
+    const hasPositionChange =
+      !previousLocation ||
+      previousLocation.latitude !== locationData.latitude ||
+      previousLocation.longitude !== locationData.longitude ||
+      previousLocation.altitude_ahl !== locationData.altitude_ahl ||
+      previousLocation.altitude_asl !== locationData.altitude_asl ||
+      previousLocation.altitude_ellipsoid !== locationData.altitude_ellipsoid ||
+      previousLocation.bearing !== locationData.bearing ||
+      previousLocation.pitch !== locationData.pitch ||
+      previousLocation.roll !== locationData.roll ||
+      previousLocation.battery_percent !== locationData.battery_percent;
+
+    const hasNewTelemetry =
+      incomingTimestamp !== null &&
+      (this.lastTelemetryTimestamp === null || incomingTimestamp > this.lastTelemetryTimestamp);
+
     this.currentLocation = locationData;
-    this.lastCoordinateTime = Date.now();
-    this.coordinateHistory.push({
-      longitude: locationData.longitude,
-      latitude: locationData.latitude,
-      timestamp: locationData.timestamp
-    });
+
+    if (hasNewTelemetry) {
+      this.lastTelemetryTimestamp = incomingTimestamp;
+    }
+
+    if (hasNewTelemetry || hasPositionChange || incomingTimestamp === null) {
+      this.lastCoordinateTime = Date.now();
+      this.coordinateHistory.push({
+        longitude: locationData.longitude,
+        latitude: locationData.latitude,
+        timestamp: locationData.timestamp
+      });
+    }
 
     if (window.droneMap) {
       // Update livestream ID in map
       window.droneMap.currentLivestreamId = livestreamId;
 
       window.droneMap.updateDronePosition(this.currentLocation, this.currentPublisherName);
-      window.droneMap.updateTrail(this.coordinateHistory);
-      window.droneMap.setDataStale(false);
+      if (hasNewTelemetry || hasPositionChange || incomingTimestamp === null) {
+        window.droneMap.updateTrail(this.coordinateHistory);
+        window.droneMap.setDataStale(false);
+      }
     }
 
     this.updateLocationDisplay();

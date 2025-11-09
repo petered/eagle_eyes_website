@@ -29,7 +29,9 @@ class DroneMap {
         this.currentDroneName = null;
         this.currentLivestreamId = null; // Current drone's livestream ID
         this.lastDroneUpdate = null; // Timestamp of last drone data update
+        this.lastDroneTelemetryTimestamp = null; // Numeric timestamp from telemetry (ms)
         this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
+        this.dronePopupRelativeTimer = null; // Interval for updating "Last Updated" relative text
         
         // OpenAIP Airspace layer
         this.airspaceLayer = null;
@@ -1009,13 +1011,13 @@ class DroneMap {
                             <input type="checkbox" id="faaUASMapToggle" ${this.isFAAUASMapEnabled ? 'checked' : ''} 
                                    style="margin-right: 10px; accent-color: #3b82f6;">
                             USA FAA UAS Map
-                        </label>
+                </label>
                         <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                             <input type="checkbox" id="faaAirspaceToggle" ${this.isFAAAirspaceEnabled ? 'checked' : ''} 
                                    style="margin-right: 10px; accent-color: #3b82f6;">
-                            USA FAA airspace<br>
+                            USA FAA Airspace<br>
                             <span style="margin-left: 24px; font-size: 11px; color: #6b7280;">(At Ground)</span>
-                        </label>
+                    </label>
                         <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
                     <input type="checkbox" id="faaAirportsToggle" ${this.isFAAAirportsEnabled ? 'checked' : ''} 
                                    style="margin-right: 10px; accent-color: #3b82f6;">
@@ -2515,7 +2517,7 @@ class DroneMap {
     loadDroneAirspaceDataDebounced() { return; }
 
     async loadDroneAirspaceData() {
-        return;
+            return;
     }
 
     getOpenAIPProxyUrl() {
@@ -3359,8 +3361,8 @@ class DroneMap {
         });
     }
     async loadAirportsData() {
-        return;
-    }
+            return;
+        }
     showLoadingMessage(layerName, bannerId = null) {
         // Map layer names to display names
         const displayNames = {
@@ -3369,7 +3371,7 @@ class DroneMap {
             'faaAirports': 'USA FAA Airports',
             'faaRunways': 'USA FAA Runways',
             'faaUASMap': 'USA FAA UAS Map',
-            'faaAirspace': 'USA FAA airspace',
+            'faaAirspace': 'USA FAA Airspace',
             'openSky': 'OpenSky ADS-B Aircraft'
         };
         const displayName = displayNames[layerName] || layerName;
@@ -4504,11 +4506,42 @@ class DroneMap {
     updateDronePosition(location, droneName = null) {
         if (!this.map) return;
 
-        const { latitude, longitude, altitude_ahl, altitude_asl, altitude_ellipsoid, bearing, pitch, battery_percent } = location;
+        const previousData = this.currentDroneData;
+        const {
+            latitude,
+            longitude,
+            altitude_ahl,
+            altitude_asl,
+            altitude_ellipsoid,
+            bearing,
+            pitch,
+            battery_percent,
+            timestamp
+        } = location;
+
+        const effectiveTimestamp = Number.isFinite(timestamp) ? Number(timestamp) : Date.now();
+        const hasMeaningfulChange = !previousData ||
+            previousData.latitude !== latitude ||
+            previousData.longitude !== longitude ||
+            previousData.altitude_ahl !== altitude_ahl ||
+            previousData.altitude_asl !== altitude_asl ||
+            previousData.altitude_ellipsoid !== altitude_ellipsoid ||
+            previousData.bearing !== bearing ||
+            previousData.pitch !== pitch ||
+            previousData.battery_percent !== battery_percent;
+
+        if (
+            this.lastDroneTelemetryTimestamp === null ||
+            effectiveTimestamp > this.lastDroneTelemetryTimestamp ||
+            hasMeaningfulChange
+        ) {
+            this.lastDroneTelemetryTimestamp = effectiveTimestamp;
+            this.lastDroneUpdate = new Date(effectiveTimestamp);
+        }
+
         this.currentLocation = [latitude, longitude];
         this.currentDroneData = location;
         this.currentDroneName = droneName;
-        this.lastDroneUpdate = new Date(); // Track when data was received
 
         // Add red dot indicator if livestreaming
         const redDot = this.currentLivestreamId ?
@@ -4541,6 +4574,15 @@ class DroneMap {
             this.droneClickMarker.bindPopup(() => this.generateDronePopupContent(), {
                 maxWidth: 300,
                 className: 'drone-popup'
+            });
+
+            this.droneClickMarker.on('popupopen', () => {
+                this.startDronePopupRelativeTimer();
+            });
+            this.droneClickMarker.on('popupclose', () => {
+                if (!this.staleDataOverlay) {
+                    this.stopDronePopupRelativeTimer();
+                }
             });
 
             console.log('Created drone marker with icon');
@@ -4576,6 +4618,7 @@ class DroneMap {
                 const popup = this.droneClickMarker.getPopup();
                 if (popup && popup._contentNode) {
                     popup._contentNode.innerHTML = this.generateDronePopupContent();
+                    this.updateDronePopupRelativeTime();
                 }
             }
         }
@@ -4647,18 +4690,40 @@ class DroneMap {
         // Format last update timestamp
         let lastUpdateText = '';
         if (this.lastDroneUpdate) {
-            const updateDate = this.lastDroneUpdate;
-            const options = {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
+            const updateDateRaw = this.lastDroneUpdate;
+            const updateDate = updateDateRaw instanceof Date ? updateDateRaw : new Date(updateDateRaw);
+            const timestampMs = updateDate.getTime();
+            const diffSeconds = Math.max(0, Math.floor((Date.now() - timestampMs) / 1000));
+            const relativeText = this.formatRelativeDurationWithSeconds(diffSeconds);
+
+            // Format absolute time on separate line, e.g. "at 20:30:12 PST, Nov 8, 2025"
+            const timeFormatter = new Intl.DateTimeFormat(undefined, {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
+                hour12: false,
                 timeZoneName: 'short'
-            };
-            const formattedTime = updateDate.toLocaleString(undefined, options);
-            lastUpdateText = `<br><br><strong>🕐 Last Updated:</strong> ${formattedTime}`;
+            });
+            const dateFormatter = new Intl.DateTimeFormat(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const timeParts = timeFormatter.formatToParts(updateDate);
+            const timeZonePart = timeParts.find(part => part.type === 'timeZoneName');
+            const timePart = timeParts.filter(part => ['hour', 'minute', 'second'].includes(part.type))
+                .map(part => part.value).join(':');
+            const timeZone = timeZonePart ? timeZonePart.value : '';
+            const formattedDate = dateFormatter.format(updateDate);
+            const absoluteLine = `at ${timePart} ${timeZone}, ${formattedDate}`;
+
+            lastUpdateText = `
+                <br><br>
+                <strong>🕐 Last Updated:</strong>
+                <span class="drone-last-updated" data-timestamp="${timestampMs}">${relativeText}</span>
+                <br>
+                <span class="drone-last-updated-absolute">${absoluteLine}</span>
+            `;
         }
 
         return `
@@ -4674,6 +4739,75 @@ class DroneMap {
                 <strong>🔋 Battery:</strong> ${batteryText}${lastUpdateText}${livestreamButton}
             </div>
         `;
+    }
+
+    formatRelativeDurationWithSeconds(totalSeconds) {
+        let secondsRemaining = Math.max(0, Math.floor(totalSeconds));
+        const days = Math.floor(secondsRemaining / 86400);
+        secondsRemaining %= 86400;
+        const hours = Math.floor(secondsRemaining / 3600);
+        secondsRemaining %= 3600;
+        const minutes = Math.floor(secondsRemaining / 60);
+        const seconds = secondsRemaining % 60;
+
+        const parts = [];
+        if (days > 0) {
+            parts.push(`${days} day${days === 1 ? '' : 's'}`);
+        }
+        if (hours > 0 || days > 0) {
+            parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
+        }
+        if (minutes > 0 || hours > 0 || days > 0) {
+            parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+        }
+        parts.push(`${seconds} second${seconds === 1 ? '' : 's'}`);
+
+        return `${parts.join(' ')} ago`;
+    }
+
+    updateDronePopupRelativeTime() {
+        const relativeElements = document.querySelectorAll('.drone-last-updated');
+        if (!relativeElements.length) {
+            if (!this.staleDataOverlay) {
+                if (this.dronePopupRelativeTimer) {
+                    this.stopDronePopupRelativeTimer();
+                }
+            }
+            return;
+        }
+
+        relativeElements.forEach(element => {
+            const timestampAttr = element.getAttribute('data-timestamp');
+            if (!timestampAttr) {
+                element.textContent = 'N/A';
+                return;
+            }
+            const timestamp = Number(timestampAttr);
+            if (!Number.isFinite(timestamp) || timestamp <= 0) {
+                element.textContent = 'N/A';
+                return;
+            }
+            const diffSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+            element.textContent = this.formatRelativeDurationWithSeconds(diffSeconds);
+        });
+    }
+
+    startDronePopupRelativeTimer() {
+        if (this.dronePopupRelativeTimer) {
+            return;
+        }
+        // Update immediately, then start interval
+        this.updateDronePopupRelativeTime();
+        this.dronePopupRelativeTimer = setInterval(() => {
+            this.updateDronePopupRelativeTime();
+        }, 1000);
+    }
+
+    stopDronePopupRelativeTimer() {
+        if (this.dronePopupRelativeTimer) {
+            clearInterval(this.dronePopupRelativeTimer);
+            this.dronePopupRelativeTimer = null;
+        }
     }
 
     updateTrail(coordinateHistory) {
@@ -5038,7 +5172,7 @@ class DroneMap {
             if (caltopoBtnMobile) caltopoBtnMobile.style.display = 'none';
         }
     }
-    
+
     // ===== Caltopo Layer Toggle Methods =====
     
     toggleCaltopoLayer(enabled) {
@@ -5366,6 +5500,8 @@ class DroneMap {
     }
 
     clearData() {
+        this.stopDronePopupRelativeTimer();
+
         if (this.droneMarker) {
             this.map.removeLayer(this.droneMarker);
             this.droneMarker = null;
@@ -5421,6 +5557,7 @@ class DroneMap {
         this.currentDroneName = null;
         this.currentLivestreamId = null;
         this.lastDroneUpdate = null;
+        this.lastDroneTelemetryTimestamp = null;
         this.caltopoInfo = null;
         this.updateCaltopoButton();
     }
@@ -5456,35 +5593,46 @@ class DroneMap {
 
         const mapContainer = document.getElementById('map');
         this.staleDataOverlay = document.createElement('div');
-        this.staleDataOverlay.style.cssText = `
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(220, 53, 69, 0.95);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        `;
-        this.staleDataOverlay.innerHTML = `
-            <i class="bi bi-exclamation-triangle"></i>
-            <span>Location data not updating</span>
-        `;
+        this.staleDataOverlay.className = 'stale-data-banner';
         mapContainer.style.position = 'relative';
         mapContainer.appendChild(this.staleDataOverlay);
+        this.updateStaleDataOverlayContent();
+        this.startDronePopupRelativeTimer();
     }
     hideStaleDataOverlay() {
         if (this.staleDataOverlay) {
             this.staleDataOverlay.remove();
             this.staleDataOverlay = null;
         }
+        if (!this.droneClickMarker || !this.droneClickMarker.isPopupOpen()) {
+            this.stopDronePopupRelativeTimer();
+        }
+    }
+
+    updateStaleDataOverlayContent() {
+        if (!this.staleDataOverlay) return;
+
+        const timestampMs = this.lastDroneTelemetryTimestamp ||
+            (this.lastDroneUpdate instanceof Date ? this.lastDroneUpdate.getTime() : null);
+
+        let relativeText = 'N/A';
+        if (timestampMs) {
+            const diffSeconds = Math.max(0, Math.floor((Date.now() - timestampMs) / 1000));
+            relativeText = this.formatRelativeDurationWithSeconds(diffSeconds);
+        }
+
+        const timestampAttr = timestampMs ? ` data-timestamp="${timestampMs}"` : '';
+
+        this.staleDataOverlay.innerHTML = `
+            <div class="stale-data-banner__header">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>Location data not updating</span>
+            </div>
+            <div class="stale-data-banner__meta">
+                Last update received:
+                <span class="drone-last-updated"${timestampAttr}>${relativeText}</span>
+            </div>
+        `;
     }
 
     setDisconnected(isDisconnected) {

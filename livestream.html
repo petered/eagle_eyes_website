@@ -185,6 +185,57 @@ permalink: /livestream/
         background-image: none !important;
         background: transparent !important;
       }
+      .stale-data-banner {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(220, 53, 69, 0.96);
+        color: #fff;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: min(90vw, 340px);
+        backdrop-filter: blur(3px);
+      }
+      .stale-data-banner__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.3;
+      }
+      .stale-data-banner__header i {
+        font-size: 1.1em;
+      }
+      .stale-data-banner__meta {
+        font-size: 12px;
+        font-weight: 500;
+        opacity: 0.9;
+        line-height: 1.4;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      @media (max-width: 576px) {
+        .stale-data-banner {
+          top: 8px;
+          padding: 9px 14px;
+          border-radius: 8px;
+          width: min(94vw, 320px);
+        }
+        .stale-data-banner__header {
+          font-size: 13px;
+        }
+        .stale-data-banner__meta {
+          font-size: 11.5px;
+        }
+      }
       .placeholder {
         width: 100%;
         height: 100%;
@@ -1806,15 +1857,8 @@ permalink: /livestream/
         if (video && 'pictureInPictureEnabled' in document) {
           // Enter PiP when page loses visibility (user switches tabs/apps)
           document.addEventListener('visibilitychange', async () => {
-            if (document.hidden && !video.paused && video.style.display !== 'none') {
-              try {
-                if (video !== document.pictureInPictureElement) {
-                  await video.requestPictureInPicture();
-                  console.log('PiP activated due to page visibility change');
-                }
-              } catch (error) {
-                console.log('PiP failed:', error);
-              }
+            if (document.hidden && !video.paused) {
+              await activatePictureInPicture();
             }
           });
           
@@ -1845,13 +1889,12 @@ permalink: /livestream/
         }
         
         if (!('pictureInPictureEnabled' in document)) {
-          console.warn('Picture-in-Picture not supported');
+            console.warn('Picture-in-Picture not supported');
           return false;
         }
         
-        // Check if video is playing and visible
-        if (video.paused || video.style.display === 'none') {
-          console.log('Video not playing or not visible, cannot activate PiP');
+        if (video.paused) {
+          console.log('Video not playing, cannot activate PiP');
           return false;
         }
         
@@ -1859,6 +1902,77 @@ permalink: /livestream/
         if (video === document.pictureInPictureElement) {
           console.log('Already in PiP mode');
           return true;
+        }
+
+        const videoPanel = document.getElementById('video-panel');
+        const restoreCallbacks = [];
+
+        if (videoPanel) {
+          const previousClassName = videoPanel.className;
+          const hadDNone = videoPanel.classList.contains('d-none');
+          const previousStyles = {
+            display: videoPanel.style.display,
+            position: videoPanel.style.position,
+            width: videoPanel.style.width,
+            height: videoPanel.style.height,
+            opacity: videoPanel.style.opacity,
+            pointerEvents: videoPanel.style.pointerEvents,
+            zIndex: videoPanel.style.zIndex
+          };
+
+          if (hadDNone) {
+            videoPanel.classList.remove('d-none');
+          }
+
+          videoPanel.style.setProperty('display', 'block', 'important');
+          videoPanel.style.position = 'fixed';
+          videoPanel.style.width = '1px';
+          videoPanel.style.height = '1px';
+          videoPanel.style.opacity = '0';
+          videoPanel.style.pointerEvents = 'none';
+          videoPanel.style.zIndex = '-1';
+
+          restoreCallbacks.push(() => {
+            videoPanel.style.display = previousStyles.display;
+            videoPanel.style.position = previousStyles.position;
+            videoPanel.style.width = previousStyles.width;
+            videoPanel.style.height = previousStyles.height;
+            videoPanel.style.opacity = previousStyles.opacity;
+            videoPanel.style.pointerEvents = previousStyles.pointerEvents;
+            videoPanel.style.zIndex = previousStyles.zIndex;
+            videoPanel.className = previousClassName;
+          });
+        }
+
+        const previousVideoStyles = {
+          display: video.style.display,
+          width: video.style.width,
+          height: video.style.height,
+          opacity: video.style.opacity,
+          position: video.style.position,
+          pointerEvents: video.style.pointerEvents,
+          zIndex: video.style.zIndex
+        };
+
+        const videoComputed = window.getComputedStyle(video);
+        if (videoComputed.display === 'none' || videoComputed.visibility === 'hidden') {
+          video.style.setProperty('display', 'block', 'important');
+          video.style.width = '1px';
+          video.style.height = '1px';
+          video.style.opacity = '0';
+          video.style.position = 'fixed';
+          video.style.pointerEvents = 'none';
+          video.style.zIndex = '-1';
+
+          restoreCallbacks.push(() => {
+            video.style.display = previousVideoStyles.display;
+            video.style.width = previousVideoStyles.width;
+            video.style.height = previousVideoStyles.height;
+            video.style.opacity = previousVideoStyles.opacity;
+            video.style.position = previousVideoStyles.position;
+            video.style.pointerEvents = previousVideoStyles.pointerEvents;
+            video.style.zIndex = previousVideoStyles.zIndex;
+          });
         }
         
         try {
@@ -1868,6 +1982,13 @@ permalink: /livestream/
         } catch (error) {
           console.error('Failed to activate PiP:', error);
           return false;
+        } finally {
+          while (restoreCallbacks.length) {
+            const restore = restoreCallbacks.pop();
+            if (typeof restore === 'function') {
+              restore();
+            }
+          }
         }
       }
       
