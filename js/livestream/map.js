@@ -3790,132 +3790,84 @@ class DroneMap {
     }
 
     addLongPressHandler() {
+        const LONG_PRESS_DURATION_MS = 1800;
         let pressTimer = null;
         let pressStartPos = null;
-        let draggingWasEnabled = null;
         let initialLatLng = null;
-        let lastTouchDropTs = 0;
         
-        const clearPressTimer = () => {
+        const clearPressState = () => {
             if (pressTimer) {
                 clearTimeout(pressTimer);
                 pressTimer = null;
             }
-        };
-        
-        const restoreDragging = () => {
-            if (draggingWasEnabled !== null) {
-                if (draggingWasEnabled && this.map.dragging) {
-                    this.map.dragging.enable();
-                } else if (!draggingWasEnabled && this.map.dragging) {
-                    this.map.dragging.disable();
-                }
-                draggingWasEnabled = null;
-            }
-        };
-        
-        const resetTouchState = () => {
-            clearPressTimer();
             pressStartPos = null;
             initialLatLng = null;
-            restoreDragging();
         };
         
-        // Handle mouse events (desktop left-click long press)
         this.map.on('mousedown', (e) => {
-            clearPressTimer();
+            clearPressState();
             pressTimer = window.setTimeout(() => {
                 this.createCoordinateMarker(e.latlng);
-                clearPressTimer();
-            }, 700);
+                clearPressState();
+            }, LONG_PRESS_DURATION_MS);
         });
         
-        this.map.on('mouseup', clearPressTimer);
-        this.map.on('mouseleave', clearPressTimer);
-        this.map.on('mousemove', clearPressTimer);
+        this.map.on('mouseup', clearPressState);
+        this.map.on('mouseleave', clearPressState);
+        this.map.on('mousemove', clearPressState);
         
-        // Unified context menu handler (right-click / long-press fallback)
         this.map.on('contextmenu', (e) => {
-            if (Date.now() - lastTouchDropTs < 400) {
-                if (e.originalEvent?.preventDefault) {
-                    e.originalEvent.preventDefault();
-                }
-                return;
-            }
             if (e.originalEvent?.preventDefault) {
                 e.originalEvent.preventDefault();
             }
             this.createCoordinateMarker(e.latlng);
         });
         
-        // Enhanced touch long-press support
         const mapContainer = this.map.getContainer();
         if (!mapContainer) return;
         
-        const isMapInteractiveElement = (target) => {
+        const isInteractiveMapTarget = (target) => {
             if (!target) return false;
             if (target.closest('.leaflet-control')) return false;
             return !!target.closest('.leaflet-container');
         };
         
-        mapContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length !== 1) {
-                resetTouchState();
-                return;
-            }
-            if (!isMapInteractiveElement(e.target)) {
-                resetTouchState();
+        mapContainer.addEventListener('touchstart', (event) => {
+            if (event.touches.length !== 1 || !isInteractiveMapTarget(event.target)) {
+                clearPressState();
                 return;
             }
             
-            const touch = e.touches[0];
+            const touch = event.touches[0];
             pressStartPos = { x: touch.clientX, y: touch.clientY };
             
             const containerPoint = this.map.mouseEventToContainerPoint(touch);
             initialLatLng = this.map.containerPointToLatLng(containerPoint);
             
-            draggingWasEnabled = this.map.dragging ? this.map.dragging.enabled() : null;
-            if (draggingWasEnabled && this.map.dragging) {
-                this.map.dragging.disable();
-            }
-            
-            clearPressTimer();
+            clearPressState();
             pressTimer = window.setTimeout(() => {
-                if (pressStartPos && initialLatLng) {
+                if (initialLatLng) {
                     this.createCoordinateMarker(initialLatLng);
-                    lastTouchDropTs = Date.now();
                 }
-                resetTouchState();
-            }, 650);
-            
-            if (draggingWasEnabled) {
-                e.preventDefault();
-            }
-        }, { passive: false });
+                clearPressState();
+            }, LONG_PRESS_DURATION_MS);
+        }, { passive: true });
         
-        mapContainer.addEventListener('touchmove', (e) => {
-            if (!pressTimer || !pressStartPos) return;
-            if (e.touches.length !== 1) {
-                resetTouchState();
+        mapContainer.addEventListener('touchmove', (event) => {
+            if (!pressTimer || !pressStartPos || event.touches.length !== 1) {
                 return;
             }
-            
-            const touch = e.touches[0];
+            const touch = event.touches[0];
             const deltaX = Math.abs(touch.clientX - pressStartPos.x);
             const deltaY = Math.abs(touch.clientY - pressStartPos.y);
             
-            if (deltaX > 12 || deltaY > 12) {
-                resetTouchState();
+            if (deltaX > 14 || deltaY > 14) {
+                clearPressState();
             }
-        }, { passive: false });
+        }, { passive: true });
         
-        mapContainer.addEventListener('touchend', () => {
-            resetTouchState();
-        }, { passive: false });
-        
-        mapContainer.addEventListener('touchcancel', () => {
-            resetTouchState();
-        }, { passive: false });
+        mapContainer.addEventListener('touchend', clearPressState, { passive: true });
+        mapContainer.addEventListener('touchcancel', clearPressState, { passive: true });
     }
     async createCoordinateMarker(latlng) {
         // Increment counter and get marker number
