@@ -771,6 +771,10 @@ class WebRTCViewer {
       setTimeout(() => {
         console.log('Resizing map');
         window.droneMap.resize();
+        // Check if map is visible and show beta disclaimer if needed
+        if (window.droneMap.checkMapVisibilityAndShowDisclaimer) {
+          window.droneMap.checkMapVisibilityAndShowDisclaimer();
+        }
       }, 100);
     }
   }
@@ -1228,6 +1232,7 @@ class WebRTCViewer {
   }
 
   setupGeojsonChannel(channel) {
+    this.geojsonChannel = channel;
     channel.onopen = () => console.log("GeoJSON data channel opened");
     channel.onmessage = (event) => {
       try {
@@ -1240,6 +1245,13 @@ class WebRTCViewer {
       } catch (error) {
         console.error("Error parsing GeoJSON data:", error);
       }
+    };
+    channel.onclose = () => {
+      console.log("GeoJSON data channel closed");
+      this.geojsonChannel = null;
+    };
+    channel.onerror = (error) => {
+      console.error("GeoJSON data channel error:", error);
     };
   }
 

@@ -33,7 +33,7 @@ permalink: /livestream/
     <meta name="twitter:card" content="summary">
     <meta name="twitter:image" content="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
     
-    <title>Eagle Eyes Livestream Viewer</title>
+    <title>Eagle Eyes Viewer</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -45,6 +45,15 @@ permalink: /livestream/
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -503,9 +512,26 @@ permalink: /livestream/
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        margin-bottom: 0px !important;
       }
       
       .leaflet-control-center img {
+        width: 24px !important;
+        height: 24px !important;
+      }
+      
+      /* Measurement (ruler) control styling */
+      .leaflet-control-measurement {
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 0px !important;
+        margin-top: 0px !important;
+      }
+      
+      .leaflet-control-measurement img {
         width: 24px !important;
         height: 24px !important;
       }
@@ -517,6 +543,13 @@ permalink: /livestream/
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        margin-bottom: 0px !important;
+        margin-top: 0px !important;
+      }
+      
+      /* Remove default margins from widget container divs for tight stacking */
+      .leaflet-top.leaflet-left .leaflet-bar.leaflet-control {
+        margin-bottom: 0px !important;
       }
       
       /* Base map popup styling */
@@ -536,6 +569,114 @@ permalink: /livestream/
         background: white;
       }
       
+      /* User marker popup styling - compact and mobile-friendly */
+      .user-marker-popup .leaflet-popup-content-wrapper {
+        padding: 0 !important;
+        border-radius: 4px !important;
+      }
+      
+      .user-marker-popup .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      .user-marker-popup .leaflet-popup-content button {
+        touch-action: manipulation !important; /* Better touch handling on mobile */
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+      }
+      
+      /* Mobile optimization for user marker popups */
+      @media (max-width: 768px) {
+        .user-marker-popup {
+          max-width: 160px !important;
+        }
+        
+        .user-marker-popup .leaflet-popup-content {
+          font-size: 11px !important;
+        }
+      }
+      
+      /* Multi-hit popup styling - fixed dimensions with scrolling */
+      .multi-hit-popup .leaflet-popup-content-wrapper {
+        padding: 0 !important;
+        overflow: hidden !important;
+        border-radius: 8px !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* Position close button properly - ensure it's above navigation buttons */
+      .multi-hit-popup .leaflet-popup-close-button {
+        z-index: 1001 !important;
+        width: 28px !important;
+        height: 28px !important;
+        line-height: 28px !important;
+        font-size: 20px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        top: 8px !important;
+        right: 8px !important;
+        text-align: center !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 50% !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+      }
+      
+      /* Ensure buttons are visible and not cut off */
+      .multi-hit-popup button {
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+        flex-shrink: 0 !important;
+      }
+      
+      /* Style navigation buttons to not overlap close button */
+      .multi-hit-popup .leaflet-popup-content button {
+        min-width: 36px !important;
+        min-height: 32px !important;
+        padding: 6px 10px !important;
+      }
+      
+      /* Visible scrollbar styling for popup content - always visible */
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content {
+        /* Force scrollbar to always be visible */
+        overflow-y: scroll !important;
+        scrollbar-width: thin !important;
+        scrollbar-color: #999 #f0f0f0 !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar {
+        width: 10px !important;
+        -webkit-appearance: none !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-track {
+        background: #f0f0f0 !important;
+        border-radius: 4px !important;
+        -webkit-box-shadow: inset 0 0 1px rgba(0,0,0,0.1) !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-thumb {
+        background: #999 !important;
+        border-radius: 4px !important;
+        border: 1px solid #f0f0f0 !important;
+        -webkit-box-shadow: inset 0 0 1px rgba(0,0,0,0.2) !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-thumb:hover {
+        background: #777 !important;
+      }
+      
+      /* Ensure scrollbar is always visible, not just on hover */
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-thumb:active {
+        background: #666 !important;
+      }
+      
       /* Mobile optimization for center control */
       @media (max-width: 768px) {
         .leaflet-control-center {
@@ -543,6 +684,15 @@ permalink: /livestream/
           height: 35px !important;
         }
         .leaflet-control-center img {
+          width: 20px !important;
+          height: 20px !important;
+        }
+        
+        .leaflet-control-measurement {
+          width: 35px !important;
+          height: 35px !important;
+        }
+        .leaflet-control-measurement img {
           width: 20px !important;
           height: 20px !important;
         }
@@ -932,7 +1082,7 @@ permalink: /livestream/
       <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
           <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
-          <span>Eagle Eyes Livestream Viewer</span>
+          <span>Eagle Eyes Viewer</span>
         </a>
 
         <div
@@ -1195,7 +1345,7 @@ permalink: /livestream/
       id="mobileControls"
     >
       <div class="offcanvas-header">
-        <h5 class="offcanvas-title">Eagle Eyes Livestream Viewer</h5>
+        <h5 class="offcanvas-title">Eagle Eyes Viewer</h5>
         <button
           type="button"
           class="btn-close btn-close-white"
@@ -1418,7 +1568,7 @@ permalink: /livestream/
         </div>
       </div>
 
-      <div id="video-panel">
+      <div id="video-panel" style="position: relative;">
         <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
@@ -1595,7 +1745,7 @@ permalink: /livestream/
         </div>
       </div>
       </div>
-      <div id="map-panel">
+      <div id="map-panel" style="position: relative;">
         <div id="map"></div>
       </div>
     </main>
@@ -1603,6 +1753,10 @@ permalink: /livestream/
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Esri Leaflet -->
+    <script src="https://unpkg.com/esri-leaflet"></script>
     <script src="{{ '/js/livestream/map.js' | relative_url }}"></script>
     <script src="{{ '/js/livestream/client.js' | relative_url }}"></script>
     <script>
@@ -1650,12 +1804,13 @@ permalink: /livestream/
         const video = document.getElementById('remoteVideo');
         
         if (video && 'pictureInPictureEnabled' in document) {
-          // Enter PiP when page loses visibility
+          // Enter PiP when page loses visibility (user switches tabs/apps)
           document.addEventListener('visibilitychange', async () => {
             if (document.hidden && !video.paused && video.style.display !== 'none') {
               try {
                 if (video !== document.pictureInPictureElement) {
                   await video.requestPictureInPicture();
+                  console.log('PiP activated due to page visibility change');
                 }
               } catch (error) {
                 console.log('PiP failed:', error);
@@ -1663,17 +1818,72 @@ permalink: /livestream/
             }
           });
           
-          // Optional: Exit PiP when page becomes visible again
+          // Optional: Exit PiP when page becomes visible again and not in map-only mode
           document.addEventListener('visibilitychange', async () => {
-            if (!document.hidden && document.pictureInPictureElement) {
+            const mapPanel = document.getElementById('map-panel');
+            const isMapFullScreen = mapPanel && mapPanel.classList.contains('full-view');
+            
+            if (!document.hidden && document.pictureInPictureElement && !isMapFullScreen) {
               try {
                 await document.exitPictureInPicture();
+                console.log('PiP exited due to page visibility change');
               } catch (error) {
                 console.log('Exit PiP failed:', error);
               }
             }
           });
         }
+      }
+      
+      // Function to manually trigger PiP
+      async function activatePictureInPicture() {
+        const video = document.getElementById('remoteVideo');
+        
+        if (!video) {
+          console.warn('Video element not found');
+          return false;
+        }
+        
+        if (!('pictureInPictureEnabled' in document)) {
+          console.warn('Picture-in-Picture not supported');
+          return false;
+        }
+        
+        // Check if video is playing and visible
+        if (video.paused || video.style.display === 'none') {
+          console.log('Video not playing or not visible, cannot activate PiP');
+          return false;
+        }
+        
+        // Check if already in PiP mode
+        if (video === document.pictureInPictureElement) {
+          console.log('Already in PiP mode');
+          return true;
+        }
+        
+        try {
+          await video.requestPictureInPicture();
+          console.log('PiP activated manually');
+          return true;
+        } catch (error) {
+          console.error('Failed to activate PiP:', error);
+          return false;
+        }
+      }
+      
+      // Function to exit PiP
+      async function deactivatePictureInPicture() {
+        if (document.pictureInPictureElement) {
+          try {
+            await document.exitPictureInPicture();
+            console.log('PiP deactivated');
+            return true;
+          } catch (error) {
+            console.error('Failed to exit PiP:', error);
+            return false;
+          }
+        }
+        return false;
       }
       
       document.addEventListener("DOMContentLoaded", () => {
@@ -1744,6 +1954,10 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            // Reposition disconnected overlay for video mode
+            repositionDisconnectedOverlay();
+            // Exit PiP when returning to video or split view
+            deactivatePictureInPicture();
           } else if (mode === "map") {
             videoPanel.className = "d-none";
             videoPanel.style.flex = "";
@@ -1762,7 +1976,7 @@ permalink: /livestream/
             }
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
             
-            // Center map - zoom to drone if connected, otherwise North America
+            // Center map - zoom to drone if connected, otherwise user location, otherwise North America
             if (window.droneMap && window.droneMap.map) {
               setTimeout(() => {
                 // Check if a drone is connected (has current location)
@@ -1770,20 +1984,46 @@ permalink: /livestream/
                   // Zoom to connected drone location
                   window.droneMap.map.setView(window.droneMap.currentLocation, 15);
                   console.log('Zooming to connected drone location:', window.droneMap.currentLocation);
+                } else if (window.droneMap.isMyLocationVisible && window.droneMap.myLocationMarker) {
+                  // No drone, but user location is available - zoom to user location
+                  const userLatlng = window.droneMap.myLocationMarker.getLatLng();
+                  window.droneMap.map.invalidateSize();
+                  window.droneMap.map.setView(userLatlng, 15, { animate: false });
+                  // Force another invalidate after setting view
+                  setTimeout(() => {
+                    window.droneMap.map.invalidateSize();
+                  }, 50);
+                  console.log('Zooming to user location in map-only mode:', userLatlng);
                 } else {
-                  // No drone connected - show North America scale
+                  // No drone or user location - show North America scale
                   window.droneMap.map.setView([45.0, -100.0], 3);
-                  console.log('No drone connected - showing North America scale');
+                  console.log('No drone or user location - showing North America scale');
                 }
                 // Invalidate size to ensure map tiles render properly
                 window.droneMap.map.invalidateSize();
-              }, 100);
+                // Check if map is visible and show beta disclaimer if needed
+                if (window.droneMap.checkMapVisibilityAndShowDisclaimer) {
+                  window.droneMap.checkMapVisibilityAndShowDisclaimer();
+                }
+              }, 200);
             } else if (window.droneMap && typeof window.droneMap.resize === 'function') {
               // If map exists but tiles aren't loading, try resize
               setTimeout(() => {
                 window.droneMap.resize();
+                // Check if map is visible and show beta disclaimer if needed
+                if (window.droneMap.checkMapVisibilityAndShowDisclaimer) {
+                  window.droneMap.checkMapVisibilityAndShowDisclaimer();
+                }
               }, 100);
             }
+            // Reposition disconnected overlay for map mode
+            repositionDisconnectedOverlay();
+            
+            // Activate Picture-in-Picture when switching to full-screen map
+            // Wait a bit for the UI transition to complete
+            setTimeout(() => {
+              activatePictureInPicture();
+            }, 300);
           } else {
             // split - let CSS aspect ratio media queries handle layout
             videoPanel.className = "";
@@ -1793,6 +2033,10 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            // Reposition disconnected overlay for split mode
+            repositionDisconnectedOverlay();
+            // Exit PiP when returning to split view
+            deactivatePictureInPicture();
             
             // Center map - zoom to drone if connected, otherwise North America
             if (window.droneMap && window.droneMap.map) {
@@ -1903,7 +2147,41 @@ permalink: /livestream/
       function showDisconnectedMessage() {
         const overlay = document.getElementById('sharedDisconnectedOverlay');
         if (overlay) {
+          // Move overlay to the appropriate panel based on current view mode
+          repositionDisconnectedOverlay();
           overlay.style.display = 'flex';
+        }
+      }
+      
+      function repositionDisconnectedOverlay() {
+        const overlay = document.getElementById('sharedDisconnectedOverlay');
+        const videoPanel = document.getElementById('video-panel');
+        const mapPanel = document.getElementById('map-panel');
+        
+        if (!overlay || !videoPanel || !mapPanel) return;
+        
+        // Check which panel is currently visible
+        const isMapFullScreen = mapPanel.classList.contains('full-view');
+        const isVideoFullScreen = videoPanel.classList.contains('full-view');
+        
+        if (isMapFullScreen) {
+          // Full-screen map mode - move overlay to map panel
+          if (overlay.parentElement !== mapPanel) {
+            mapPanel.insertBefore(overlay, mapPanel.firstChild);
+          }
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.borderRadius = '0 0 8px 8px';
+        } else {
+          // Video visible (either full-screen or split) - move overlay to video panel
+          if (overlay.parentElement !== videoPanel) {
+            videoPanel.insertBefore(overlay, videoPanel.firstChild);
+          }
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.borderRadius = '0 0 8px 8px';
         }
       }
 
