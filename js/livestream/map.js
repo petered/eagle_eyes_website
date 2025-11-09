@@ -1,21 +1,6 @@
 // Global constants
 const POLYGON_FILL_OPACITY = 0.05;
 
-// OpenSky Network Configuration
-const OPENSKY_CONFIG = {
-    // Proxy Configuration (OAuth2 handled server-side)
-    useProxy: true, // Use local proxy server
-    proxyEndpoint: 'http://localhost:3001', // Local proxy for development
-    
-    updateInterval: 5000, // Update every 5 seconds (5000ms) for more frequent updates
-    bboxBuffer: 0.5, // ±degrees from map center for bounding box
-    trailDuration: 60000, // Keep trail for 60 seconds (1 minute)
-    
-    // Rate limit tracking
-    creditsPerDay: 4000, // Credits available with authenticated access
-    creditsResetHour: 0 // Hour when credits reset (UTC)
-};
-
 class DroneMap {
     constructor() {
         this.map = null;
@@ -123,7 +108,7 @@ class DroneMap {
         
         // OpenSky credits tracking
         this.openSkyCreditsUsed = 0;
-        this.openSkyCreditsResetTime = this.getNextCreditsResetTime();
+        this.openSkyCreditsResetTime = Date.now();
         this.openSkyCreditsCounter = null; // DOM element for credits display
         
         // OpenAIP Airports/Heliports layer
@@ -416,65 +401,6 @@ class DroneMap {
                     weight: 2
                 }
             }).addTo(this.map);
-
-            // Initialize OpenAIP airspace layer
-            // Note: No onEachFeature for popups - using multi-hit popup system instead
-            this.airspaceLayer = L.geoJSON(null, {
-                pane: 'polygonPane',
-                style: this.getAirspaceStyle.bind(this)
-            });
-            
-            // Initialize OpenAIPAirspace (At Ground) layer (Class F airways and drone-relevant)
-            this.droneAirspaceLayer = L.geoJSON(null, {
-                pane: 'polygonPane',
-                style: this.getDroneAirspaceStyle.bind(this)
-            });
-            
-            // Add to map if enabled by default
-            if (this.isDroneAirspaceEnabled) {
-                this.droneAirspaceLayer.addTo(this.map);
-            }
-            
-            // Initialize OpenSky ADS-B aircraft marker cluster layer
-            this.openSkyMarkerCluster = L.markerClusterGroup({
-                maxClusterRadius: 60,
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: false,
-                zoomToBoundsOnClick: true,
-                disableClusteringAtZoom: 12,
-                iconCreateFunction: (cluster) => {
-                    const count = cluster.getChildCount();
-                    return L.divIcon({
-                        html: `<div style="background-color: #ff6b35; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${count}</div>`,
-                        className: 'opensky-cluster-icon',
-                        iconSize: L.point(40, 40)
-                    });
-                }
-            });
-            
-            // Initialize OpenAIP airports marker cluster layer
-            this.airportsMarkerCluster = L.markerClusterGroup({
-                maxClusterRadius: 80, // Cluster radius in pixels
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: true,
-                zoomToBoundsOnClick: false, // Disable to allow our custom popup system to work
-                chunkedLoading: true
-            });
-            
-            // Add map move event listener for airports auto-loading
-            this.map.on('moveend', () => {
-                if (this.isAirportsEnabled) {
-                    this.loadAirportsDataDebounced();
-                }
-                // Reload airspace data when map moves
-                if (this.isAirspaceEnabled) {
-                    this.loadAirspaceDataDebounced();
-                }
-                // Reload drone airspace data when map moves
-                if (this.isDroneAirspaceEnabled) {
-                    this.loadDroneAirspaceDataDebounced();
-                }
-            });
 
                 // Initialize USA FAA layers
                 if (typeof L.esri !== 'undefined' && L.esri.featureLayer) {
@@ -845,7 +771,6 @@ class DroneMap {
             this.fallbackToStaticMap();
         }
     }
-
     addCustomControls() {
         // Add center on drone control first (top left)
         const centerControl = L.Control.extend({
@@ -983,7 +908,6 @@ class DroneMap {
             this.recenterButton.title = 'Center on Drone';
         }
     }
-    
     showBaseMapPopup() {
         // Remove existing popup if it exists
         if (this.baseMapPopup) {
@@ -1059,49 +983,6 @@ class DroneMap {
             
             <div style="border-top: 1px solid #e5e7eb; margin: 14px 0; padding-top: 14px;">
                 <div style="font-weight: 600; margin-bottom: 14px; color: #1f2937; font-size: 15px; letter-spacing: -0.01em;">Map Layers</div>
-                <div style="display: flex; align-items: center; margin: 8px 0;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; flex: 1; transition: color 0.2s;">
-                    <input type="checkbox" id="droneAirspaceToggle" ${this.isDroneAirspaceEnabled ? 'checked' : ''} 
-                               style="margin-right: 10px; accent-color: #3b82f6;">
-                    Airspace (At Ground)
-                </label>
-                    <button id="airspaceAllExpandBtn" type="button" style="
-                        background: none;
-                        border: none;
-                        cursor: pointer;
-                        padding: 4px 8px;
-                        font-size: 12px;
-                        color: #6b7280;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        margin-left: 8px;
-                        line-height: 1;
-                        transition: color 0.2s;
-                    " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.toggleAirspaceAllExpand(); return false;" title="${this.isAirspaceAllExpanded ? 'Hide' : 'Show'} Airspace (All)">
-                        <span style="transform: rotate(${this.isAirspaceAllExpanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
-                    </button>
-                </div>
-                ${this.isAirspaceAllExpanded || this.isAirspaceEnabled ? `
-                <label style="display: block; margin: 4px 0 8px 24px; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
-                    <input type="checkbox" id="airspaceToggle" ${this.isAirspaceEnabled ? 'checked' : ''} 
-                           style="margin-right: 10px; accent-color: #3b82f6;">
-                    Airspace (All)
-                </label>
-                ` : ''}
-                <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
-                    <input type="checkbox" id="airportsToggle" ${this.isAirportsEnabled ? 'checked' : ''} 
-                           style="margin-right: 10px; accent-color: #3b82f6;">
-                    Airports/Heliports
-                </label>
-                
-                <!-- OpenSky ADS-B Aircraft Layer -->
-                <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
-                    <input type="checkbox" id="openSkyToggle" ${this.isOpenSkyEnabled ? 'checked' : ''} 
-                           style="margin-right: 10px; accent-color: #3b82f6;">
-                    OpenSky ADS-B Aircraft
-                </label>
-                
                 <!-- USA FFA Layers dropdown -->
                 <div style="margin: 8px 0;">
                     <button id="faaLayersToggle" type="button" style="
@@ -1241,31 +1122,6 @@ class DroneMap {
             </div>
         `;
         
-        // Add event listener for airspace toggle
-        const airspaceToggle = this.baseMapPopup.querySelector('#airspaceToggle');
-        if (airspaceToggle) {
-            // Stop propagation on both mousedown and change to prevent map clicks
-            airspaceToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            airspaceToggle.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent event from bubbling to document
-                this.toggleAirspace(e.target.checked);
-            });
-        }
-        
-        // Add event listener for drone airspace toggle
-        const droneAirspaceToggle = this.baseMapPopup.querySelector('#droneAirspaceToggle');
-        if (droneAirspaceToggle) {
-            droneAirspaceToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            droneAirspaceToggle.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent event from bubbling to document
-                this.toggleDroneAirspace(e.target.checked);
-            });
-        }
-        
         // Add event listener for USA FAA Airports toggle
         const faaAirportsToggle = this.baseMapPopup.querySelector('#faaAirportsToggle');
         if (faaAirportsToggle) {
@@ -1314,30 +1170,6 @@ class DroneMap {
             });
         }
 
-        // Add event listener for airports toggle
-        const airportsToggle = this.baseMapPopup.querySelector('#airportsToggle');
-        if (airportsToggle) {
-            airportsToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            airportsToggle.addEventListener('change', (e) => {
-                e.stopPropagation(); // Prevent event from bubbling to document
-                this.toggleAirports(e.target.checked);
-            });
-        }
-        
-        // Add event listener for OpenSky ADS-B toggle
-        const openSkyToggle = this.baseMapPopup.querySelector('#openSkyToggle');
-        if (openSkyToggle) {
-            openSkyToggle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            openSkyToggle.addEventListener('change', (e) => {
-                e.stopPropagation();
-                this.toggleOpenSky(e.target.checked);
-            });
-        }
-        
         // Add event listener for "Other Basemaps" toggle button
         const otherBasemapsToggle = this.baseMapPopup.querySelector('#otherBasemapsToggle');
         const otherBasemapsList = this.baseMapPopup.querySelector('#otherBasemapsList');
@@ -1565,7 +1397,6 @@ class DroneMap {
             this.baseMapPopup = null;
         }
     }
-    
     showMeasurementPopup() {
         // Remove existing popup if it exists
         if (this.measurementPopup) {
@@ -2213,7 +2044,6 @@ class DroneMap {
         
         this.updateMeasurementDisplay();
     }
-    
     switchBaseMap(mapName) {
         if (!this.baseMaps[mapName] || mapName === this.currentBaseMap) return;
         
@@ -2241,134 +2071,14 @@ class DroneMap {
     }
 
     toggleDroneAirspace(enabled) {
-        if (enabled) {
-            // Show acknowledgment modal if not already acknowledged
-            if (!this.droneAirspaceAcknowledged) {
-                this.showAirspaceAcknowledgment();
-                return; // Will enable after acknowledgment
-            }
-        }
-        
-        this.isDroneAirspaceEnabled = enabled;
-        
-        if (enabled) {
-            // Track whether airports was already enabled before we turn on airspace
-            this.airportsWasEnabledBeforeDroneAirspace = this.isAirportsEnabled;
-            
-            // Add layer to map
-            if (!this.map.hasLayer(this.droneAirspaceLayer)) {
-                this.droneAirspaceLayer.addTo(this.map);
-            }
-            
-            // Load drone airspace data for current view
-            this.loadDroneAirspaceDataDebounced();
-            
-            // Auto-enable airports if not already enabled
-            if (!this.isAirportsEnabled) {
-                this.toggleAirports(true);
-                // Update checkbox to sync
-                const airportsToggle = document.querySelector('#airportsToggle');
-                if (airportsToggle) {
-                    airportsToggle.checked = true;
-                }
-            }
-        } else {
-            // Remove layer from map
-            if (this.map.hasLayer(this.droneAirspaceLayer)) {
-                this.map.removeLayer(this.droneAirspaceLayer);
-            }
-            // Clear cache
-            this.droneAirspaceCache.clear();
-            this.droneAirspaceFeatureIds.clear();
-            
-            // Auto-disable airports only if we auto-enabled it (it wasn't enabled before)
-            if (!this.airportsWasEnabledBeforeDroneAirspace && this.isAirportsEnabled) {
-                // Check if the other airspace layer is also enabled
-                // If it is, we should check if airports was enabled before that one too
-                if (!this.isAirspaceEnabled || !this.airportsWasEnabledBeforeAirspace) {
-                    this.toggleAirports(false);
-                    // Update checkbox to sync
-                    const airportsToggle = document.querySelector('#airportsToggle');
-                    if (airportsToggle) {
-                        airportsToggle.checked = false;
-                    }
-                }
-            }
-        }
-        
-        // Refresh popup if it's open to show/hide the sub-bullet
-        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
-            this.showBaseMapPopup();
-        }
+        console.log('Airspace (At Ground) layer has been removed; ignoring toggle request.');
+        this.isDroneAirspaceEnabled = false;
     }
 
     toggleAirspace(enabled) {
-        if (enabled) {
-            // Show acknowledgment modal if not already acknowledged
-            if (!this.airspaceAcknowledged) {
-                this.showAirspaceAcknowledgment();
-                return; // Will enable after acknowledgment
-            }
-        }
-        
-        this.isAirspaceEnabled = enabled;
-        
-        if (enabled) {
-            // Track whether airports was already enabled before we turn on airspace
-            this.airportsWasEnabledBeforeAirspace = this.isAirportsEnabled;
-            
-            // Add layer to map
-            if (!this.map.hasLayer(this.airspaceLayer)) {
-                this.airspaceLayer.addTo(this.map);
-                console.log("✅ Airspace (All) layer added to map");
-            }
-            
-            // Load airspace data for current view
-            console.log("🔄 Loading Airspace (All) data...");
-            this.loadAirspaceDataDebounced();
-            
-            // Auto-enable airports if not already enabled
-            if (!this.isAirportsEnabled) {
-                this.toggleAirports(true);
-                // Update checkbox to sync
-                const airportsToggle = document.querySelector('#airportsToggle');
-                if (airportsToggle) {
-                    airportsToggle.checked = true;
-                }
-            }
-        } else {
-            // Remove layer from map
-            if (this.map.hasLayer(this.airspaceLayer)) {
-                this.map.removeLayer(this.airspaceLayer);
-            }
-            // Clear cache and error state
-            this.airspaceCache.clear();
-            this.airspaceFeatureIds.clear();
-            this.airspaceProxyError = false;
-            this.hideProxyErrorMessage();
-            
-            // Auto-disable airports only if we auto-enabled it (it wasn't enabled before)
-            if (!this.airportsWasEnabledBeforeAirspace && this.isAirportsEnabled) {
-                // Check if the other airspace layer is also enabled
-                // If it is, we should check if airports was enabled before that one too
-                if (!this.isDroneAirspaceEnabled || !this.airportsWasEnabledBeforeDroneAirspace) {
-                    this.toggleAirports(false);
-                    // Update checkbox to sync
-                    const airportsToggle = document.querySelector('#airportsToggle');
-                    if (airportsToggle) {
-                        airportsToggle.checked = false;
-                    }
-                }
-            }
-        }
-        
-        // Refresh popup if it's open to show/hide the sub-bullet
-        if (this.baseMapPopup && this.baseMapPopup.parentElement) {
-            this.showBaseMapPopup();
-        }
+        console.log('Airspace (All) layer has been removed; ignoring toggle request.');
+        this.isAirspaceEnabled = false;
     }
-    
-
     showAirspaceAcknowledgment() {
         // Get the map panel to append modal to it
         const mapPanel = document.getElementById('map-panel');
@@ -2800,178 +2510,12 @@ class DroneMap {
         }
     }
 
-    loadAirspaceDataDebounced() {
-        // Clear existing timer
-        if (this.airspaceDebounceTimer) {
-            clearTimeout(this.airspaceDebounceTimer);
-        }
+    loadAirspaceDataDebounced() { return; }
 
-        // Set new timer (300ms debounce)
-        this.airspaceDebounceTimer = setTimeout(() => {
-            this.loadAirspaceData();
-        }, 300);
-    }
-
-    loadDroneAirspaceDataDebounced() {
-        // Clear existing timer
-        if (this.droneAirspaceDebounceTimer) {
-            clearTimeout(this.droneAirspaceDebounceTimer);
-        }
-
-        // Set new timer (300ms debounce)
-        this.droneAirspaceDebounceTimer = setTimeout(() => {
-            this.loadDroneAirspaceData();
-        }, 300);
-    }
+    loadDroneAirspaceDataDebounced() { return; }
 
     async loadDroneAirspaceData() {
-        if (!this.isDroneAirspaceEnabled || !this.map) return;
-
-        const bounds = this.map.getBounds();
-        const rawBbox = {
-            west: bounds.getWest(),
-            south: bounds.getSouth(),
-            east: bounds.getEast(),
-            north: bounds.getNorth()
-        };
-        const normalized = this.normalizeBbox(
-            rawBbox.west,
-            rawBbox.south,
-            rawBbox.east,
-            rawBbox.north
-        );
-        const bbox = `${normalized.west},${normalized.south},${normalized.east},${normalized.north}`;
-        
-        // Check cache
-        if (this.droneAirspaceCache.has(bbox)) {
-            return;
-        }
-        
-        // Show loading indicator
-        this.droneAirspaceLoading = true;
-        this.showLoadingMessage('droneAirspace');
-        console.log('🔵 Showing drone airspace loading banner');
-
-        const proxyBase = this.getOpenAIPProxyUrl();
-        const airspaceUrl = `${proxyBase}/openaip/airspaces?bbox=${bbox}&format=geojson`;
-
-        try {
-            const airspaceResponse = await fetch(airspaceUrl).catch(err => {
-                console.error('Proxy fetch error for drone airspace:', err);
-                return null;
-            });
-
-            if (!airspaceResponse || !airspaceResponse.ok) {
-                return;
-            }
-
-            let airspaceData;
-            try {
-                airspaceData = await airspaceResponse.json();
-            } catch (jsonError) {
-                console.error('Failed to parse drone airspace JSON:', jsonError);
-                return;
-            }
-            
-            if (airspaceData) {
-                let featureArray = null;
-                
-                // Handle different response formats
-                if (airspaceData.type === 'FeatureCollection' && Array.isArray(airspaceData.features)) {
-                    featureArray = airspaceData.features;
-                } else if (airspaceData.items && Array.isArray(airspaceData.items)) {
-                    featureArray = airspaceData.items.map(item => this.convertOpenAIPItemToGeoJSON(item));
-                } else if (Array.isArray(airspaceData)) {
-                    featureArray = airspaceData;
-                } else if (Array.isArray(airspaceData.features)) {
-                    featureArray = airspaceData.features;
-                }
-                
-                if (featureArray) {
-                    const features = [];
-                    
-                    featureArray.forEach(feature => {
-                        // Ensure properties exist
-                        if (!feature.properties) {
-                            feature.properties = {};
-                        }
-                        
-                        const props = feature.properties;
-                        
-                        // Normalize properties (same as regular airspace)
-                        if (props.icaoClass !== undefined && props.icaoClassNumeric === undefined) {
-                            const icaoClassMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'Unclassified': 8 };
-                            if (typeof props.icaoClass === 'string') {
-                                props.icaoClassNumeric = icaoClassMap[props.icaoClass] !== undefined ? icaoClassMap[props.icaoClass] : null;
-                            }
-                        }
-                        
-                        // Ensure altitude limits are in feet
-                        if (props.lowerLimit && props.lowerLimitFt === undefined) {
-                            if (props.lowerLimitUnit === 'M') {
-                                props.lowerLimitFt = props.lowerLimit * 3.28084;
-                            } else if (props.lowerLimitUnit === 'FL') {
-                                props.lowerLimitFt = props.lowerLimit * 100;
-                            } else if (props.lowerLimitUnit === 'FT' || props.lowerLimitUnit === undefined) {
-                                props.lowerLimitFt = props.lowerLimit;
-                            }
-                        }
-                        
-                        if (props.upperLimit && props.upperLimitFt === undefined) {
-                            if (props.upperLimitUnit === 'M') {
-                                props.upperLimitFt = props.upperLimit * 3.28084;
-                            } else if (props.upperLimitUnit === 'FL') {
-                                props.upperLimitFt = props.upperLimit * 100;
-                            } else if (props.upperLimitUnit === 'FT' || props.upperLimitUnit === undefined) {
-                                props.upperLimitFt = props.upperLimit;
-                            }
-                        }
-                        
-                        // Apply drone airspace filter
-                        if (this.filterDroneAirspace(feature)) {
-                            features.push(feature);
-                        }
-                    });
-                    
-                    // Deduplicate by stable ID
-                    const uniqueFeatures = [];
-                    features.forEach(feature => {
-                        const id = feature.id || this.generateStableId(feature);
-                        if (!this.droneAirspaceFeatureIds.has(id)) {
-                            this.droneAirspaceFeatureIds.add(id);
-                            uniqueFeatures.push(feature);
-                        }
-                    });
-                    
-                    // Add features to layer
-                    if (uniqueFeatures.length > 0) {
-                        setTimeout(() => {
-                            this.droneAirspaceLayer.addData({
-                                type: 'FeatureCollection',
-                                features: uniqueFeatures
-                            });
-                        }, 0);
-                    }
-                    
-                    // Cache the bbox
-                    this.droneAirspaceCache.set(bbox, true);
-                    
-                    console.log(`=== Drone Airspace Load Summary ===`);
-                    console.log(`Features fetched: ${featureArray.length}`);
-                    console.log(`Drone airspace features rendered: ${uniqueFeatures.length}`);
-                }
-            }
-            
-            // Hide loading message
-            this.droneAirspaceLoading = false;
-            this.hideLoadingMessage('droneAirspace');
-            console.log('🔵 Hiding drone airspace loading banner');
-        } catch (error) {
-            console.error('Error loading drone airspace data:', error);
-            this.droneAirspaceLoading = false;
-            this.hideLoadingMessage('droneAirspace');
-            console.log('🔵 Hiding drone airspace loading banner (error)');
-        }
+        return;
     }
 
     getOpenAIPProxyUrl() {
@@ -3016,7 +2560,6 @@ class DroneMap {
             }
         }
     }
-
     // ===== Runways Layer Methods =====
 
     toggleRunways(enabled) {
@@ -3103,7 +2646,6 @@ class DroneMap {
             }
         }
     }
-
     // ===== Beta Disclaimer =====
     
     showBetaDisclaimer() {
@@ -3264,7 +2806,6 @@ class DroneMap {
             }, 300);
         }
     }
-
     // ===== USA FAA Layers Disclaimer =====
 
     showFAAAirspaceAcknowledgment(layerType) {
@@ -3436,202 +2977,27 @@ class DroneMap {
     // ===== Airports/Heliports Layer Methods =====
     
     toggleAirports(enabled) {
-        if (enabled && !this.airportsAcknowledged) {
-            // Show acknowledgment modal if not already acknowledged
-            this.showAirspaceAcknowledgment();
-            return; // Will enable after acknowledgment
-        }
-        
-        this.isAirportsEnabled = enabled;
-        
-        if (enabled) {
-            // Add cluster layer to map if not already added
-            if (!this.map.hasLayer(this.airportsMarkerCluster)) {
-                this.airportsMarkerCluster.addTo(this.map);
-            }
-            
-            // Load airport data for current view
-            this.loadAirportsDataDebounced();
-        } else {
-            // Remove cluster layer from map
-            if (this.map.hasLayer(this.airportsMarkerCluster)) {
-                this.map.removeLayer(this.airportsMarkerCluster);
-                this.airportsMarkerCluster.clearLayers();
-            }
-            // Clear cache
-            this.airportsCache.clear();
-            this.airportsFeatureIds.clear();
-        }
-        
-        // Sync airport toggle
-        const airportsToggle = document.querySelector('#airportsToggle');
-        
-        if (airportsToggle) {
-            airportsToggle.checked = enabled;
-        }
+        console.log('Airports/Heliports layer has been removed; ignoring toggle request.');
+        this.isAirportsEnabled = false;
     }
 
     // ===== OpenSky ADS-B Aircraft Layer Methods =====
     
     toggleOpenSky(enabled) {
-        if (enabled && !this.openSkyAcknowledged) {
-            // Show acknowledgment modal
-            this.showOpenSkyAcknowledgment();
-            return; // Will enable after acknowledgment
+        if (this.openSkyUpdateInterval) {
+            clearInterval(this.openSkyUpdateInterval);
+            this.openSkyUpdateInterval = null;
         }
-        
-        this.isOpenSkyEnabled = enabled;
-        
-        if (enabled) {
-            // Add cluster layer to map
-            if (!this.map.hasLayer(this.openSkyMarkerCluster)) {
-                this.openSkyMarkerCluster.addTo(this.map);
-            }
-            
-            // Show credits counter
-            this.showCreditsDisplay();
-            
-            // Start fetching aircraft data
-            this.fetchOpenSkyData();
-            
-            // Set up interval to update every N seconds
-            this.openSkyUpdateInterval = setInterval(() => {
-                this.fetchOpenSkyData();
-            }, OPENSKY_CONFIG.updateInterval);
-            
-            console.log(`OpenSky ADS-B layer enabled, updating every ${OPENSKY_CONFIG.updateInterval / 1000}s`);
-        } else {
-            // Remove cluster layer from map
-            if (this.map.hasLayer(this.openSkyMarkerCluster)) {
-                this.map.removeLayer(this.openSkyMarkerCluster);
-                this.openSkyMarkerCluster.clearLayers();
-            }
-            
-            // Clear interval
-            if (this.openSkyUpdateInterval) {
-                clearInterval(this.openSkyUpdateInterval);
-                this.openSkyUpdateInterval = null;
-            }
-            
-            // Remove all trails
-            this.openSkyAircraftTrails.forEach((trail, icao24) => {
-                if (trail.polyline && this.map.hasLayer(trail.polyline)) {
-                    this.map.removeLayer(trail.polyline);
-                }
-            });
-            
-            // Remove all historical tracks
-            this.openSkyAircraftTracks.forEach((track, icao24) => {
-                if (track.polyline && this.map.hasLayer(track.polyline)) {
-                    this.map.removeLayer(track.polyline);
-                }
-            });
-            
-            // Clear data
-            this.openSkyAircraftData.clear();
-            this.openSkyAircraftMarkers.clear();
-            this.openSkyAircraftTrails.clear();
-            this.openSkyAircraftTracks.clear();
-            
-            // Hide credits display
-            this.hideCreditsDisplay();
-            
-            console.log('OpenSky ADS-B layer disabled');
-        }
-        
-        // Sync toggle checkbox
-        const openSkyToggle = document.querySelector('#openSkyToggle');
-        if (openSkyToggle) {
-            openSkyToggle.checked = enabled;
-        }
+        this.isOpenSkyEnabled = false;
+        console.log('OpenSky ADS-B layer has been removed; ignoring toggle request.');
     }
     
     getNextCreditsResetTime() {
-        const now = new Date();
-        const resetTime = new Date(now);
-        resetTime.setUTCHours(OPENSKY_CONFIG.creditsResetHour, 0, 0, 0);
-        
-        // If reset time has passed today, set for tomorrow
-        if (resetTime <= now) {
-            resetTime.setUTCDate(resetTime.getUTCDate() + 1);
-        }
-        
-        return resetTime;
+        return new Date();
     }
     
     async fetchOpenSkyData() {
-        if (!this.map || this.openSkyLoading) return;
-        
-        // Check if credits have reset
-        if (Date.now() >= this.openSkyCreditsResetTime) {
-            this.openSkyCreditsUsed = 0;
-            this.openSkyCreditsResetTime = this.getNextCreditsResetTime();
-            console.log('🔄 OpenSky credits reset');
-        }
-        
-        // Get map center and build bounding box
-        const center = this.map.getCenter();
-        const buffer = OPENSKY_CONFIG.bboxBuffer;
-        
-        // OpenSky API expects: lamin, lomin, lamax, lomax
-        const lamin = center.lat - buffer;
-        const lomin = center.lng - buffer;
-        const lamax = center.lat + buffer;
-        const lomax = center.lng + buffer;
-        
-        // Use proxy for authenticated requests
-        const url = OPENSKY_CONFIG.useProxy 
-            ? `${OPENSKY_CONFIG.proxyEndpoint}/opensky/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`
-            : `https://opensky-network.org/api/states/all?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
-        
-        this.openSkyLoading = true;
-        
-        try {
-            console.log('📡 Fetching OpenSky data from:', url);
-            const response = await fetch(url);
-            console.log('📥 OpenSky response status:', response.status, response.statusText);
-            
-            if (!response.ok) {
-                if (response.status === 429) {
-                    console.error('⚠️ OpenSky API rate limit exceeded! Status 429');
-                    console.error('   This may be from earlier anonymous usage.');
-                    console.error('   Rate limits are per IP and reset at midnight UTC.');
-                    this.showOpenSkyRateLimitWarning();
-                    this.openSkyLoading = false;
-                    // Stop fetching to avoid more rate limit hits
-                    if (this.openSkyUpdateInterval) {
-                        clearInterval(this.openSkyUpdateInterval);
-                        this.openSkyUpdateInterval = null;
-                    }
-                    return;
-                }
-                console.error('OpenSky API error:', response.status, response.statusText);
-                this.openSkyLoading = false;
-                return;
-            }
-            
-            const data = await response.json();
-            
-            // Track credits usage (approximate: 1 credit per request)
-            this.openSkyCreditsUsed++;
-            this.updateCreditsDisplay();
-            
-            // Parse state vectors and update aircraft markers
-            if (data && data.states && Array.isArray(data.states)) {
-                this.updateOpenSkyAircraft(data.states, data.time);
-                console.log(`OpenSky: Received ${data.states.length} aircraft (Credits used: ${this.openSkyCreditsUsed}/${OPENSKY_CONFIG.creditsPerDay})`);
-            } else {
-                console.log('OpenSky: No aircraft in area');
-                // Clear all markers if no aircraft
-                this.openSkyMarkerCluster.clearLayers();
-                this.openSkyAircraftData.clear();
-            }
-            
-            this.openSkyLoading = false;
-        } catch (error) {
-            console.error('Error fetching OpenSky data:', error);
-            this.openSkyLoading = false;
-        }
+        return;
     }
     
     updateOpenSkyAircraft(states, timestamp) {
@@ -3794,180 +3160,28 @@ class DroneMap {
     }
     
     async toggleAircraftTrack(icao24) {
-        const trackData = this.openSkyAircraftTracks.get(icao24);
-        
-        if (trackData && trackData.isVisible) {
-            // Hide existing track
-            this.hideAircraftTrack(icao24);
-        } else {
-            // Show track (fetch if needed)
-            await this.showAircraftTrack(icao24);
-        }
-        
-        // Update popup content to reflect new button state
-        const marker = this.openSkyAircraftMarkers.get(icao24);
-        if (marker && marker.isPopupOpen()) {
-            const aircraftData = this.openSkyAircraftData.get(icao24);
-            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
-            marker.setPopupContent(popupContent);
-        }
+        console.log('OpenSky aircraft tracks have been removed; ignoring toggle request.');
     }
     
     async showAircraftTrack(icao24) {
-        // Always re-fetch track data to get most recent path
-        // Remove old track if it exists
-        let trackData = this.openSkyAircraftTracks.get(icao24);
-        if (trackData && trackData.polyline) {
-            if (this.map.hasLayer(trackData.polyline)) {
-                this.map.removeLayer(trackData.polyline);
-            }
-            this.openSkyAircraftTracks.delete(icao24);
-        }
-        
-        // Fetch track data from OpenSky via proxy
-        const url = OPENSKY_CONFIG.useProxy
-            ? `${OPENSKY_CONFIG.proxyEndpoint}/opensky/tracks/all?icao24=${icao24}&time=0`
-            : `https://opensky-network.org/api/tracks/all?icao24=${icao24}&time=0`;
-        
-        try {
-            console.log(`Fetching track for ${icao24}...`);
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                console.error('OpenSky track API error:', response.status);
-                alert('Unable to fetch aircraft track. Track data may not be available for this aircraft.');
-                return;
-            }
-            
-            const data = await response.json();
-            
-            // Parse track data
-            if (data && data.path && Array.isArray(data.path) && data.path.length > 0) {
-                // Convert path to LatLng array
-                // Path format: [[time, latitude, longitude, baro_altitude, true_track, on_ground], ...]
-                const latLngs = data.path
-                    .filter(point => point[1] != null && point[2] != null) // Filter out null positions
-                    .map(point => [point[1], point[2]]); // [latitude, longitude]
-                
-                if (latLngs.length === 0) {
-                    alert('No valid track positions found for this aircraft.');
-                    return;
-                }
-                
-                // Create polyline for track
-                const trackPolyline = L.polyline(latLngs, {
-                    color: '#9333ea', // Purple color to distinguish from real-time trail
-                    weight: 3,
-                    opacity: 0.8,
-                    dashArray: '10, 5', // Dashed line to distinguish from real-time trail
-                    smoothFactor: 1
-                }).addTo(this.map);
-                
-                // Make track clickable
-                trackPolyline.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    this.showTrackPopup(icao24, e.latlng);
-                });
-                
-                // Store track with path data for continuous growth
-                this.openSkyAircraftTracks.set(icao24, {
-                    polyline: trackPolyline,
-                    isVisible: true,
-                    path: latLngs // Store current path so we can append to it
-                });
-                
-                console.log(`Displayed track for ${icao24}: ${latLngs.length} positions, track will continue to grow`);
-            } else {
-                alert('No track data available for this aircraft.');
-            }
-        } catch (error) {
-            console.error('Error fetching aircraft track:', error);
-            alert('Failed to fetch aircraft track. Please try again.');
-        }
+        console.log('OpenSky aircraft tracks have been removed; ignoring track display request.');
     }
     
     hideAircraftTrack(icao24) {
-        const trackData = this.openSkyAircraftTracks.get(icao24);
-        
-        if (trackData && trackData.polyline) {
-            // Remove from map
-            if (this.map.hasLayer(trackData.polyline)) {
-                this.map.removeLayer(trackData.polyline);
-            }
-            trackData.isVisible = false;
-            console.log(`Hiding track for ${icao24}`);
-        }
+        return;
     }
     
     hideAllAircraftTracks() {
-        // Hide all visible tracks (called when popup closes)
-        this.openSkyAircraftTracks.forEach((trackData, icao24) => {
-            if (trackData.isVisible && trackData.polyline && this.map.hasLayer(trackData.polyline)) {
-                this.map.removeLayer(trackData.polyline);
-                trackData.isVisible = false;
-            }
-        });
+        return;
     }
     
     showTrackPopup(icao24, latlng) {
-        // Get aircraft data for callsign
-        const aircraftData = this.openSkyAircraftData.get(icao24);
-        const callsign = aircraftData?.callsign || icao24;
-        
-        const popupContent = `
-            <div style="min-width: 180px;">
-                <strong style="font-size: 1.1em;">Aircraft Track</strong><br><br>
-                <strong>ICAO24:</strong> <a href="https://map.opensky-network.org/?icao=${icao24}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${icao24}</a><br>
-                ${callsign !== icao24 ? `<strong>Callsign:</strong> ${callsign}<br>` : ''}
-                <br>
-                <button onclick="window.droneMap.removeAircraftTrack('${icao24}'); return false;" style="
-                    background: #dc3545;
-                    color: white;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 13px;
-                    font-weight: 600;
-                    width: 100%;
-                ">Remove Track</button>
-            </div>
-        `;
-        
-        L.popup({
-            maxWidth: 300,
-            className: 'track-popup'
-        })
-        .setLatLng(latlng)
-        .setContent(popupContent)
-        .openOn(this.map);
+        return;
     }
     
     removeAircraftTrack(icao24) {
-        const trackData = this.openSkyAircraftTracks.get(icao24);
-        
-        if (trackData && trackData.polyline) {
-            // Remove from map
-            if (this.map.hasLayer(trackData.polyline)) {
-                this.map.removeLayer(trackData.polyline);
-            }
-            // Delete the track data completely so it can be re-fetched
-            this.openSkyAircraftTracks.delete(icao24);
-            console.log(`Removed track for ${icao24}`);
-        }
-        
-        // Close any open popups
-        this.map.closePopup();
-        
-        // Update the aircraft marker popup if it's open
-        const marker = this.openSkyAircraftMarkers.get(icao24);
-        if (marker && marker.isPopupOpen()) {
-            const aircraftData = this.openSkyAircraftData.get(icao24);
-            const popupContent = this.generateAircraftPopupContent(icao24, aircraftData);
-            marker.setPopupContent(popupContent);
-        }
+        return;
     }
-    
     generateAircraftPopupContent(icao24, data) {
         const {
             callsign, origin_country, geo_altitude, baro_altitude,
@@ -4022,240 +3236,18 @@ class DroneMap {
         `;
     }
     
-    showCreditsDisplay() {
-        // Remove existing counter if present
-        this.hideCreditsDisplay();
-        
-        const mapContainer = this.map.getContainer();
-        
-        this.openSkyCreditsCounter = document.createElement('div');
-        this.openSkyCreditsCounter.id = 'openSkyCreditsCounter';
-        this.openSkyCreditsCounter.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #374151;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 500;
-            z-index: 2001;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            pointer-events: none;
-        `;
-        
-        this.updateCreditsDisplay();
-        
-        mapContainer.appendChild(this.openSkyCreditsCounter);
-        console.log('✅ Credits counter displayed');
-    }
+    showCreditsDisplay() { return; }
     
-    updateCreditsDisplay() {
-        if (!this.openSkyCreditsCounter) return;
-        
-        const percentage = (this.openSkyCreditsUsed / OPENSKY_CONFIG.creditsPerDay) * 100;
-        let colorClass = '#10b981'; // green
-        
-        if (percentage > 80) {
-            colorClass = '#ef4444'; // red
-        } else if (percentage > 50) {
-            colorClass = '#f59e0b'; // orange
-        }
-        
-        this.openSkyCreditsCounter.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="color: ${colorClass}; font-weight: 600;">●</span>
-                <span>OpenSky: ${this.openSkyCreditsUsed}/${OPENSKY_CONFIG.creditsPerDay}</span>
-            </div>
-        `;
-    }
+    updateCreditsDisplay() { return; }
     
-    hideCreditsDisplay() {
-        if (this.openSkyCreditsCounter && this.openSkyCreditsCounter.parentElement) {
-            this.openSkyCreditsCounter.remove();
-            this.openSkyCreditsCounter = null;
-        }
-    }
+    hideCreditsDisplay() { return; }
     
-    showOpenSkyRateLimitWarning() {
-        // Get the map panel to append banner to it
-        const mapPanel = document.getElementById('map-panel');
-        if (!mapPanel) return;
-        
-        // Remove any existing rate limit warning
-        const existingWarning = document.getElementById('openSkyRateLimitWarning');
-        if (existingWarning) {
-            existingWarning.remove();
-        }
-        
-        const warningDiv = document.createElement('div');
-        warningDiv.id = 'openSkyRateLimitWarning';
-        warningDiv.style.cssText = `
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(220, 53, 69, 0.95);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 2000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            max-width: 90%;
-            text-align: center;
-        `;
-        warningDiv.innerHTML = `
-            ⚠️ OpenSky API Rate Limit Reached<br>
-            <span style="font-size: 12px; font-weight: 400; margin-top: 4px; display: block;">
-                Layer updates paused. Add OpenSky credentials for higher limits or wait 24 hours.
-            </span>
-        `;
-        
-        mapPanel.appendChild(warningDiv);
-        
-        // Auto-remove after 10 seconds
-        setTimeout(() => {
-            if (warningDiv.parentElement) {
-                warningDiv.remove();
-            }
-        }, 10000);
-    }
+    showOpenSkyRateLimitWarning() { return; }
     
-    showOpenSkyAcknowledgment() {
-        // Get the map panel to append modal to it
-        const mapPanel = document.getElementById('map-panel');
-        if (!mapPanel) {
-            console.warn('Map panel not found, cannot show OpenSky acknowledgment');
-            return;
-        }
-        
-        // Create modal overlay - positioned relative to map panel
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: Arial, sans-serif;
-        `;
-
-        const modalContent = document.createElement('div');
-        modalContent.style.cssText = `
-            background: white;
-            border-radius: 8px;
-            padding: 0;
-            max-width: 420px;
-            width: calc(100% - 40px);
-            margin: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            overflow: hidden;
-        `;
-
-        modalContent.innerHTML = `
-            <div style="
-                background: #ff6b35;
-                color: white;
-                padding: 16px;
-                font-weight: bold;
-                font-size: 18px;
-                text-align: center;
-                text-transform: uppercase;
-            ">
-                ⚠️ NOTICE
-            </div>
-            <div style="padding: 18px 16px;">
-                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    This layer shows real-time ADS-B aircraft data from <a href="https://opensky-network.org/" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">The OpenSky Network</a>.
-                </p>
-                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Data may be incomplete or delayed. Not all aircraft transmit ADS-B signals, and coverage varies by location.
-                </p>
-                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Eagle Eyes Search Inc. makes no guarantee as to the accuracy, completeness, or reliability of the aircraft data. This information is for situational awareness only.
-                </p>
-                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Always maintain visual separation and follow all aviation regulations.
-                </p>
-                <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: 14px;">
-                    Learn how to contribute to The OpenSky Network <a href="https://opensky-network.org/feed" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">here</a>.
-                </p>
-            </div>
-            <div style="padding: 12px 16px 16px; display: flex; justify-content: center;">
-                <button id="openSkyAcknowledgeBtn" style="
-                    background: #28a745;
-                    color: white;
-                    border: none;
-                    padding: 10px 28px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 600;
-                    min-width: 180px;
-                ">Acknowledge & Continue</button>
-            </div>
-        `;
-
-        modal.appendChild(modalContent);
-        mapPanel.appendChild(modal);
-
-        // Handle acknowledge button
-        const acknowledgeBtn = modalContent.querySelector('#openSkyAcknowledgeBtn');
-        acknowledgeBtn.addEventListener('click', () => {
-            this.openSkyAcknowledged = true;
-            modal.remove();
-            
-            // Enable the layer
-            this.isOpenSkyEnabled = true;
-            const openSkyToggle = document.querySelector('#openSkyToggle');
-            if (openSkyToggle) {
-                openSkyToggle.checked = true;
-            }
-            
-            // Add cluster layer to map
-            if (!this.map.hasLayer(this.openSkyMarkerCluster)) {
-                this.openSkyMarkerCluster.addTo(this.map);
-            }
-            
-            // Start fetching data
-            this.fetchOpenSkyData();
-            this.openSkyUpdateInterval = setInterval(() => {
-                this.fetchOpenSkyData();
-            }, OPENSKY_CONFIG.updateInterval);
-        });
-
-        // Close on background click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                const openSkyToggle = document.querySelector('#openSkyToggle');
-                if (openSkyToggle) {
-                    openSkyToggle.checked = false;
-                }
-                modal.remove();
-            }
-        });
-    }
+    showOpenSkyAcknowledgment() { return; }
 
     loadAirportsDataDebounced() {
-        // Clear existing timer
-        if (this.airportsDebounceTimer) {
-            clearTimeout(this.airportsDebounceTimer);
-        }
-
-        // Set new timer (300ms debounce)
-        this.airportsDebounceTimer = setTimeout(() => {
-            this.loadAirportsData();
-        }, 300);
+        return;
     }
 
     getAirportTypeCategory(typeCode) {
@@ -4274,7 +3266,6 @@ class DroneMap {
         };
         return typeMap[typeCode] || 'Airport'; // Generic fallback
     }
-
     getAirportIconSize(typeCode, runways) {
         // Determine icon size based on type and runway length
         let size = 'medium'; // Default
@@ -4367,1120 +3358,9 @@ class DroneMap {
             popupAnchor: [0, -height / 2]
         });
     }
-
     async loadAirportsData() {
-        if (!this.isAirportsEnabled || !this.map) return;
-
-        const bounds = this.map.getBounds();
-        const rawBbox = {
-            west: bounds.getWest(),
-            south: bounds.getSouth(),
-            east: bounds.getEast(),
-            north: bounds.getNorth()
-        };
-        const normalized = this.normalizeBbox(
-            rawBbox.west,
-            rawBbox.south,
-            rawBbox.east,
-            rawBbox.north
-        );
-        const bbox = `${normalized.west},${normalized.south},${normalized.east},${normalized.north}`;
-        
-        // Check cache
-        if (this.airportsCache.has(bbox)) {
-            return;
-        }
-
-        const proxyBase = this.getOpenAIPProxyUrl();
-        const airportUrl = `${proxyBase}/openaip/airports?bbox=${bbox}`;
-
-        try {
-            const airportResponse = await fetch(airportUrl).catch(err => {
-                console.error('Proxy unreachable for airports:', err);
-                return null;
-            });
-
-            if (!airportResponse || !airportResponse.ok) {
-                console.warn('Airport proxy error:', airportResponse?.status);
-                return;
-            }
-
-            let airportData;
-            try {
-                airportData = await airportResponse.json();
-            } catch (jsonError) {
-                console.error('Failed to parse airport JSON:', jsonError);
-                return;
-            }
-
-            let featureArray = null;
-            let fetchedCount = 0;
-            
-            // Handle different response formats
-            if (airportData.type === 'FeatureCollection' && Array.isArray(airportData.features)) {
-                featureArray = airportData.features;
-                fetchedCount = featureArray.length;
-            } else if (airportData.items && Array.isArray(airportData.items)) {
-                featureArray = airportData.items.map(item => this.convertOpenAIPAirportToGeoJSON(item));
-                fetchedCount = airportData.items.length;
-            }
-
-            if (!featureArray || featureArray.length === 0) {
-                console.log('No airport features found');
-                return;
-            }
-
-            // Deduplicate by _id
-            const uniqueAirports = [];
-            const dedupedIds = new Set();
-            
-            featureArray.forEach(airport => {
-                const id = airport.properties?._id || airport.id || airport.properties?.id;
-                if (id && !dedupedIds.has(id) && !this.airportsFeatureIds.has(id)) {
-                    dedupedIds.add(id);
-                    this.airportsFeatureIds.add(id);
-                    uniqueAirports.push(airport);
-                }
-            });
-
-            // Index airports for lookup
-            uniqueAirports.forEach(airport => {
-                const props = airport.properties || {};
-                const name = (props.name || '').toUpperCase();
-                const icao = (props.icaoCode || props.icao || props.code || '').toUpperCase();
-                const airportId = props._id || props.id;
-                
-                // Index by uppercase name
-                if (name) {
-                    this.airportsIndex.set(name, { id: airportId, name: props.name, icao: props.icaoCode || props.icao || props.code });
-                }
-                
-                // Index by ICAO code
-                if (icao) {
-                    this.airportsIndex.set(`ICAO:${icao}`, { id: airportId, name: props.name, icao: props.icaoCode || props.icao || props.code });
-                }
-            });
-
-            // Create markers for each airport
-            const markers = [];
-            let sampleAirport = null;
-
-            uniqueAirports.forEach(airport => {
-                if (airport.geometry && airport.geometry.type === 'Point') {
-                    const props = airport.properties || {};
-                    const coords = airport.geometry.coordinates;
-                    const latlng = [coords[1], coords[0]];
-
-                    // Create icon based on type and size
-                    const typeCode = props.typeCode || props.type;
-                    const icon = this.createAirportIcon(typeCode, null, props.runways);
-                    
-                    // Create marker
-                    const marker = L.marker(latlng, { icon: icon });
-                    
-                    // Create popup content for airport
-                    const airportType = this.getAirportCategory(typeCode);
-                    const layerName = airportType === 'water' ? 'Water Aerodrome' : 
-                                     airportType === 'heliport' ? 'Heliport' : 'Airport';
-                    const typeCategory = this.getAirportTypeCategory(typeCode || props.type);
-                    
-                    let popupContent = `
-                        <div style="font-family: Arial, sans-serif; min-width: 250px; max-height: 450px; overflow-y: auto; overflow-x: hidden;">
-                            <div style="margin-bottom: 10px;">
-                                <strong style="font-size: 13px; color: #666;">${layerName}</strong>
-                                ${typeCategory ? `<span style="font-size: 12px; color: #999; margin-left: 8px;">(${typeCategory})</span>` : ''}
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <strong style="font-size: 14px; color: #333;">${props.name || 'Unknown'}</strong>
-                            </div>
-                    `;
-                    
-                    // OpenAIP link if _id available
-                    if (props._id || props.id) {
-                        const openaipUrl = `https://www.openaip.net/data/airports/${props._id || props.id}`;
-                        popupContent += `
-                            <div style="margin-bottom: 8px;">
-                                <a href="${openaipUrl}" target="_blank" rel="noopener noreferrer"
-                                   onclick="window.open('${openaipUrl}', '_blank'); return false;"
-                                   style="font-size: 12px; font-weight: bold; color: #0066cc; text-decoration: underline; cursor: pointer;">
-                                    View on OpenAIP
-                                </a>
-                            </div>
-                        `;
-                    }
-                    
-                    // Coordinates
-                    if (props.latitude && props.longitude) {
-                        const lat = typeof props.latitude === 'number' ? props.latitude.toFixed(6) : props.latitude;
-                        const lon = typeof props.longitude === 'number' ? props.longitude.toFixed(6) : props.longitude;
-                        const latDir = typeof props.latitude === 'number' && props.latitude < 0 ? 'S' : 'N';
-                        const lonDir = typeof props.longitude === 'number' && props.longitude < 0 ? 'W' : 'E';
-                        const latAbs = typeof props.latitude === 'number' ? Math.abs(props.latitude).toFixed(6) : lat;
-                        const lonAbs = typeof props.longitude === 'number' ? Math.abs(props.longitude).toFixed(6) : lon;
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Coordinates:</strong> ${latAbs}° ${latDir}, ${lonAbs}° ${lonDir}</div>`;
-                    }
-                    
-                    // ICAO code
-                    const icaoCode = props.icaoCode || props.icao || props.code;
-                    if (icaoCode) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>ICAO:</strong> ${icaoCode}</div>`;
-                    }
-                    
-                    // IATA code
-                    if (props.iata) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>IATA:</strong> ${props.iata}</div>`;
-                    }
-                    
-                    // Type
-                    if (typeCategory) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Type:</strong> ${typeCategory}</div>`;
-                    }
-                    
-                    // Country
-                    if (props.country) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Country:</strong> ${props.country}</div>`;
-                    }
-                    
-                    // Elevation
-                    if (props.elevation) {
-                        let elevation = 'N/A';
-                        if (typeof props.elevation === 'object') {
-                            const elevValue = props.elevation.value || props.elevation;
-                            const elevUnit = props.elevation.unit === 0 ? 'M' : 'FT';
-                            elevation = `${elevValue} ${elevUnit}`;
-                        } else {
-                            elevation = `${props.elevation} FT`;
-                        }
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Elevation:</strong> ${elevation}</div>`;
-                    }
-                    
-                    // Traffic type (VFR/IFR)
-                    if (props.trafficType) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Traffic:</strong> ${props.trafficType}</div>`;
-                    }
-                    
-                    // Frequencies with labels if available
-                    if (props.radioFrequencies && Array.isArray(props.radioFrequencies) && props.radioFrequencies.length > 0) {
-                        const freqDisplay = props.radioFrequencies.map(freq => {
-                            if (typeof freq === 'object' && freq.value) {
-                                const freqLabel = freq.label ? `${freq.label}: ` : '';
-                                const freqValue = freq.value;
-                                const freqUnit = freq.unit === 0 ? 'MHz' : 'kHz';
-                                return `${freqLabel}${freqValue} ${freqUnit}`;
-                            }
-                            return freq;
-                        }).join(', ');
-                        if (props.radioFrequencies.length === 1) {
-                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequency:</strong> ${freqDisplay}</div>`;
-                        } else {
-                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Frequencies:</strong> ${freqDisplay}</div>`;
-                        }
-                    }
-                    
-                    // Runways
-                    if (props.runways && Array.isArray(props.runways) && props.runways.length > 0) {
-                        const runwayInfo = props.runways.map(rwy => {
-                            const length = rwy.length;
-                            const designator = rwy.designator || rwy.designator1 || '';
-                            if (length && length.value) {
-                                const lengthValue = length.value;
-                                const lengthUnit = length.unit === 0 ? 'M' : 'FT';
-                                const surface = rwy.surface ? ` (${rwy.surface})` : '';
-                                return `${designator ? designator + ': ' : ''}${lengthValue} ${lengthUnit}${surface}`;
-                            }
-                            return null;
-                        }).filter(r => r !== null);
-                        if (runwayInfo.length > 0) {
-                            popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Runway(s):</strong> ${runwayInfo.join(', ')}</div>`;
-                        }
-                    }
-                    
-                    // Ownership
-                    if (props.ownership) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Ownership:</strong> ${props.ownership}</div>`;
-                    }
-                    
-                    // Restriction
-                    if (props.restriction) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Restriction:</strong> ${props.restriction}</div>`;
-                    }
-                    
-                    // Magnetic variation
-                    if (props.magVar !== null && props.magVar !== undefined) {
-                        popupContent += `<div style="margin-bottom: 6px; font-size: 12px;"><strong>Mag Var:</strong> ${props.magVar}°</div>`;
-                    }
-                    
-                    // Raw properties toggle and Add Radius button
-                    const featureId = `feature-${props.id || props._id || props.icaoCode || props.name}`;
-                    const airportName = props.name || 'Unknown';
-                    const airportLat = props.latitude || marker._latlng.lat;
-                    const airportLng = props.longitude || marker._latlng.lng;
-                    popupContent += `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                            <button onclick="event.stopPropagation(); window.droneMap.showAddRadiusDialog('${airportName}', ${airportLat}, ${airportLng}); return false;" 
-                                    style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
-                                Add Radius
-                            </button>
-                            <button onclick="event.stopPropagation(); window.droneMap.toggleRawProperties('${featureId}'); return false;" 
-                                    style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; pointer-events: auto;">
-                                i
-                            </button>
-                            <pre id="${featureId}" style="display: none; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; overflow-x: auto; font-size: 10px; overflow-y: visible;">${JSON.stringify(props, null, 2)}</pre>
-                        </div>
-                    `;
-                    
-                    popupContent += `</div>`;
-                    
-                    // Bind popup directly to marker
-                    marker.bindPopup(popupContent, {
-                        className: 'airport-popup',
-                        maxWidth: 450,
-                        autoClose: false,
-                        closeOnClick: false
-                    });
-                    
-                    // Store properties in marker for reference
-                    marker.airportProperties = props;
-                    
-                    markers.push(marker);
-                    
-                    // Capture first airport as sample
-                    if (!sampleAirport) {
-                        sampleAirport = props;
-                    }
-                }
-            });
-
-            // Add markers to cluster group
-            if (markers.length > 0) {
-                this.airportsMarkerCluster.addLayers(markers);
-            }
-
-            // Cache the bbox
-            this.airportsCache.set(bbox, true);
-
-            // Diagnostics
-            console.log(`=== Airports Load Summary ===`);
-            console.log(`Airports fetched: ${fetchedCount}`);
-            console.log(`Airports deduplicated: ${uniqueAirports.length}`);
-            console.log(`Airports rendered: ${markers.length}`);
-            if (sampleAirport) {
-                console.log('Sample airport properties:', {
-                    name: sampleAirport.name,
-                    icaoCode: sampleAirport.icaoCode || sampleAirport.icao || sampleAirport.code,
-                    iataCode: sampleAirport.iata,
-                    elevation: sampleAirport.elevation,
-                    frequencies: sampleAirport.radioFrequencies,
-                    runways: sampleAirport.runways,
-                    type: sampleAirport.typeCode
-                });
-            }
-        } catch (error) {
-            console.error('Error loading airport data:', error);
-        }
+        return;
     }
-
-    createAirportPopup(props) {
-        const name = props.name || 'Unknown';
-        const icaoCode = props.icaoCode || props.icao || props.code || null;
-        const iataCode = props.iata || null;
-        const typeCode = props.typeCode || props.type;
-        const country = props.country || null;
-        
-        // Format elevation
-        let elevation = 'N/A';
-        if (props.elevation) {
-            if (typeof props.elevation === 'object') {
-                const elevValue = props.elevation.value || props.elevation;
-                const elevUnit = props.elevation.unit === 0 ? 'M' : 'FT';
-                elevation = `${elevValue} ${elevUnit}`;
-            } else {
-                elevation = `${props.elevation} FT`; // Assume feet if just a number
-            }
-        }
-        
-        // Get airport type category
-        const typeCategory = this.getAirportTypeCategory(typeCode);
-        
-        // Extract all frequencies
-        let frequencies = [];
-        if (props.radioFrequencies && Array.isArray(props.radioFrequencies)) {
-            frequencies = props.radioFrequencies.map(freq => {
-                const f = freq.frequency || freq.value;
-                const unit = freq.unit || 'MHz';
-                return f ? `${f} ${unit}` : null;
-            }).filter(f => f !== null);
-        }
-        
-        // Extract runway information
-        let runways = [];
-        if (props.runways && Array.isArray(props.runways)) {
-            runways = props.runways.map(rwy => {
-                const length = rwy.length;
-                const designator = rwy.designator || rwy.designator1 || null;
-                if (length && length.value) {
-                    const lengthValue = length.value;
-                    const lengthUnit = length.unit === 0 ? 'M' : 'FT';
-                    return {
-                        designator: designator,
-                        length: `${lengthValue} ${lengthUnit}`
-                    };
-                }
-                return null;
-            }).filter(r => r !== null);
-        }
-        
-        // Traffic type (VFR/IFR)
-        const trafficType = props.trafficType || props.traffic || null;
-
-        let popupContent = `
-            <div style="font-family: Arial, sans-serif; min-width: 200px;">
-                <div style="font-size: 12px; line-height: 1.6;">
-        `;
-        
-        // Airport name
-        popupContent += `<div style="margin-bottom: 8px;"><strong style="font-size: 14px;">${name}</strong></div>`;
-        
-        // Type
-        popupContent += `<div><strong>Type:</strong> ${typeCategory}</div>`;
-        
-        // ICAO and IATA codes
-        if (icaoCode) {
-            popupContent += `<div><strong>ICAO:</strong> ${icaoCode}</div>`;
-        }
-        if (iataCode) {
-            popupContent += `<div><strong>IATA:</strong> ${iataCode}</div>`;
-        }
-        
-        // Country
-        if (country) {
-            popupContent += `<div><strong>Country:</strong> ${country}</div>`;
-        }
-        
-        // Elevation
-        popupContent += `<div><strong>Elevation:</strong> ${elevation}</div>`;
-        
-        // Frequencies
-        if (frequencies.length > 0) {
-            if (frequencies.length === 1) {
-                popupContent += `<div><strong>Frequency:</strong> ${frequencies[0]}</div>`;
-            } else {
-                popupContent += `<div><strong>Frequencies:</strong> ${frequencies.join(', ')}</div>`;
-            }
-        }
-        
-        // Runways
-        if (runways.length > 0) {
-            const runwayInfo = runways.map(rwy => {
-                const desig = rwy.designator ? `${rwy.designator}: ` : '';
-                return `${desig}${rwy.length}`;
-            }).join(', ');
-            popupContent += `<div><strong>Runway(s):</strong> ${runwayInfo}</div>`;
-        }
-        
-        // Traffic type
-        if (trafficType) {
-            popupContent += `<div><strong>Traffic:</strong> ${trafficType}</div>`;
-        }
-        
-        // Fallback radius note (if applicable)
-        if (props.isFallback && props.fallbackRadiusNM !== undefined) {
-            popupContent += `<div style="margin-top: 8px; font-style: italic; color: #666; font-size: 11px;">Default radius ${props.fallbackRadiusNM} NM used.</div>`;
-        }
-
-        popupContent += `</div></div>`;
-        return popupContent;
-    }
-
-    convertOpenAIPAirportToGeoJSON(item) {
-        // Convert OpenAIP airport to GeoJSON Point feature
-        // Airports might have different structure than airspaces
-        const icaoCode = item.icao || item.ident || item.code || null;
-        const props = {
-            name: item.name || 'Unknown',
-            icaoCode: icaoCode, // Set icaoCode field as specified
-            icao: icaoCode, // Also keep icao for backwards compatibility
-            code: icaoCode, // Also keep code for backwards compatibility
-            iata: item.iata || null,
-            id: item._id || item.id,
-            _id: item._id || item.id, // Store _id explicitly for OpenAIP link
-            country: item.country || null,
-            type: 'AIRPORT',
-            typeCode: item.type, // Store airport type code
-            elevation: item.elevation || null,
-            radioFrequencies: item.radioFrequencies || item.frequencies || null,
-            runways: item.runways || null,
-            trafficType: item.trafficType || item.traffic || null, // VFR/IFR
-            notes: item.notes || null,
-            // Include all other fields that might be in the API response
-            magVar: item.magVar || null,
-            ownership: item.ownership || null,
-            restriction: item.restriction || null,
-            latitude: item.latitude || (item.geometry && item.geometry.coordinates ? item.geometry.coordinates[1] : null),
-            longitude: item.longitude || (item.geometry && item.geometry.coordinates ? item.geometry.coordinates[0] : null)
-        };
-        
-        // Airport geometry might be a Point or we need to construct it
-        let geometry = item.geometry;
-        if (!geometry && item.latitude && item.longitude) {
-            geometry = {
-                type: 'Point',
-                coordinates: [item.longitude, item.latitude]
-            };
-        }
-        
-        return {
-            type: 'Feature',
-            id: item._id || item.id,
-            geometry: geometry,
-            properties: props
-        };
-    }
-
-    convertOpenAIPItemToGeoJSON(item) {
-        // Convert OpenAIP API item format to GeoJSON Feature
-        // OpenAIP format: { _id, name, type (numeric), icaoClass (numeric), geometry, upperLimit/lowerLimit (objects) }
-        // GeoJSON format: { type: "Feature", id, geometry, properties: {...} }
-        
-        const props = {};
-        
-        // Map basic properties
-        props.name = item.name || 'Unknown';
-        props.id = item._id || item.id;
-        props._id = item._id || item.id; // Add _id explicitly for popup links
-        
-        // Convert numeric type to string (OpenAIP uses numeric codes)
-        // Map OpenAIP type codes to labels (include at least: 1,2,3,4,5,6,7,13,20,26,36)
-        const typeMap = {
-            0: 'AWY',   // Airway
-            1: 'TYPE_1',
-            2: 'TYPE_2',
-            3: 'TYPE_3',
-            4: 'CTR',   // Control Zone
-            5: 'TYPE_5',
-            6: 'TYPE_6',
-            7: 'TYPE_7',
-            13: 'ATZ',  // Aerodrome Traffic Zone
-            20: 'HTZ',  // Heliport Traffic Zone
-            26: 'TYPE_26',
-            36: 'TYPE_36'
-        };
-        if (item.type !== undefined) {
-            props.type = typeMap[item.type] || `TYPE_${item.type}`;
-            props.typeCode = item.type; // Keep original numeric for filtering
-        }
-        
-        // Convert numeric ICAO class to letter (0=A, 1=B, 2=C, 3=D, 4=E, 5=F, 6=G, 8=Unclassified)
-        if (item.icaoClass !== undefined) {
-            const icaoClasses = ['A', 'B', 'C', 'D', 'E', 'F', 'G', null, 'Unclassified'];
-            props.icaoClass = icaoClasses[item.icaoClass] || null;
-            props.icaoClassNumeric = item.icaoClass; // Keep numeric for filtering
-        }
-        
-        // Convert altitude limits
-        // OpenAIP format: { value: number, unit: number (0=M, 1=FT, 2=FL), referenceDatum: number }
-        // unit: 0 = meters, 1 = feet, 2 = flight level
-        // referenceDatum: 0 = ground/surface, 1 = MSL
-        // Normalize to feet: meters × 3.28084, FL × 100, ground/surface = 0 ft
-        if (item.upperLimit) {
-            props.upperLimitRaw = item.upperLimit.value;
-            props.upperLimitReferenceDatum = item.upperLimit.referenceDatum; // 0 = GND, 1 = MSL
-            let upperLimitFt = item.upperLimit.value;
-            
-            if (item.upperLimit.unit === 0) {
-                // Meters to feet
-                props.upperLimitUnit = 'M';
-                upperLimitFt = item.upperLimit.value * 3.28084;
-            } else if (item.upperLimit.unit === 1) {
-                props.upperLimitUnit = 'FT';
-                upperLimitFt = item.upperLimit.value;
-            } else if (item.upperLimit.unit === 2) {
-                // Flight level to feet
-                props.upperLimitUnit = 'FL';
-                upperLimitFt = item.upperLimit.value * 100;
-            }
-            
-            props.upperLimit = upperLimitFt;
-            props.upperLimitFt = upperLimitFt; // Store in feet for filtering
-        } else {
-            // Missing upper limit = Infinity
-            props.upperLimit = Infinity;
-            props.upperLimitFt = Infinity;
-            props.upperLimitUnit = null;
-        }
-        
-        if (item.lowerLimit) {
-            props.lowerLimitRaw = item.lowerLimit.value;
-            props.lowerLimitReferenceDatum = item.lowerLimit.referenceDatum; // 0 = GND, 1 = MSL
-            let lowerLimitFt = item.lowerLimit.value;
-            
-            if (item.lowerLimit.unit === 0) {
-                // Meters to feet
-                props.lowerLimitUnit = 'M';
-                lowerLimitFt = item.lowerLimit.value * 3.28084;
-            } else if (item.lowerLimit.unit === 1) {
-                props.lowerLimitUnit = 'FT';
-                lowerLimitFt = item.lowerLimit.value;
-            } else if (item.lowerLimit.unit === 2) {
-                // Flight level to feet
-                props.lowerLimitUnit = 'FL';
-                lowerLimitFt = item.lowerLimit.value * 100;
-            }
-            
-            // Ground/surface = 0 feet (regardless of value if referenceDatum is ground/surface)
-            if (item.lowerLimit.referenceDatum === 0) {
-                lowerLimitFt = 0;
-            }
-            
-            props.lowerLimit = lowerLimitFt;
-            props.lowerLimitFt = lowerLimitFt; // Store in feet for filtering
-        } else {
-            // Missing lower limit = 0 feet
-            props.lowerLimit = 0;
-            props.lowerLimitFt = 0;
-            props.lowerLimitUnit = null;
-        }
-        
-        // Also handle upper limit ground/surface
-        if (item.upperLimit && item.upperLimit.referenceDatum === 0) {
-            props.upperLimitFt = 0;
-            props.upperLimit = 0;
-        }
-        
-        // Extract airport code / identifier (might be in different fields)
-        props.code = item.icao || item.ident || item.code || item.identifier || null;
-        
-        // Extract frequency (might be in radioFrequencies array or similar)
-        if (item.radioFrequencies && Array.isArray(item.radioFrequencies) && item.radioFrequencies.length > 0) {
-            // Take the first frequency
-            const freq = item.radioFrequencies[0];
-            props.frequency = freq.frequency || freq.value || null;
-            props.frequencyUnit = freq.unit || 'MHz';
-        } else if (item.frequency) {
-            props.frequency = item.frequency;
-        }
-        
-        // Copy other properties that might be useful
-        props.country = item.country;
-        props.elevation = item.elevation;
-        
-        // Log raw item for debugging if it's an airport-type feature
-        if (item.name && (item.name.includes('VANCOUVER') || props.code)) {
-            console.log('Airport item data:', item);
-        }
-        
-        return {
-            type: 'Feature',
-            id: item._id || item.id,
-            geometry: item.geometry || null,
-            properties: props
-        };
-    }
-
-    normalizeBbox(west, south, east, north) {
-        // Normalize longitude to -180 to 180 range
-        const normalizeLon = (lon) => {
-            lon = lon % 360;
-            if (lon > 180) lon -= 360;
-            if (lon < -180) lon += 360;
-            return lon;
-        };
-        
-        let w = normalizeLon(west);
-        let e = normalizeLon(east);
-        let s = Math.max(-90, Math.min(90, south)); // Clamp latitude to -90..90
-        let n = Math.max(-90, Math.min(90, north));
-        
-        // If west > east, we're crossing the date line
-        // For now, we'll clamp to a reasonable range
-        // If the bounding box is too large (covers most of the world), use a default
-        const lonRange = e - w;
-        if (lonRange > 350 || w > e) {
-            // Bounding box is too large or crosses date line - use current map center with reasonable range
-            const center = this.map.getCenter();
-            w = Math.max(-180, center.lng - 10);
-            e = Math.min(180, center.lng + 10);
-            s = Math.max(-90, center.lat - 10);
-            n = Math.min(90, center.lat + 10);
-        }
-        
-        return { west: w, south: s, east: e, north: n };
-    }
-
-    async loadAirspaceData() {
-        if (!this.isAirspaceEnabled || !this.map) return;
-
-        const bounds = this.map.getBounds();
-        const rawBbox = {
-            west: bounds.getWest(),
-            south: bounds.getSouth(),
-            east: bounds.getEast(),
-            north: bounds.getNorth()
-        };
-        const normalized = this.normalizeBbox(
-            rawBbox.west,
-            rawBbox.south,
-            rawBbox.east,
-            rawBbox.north
-        );
-        const bbox = `${normalized.west},${normalized.south},${normalized.east},${normalized.north}`;
-        
-        console.log('Bbox normalization:', {
-            raw: rawBbox,
-            normalized: normalized,
-            bboxString: bbox
-        });
-        
-        // Check cache
-        if (this.airspaceCache.has(bbox)) {
-            return;
-        }
-        
-        // Show loading indicator
-        this.airspaceLoading = true;
-        this.showAirspaceLoadingMessage('airspace');
-
-        const proxyBase = this.getOpenAIPProxyUrl();
-        // Request GeoJSON format for airspaces
-        const airspaceUrl = `${proxyBase}/openaip/airspaces?bbox=${bbox}&format=geojson`;
-        const airportUrl = `${proxyBase}/openaip/airports?bbox=${bbox}`;
-
-        console.log('Fetching airspace data from:', airspaceUrl);
-        console.log('Fetching airport data from:', airportUrl);
-
-        try {
-            const [airspaceResponse, airportResponse] = await Promise.all([
-                fetch(airspaceUrl).catch(err => {
-                    console.error('Proxy fetch error for airspace:', err);
-                    return null;
-                }),
-                fetch(airportUrl).catch(err => {
-                    console.error('Proxy fetch error for airports:', err);
-                    return null;
-                })
-            ]);
-
-            // Check if proxy is unreachable - only show error if airspace layer is enabled
-            // and we got no response (network error, not just HTTP error)
-            if (this.isAirspaceEnabled) {
-                if (!airspaceResponse && !airportResponse) {
-                    // Both failed - proxy is likely unreachable
-                    this.airspaceProxyError = true;
-                    this.showProxyErrorMessage();
-                    return;
-                } else if (airspaceResponse) {
-                    // Got a response (even if HTTP error) - proxy is reachable
-                    this.airspaceProxyError = false;
-                    this.hideProxyErrorMessage();
-                } else if (!airspaceResponse && airportResponse) {
-                    // Airport worked but airspace didn't - proxy might be partially working
-                    // Show error since airspace is what we need
-                    this.airspaceProxyError = true;
-                    this.showProxyErrorMessage();
-                    return;
-                }
-            }
-
-            // Check for HTTP errors
-            if (airspaceResponse && !airspaceResponse.ok) {
-                console.warn(`Airspace proxy error: ${airspaceResponse.status}`);
-                // Don't set error for HTTP errors (4xx/5xx) - proxy is reachable, just had an issue
-                // Only show error if it's a connection failure
-                return;
-            }
-            if (airportResponse && !airportResponse.ok) {
-                console.warn(`Airport proxy error: ${airportResponse.status}`);
-            }
-
-            const features = [];
-            let dataLoadedSuccessfully = false;
-
-            // Process airspace data
-            if (airspaceResponse && airspaceResponse.ok) {
-                let airspaceData;
-                try {
-                    airspaceData = await airspaceResponse.json();
-                } catch (jsonError) {
-                    const text = await airspaceResponse.text();
-                    console.error('Failed to parse airspace JSON:', jsonError);
-                    console.error('Response text:', text.substring(0, 500));
-                    airspaceData = null;
-                }
-                
-                if (airspaceData) {
-                    console.log('Airspace data received:', {
-                        type: airspaceData.type,
-                        featureCount: airspaceData.features ? airspaceData.features.length : 0,
-                        hasFeatures: !!airspaceData.features,
-                        keys: Object.keys(airspaceData),
-                        fullData: airspaceData, // Log full response to see structure
-                        sampleFeature: airspaceData.features && airspaceData.features.length > 0 ? airspaceData.features[0] : null
-                    });
-                    
-                    // Handle different response formats
-                    // Prioritize GeoJSON FeatureCollection (if OpenAIP supports format=geojson)
-                    let featureArray = null;
-                    
-                    // Standard GeoJSON FeatureCollection (preferred format)
-                    if (airspaceData.type === 'FeatureCollection' && Array.isArray(airspaceData.features)) {
-                        featureArray = airspaceData.features;
-                        console.log(`Using GeoJSON FeatureCollection format (${featureArray.length} features)`);
-                    }
-                    // OpenAIP paginated format: { items: [...], totalCount: ... }
-                    // Fallback for when format=geojson is not supported
-                    else if (airspaceData.items && Array.isArray(airspaceData.items)) {
-                        // Convert OpenAIP format to GeoJSON Features
-                        featureArray = airspaceData.items.map(item => this.convertOpenAIPItemToGeoJSON(item));
-                        console.log(`Converted ${featureArray.length} OpenAIP items to GeoJSON features`);
-                    }
-                    // If it's an array directly
-                    else if (Array.isArray(airspaceData)) {
-                        featureArray = airspaceData;
-                    }
-                    // If features array exists but no type
-                    else if (Array.isArray(airspaceData.features)) {
-                        featureArray = airspaceData.features;
-                    }
-                    // Check for data property that might contain features
-                    else if (airspaceData.data && Array.isArray(airspaceData.data)) {
-                        featureArray = airspaceData.data;
-                    }
-                    // Check for airspaces property
-                    else if (airspaceData.airspaces && Array.isArray(airspaceData.airspaces)) {
-                        featureArray = airspaceData.airspaces;
-                    }
-                    
-                    if (featureArray) {
-                        let beforeFilterCount = featureArray.length;
-                        let afterFilterCount = 0;
-                        
-                        // Track diagnostic features
-                        let firstCTR = null;
-                        let firstATZ = null;
-                        let firstClassF = null;
-                        
-                        // Filter and process airspaces - use actual geometry (don't replace with circles)
-                        featureArray.forEach(feature => {
-                            // Ensure properties exist and have correct structure
-                            if (!feature.properties) {
-                                feature.properties = {};
-                            }
-                            
-                            // If feature comes from GeoJSON (not converted from OpenAIP), we need to ensure
-                            // it has the properties we need for filtering
-                            const props = feature.properties;
-                            
-                            // Check if we need to convert OpenAIP format properties
-                            // GeoJSON from OpenAIP API might have different property names
-                            if (props.icaoClass !== undefined && props.icaoClassNumeric === undefined) {
-                                // Convert ICAO class letter to numeric if needed
-                                const icaoClassMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'Unclassified': 8 };
-                                if (typeof props.icaoClass === 'string') {
-                                    props.icaoClassNumeric = icaoClassMap[props.icaoClass] !== undefined ? icaoClassMap[props.icaoClass] : null;
-                                }
-                            }
-                            
-                            // Ensure altitude limits are in feet for filtering
-                            if (props.lowerLimit && props.lowerLimitFt === undefined) {
-                                // Try to convert if unit info is available
-                                if (props.lowerLimitUnit === 'M') {
-                                    props.lowerLimitFt = props.lowerLimit * 3.28084;
-                                } else if (props.lowerLimitUnit === 'FL') {
-                                    props.lowerLimitFt = props.lowerLimit * 100;
-                                } else if (props.lowerLimitUnit === 'FT' || props.lowerLimitUnit === undefined) {
-                                    props.lowerLimitFt = props.lowerLimit;
-                                }
-                            }
-                            
-                            if (props.upperLimit && props.upperLimitFt === undefined) {
-                                // Try to convert if unit info is available
-                                if (props.upperLimitUnit === 'M') {
-                                    props.upperLimitFt = props.upperLimit * 3.28084;
-                                } else if (props.upperLimitUnit === 'FL') {
-                                    props.upperLimitFt = props.upperLimit * 100;
-                                } else if (props.upperLimitUnit === 'FT' || props.upperLimitUnit === undefined) {
-                                    props.upperLimitFt = props.upperLimit;
-                                }
-                            }
-                            
-                            if (this.filterAirspace(feature)) {
-                                // Capture diagnostics for first instances
-                                if (!firstCTR && (props.typeCode === 4 || props.type === 'CTR')) {
-                                    firstCTR = { properties: props };
-                                }
-                                if (!firstATZ && (props.typeCode === 13 || props.type === 'ATZ')) {
-                                    firstATZ = { properties: props };
-                                }
-                                if (!firstClassF && props.icaoClassNumeric === 5) {
-                                    firstClassF = { properties: props };
-                                }
-                                
-                                features.push(feature); // Use actual geometry, don't convert to circle
-                                afterFilterCount++;
-                            }
-                        });
-                        
-                        console.log(`Airspace filtering: ${beforeFilterCount} features before, ${afterFilterCount} after`);
-                        
-                        // Mark as successfully loaded if we got features (even if none passed filter)
-                        if (beforeFilterCount > 0) {
-                            dataLoadedSuccessfully = true;
-                        }
-                        
-                        // Diagnostics logging
-                        if (firstCTR) {
-                            console.log('First CTR feature:', firstCTR);
-                        }
-                        if (firstATZ) {
-                            console.log('First ATZ feature:', firstATZ);
-                        }
-                        if (firstClassF) {
-                            console.log('First Class F feature:', firstClassF);
-                        }
-                    } else {
-                        console.warn('Airspace data format unexpected - no features array found:', {
-                            hasType: !!airspaceData.type,
-                            type: airspaceData.type,
-                            hasFeatures: !!airspaceData.features,
-                            hasItems: !!airspaceData.items,
-                            isArray: Array.isArray(airspaceData),
-                            hasData: !!airspaceData.data,
-                            hasAirspaces: !!airspaceData.airspaces,
-                            allKeys: Object.keys(airspaceData)
-                        });
-                    }
-                }
-            } else {
-                console.log('No airspace response or response not OK:', {
-                    hasResponse: !!airspaceResponse,
-                    ok: airspaceResponse?.ok,
-                    status: airspaceResponse?.status,
-                    statusText: airspaceResponse?.statusText
-                });
-            }
-
-            // DEBUGGING MODE: Disabled airport processing
-            // Not processing airport data for fallback circles
-            
-            // Deduplicate by stable ID
-            const uniqueFeatures = [];
-            features.forEach(feature => {
-                const id = feature.id || this.generateStableId(feature);
-                if (!this.airspaceFeatureIds.has(id)) {
-                    this.airspaceFeatureIds.add(id);
-                    uniqueFeatures.push(feature);
-                }
-            });
-            
-            // DEBUGGING MODE: Disabled fallback circle logic
-            // Not creating airport circles - only showing actual airspace polygons
-
-            // Add features to layer
-            if (uniqueFeatures.length > 0) {
-                // Use setTimeOut to ensure rendering happens asynchronously
-                setTimeout(() => {
-                    this.airspaceLayer.addData({
-                        type: 'FeatureCollection',
-                        features: uniqueFeatures
-                    });
-                    
-                    // Hide loading indicator AFTER rendering is complete
-                    this.airspaceLoading = false;
-                    this.hideAirspaceLoadingMessage();
-                }, 0);
-            } else {
-                // No features to render, hide loading immediately
-                this.airspaceLoading = false;
-                this.hideAirspaceLoadingMessage();
-            }
-
-            // Cache the bbox
-            this.airspaceCache.set(bbox, true);
-            
-            // Clear error if we successfully loaded data
-            if (dataLoadedSuccessfully || uniqueFeatures.length > 0) {
-                this.airspaceProxyError = false;
-                this.hideProxyErrorMessage();
-            }
-            
-            // Calculate totals for logging
-            const airspacesFetched = airspaceData ? 
-                (airspaceData.items ? airspaceData.items.length : 
-                 (airspaceData.features ? airspaceData.features.length : 0)) : 0;
-            const airspacesRendered = uniqueFeatures.length;
-            
-            // DEBUGGING MODE: Comprehensive logging
-            console.log(`=== Airspace Load Summary (DEBUG MODE - No Filtering) ===`);
-            console.log(`Airspaces fetched: ${airspacesFetched}`);
-            console.log(`Airspaces rendered: ${airspacesRendered}`);
-            
-            // Log first few feature objects for structure inspection
-            console.log(`First ${Math.min(3, uniqueFeatures.length)} feature objects:`);
-            uniqueFeatures.slice(0, 3).forEach((feature, idx) => {
-                console.log(`Feature ${idx + 1}:`, {
-                    id: feature.id,
-                    geometry: {
-                        type: feature.geometry?.type,
-                        coordinatesCount: feature.geometry?.coordinates?.length || 0
-                    },
-                    properties: feature.properties
-                });
-            });
-            
-            // Count by ICAO class for visibility
-            const classCounts = {};
-            uniqueFeatures.forEach(f => {
-                const icaoClass = f.properties?.icaoClassNumeric !== undefined ? 
-                    f.properties.icaoClassNumeric : 
-                    (f.properties?.icaoClass || 'unknown');
-                classCounts[icaoClass] = (classCounts[icaoClass] || 0) + 1;
-            });
-            console.log('Airspaces by ICAO class:', classCounts);
-        } catch (error) {
-            console.error('Error loading airspace data:', error);
-            
-            // Hide loading indicator on error
-            this.airspaceLoading = false;
-            this.hideAirspaceLoadingMessage();
-            
-            // Only show error if it's a network/connection error, not parsing or other errors
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                // Network error - proxy is unreachable
-                this.airspaceProxyError = true;
-                this.showProxyErrorMessage();
-            } else {
-                // Other error (parsing, etc.) - don't show proxy error
-                console.warn('Non-network error, not showing proxy error banner');
-            }
-        }
-    }
-
-    generateStableId(feature) {
-        // Generate stable ID from geometry coordinates (rounded for stability)
-        if (feature.geometry && feature.geometry.coordinates) {
-            const coords = JSON.stringify(feature.geometry.coordinates)
-                .replace(/(\d+\.\d{4})\d+/g, '$1'); // Round to 4 decimals
-            return `${feature.geometry.type}-${coords}`;
-        }
-        return `feature-${Math.random()}`;
-    }
-
-    /**
-     * Check if a point is inside a polygon using ray casting algorithm
-     * @param {number} lon - Point longitude
-     * @param {number} lat - Point latitude
-     * @param {Object} geometry - GeoJSON geometry (Polygon or MultiPolygon)
-     * @returns {boolean} True if point is inside polygon
-     */
-    isPointInPolygon(lon, lat, geometry) {
-        if (!geometry || !geometry.coordinates) return false;
-        
-        if (geometry.type === 'Polygon') {
-            // Polygon: coordinates is array of rings [[[lon, lat], ...]]
-            const rings = geometry.coordinates;
-            // First ring is outer boundary, others are holes
-            const outerRing = rings[0];
-            const isInsideOuter = this.pointInRing(lon, lat, outerRing);
-            if (!isInsideOuter) return false;
-            
-            // Check if point is inside any hole (if so, it's outside the polygon)
-            for (let i = 1; i < rings.length; i++) {
-                if (this.pointInRing(lon, lat, rings[i])) {
-                    return false; // Point is in a hole
-                }
-            }
-            return true;
-        } else if (geometry.type === 'MultiPolygon') {
-            // MultiPolygon: coordinates is array of polygons [[[[lon, lat], ...]]]
-            for (let poly of geometry.coordinates) {
-                if (this.isPointInPolygon(lon, lat, {
-                    type: 'Polygon',
-                    coordinates: poly
-                })) {
-                    return true; // Point is in at least one polygon
-                }
-            }
-            return false;
-        }
-        
-        return false;
-    }
-
-    /**
-     * Ray casting algorithm to check if point is inside a ring (polygon boundary)
-     * @param {number} lon - Point longitude
-     * @param {number} lat - Point latitude
-     * @param {Array} ring - Array of [lon, lat] coordinate pairs
-     * @returns {boolean} True if point is inside ring
-     */
-    pointInRing(lon, lat, ring) {
-        if (!ring || ring.length < 3) return false;
-        
-        let inside = false;
-        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-            const xi = ring[i][0], yi = ring[i][1];
-            const xj = ring[j][0], yj = ring[j][1];
-            
-            const intersect = ((yi > lat) !== (yj > lat)) &&
-                (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-        }
-        return inside;
-    }
-
-    filterDroneAirspace(feature) {
-        // Filter for airspace that starts at ground level:
-        // - Any airspace with lowerLimitRaw === 0 (actual ground level)
-        const props = feature.properties || {};
-        
-        // Check if lower limit raw value is 0 (ground level)
-        const lowerLimitRaw = props.lowerLimitRaw;
-        if (lowerLimitRaw === 0) {
-            return true;
-        }
-        
-        return false;
-    }
-
-    filterAirspace(feature) {
-        // DEBUGGING MODE: Show all airspace, no filtering
-        // Temporarily disabled all filtering to inspect all available data
-        return true;
-    }
-
-    showProxyErrorMessage() {
-        // Show error message overlay if not already shown
-        if (document.getElementById('airspaceProxyError')) return;
-        
-        const errorDiv = document.createElement('div');
-        errorDiv.id = 'airspaceProxyError';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(220, 53, 69, 0.95);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 2000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            max-width: 90%;
-            text-align: center;
-        `;
-        errorDiv.textContent = 'OpenAIP proxy server unreachable. Airspace layer disabled.';
-        document.body.appendChild(errorDiv);
-    }
-
-    hideProxyErrorMessage() {
-        const errorDiv = document.getElementById('airspaceProxyError');
-        if (errorDiv) {
-            errorDiv.remove();
-        }
-    }
-    
     showLoadingMessage(layerName, bannerId = null) {
         // Map layer names to display names
         const displayNames = {
@@ -5710,7 +3590,6 @@ class DroneMap {
             opacity: 0.9 // Darker outline
         };
     }
-
     highlightAirspaceLayer(leafletLayer, feature, isDroneAirspace) {
         // Unhighlight previous layer if any
         if (this.highlightedAirspaceLayer) {
@@ -5998,7 +3877,6 @@ class DroneMap {
             }
         });
     }
-    
     async createCoordinateMarker(latlng) {
         // Increment counter and get marker number
         this.coordinateMarkerCounter++;
@@ -6092,7 +3970,9 @@ class DroneMap {
                 const elevationData = await elevationResponse.json();
                 if (elevationData.results && elevationData.results.length > 0) {
                     const elevation = elevationData.results[0].elevation;
-                    const elevationDisplay = `${Math.round(elevation)} m (${Math.round(elevation * 3.28084)} ft) MSL`;
+                    const isLikelySeaLevel = elevation < 0 && elevation > -50; // shallow negatives are usually ocean cells
+                    const normalizedElevation = isLikelySeaLevel ? 0 : elevation;
+                    const elevationDisplay = `${Math.round(normalizedElevation)} m (${Math.round(normalizedElevation * 3.28084)} ft) MSL${isLikelySeaLevel ? ' (approx.)' : ''}`;
                     
                     // Update popup with elevation if it's still open
                     if (marker && marker.isPopupOpen()) {
@@ -6122,7 +4002,6 @@ class DroneMap {
             }
         }
     }
-    
     renumberCoordinateMarkers() {
         // Renumber all markers sequentially based on their order in the array
         this.coordinateMarkers.forEach((markerData, index) => {
@@ -6249,7 +4128,6 @@ class DroneMap {
         // Update arrow rotation based on current mode
         this.updateNorthArrowRotation();
     }
-    
     addFullscreenControl() {
         // Create custom full screen control
         const FullscreenControl = L.Control.extend({
@@ -6494,7 +4372,6 @@ class DroneMap {
             });
         });
     }
-    
     handleFullscreenChange() {
         // Check if we're currently in fullscreen
         const isCurrentlyFullscreen = !!(
@@ -6624,11 +4501,10 @@ class DroneMap {
             </div>
         `;
     }
-
     updateDronePosition(location, droneName = null) {
         if (!this.map) return;
 
-        const { latitude, longitude, altitude_ahl, altitude_asl, bearing, pitch, roll } = location;
+        const { latitude, longitude, altitude_ahl, altitude_asl, altitude_ellipsoid, bearing, pitch, battery_percent } = location;
         this.currentLocation = [latitude, longitude];
         this.currentDroneData = location;
         this.currentDroneName = droneName;
@@ -6715,7 +4591,6 @@ class DroneMap {
             this.map.panTo(this.currentLocation);
         }
     }
-
     generateDronePopupContent(droneData = null, droneName = null, livestreamId = null) {
         // Use parameters if provided, otherwise fall back to current drone data
         const data = droneData || this.currentDroneData;
@@ -6807,7 +4682,6 @@ class DroneMap {
         this.trailCoordinates = coordinateHistory.map(coord => [coord.latitude, coord.longitude]);
         this.trailPolyline.setLatLngs(this.trailCoordinates);
     }
-
     updateGeojson(geojsonData) {
         if (!this.geojsonLayer) return;
 
@@ -7258,7 +5132,6 @@ class DroneMap {
             this.showBaseMapPopup();
         }
     }
-    
     updateCaltopoFolderVisibility() {
         // Show/hide individual features based on their folder state
         if (!this.geojsonLayer || !this.caltopoFeatureLayers || !this.isCaltopoLayerEnabled) {
@@ -7331,7 +5204,6 @@ class DroneMap {
         
         console.log(`✅ Folder visibility updated: ${shown} shown, ${hidden} hidden`);
     }
-
     safeColorConversion(colorString, defaultColor = '#3b82f6') {
         if (!colorString) return defaultColor;
         
@@ -7608,7 +5480,6 @@ class DroneMap {
         mapContainer.style.position = 'relative';
         mapContainer.appendChild(this.staleDataOverlay);
     }
-
     hideStaleDataOverlay() {
         if (this.staleDataOverlay) {
             this.staleDataOverlay.remove();
@@ -7901,7 +5772,6 @@ class DroneMap {
             }, 100);
         }
     }
-
     onLocationError(error) {
         console.error('Location error:', error);
         const wasAutoRequest = this.isAutoLocationRequest;
@@ -7971,8 +5841,6 @@ class DroneMap {
             </div>
         `;
     }
-    
-
     updateLocationButton() {
         const button = document.getElementById('myLocationBtn');
         if (button) {
@@ -8039,7 +5907,6 @@ class DroneMap {
         console.log('Creating popup...');
         this.createMultiHitPopup(e.latlng);
     }
-
     collectFeaturesAtPoint(latlng, containerPoint) {
         console.log('=== collectFeaturesAtPoint called ===');
         console.log('LatLng:', latlng);
@@ -8355,7 +6222,6 @@ class DroneMap {
             return a.drawOrder - b.drawOrder;
         });
     }
-
     createMultiHitPopup(latlng) {
         if (this.multiHitFeatures.length === 0) return;
         
@@ -8493,7 +6359,6 @@ class DroneMap {
         
         return null;
     }
-
     buildPopupContent(item) {
         const feature = item.feature;
         const props = feature.properties || {};
@@ -8767,7 +6632,6 @@ class DroneMap {
             this.unhighlightAirspaceLayer(); // Remove highlight when popup closes
         }
     }
-    
     showAddRadiusDialog(airportName, lat, lng) {
         // Get the map panel to append modal to it
         const mapPanel = document.getElementById('map-panel');
