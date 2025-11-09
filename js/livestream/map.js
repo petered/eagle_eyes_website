@@ -218,6 +218,17 @@ class DroneMap {
         
         // Beta disclaimer tracking
         this.hasShownBetaDisclaimer = false;
+        this.betaDisclaimerStorageKey = 'ee_beta_disclaimer_ack_v1';
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const acknowledged = window.localStorage.getItem(this.betaDisclaimerStorageKey);
+                if (acknowledged === 'true') {
+                    this.hasShownBetaDisclaimer = true;
+                }
+            }
+        } catch (error) {
+            console.warn('Unable to access localStorage for beta disclaimer state:', error);
+        }
         this.originalNavbarDisplay = null; // Store original navbar display value
 
         this.defaultCenter = [45.0, -100.0];
@@ -1165,24 +1176,6 @@ class DroneMap {
                         </button>
                         ` : ''}
                     </div>
-                    <div style="margin: 4px 0 0 24px;">
-                        <button id="caltopoRefreshBtn" type="button" style="
-                            display: inline-flex;
-                            align-items: center;
-                            gap: 6px;
-                            background: #f3f4f6;
-                            border: 1px solid #d1d5db;
-                            border-radius: 6px;
-                            padding: 6px 10px;
-                            font-size: 12px;
-                            color: #1f2937;
-                            cursor: pointer;
-                            transition: all 0.2s;
-                        " onmouseover="this.style.background='#e5e7eb'; this.style.borderColor='#9ca3af';" onmouseout="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db';">
-                            <span style="font-size: 12px;">⟳</span>
-                            <span>Refresh CalTopo data</span>
-                        </button>
-                    </div>
                     ${this.isCaltopoFoldersExpanded && Object.keys(this.caltopoFolders).length > 0 ? Object.keys(this.caltopoFolders).sort().map(folderName => {
                         const folder = this.caltopoFolders[folderName];
                         // Sanitize folder name for HTML ID (remove spaces and special chars)
@@ -1461,17 +1454,6 @@ class DroneMap {
             });
         });
 
-        const caltopoRefreshBtn = this.baseMapPopup.querySelector('#caltopoRefreshBtn');
-        if (caltopoRefreshBtn) {
-            caltopoRefreshBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-            });
-            caltopoRefreshBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.requestCaltopoRefreshFromDrone();
-            });
-        }
-        
         // Add event listener for Airspace All expand button
         const airspaceAllExpandBtn = this.baseMapPopup.querySelector('#airspaceAllExpandBtn');
         if (airspaceAllExpandBtn) {
@@ -3241,6 +3223,13 @@ class DroneMap {
         // Handle acknowledge button
         const acknowledgeBtn = modalContent.querySelector('#betaAcknowledgeBtn');
         acknowledgeBtn.addEventListener('click', () => {
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.setItem(this.betaDisclaimerStorageKey, 'true');
+                }
+            } catch (error) {
+                console.warn('Unable to persist beta disclaimer acknowledgment:', error);
+            }
             modal.remove();
         });
     }
@@ -7200,29 +7189,6 @@ class DroneMap {
             if (this.map.hasLayer(this.geojsonLayer)) {
                 this.map.removeLayer(this.geojsonLayer);
             }
-        }
-    }
-    
-    requestCaltopoRefreshFromDrone() {
-        console.log('Manual CalTopo refresh requested from base map popup');
-
-        if (window.viewer && typeof window.viewer.requestCaltopoRefresh === 'function') {
-            window.viewer.requestCaltopoRefresh();
-            return;
-        }
-
-        if (this.latestGeojsonPayload) {
-            console.log('Re-rendering last known CalTopo GeoJSON payload locally');
-            this.updateGeojson(this.latestGeojsonPayload);
-            if (window.viewer && typeof window.viewer.showToast === 'function') {
-                window.viewer.showToast('Re-rendered latest CalTopo data');
-            }
-            return;
-        }
-
-        console.warn('No CalTopo data available to refresh.');
-        if (window.viewer && typeof window.viewer.showToast === 'function') {
-            window.viewer.showToast('No CalTopo data available to refresh yet');
         }
     }
     
