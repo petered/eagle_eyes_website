@@ -786,6 +786,21 @@ class DroneMap {
             this.fallbackToStaticMap();
         }
     }
+    handleCaltopoFolderToggleClick() {
+        this.toggleCaltopoFoldersExpand();
+        if (!this.baseMapPopup) return;
+
+        const contentEl = this.baseMapPopup.querySelector('.basemap-popup__content');
+        const caltopoToggleRow = this.baseMapPopup.querySelector('#caltopoLayerToggle')?.closest('div');
+
+        if (contentEl && caltopoToggleRow) {
+            const scrollTarget = caltopoToggleRow.offsetTop - 12;
+            contentEl.scrollTo({
+                top: Math.max(scrollTarget, 0),
+                behavior: 'smooth'
+            });
+        }
+    }
     addCustomControls() {
         // Add center on drone control first (top left)
         const centerControl = L.Control.extend({
@@ -1059,7 +1074,7 @@ class DroneMap {
                             margin-left: 8px;
                             line-height: 1;
                             transition: color 0.2s;
-                        " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.toggleCaltopoFoldersExpand(); return false;" title="${this.isCaltopoFoldersExpanded ? 'Hide' : 'Show'} Folders">
+                    " onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'" onclick="event.stopPropagation(); window.droneMap.handleCaltopoFolderToggleClick(); return false;" title="${this.isCaltopoFoldersExpanded ? 'Hide' : 'Show'} Folders">
                             <span style="transform: rotate(${this.isCaltopoFoldersExpanded ? '180deg' : '0deg'}); transition: transform 0.2s; display: inline-block; font-size: 10px;">▼</span>
                         </button>
                         ` : ''}
@@ -1133,6 +1148,12 @@ class DroneMap {
         if (baseMapContent) {
             baseMapContent.style.overflowY = 'auto';
             baseMapContent.style.webkitOverflowScrolling = 'touch';
+            baseMapContent.addEventListener('wheel', (event) => {
+                event.stopPropagation();
+            }, { passive: false });
+            baseMapContent.addEventListener('touchmove', (event) => {
+                event.stopPropagation();
+            }, { passive: false });
         }
         
         // Add event listener for USA FAA Airports toggle
@@ -1599,10 +1620,10 @@ class DroneMap {
         if (this.measurementPopup) {
             this.closeMeasurementPopup();
         }
-
+        
         const mapContainer = this.map ? this.map.getContainer() : null;
         if (!mapContainer) return;
-
+        
         this.measurementPopup = document.createElement('div');
         this.measurementPopup.className = 'measurement-popup';
 
@@ -1611,12 +1632,12 @@ class DroneMap {
         const isRadiusMode = this.measurementType === 'radius';
         const unitOptions = (isLineMode || isRadiusMode) ? this.getLineUnitOptions() : this.getPolygonUnitOptions();
         const currentUnit = (isLineMode || isRadiusMode) ? this.measurementUnit : this.measurementAreaUnit;
-        const instructions = isLineMode
+        const instructions = isLineMode 
             ? 'Click on the map to measure approximate distance between points.'
             : isPolygonMode
             ? 'Click on the map to draw a polygon for approximate measurement.'
             : 'Click on the map to set center point, then drag to set radius.';
-
+        
         this.measurementPopup.innerHTML = `
             <div class="measurement-popup__header">
                 <div class="measurement-popup__title">Measuring Tool</div>
@@ -1624,31 +1645,31 @@ class DroneMap {
             </div>
             <div class="measurement-popup__content">
                 <div style="display: flex; gap: 6px; margin-bottom: 10px;">
-                    <button id="lineModeBtn" style="
-                        flex: 1;
+                <button id="lineModeBtn" style="
+                    flex: 1;
                         padding: 8px 10px;
                         border: ${isLineMode ? '3px solid #93c5fd' : 'none'};
                         border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 11px;
+                    cursor: pointer;
+                    font-size: 11px;
                         font-weight: 500;
                         transition: all 0.2s;
                         box-shadow: ${isLineMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
                         ${isLineMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
                     " onmouseover="${isLineMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isLineMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Line</button>
-                    <button id="polygonModeBtn" style="
-                        flex: 1;
+                <button id="polygonModeBtn" style="
+                    flex: 1;
                         padding: 8px 10px;
                         border: ${isPolygonMode ? '3px solid #93c5fd' : 'none'};
                         border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 11px;
+                    cursor: pointer;
+                    font-size: 11px;
                         font-weight: 500;
                         transition: all 0.2s;
                         box-shadow: ${isPolygonMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
                         ${isPolygonMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
                     " onmouseover="${isPolygonMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isPolygonMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Polygon</button>
-                </div>
+            </div>
                 <div style="display: flex; justify-content: center; margin-bottom: 10px;">
                     <button id="radiusModeBtn" style="
                         padding: 8px 10px;
@@ -1665,35 +1686,35 @@ class DroneMap {
                 <div style="margin-bottom: 10px;">
                     <label style="display: block; margin-bottom: 6px; font-size: 11px; color: #6b7280; font-weight: 500;">Unit:</label>
                     <select id="measurementUnit" style="width: 100%; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 11px; box-sizing: border-box; background: #ffffff; color: #374151; transition: border-color 0.2s;" onmouseover="this.style.borderColor='#d1d5db'" onmouseout="this.style.borderColor='#e5e7eb'">
-                        ${unitOptions}
-                    </select>
-                </div>
+                    ${unitOptions}
+                </select>
+            </div>
                 <div style="margin-bottom: 10px; padding: 8px; background: #eff6ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
                     <div style="font-size: 10px; color: #374151; line-height: 1.5;">
-                        ${instructions}
-                    </div>
+                    ${instructions}
                 </div>
+            </div>
                 <div style="padding: 10px; background: #f9fafb; border-radius: 6px; text-align: center; border: 1px solid #e5e7eb;">
                     ${isRadiusMode ? '<div style="font-size: 10px; color: #6b7280; margin-bottom: 6px; font-weight: 500;">Radius</div>' : ''}
                     <div style="font-size: 20px; font-weight: 600; color: #3b82f6; letter-spacing: -0.02em;" id="measurementDistance">0.00</div>
                     <div style="font-size: 10px; color: #6b7280; margin-top: 4px; font-weight: 500;" id="measurementUnitLabel">${currentUnit}</div>
-                </div>
+            </div>
                 <div style="margin-top: 10px; text-align: left;">
-                    <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
+                <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
                             style="background: transparent; border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; width: auto; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-weight: 500;"
                             onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'; this.style.color='#374151'" onmouseout="this.style.background='transparent'; this.style.borderColor='#e5e7eb'; this.style.color='#6b7280'"
-                            title="Undo Last Point">
-                        ←
-                    </button>
+                        title="Undo Last Point">
+                    ←
+                </button>
                 </div>
             </div>
         `;
-
+        
         const closeButton = this.measurementPopup.querySelector('#closeMeasurementBtn');
         if (closeButton) {
             closeButton.addEventListener('click', () => this.closeMeasurementPopup());
         }
-
+        
         const lineBtn = this.measurementPopup.querySelector('#lineModeBtn');
         if (lineBtn) {
             lineBtn.addEventListener('click', () => this.switchMeasurementType('line'));
@@ -1706,17 +1727,17 @@ class DroneMap {
         if (radiusBtn) {
             radiusBtn.addEventListener('click', () => this.switchMeasurementType('radius'));
         }
-
+        
         const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
         if (unitSelect) {
-            unitSelect.addEventListener('change', (e) => {
+        unitSelect.addEventListener('change', (e) => {
                 if (this.measurementType === 'line' || this.measurementType === 'radius') {
-                    this.measurementUnit = e.target.value;
-                } else {
-                    this.measurementAreaUnit = e.target.value;
-                }
-                this.updateMeasurementDisplay();
-            });
+            this.measurementUnit = e.target.value;
+            } else {
+                this.measurementAreaUnit = e.target.value;
+            }
+            this.updateMeasurementDisplay();
+        });
         }
 
         this.measurementPopup.addEventListener('click', (e) => e.stopPropagation());
@@ -4126,9 +4147,9 @@ class DroneMap {
                 return;
             }
             const touch = event.touches[0];
-            const deltaX = Math.abs(touch.clientX - pressStartPos.x);
-            const deltaY = Math.abs(touch.clientY - pressStartPos.y);
-            
+                    const deltaX = Math.abs(touch.clientX - pressStartPos.x);
+                    const deltaY = Math.abs(touch.clientY - pressStartPos.y);
+                    
             if (deltaX > 14 || deltaY > 14) {
                 clearPressState();
             }
@@ -4448,7 +4469,7 @@ class DroneMap {
                     .on(container, 'click', () => {
                         self.toggleFullscreen();
                     });
-
+                
                 return container;
             }
         });
