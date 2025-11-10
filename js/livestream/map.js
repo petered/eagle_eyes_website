@@ -214,6 +214,7 @@ class DroneMap {
         this.fullscreenButton = null;
         this.fullscreenButtonExpandIcon = null;
         this.fullscreenButtonCloseIcon = null;
+        this.fullscreenMapControl = null;
         
         // Beta disclaimer tracking
         this.hasShownBetaDisclaimer = false;
@@ -4413,6 +4414,54 @@ class DroneMap {
         button.setAttribute('aria-pressed', this.isFullscreen ? 'true' : 'false');
         this.updateFullscreenIcon();
     }
+    showFullscreenMapControl() {
+        if (!this.map || this.fullscreenMapControl) return;
+
+        const self = this;
+        const FullscreenExitControl = L.Control.extend({
+            options: {
+                position: 'bottomright'
+            },
+            onAdd: function () {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control fullscreen-exit-control');
+                container.style.width = '40px';
+                container.style.height = '40px';
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+                container.style.backgroundColor = 'rgba(44, 44, 44, 0.72)';
+                container.style.borderRadius = '8px';
+                container.style.border = '1px solid rgba(68, 68, 68, 0.85)';
+                container.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.35)';
+                container.style.cursor = 'pointer';
+                container.style.margin = '0 10px 14px 0';
+                container.title = 'Exit fullscreen mode';
+
+                const icon = L.DomUtil.create('div', 'fullscreen-exit-icon', container);
+                icon.style.width = '18px';
+                icon.style.height = '18px';
+                icon.style.background = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%23ffffff\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3\"/></svg>') no-repeat center";
+                icon.style.backgroundSize = 'contain';
+
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.on(container, 'click', L.DomEvent.stopPropagation)
+                    .on(container, 'click', () => {
+                        self.toggleFullscreen();
+                    });
+
+                return container;
+            }
+        });
+
+        this.fullscreenMapControl = new FullscreenExitControl();
+        this.fullscreenMapControl.addTo(this.map);
+    }
+    hideFullscreenMapControl() {
+        if (this.fullscreenMapControl && this.map) {
+            this.map.removeControl(this.fullscreenMapControl);
+            this.fullscreenMapControl = null;
+        }
+    }
     
     resetToNorthUp() {
         console.log('Reset map to north-up');
@@ -4500,6 +4549,7 @@ class DroneMap {
         const mobileOffcanvas = document.querySelector('.offcanvas');
         
         if (enter) {
+            this.showFullscreenMapControl();
             // Store original display value before hiding
             if (navbar && !this.originalNavbarDisplay) {
                 const computedStyle = window.getComputedStyle(navbar);
@@ -4531,6 +4581,7 @@ class DroneMap {
             
             console.log('Entered fallback fullscreen mode - top bar hidden');
         } else {
+            this.hideFullscreenMapControl();
             // Show top bar
             if (navbar) {
                 // Restore original display or remove inline style to let CSS handle it
@@ -4582,6 +4633,7 @@ class DroneMap {
         const mobileOffcanvas = document.querySelector('.offcanvas');
         
         if (isCurrentlyFullscreen) {
+            this.showFullscreenMapControl();
             // Store original display value before hiding
             if (navbar && !this.originalNavbarDisplay) {
                 const computedStyle = window.getComputedStyle(navbar);
@@ -4627,6 +4679,7 @@ class DroneMap {
             
             console.log('Entered fullscreen - navbar hidden');
         } else {
+            this.hideFullscreenMapControl();
             // Show navbar and mobile offcanvas when exiting fullscreen
             if (navbar) {
                 // Restore original display or remove inline style to let CSS handle it
