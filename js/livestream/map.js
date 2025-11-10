@@ -196,6 +196,9 @@ class DroneMap {
         this.measurementTotalDistance = 0;
         this.measurementArea = 0; // Area in square meters
         this.isDraggingRadius = false; // Track if user is dragging to set radius
+        this.measurementPopupResizeHandler = null;
+        this.popupTouchActiveCount = 0;
+        this.mapDraggingWasEnabledBeforePopup = null;
         
         // User-added coordinate markers (array to support multiple markers)
         this.coordinateMarkers = []; // Array of { marker, latlng, number }
@@ -208,7 +211,9 @@ class DroneMap {
         
         // Full screen control
         this.isFullscreen = false;
-        this.fullscreenControl = null;
+        this.fullscreenButton = null;
+        this.fullscreenButtonExpandIcon = null;
+        this.fullscreenButtonCloseIcon = null;
         
         // Beta disclaimer tracking
         this.hasShownBetaDisclaimer = false;
@@ -701,7 +706,7 @@ class DroneMap {
             this.addNorthArrowControl();
             
             // Add full screen control
-            this.addFullscreenControl();
+            this.initFullscreenButton();
             
             console.log('Scale control added:', this.scaleControl);
 
@@ -1341,6 +1346,7 @@ class DroneMap {
         
         // Add to map container
         mapContainer.appendChild(this.baseMapPopup);
+        this.attachScrollablePopupInteractions(this.baseMapPopup);
         
         // Ensure popup has pointer events enabled so it can be clicked
         this.baseMapPopup.style.pointerEvents = 'auto';
@@ -1422,6 +1428,7 @@ class DroneMap {
             window.removeEventListener('orientationchange', this.baseMapPopupResizeHandler);
             this.baseMapPopupResizeHandler = null;
         }
+        this.resetPopupTouchState();
         if (this.baseMapPopup) {
             this.baseMapPopup.remove();
             this.baseMapPopup = null;
@@ -1513,174 +1520,222 @@ class DroneMap {
             this.baseMapPopup.style.top = `${computedTop}px`;
         }
     }
-    showMeasurementPopup() {
-        // Remove existing popup if it exists
-        if (this.measurementPopup) {
-            this.measurementPopup.remove();
+    attachScrollablePopupInteractions(popupElement) {
+        if (!popupElement) return;
+
+        const stopPropagation = (event) => {
+            event.stopPropagation();
+        };
+
+        const onTouchStart = (event) => {
+            const touchCount = event?.changedTouches ? event.changedTouches.length : 1;
+            this.handlePopupTouchStart(touchCount);
+            event.stopPropagation();
+        };
+
+        const onTouchMove = (event) => {
+            event.stopPropagation();
+        };
+
+        const onTouchEnd = (event) => {
+            const touchCount = event?.changedTouches ? event.changedTouches.length : 1;
+            this.handlePopupTouchEnd(touchCount);
+            event.stopPropagation();
+        };
+
+        const onTouchCancel = (event) => {
+            const touchCount = event?.changedTouches ? event.changedTouches.length : 1;
+            this.handlePopupTouchEnd(touchCount);
+            event.stopPropagation();
+        };
+
+        popupElement.addEventListener('wheel', stopPropagation, { passive: false });
+        popupElement.addEventListener('touchstart', onTouchStart, { passive: false });
+        popupElement.addEventListener('touchmove', onTouchMove, { passive: false });
+        popupElement.addEventListener('touchend', onTouchEnd, { passive: false });
+        popupElement.addEventListener('touchcancel', onTouchCancel, { passive: false });
+        popupElement.addEventListener('pointerdown', stopPropagation, { passive: false });
+        popupElement.addEventListener('pointermove', stopPropagation, { passive: false });
+        popupElement.addEventListener('pointerup', stopPropagation, { passive: false });
+    }
+    handlePopupTouchStart(touchCount = 1) {
+        if (!this.map || !this.map.dragging) return;
+        const count = Number.isFinite(touchCount) && touchCount > 0 ? touchCount : 1;
+        if (this.popupTouchActiveCount === 0) {
+            const dragging = this.map.dragging;
+            const wasEnabled = typeof dragging.enabled === 'function' ? dragging.enabled() : true;
+            this.mapDraggingWasEnabledBeforePopup = wasEnabled;
+            if (wasEnabled && typeof dragging.disable === 'function') {
+                dragging.disable();
+            }
         }
-        
-        // Create a custom DOM popup
-        const mapContainer = this.map.getContainer();
-        const mapRect = mapContainer.getBoundingClientRect();
-        
-        // Create popup element
+        this.popupTouchActiveCount += count;
+    }
+    handlePopupTouchEnd(touchCount = 1) {
+        if (!this.map || !this.map.dragging) return;
+        const count = Number.isFinite(touchCount) && touchCount > 0 ? touchCount : 1;
+        this.popupTouchActiveCount = Math.max(0, this.popupTouchActiveCount - count);
+        if (this.popupTouchActiveCount === 0) {
+            if (this.mapDraggingWasEnabledBeforePopup && typeof this.map.dragging.enable === 'function') {
+                this.map.dragging.enable();
+            }
+            this.mapDraggingWasEnabledBeforePopup = null;
+        }
+    }
+    resetPopupTouchState() {
+        if (!this.map || !this.map.dragging) {
+            this.popupTouchActiveCount = 0;
+            this.mapDraggingWasEnabledBeforePopup = null;
+            return;
+        }
+        if (this.popupTouchActiveCount > 0 && this.mapDraggingWasEnabledBeforePopup && typeof this.map.dragging.enable === 'function') {
+            this.map.dragging.enable();
+        }
+        this.popupTouchActiveCount = 0;
+        this.mapDraggingWasEnabledBeforePopup = null;
+    }
+    showMeasurementPopup() {
+        if (this.measurementPopup) {
+            this.closeMeasurementPopup();
+        }
+
+        const mapContainer = this.map ? this.map.getContainer() : null;
+        if (!mapContainer) return;
+
         this.measurementPopup = document.createElement('div');
-        this.measurementPopup.style.cssText = `
-            position: absolute;
-            top: 50px;
-            left: 10px;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
-            padding: 12px;
-            min-width: 160px;
-            max-width: 180px;
-            z-index: 2000;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        `;
-        
-        // Generate unit options based on mode
+        this.measurementPopup.className = 'measurement-popup';
+
         const isLineMode = this.measurementType === 'line';
         const isPolygonMode = this.measurementType === 'polygon';
         const isRadiusMode = this.measurementType === 'radius';
         const unitOptions = (isLineMode || isRadiusMode) ? this.getLineUnitOptions() : this.getPolygonUnitOptions();
         const currentUnit = (isLineMode || isRadiusMode) ? this.measurementUnit : this.measurementAreaUnit;
-        const instructions = isLineMode 
+        const instructions = isLineMode
             ? 'Click on the map to measure approximate distance between points.'
             : isPolygonMode
             ? 'Click on the map to draw a polygon for approximate measurement.'
             : 'Click on the map to set center point, then drag to set radius.';
-        
+
         this.measurementPopup.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div style="font-weight: 600; color: #1f2937; font-size: 13px; letter-spacing: -0.01em;">Measuring Tool</div>
-                <button id="closeMeasurementBtn" style="
-                    background: transparent;
-                    border: none;
-                    font-size: 18px;
-                    color: #6b7280;
-                    cursor: pointer;
-                    padding: 0;
-                    line-height: 1;
-                    width: 24px;
-                    height: 24px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 4px;
-                    transition: all 0.2s;
-                " onmouseover="this.style.background='#f3f4f6'; this.style.color='#374151'" onmouseout="this.style.background='transparent'; this.style.color='#6b7280'">×</button>
+            <div class="measurement-popup__header">
+                <div class="measurement-popup__title">Measuring Tool</div>
+                <button id="closeMeasurementBtn" class="measurement-popup__close" type="button" aria-label="Close measurement panel">×</button>
             </div>
-            <div style="display: flex; gap: 6px; margin-bottom: 10px;">
-                <button id="lineModeBtn" style="
-                    flex: 1;
-                    padding: 8px 10px;
-                    border: ${isLineMode ? '3px solid #93c5fd' : 'none'};
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 11px;
-                    font-weight: 500;
-                    transition: all 0.2s;
-                    box-shadow: ${isLineMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
-                    ${isLineMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
-                " onmouseover="${isLineMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isLineMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Line</button>
-                <button id="polygonModeBtn" style="
-                    flex: 1;
-                    padding: 8px 10px;
-                    border: ${isPolygonMode ? '3px solid #93c5fd' : 'none'};
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 11px;
-                    font-weight: 500;
-                    transition: all 0.2s;
-                    box-shadow: ${isPolygonMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
-                    ${isPolygonMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
-                " onmouseover="${isPolygonMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isPolygonMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Polygon</button>
-            </div>
-            <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-                <button id="radiusModeBtn" style="
-                    padding: 8px 10px;
-                    border: ${isRadiusMode ? '3px solid #93c5fd' : 'none'};
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 11px;
-                    font-weight: 500;
-                    transition: all 0.2s;
-                    box-shadow: ${isRadiusMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
-                    ${isRadiusMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
-                " onmouseover="${isRadiusMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isRadiusMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Radius</button>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 6px; font-size: 11px; color: #6b7280; font-weight: 500;">Unit:</label>
-                <select id="measurementUnit" style="width: 100%; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 11px; box-sizing: border-box; background: #ffffff; color: #374151; transition: border-color 0.2s;" onmouseover="this.style.borderColor='#d1d5db'" onmouseout="this.style.borderColor='#e5e7eb'">
-                    ${unitOptions}
-                </select>
-            </div>
-            <div style="margin-bottom: 10px; padding: 8px; background: #eff6ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
-                <div style="font-size: 10px; color: #374151; line-height: 1.5;">
-                    ${instructions}
+            <div class="measurement-popup__content">
+                <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+                    <button id="lineModeBtn" style="
+                        flex: 1;
+                        padding: 8px 10px;
+                        border: ${isLineMode ? '3px solid #93c5fd' : 'none'};
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 11px;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                        box-shadow: ${isLineMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
+                        ${isLineMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
+                    " onmouseover="${isLineMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isLineMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Line</button>
+                    <button id="polygonModeBtn" style="
+                        flex: 1;
+                        padding: 8px 10px;
+                        border: ${isPolygonMode ? '3px solid #93c5fd' : 'none'};
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 11px;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                        box-shadow: ${isPolygonMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
+                        ${isPolygonMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
+                    " onmouseover="${isPolygonMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isPolygonMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Polygon</button>
+                </div>
+                <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+                    <button id="radiusModeBtn" style="
+                        padding: 8px 10px;
+                        border: ${isRadiusMode ? '3px solid #93c5fd' : 'none'};
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 11px;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                        box-shadow: ${isRadiusMode ? '0 4px 8px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(147, 197, 253, 0.2)' : 'none'};
+                        ${isRadiusMode ? 'background: #3b82f6; color: white;' : 'background: #314268; color: white;'}
+                    " onmouseover="${isRadiusMode ? "this.style.background='#2563eb'" : "this.style.background='#253454'"}" onmouseout="${isRadiusMode ? "this.style.background='#3b82f6'" : "this.style.background='#314268'"}">Radius</button>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 6px; font-size: 11px; color: #6b7280; font-weight: 500;">Unit:</label>
+                    <select id="measurementUnit" style="width: 100%; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 11px; box-sizing: border-box; background: #ffffff; color: #374151; transition: border-color 0.2s;" onmouseover="this.style.borderColor='#d1d5db'" onmouseout="this.style.borderColor='#e5e7eb'">
+                        ${unitOptions}
+                    </select>
+                </div>
+                <div style="margin-bottom: 10px; padding: 8px; background: #eff6ff; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                    <div style="font-size: 10px; color: #374151; line-height: 1.5;">
+                        ${instructions}
+                    </div>
+                </div>
+                <div style="padding: 10px; background: #f9fafb; border-radius: 6px; text-align: center; border: 1px solid #e5e7eb;">
+                    ${isRadiusMode ? '<div style="font-size: 10px; color: #6b7280; margin-bottom: 6px; font-weight: 500;">Radius</div>' : ''}
+                    <div style="font-size: 20px; font-weight: 600; color: #3b82f6; letter-spacing: -0.02em;" id="measurementDistance">0.00</div>
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 4px; font-weight: 500;" id="measurementUnitLabel">${currentUnit}</div>
+                </div>
+                <div style="margin-top: 10px; text-align: left;">
+                    <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
+                            style="background: transparent; border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; width: auto; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-weight: 500;"
+                            onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'; this.style.color='#374151'" onmouseout="this.style.background='transparent'; this.style.borderColor='#e5e7eb'; this.style.color='#6b7280'"
+                            title="Undo Last Point">
+                        ←
+                    </button>
                 </div>
             </div>
-            <div style="padding: 10px; background: #f9fafb; border-radius: 6px; text-align: center; border: 1px solid #e5e7eb;">
-                ${isRadiusMode ? '<div style="font-size: 10px; color: #6b7280; margin-bottom: 6px; font-weight: 500;">Radius</div>' : ''}
-                <div style="font-size: 20px; font-weight: 600; color: #3b82f6; letter-spacing: -0.02em;" id="measurementDistance">0.00</div>
-                <div style="font-size: 10px; color: #6b7280; margin-top: 4px; font-weight: 500;" id="measurementUnitLabel">${currentUnit}</div>
-            </div>
-            <div style="margin-top: 10px; text-align: left;">
-                <button id="undoMeasurementBtn" onclick="window.droneMap.undoLastMeasurement(); return false;"
-                        style="background: transparent; border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; width: auto; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-weight: 500;"
-                        onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'; this.style.color='#374151'" onmouseout="this.style.background='transparent'; this.style.borderColor='#e5e7eb'; this.style.color='#6b7280'"
-                        title="Undo Last Point">
-                    ←
-                </button>
-            </div>
         `;
-        
-        // Add event listeners
-        const closeBtn = this.measurementPopup.querySelector('#closeMeasurementBtn');
-        closeBtn.addEventListener('click', () => {
-            this.closeMeasurementPopup();
-        });
-        
+
+        const closeButton = this.measurementPopup.querySelector('#closeMeasurementBtn');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => this.closeMeasurementPopup());
+        }
+
         const lineBtn = this.measurementPopup.querySelector('#lineModeBtn');
+        if (lineBtn) {
+            lineBtn.addEventListener('click', () => this.switchMeasurementType('line'));
+        }
         const polygonBtn = this.measurementPopup.querySelector('#polygonModeBtn');
+        if (polygonBtn) {
+            polygonBtn.addEventListener('click', () => this.switchMeasurementType('polygon'));
+        }
         const radiusBtn = this.measurementPopup.querySelector('#radiusModeBtn');
-        
-        lineBtn.addEventListener('click', () => {
-            this.switchMeasurementType('line');
-        });
-        
-        polygonBtn.addEventListener('click', () => {
-            this.switchMeasurementType('polygon');
-        });
-        
-        radiusBtn.addEventListener('click', () => {
-            this.switchMeasurementType('radius');
-        });
-        
+        if (radiusBtn) {
+            radiusBtn.addEventListener('click', () => this.switchMeasurementType('radius'));
+        }
+
         const unitSelect = this.measurementPopup.querySelector('#measurementUnit');
-        unitSelect.addEventListener('change', (e) => {
-            if (this.measurementType === 'line' || this.measurementType === 'radius') {
-            this.measurementUnit = e.target.value;
-            } else {
-                this.measurementAreaUnit = e.target.value;
-            }
-            this.updateMeasurementDisplay();
-        });
-        
-        // Prevent clicks in popup from closing it
-        this.measurementPopup.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        this.measurementPopup.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-        });
-        
-        // Add to map container
+        if (unitSelect) {
+            unitSelect.addEventListener('change', (e) => {
+                if (this.measurementType === 'line' || this.measurementType === 'radius') {
+                    this.measurementUnit = e.target.value;
+                } else {
+                    this.measurementAreaUnit = e.target.value;
+                }
+                this.updateMeasurementDisplay();
+            });
+        }
+
+        this.measurementPopup.addEventListener('click', (e) => e.stopPropagation());
+        this.measurementPopup.addEventListener('mousedown', (e) => e.stopPropagation());
+
         mapContainer.appendChild(this.measurementPopup);
-        
-        // Enable measurement mode
+        this.attachScrollablePopupInteractions(this.measurementPopup);
+
+        if (this.measurementPopupResizeHandler) {
+            window.removeEventListener('resize', this.measurementPopupResizeHandler);
+            window.removeEventListener('orientationchange', this.measurementPopupResizeHandler);
+        }
+        this.measurementPopupResizeHandler = () => {
+            this.updateMeasurementPopupSizing();
+        };
+        window.addEventListener('resize', this.measurementPopupResizeHandler);
+        window.addEventListener('orientationchange', this.measurementPopupResizeHandler);
+        this.updateMeasurementPopupSizing();
+        requestAnimationFrame(() => this.updateMeasurementPopupSizing());
+
         this.measurementMode = true;
         this.measurementPoints = [];
         this.measurementMarkers = [];
@@ -1693,6 +1748,88 @@ class DroneMap {
         this.measurementTotalDistance = 0;
         this.measurementArea = 0;
         this.updateMeasurementDisplay();
+    }
+
+    updateMeasurementPopupSizing() {
+        if (!this.measurementPopup) return;
+        const mapContainer = this.map ? this.map.getContainer() : null;
+        if (!mapContainer) return;
+
+        const containerRect = mapContainer.getBoundingClientRect();
+        const containerHeight = containerRect.height || mapContainer.clientHeight || 0;
+        const containerWidth = containerRect.width || mapContainer.clientWidth || 0;
+        const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
+
+        const candidateHeights = [];
+        if (containerHeight > 0) {
+            candidateHeights.push(containerHeight - 24);
+        }
+        if (viewportHeight > 0) {
+            candidateHeights.push(viewportHeight - 120);
+        }
+
+        let desiredHeight = 240;
+        const positiveCandidates = candidateHeights.filter(value => Number.isFinite(value) && value > 0);
+        if (positiveCandidates.length > 0) {
+            const smallestCandidate = Math.min(...positiveCandidates);
+            if (smallestCandidate >= 180) {
+                desiredHeight = Math.min(smallestCandidate, 460);
+            } else {
+                desiredHeight = Math.max(160, smallestCandidate);
+            }
+        } else if (containerHeight > 0) {
+            const available = containerHeight - 24;
+            desiredHeight = available >= 180 ? Math.min(available, 460) : Math.max(160, available);
+        } else if (viewportHeight > 0) {
+            const available = viewportHeight - 120;
+            desiredHeight = available >= 180 ? Math.min(available, 460) : Math.max(160, available);
+        }
+
+        if (containerHeight > 0) {
+            const containerCap = Math.max(160, containerHeight - 16);
+            desiredHeight = Math.min(desiredHeight, containerCap);
+        }
+
+        const finalHeight = Math.max(160, desiredHeight);
+        this.measurementPopup.style.maxHeight = `${finalHeight}px`;
+
+        if (containerWidth > 0) {
+            const widthAvailable = containerWidth - 16;
+            if (widthAvailable > 0) {
+                if (widthAvailable >= 200) {
+                    const resolvedWidth = Math.min(widthAvailable, 260);
+                    this.measurementPopup.style.width = `${resolvedWidth}px`;
+                } else {
+                    this.measurementPopup.style.width = '';
+                }
+            } else {
+                this.measurementPopup.style.width = '';
+            }
+        } else {
+            this.measurementPopup.style.width = '';
+        }
+
+        const computedStyle = window.getComputedStyle(this.measurementPopup);
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+        const headerEl = this.measurementPopup.querySelector('.measurement-popup__header');
+        const contentEl = this.measurementPopup.querySelector('.measurement-popup__content');
+
+        if (contentEl) {
+            const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+            const extraSpacing = 12;
+            const contentAvailable = Math.max(120, finalHeight - headerHeight - paddingTop - paddingBottom - extraSpacing);
+            contentEl.style.maxHeight = `${contentAvailable}px`;
+            contentEl.style.overflowY = 'auto';
+            contentEl.style.webkitOverflowScrolling = 'touch';
+        }
+
+        if (containerHeight > 0) {
+            const defaultTop = window.innerWidth <= 768 ? 12 : 50;
+            const maxTop = Math.max(8, containerHeight - finalHeight - 12);
+            const computedTop = Math.min(defaultTop, maxTop);
+            this.measurementPopup.style.top = `${computedTop}px`;
+        }
     }
     
     getLineUnitOptions() {
@@ -1734,6 +1871,12 @@ class DroneMap {
     }
     
     closeMeasurementPopup() {
+        if (this.measurementPopupResizeHandler) {
+            window.removeEventListener('resize', this.measurementPopupResizeHandler);
+            window.removeEventListener('orientationchange', this.measurementPopupResizeHandler);
+            this.measurementPopupResizeHandler = null;
+        }
+        this.resetPopupTouchState();
         if (this.measurementPopup) {
             this.measurementPopup.remove();
             this.measurementPopup = null;
@@ -4244,97 +4387,31 @@ class DroneMap {
         // Update arrow rotation based on current mode
         this.updateNorthArrowRotation();
     }
-    addFullscreenControl() {
-        // Create custom full screen control
-        const FullscreenControl = L.Control.extend({
-            onAdd: function(map) {
-                const container = L.DomUtil.create('div', 'fullscreen-control');
-                container.style.cssText = `
-                    background-color: rgba(44, 44, 44, 0.6);
-                border: 1px solid #444;
-                border-radius: 4px;
-                    width: 40px;
-                    height: 40px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                    transition: all 0.3s ease;
-                    position: relative;
-                    margin-bottom: 5px;
-                    font-family: Arial, sans-serif;
-                `;
-                
-                // Create the fullscreen icon
-                const icon = L.DomUtil.create('div', 'fullscreen-icon', container);
-                icon.style.cssText = `
-                    width: 16px;
-                    height: 16px;
-                    position: relative;
-                `;
-                
-                // Create expand icon (default state)
-                const expandIcon = L.DomUtil.create('div', 'expand-icon', icon);
-                expandIcon.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>') no-repeat center;
-                    background-size: contain;
-                    opacity: 1;
-                    transition: opacity 0.3s ease;
-                `;
-                
-                // Create close icon (fullscreen state)
-                const closeIcon = L.DomUtil.create('div', 'close-icon', icon);
-                closeIcon.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>') no-repeat center;
-                    background-size: contain;
-                    opacity: 0;
-                    transition: opacity 0.3s ease;
-                `;
-                
-                // Add hover effects
-                container.onmouseover = function() {
-                    this.style.backgroundColor = 'rgba(60, 60, 60, 0.7)';
-                    this.style.transform = 'scale(1.05)';
-                    this.style.boxShadow = '0 3px 8px rgba(0,0,0,0.4)';
-                };
-                container.onmouseout = function() {
-                    this.style.backgroundColor = 'rgba(44, 44, 44, 0.6)';
-                    this.style.transform = 'scale(1)';
-                    this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-                };
-                
-                // Add click handler
-                container.onclick = function() {
-                    window.droneMap.toggleFullscreen();
-                };
-                
-                // Store references for icon switching
-                container.expandIcon = expandIcon;
-                container.closeIcon = closeIcon;
-                
-                return container;
-            },
-            
-            onRemove: function(map) {
-                // Cleanup if needed
+    initFullscreenButton() {
+        const button = document.getElementById('fullscreenNavBtn');
+        if (!button) {
+            console.warn('Fullscreen navigation button not found in DOM');
+            return;
+        }
+
+        this.fullscreenButton = button;
+        this.fullscreenButtonExpandIcon = button.querySelector('.fullscreen-nav-icon-expand');
+        this.fullscreenButtonCloseIcon = button.querySelector('.fullscreen-nav-icon-close');
+
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.toggleFullscreen();
+        });
+
+        button.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                this.toggleFullscreen();
             }
         });
-        
-        this.fullscreenControl = new FullscreenControl({ position: 'bottomright' });
-        this.fullscreenControl.addTo(this.map);
-        
-        console.log('Fullscreen control added:', this.fullscreenControl);
+
+        button.setAttribute('aria-pressed', this.isFullscreen ? 'true' : 'false');
+        this.updateFullscreenIcon();
     }
     
     resetToNorthUp() {
@@ -4570,23 +4647,20 @@ class DroneMap {
     }
     
     updateFullscreenIcon() {
-        if (!this.fullscreenControl) return;
+        if (!this.fullscreenButton) return;
         
-        const container = this.fullscreenControl.getContainer();
-        const expandIcon = container.expandIcon;
-        const closeIcon = container.closeIcon;
+        const expandIcon = this.fullscreenButtonExpandIcon;
+        const closeIcon = this.fullscreenButtonCloseIcon;
         
-        if (this.isFullscreen) {
-            // Show close icon, hide expand icon
-            expandIcon.style.opacity = '0';
-            closeIcon.style.opacity = '1';
-            container.title = 'Exit fullscreen mode';
-        } else {
-            // Show expand icon, hide close icon
-            expandIcon.style.opacity = '1';
-            closeIcon.style.opacity = '0';
-            container.title = 'Enter fullscreen mode';
+        if (expandIcon) {
+            expandIcon.style.display = this.isFullscreen ? 'none' : 'inline';
         }
+        if (closeIcon) {
+            closeIcon.style.display = this.isFullscreen ? 'inline' : 'none';
+        }
+        
+        this.fullscreenButton.setAttribute('title', this.isFullscreen ? 'Exit fullscreen mode' : 'Enter fullscreen mode');
+        this.fullscreenButton.setAttribute('aria-pressed', this.isFullscreen ? 'true' : 'false');
     }
     
 

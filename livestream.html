@@ -284,6 +284,7 @@ permalink: /livestream/
         flex-direction: column;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         backdrop-filter: blur(6px);
+        touch-action: pan-y;
       }
       .basemap-popup__content {
         overflow-y: auto;
@@ -337,6 +338,75 @@ permalink: /livestream/
         background: rgba(148, 163, 184, 0.6);
         border-radius: 999px;
       }
+      .measurement-popup {
+        position: absolute;
+        top: 52px;
+        left: 12px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
+        padding: 12px;
+        max-width: min(260px, calc(100vw - 24px));
+        min-width: 180px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        touch-action: pan-y;
+      }
+      .measurement-popup__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        color: #1f2937;
+        font-size: clamp(13px, 3.5vw, 14px);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .measurement-popup__title {
+        flex: 1;
+      }
+      .measurement-popup__close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: clamp(18px, 4vw, 20px);
+        line-height: 1;
+        padding: 0;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .measurement-popup__close:hover {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .measurement-popup__close:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
+      }
+      .measurement-popup__content {
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-right: -2px;
+      }
+      .measurement-popup__content::-webkit-scrollbar {
+        width: 6px;
+      }
+      .measurement-popup__content::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .measurement-popup__content::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.6);
+        border-radius: 999px;
+      }
       @media (max-width: 768px) {
         .basemap-popup {
           top: 12px;
@@ -350,6 +420,12 @@ permalink: /livestream/
         .basemap-popup__content {
           padding-right: 2px;
           margin-right: -1px;
+        }
+        .measurement-popup {
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          max-width: calc(100vw - 24px);
         }
       }
       @media (max-width: 480px) {
@@ -377,6 +453,49 @@ permalink: /livestream/
         }
         .stale-data-banner__meta {
           font-size: clamp(10px, 2.8vw, 11.5px);
+        }
+      }
+      #videoMenuOverlayBtn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(34, 44, 62, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #f8fafc;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+        backdrop-filter: blur(4px);
+        box-shadow: 0 6px 12px rgba(15, 23, 42, 0.18);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+      }
+      #videoMenuOverlayBtn i {
+        font-size: 16px;
+      }
+      #videoMenuOverlayBtn:hover {
+        background: rgba(37, 47, 69, 0.82);
+        border-color: rgba(148, 163, 184, 0.55);
+      }
+      #videoMenuOverlayBtn:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.55);
+        outline-offset: 2px;
+      }
+      #video-panel.full-view #videoMenuOverlayBtn {
+        display: flex;
+      }
+      @media (max-width: 576px) {
+        #videoMenuOverlayBtn {
+          top: 10px;
+          right: 10px;
+          width: 28px;
+          height: 28px;
+        }
+        #videoMenuOverlayBtn i {
+          font-size: 14px;
         }
       }
       @media (max-height: 520px) and (orientation: landscape) {
@@ -1027,6 +1146,27 @@ permalink: /livestream/
         height: 32px !important;
         margin-right: 0.5rem !important;
       }
+      #fullscreenNavBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9rem;
+        line-height: 1;
+      }
+      #fullscreenNavBtn .fullscreen-nav-icon-expand,
+      #fullscreenNavBtn .fullscreen-nav-icon-close {
+        font-size: 1.05rem;
+        line-height: 1;
+      }
+      #fullscreenNavBtn .fullscreen-nav-icon-close {
+        display: none;
+      }
+      #fullscreenNavBtn:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
+      }
       .navbar .btn {
         padding: 0.375rem 0.5rem;
         font-size: 0.875rem;
@@ -1288,11 +1428,23 @@ permalink: /livestream/
 
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-      <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
-          <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
-          <span>Eagle Eyes Viewer</span>
-        </a>
+      <div class="container-fluid d-flex align-items-center">
+        <div class="d-flex align-items-center">
+          <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
+            <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
+            <span>Eagle Eyes Viewer</span>
+          </a>
+          <button
+            id="fullscreenNavBtn"
+            type="button"
+            class="btn btn-outline-secondary btn-sm ms-2"
+            aria-pressed="false"
+            title="Enter fullscreen mode"
+          >
+            <i class="bi bi-arrows-fullscreen fullscreen-nav-icon-expand" aria-hidden="true"></i>
+            <i class="bi bi-fullscreen-exit fullscreen-nav-icon-close" aria-hidden="true"></i>
+          </button>
+        </div>
 
         <div
           id="status"
@@ -1787,6 +1939,16 @@ permalink: /livestream/
             <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
           </div>
         </div>
+        <button
+          id="videoMenuOverlayBtn"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#mobileControls"
+          aria-controls="mobileControls"
+          aria-label="Open menu"
+        >
+          <i class="bi bi-list"></i>
+        </button>
         <div id="videoContainer">
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
