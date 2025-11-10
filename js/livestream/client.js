@@ -1297,6 +1297,9 @@ class WebRTCViewer {
 
       if (!droneLocation || !dronePose) {
         console.warn('Telemetry data missing location or pose');
+        if (window.droneMap && typeof window.droneMap.setGpsSignalState === 'function') {
+          window.droneMap.setGpsSignalState(false);
+        }
         return;
       }
 
@@ -1375,6 +1378,9 @@ class WebRTCViewer {
       // Update livestream ID in map
       window.droneMap.currentLivestreamId = livestreamId;
 
+      if (typeof window.droneMap.setGpsSignalState === 'function') {
+        window.droneMap.setGpsSignalState(true);
+      }
       window.droneMap.updateDronePosition(this.currentLocation, this.currentPublisherName);
       if (hasNewTelemetry || hasPositionChange || incomingTimestamp === null) {
         window.droneMap.updateTrail(this.coordinateHistory);

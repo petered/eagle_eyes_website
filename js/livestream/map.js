@@ -23,6 +23,12 @@ class DroneMap {
         
         this.staleDataOverlay = null;
         this.isDataStale = false;
+        this.gpsSignalOverlay = null;
+        this.isGpsSignalLost = false;
+        this.gpsSignalLossTimer = null;
+        this.gpsSignalRestoreTimer = null;
+        this.gpsSignalLossDelayMs = 4500; // Delay before showing "No GPS signal" banner
+        this.gpsSignalRestoreDelayMs = 1500; // Delay before hiding after signal returns
         this.disconnectedOverlay = null;
         this.isDisconnected = false;
         this.currentDroneData = null;
@@ -172,6 +178,7 @@ class DroneMap {
         this.myLocationAccuracy = null;
         this.isAutoLocationRequest = false; // Track if this is automatic initialization
         this.hasZoomedToUserLocation = false; // Track if we've already zoomed to user location
+        this.baseMapPopupResizeHandler = null;
         
         // Measurement tool state
         this.measurementMode = false;
@@ -913,7 +920,7 @@ class DroneMap {
     showBaseMapPopup() {
         // Remove existing popup if it exists
         if (this.baseMapPopup) {
-            this.baseMapPopup.remove();
+            this.closeBaseMapPopup();
         }
         
         // Create a custom DOM popup instead of using Leaflet popup
@@ -1116,6 +1123,11 @@ class DroneMap {
             </div>
             </div>
         `;
+        const baseMapContent = this.baseMapPopup.querySelector('.basemap-popup__content');
+        if (baseMapContent) {
+            baseMapContent.style.overflowY = 'auto';
+            baseMapContent.style.webkitOverflowScrolling = 'touch';
+        }
         
         // Add event listener for USA FAA Airports toggle
         const faaAirportsToggle = this.baseMapPopup.querySelector('#faaAirportsToggle');
@@ -1208,10 +1220,7 @@ class DroneMap {
                 e.preventDefault();
                 e.stopPropagation();
                 // Close the base map popup first
-                if (this.baseMapPopup && this.baseMapPopup.parentElement) {
-                    this.baseMapPopup.remove();
-                    this.baseMapPopup = null;
-                }
+                this.closeBaseMapPopup();
                 // Show the airspace authority info popup
                 this.showAirspaceAuthorityInfoPopup(null);
             });
@@ -1294,10 +1303,7 @@ class DroneMap {
             closeButton.addEventListener('click', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (this.baseMapPopup && this.baseMapPopup.parentElement) {
-                    this.baseMapPopup.remove();
-                    this.baseMapPopup = null;
-                }
+                this.closeBaseMapPopup();
             });
         }
         
@@ -1339,6 +1345,18 @@ class DroneMap {
         // Ensure popup has pointer events enabled so it can be clicked
         this.baseMapPopup.style.pointerEvents = 'auto';
         this.baseMapPopup.style.zIndex = '2000';
+
+        if (this.baseMapPopupResizeHandler) {
+            window.removeEventListener('resize', this.baseMapPopupResizeHandler);
+            window.removeEventListener('orientationchange', this.baseMapPopupResizeHandler);
+        }
+        this.baseMapPopupResizeHandler = () => {
+            this.updateBaseMapPopupSizing();
+        };
+        window.addEventListener('resize', this.baseMapPopupResizeHandler);
+        window.addEventListener('orientationchange', this.baseMapPopupResizeHandler);
+        this.updateBaseMapPopupSizing();
+        requestAnimationFrame(() => this.updateBaseMapPopupSizing());
         
         // Close popup when clicking outside (on map or anywhere else)
         // Use a small delay to avoid immediate closure from the click that opened it
@@ -1399,9 +1417,100 @@ class DroneMap {
     }
     
     closeBaseMapPopup() {
+        if (this.baseMapPopupResizeHandler) {
+            window.removeEventListener('resize', this.baseMapPopupResizeHandler);
+            window.removeEventListener('orientationchange', this.baseMapPopupResizeHandler);
+            this.baseMapPopupResizeHandler = null;
+        }
         if (this.baseMapPopup) {
             this.baseMapPopup.remove();
             this.baseMapPopup = null;
+        }
+    }
+    updateBaseMapPopupSizing() {
+        if (!this.baseMapPopup) return;
+        const mapContainer = this.map ? this.map.getContainer() : null;
+        if (!mapContainer) return;
+
+        const containerRect = mapContainer.getBoundingClientRect();
+        const containerHeight = containerRect.height || mapContainer.clientHeight || 0;
+        const containerWidth = containerRect.width || mapContainer.clientWidth || 0;
+        const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
+
+        const candidateHeights = [];
+        if (containerHeight > 0) {
+            candidateHeights.push(containerHeight - 24);
+        }
+        if (viewportHeight > 0) {
+            candidateHeights.push(viewportHeight - 80);
+        }
+
+        let desiredHeight = 260;
+        const positiveCandidates = candidateHeights.filter(value => Number.isFinite(value) && value > 0);
+        if (positiveCandidates.length > 0) {
+            const smallestCandidate = Math.min(...positiveCandidates);
+            if (smallestCandidate >= 200) {
+                desiredHeight = Math.min(smallestCandidate, 520);
+            } else {
+                desiredHeight = Math.max(140, smallestCandidate);
+            }
+        } else if (containerHeight > 0) {
+            const available = containerHeight - 24;
+            desiredHeight = available >= 200 ? Math.min(available, 520) : Math.max(140, available);
+        } else if (viewportHeight > 0) {
+            const available = viewportHeight - 80;
+            desiredHeight = available >= 200 ? Math.min(available, 520) : Math.max(140, available);
+        }
+
+        if (containerHeight > 0) {
+            const containerCap = Math.max(140, containerHeight - 16);
+            desiredHeight = Math.min(desiredHeight, containerCap);
+        }
+
+        const finalHeight = Math.max(140, desiredHeight);
+        this.baseMapPopup.style.maxHeight = `${finalHeight}px`;
+
+        if (containerWidth > 0) {
+            const widthAvailable = containerWidth - 16;
+            if (widthAvailable > 0) {
+                const resolvedWidth = Math.min(widthAvailable, 420);
+                this.baseMapPopup.style.maxWidth = `${resolvedWidth}px`;
+                if (window.innerWidth <= 768) {
+                    this.baseMapPopup.style.width = `${resolvedWidth}px`;
+                } else {
+                    this.baseMapPopup.style.width = '';
+                }
+            } else {
+                this.baseMapPopup.style.maxWidth = '';
+                this.baseMapPopup.style.width = '';
+            }
+        } else {
+            this.baseMapPopup.style.maxWidth = '';
+            if (window.innerWidth <= 768) {
+                this.baseMapPopup.style.width = '';
+            }
+        }
+
+        const computedStyle = window.getComputedStyle(this.baseMapPopup);
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+        const headingEl = this.baseMapPopup.querySelector('.basemap-popup__header');
+        const contentEl = this.baseMapPopup.querySelector('.basemap-popup__content');
+
+        if (contentEl) {
+            const headerHeight = headingEl ? headingEl.getBoundingClientRect().height : 0;
+            const extraSpacing = 16; // spacing for margins between sections
+            const contentAvailable = Math.max(120, finalHeight - headerHeight - paddingTop - paddingBottom - extraSpacing);
+            contentEl.style.maxHeight = `${contentAvailable}px`;
+            contentEl.style.overflowY = 'auto';
+            contentEl.style.webkitOverflowScrolling = 'touch';
+        }
+
+        if (containerHeight > 0) {
+            const defaultTop = window.innerWidth <= 768 ? 12 : 52;
+            const maxTop = Math.max(8, containerHeight - finalHeight - 12);
+            const computedTop = Math.min(defaultTop, maxTop);
+            this.baseMapPopup.style.top = `${computedTop}px`;
         }
     }
     showMeasurementPopup() {
@@ -5506,6 +5615,7 @@ class DroneMap {
 
     clearData() {
         this.stopDronePopupRelativeTimer();
+        this.resetGpsSignalTracking();
 
         if (this.droneMarker) {
             this.map.removeLayer(this.droneMarker);
@@ -5612,6 +5722,80 @@ class DroneMap {
         if (!this.droneClickMarker || !this.droneClickMarker.isPopupOpen()) {
             this.stopDronePopupRelativeTimer();
         }
+        this.updateGpsOverlayPosition();
+    }
+    setGpsSignalState(hasSignal) {
+        if (hasSignal) {
+            if (this.gpsSignalLossTimer) {
+                clearTimeout(this.gpsSignalLossTimer);
+                this.gpsSignalLossTimer = null;
+            }
+            if (!this.isGpsSignalLost && !this.gpsSignalOverlay) {
+                return;
+            }
+            if (this.gpsSignalRestoreTimer) {
+                clearTimeout(this.gpsSignalRestoreTimer);
+            }
+            this.gpsSignalRestoreTimer = setTimeout(() => {
+                this.hideGpsSignalOverlay();
+                this.isGpsSignalLost = false;
+                this.gpsSignalRestoreTimer = null;
+            }, this.gpsSignalRestoreDelayMs);
+        } else {
+            if (this.gpsSignalRestoreTimer) {
+                clearTimeout(this.gpsSignalRestoreTimer);
+                this.gpsSignalRestoreTimer = null;
+            }
+            if (!this.isGpsSignalLost && !this.gpsSignalLossTimer) {
+                this.gpsSignalLossTimer = setTimeout(() => {
+                    this.showGpsSignalOverlay();
+                    this.isGpsSignalLost = true;
+                    this.gpsSignalLossTimer = null;
+                }, this.gpsSignalLossDelayMs);
+            }
+        }
+    }
+    showGpsSignalOverlay() {
+        if (this.gpsSignalOverlay) return;
+        const mapContainer = document.getElementById('map');
+        if (!mapContainer) return;
+
+        this.gpsSignalOverlay = document.createElement('div');
+        this.gpsSignalOverlay.className = 'gps-signal-banner';
+        this.gpsSignalOverlay.innerHTML = `
+            <div class="gps-signal-banner__header">
+                <i class="bi bi-geo-alt-slash"></i>
+                <span>No GPS signal</span>
+            </div>
+            <div class="gps-signal-banner__meta">Waiting for valid drone coordinates…</div>
+        `;
+        mapContainer.style.position = 'relative';
+        mapContainer.appendChild(this.gpsSignalOverlay);
+        this.updateGpsOverlayPosition();
+    }
+    hideGpsSignalOverlay() {
+        if (this.gpsSignalOverlay) {
+            this.gpsSignalOverlay.remove();
+            this.gpsSignalOverlay = null;
+        }
+    }
+    updateGpsOverlayPosition() {
+        if (!this.gpsSignalOverlay) return;
+        const baseOffset = this.staleDataOverlay ? this.staleDataOverlay.offsetHeight + 16 : 12;
+        this.gpsSignalOverlay.style.top = `${baseOffset}px`;
+        this.gpsSignalOverlay.style.right = '12px';
+    }
+    resetGpsSignalTracking() {
+        if (this.gpsSignalLossTimer) {
+            clearTimeout(this.gpsSignalLossTimer);
+            this.gpsSignalLossTimer = null;
+        }
+        if (this.gpsSignalRestoreTimer) {
+            clearTimeout(this.gpsSignalRestoreTimer);
+            this.gpsSignalRestoreTimer = null;
+        }
+        this.isGpsSignalLost = false;
+        this.hideGpsSignalOverlay();
     }
 
     updateStaleDataOverlayContent() {
@@ -5638,6 +5822,7 @@ class DroneMap {
                 <span class="drone-last-updated"${timestampAttr}>${relativeText}</span>
             </div>
         `;
+        this.updateGpsOverlayPosition();
     }
 
     setDisconnected(isDisconnected) {
