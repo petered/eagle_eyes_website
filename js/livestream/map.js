@@ -4546,7 +4546,6 @@ class DroneMap {
         this.isFullscreen = enter;
         
         const navbar = document.querySelector('.navbar');
-        const mobileOffcanvas = document.querySelector('.offcanvas');
         
         if (enter) {
             this.showFullscreenMapControl();
@@ -4559,9 +4558,6 @@ class DroneMap {
             // Hide top bar
             if (navbar) {
                 navbar.style.display = 'none';
-            }
-            if (mobileOffcanvas) {
-                mobileOffcanvas.style.display = 'none';
             }
             
             // Zoom to user location if it's visible
@@ -4591,9 +4587,6 @@ class DroneMap {
                 } else {
                     navbar.style.display = ''; // Remove inline style, let CSS handle it
                 }
-            }
-            if (mobileOffcanvas) {
-                mobileOffcanvas.style.display = 'block';
             }
             console.log('Exited fallback fullscreen mode - top bar shown');
         }
@@ -4630,7 +4623,6 @@ class DroneMap {
         
         // Hide/show navbar when entering/exiting fullscreen
         const navbar = document.querySelector('.navbar');
-        const mobileOffcanvas = document.querySelector('.offcanvas');
         
         if (isCurrentlyFullscreen) {
             this.showFullscreenMapControl();
@@ -4643,9 +4635,6 @@ class DroneMap {
             // Hide navbar and mobile offcanvas when entering fullscreen
             if (navbar) {
                 navbar.style.display = 'none';
-            }
-            if (mobileOffcanvas) {
-                mobileOffcanvas.style.display = 'none';
             }
             
             // Check if map is visible and show beta disclaimer if needed
@@ -4689,9 +4678,6 @@ class DroneMap {
                 } else {
                     navbar.style.display = ''; // Remove inline style, let CSS handle it
                 }
-            }
-            if (mobileOffcanvas) {
-                mobileOffcanvas.style.display = 'block';
             }
             console.log('Exited fullscreen - navbar shown');
         }
