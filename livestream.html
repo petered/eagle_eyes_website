@@ -198,11 +198,13 @@ permalink: /livestream/
         font-weight: 600;
         z-index: 1000;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
-        display: flex;
+        display: inline-flex;
         flex-direction: column;
         gap: 4px;
-        width: min(96vw, 360px);
+        max-width: min(360px, calc(100% - 16px));
+        width: auto;
         backdrop-filter: blur(3px);
+        word-break: break-word;
       }
       .stale-data-banner__header {
         display: flex;
@@ -247,12 +249,48 @@ permalink: /livestream/
         overscroll-behavior: contain;
         padding-right: 4px;
         margin-right: -2px;
+        display: flex;
+        flex-direction: column;
+      }
+      .basemap-popup label {
+        margin: 6px 0 !important;
+        font-size: 12.5px !important;
       }
       .basemap-popup__content::-webkit-scrollbar {
         width: 6px;
       }
       .basemap-popup__content::-webkit-scrollbar-track {
         background: transparent;
+      }
+      .basemap-popup__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        color: #1f2937;
+        font-size: clamp(14px, 3.5vw, 16px);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .basemap-popup__close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: clamp(16px, 4vw, 20px);
+        font-weight: 500;
+        line-height: 1;
+        padding: 4px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .basemap-popup__close:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
+      }
+      .basemap-popup__close:hover {
+        color: #374151;
+        background: #f3f4f6;
       }
       .basemap-popup__content::-webkit-scrollbar-thumb {
         background: rgba(148, 163, 184, 0.6);
@@ -278,14 +316,20 @@ permalink: /livestream/
           top: 10px;
           border-radius: 10px;
           padding: 12px;
+          font-size: 13px;
         }
+      }
+      #mobileControls .offcanvas-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 58px);
+        padding-bottom: 1.5rem;
       }
       @media (max-width: 576px) {
         .stale-data-banner {
           top: 8px;
           padding: 9px 14px;
           border-radius: 8px;
-          width: min(96vw, 320px);
+          max-width: calc(100% - 12px);
         }
         .stale-data-banner__header {
           font-size: clamp(12px, 3vw, 13px);
@@ -299,7 +343,7 @@ permalink: /livestream/
           top: 6px;
           padding: 7px 12px;
           border-radius: 8px;
-          width: min(96vw, 340px);
+          max-width: calc(100% - 10px);
         }
         .stale-data-banner__header {
           gap: 6px;
@@ -2137,6 +2181,31 @@ permalink: /livestream/
           }
         }
 
+        const desktopViewRadios = document.querySelectorAll('input[name="view-mode"]');
+        const mobileViewRadios = document.querySelectorAll('input[name="view-mode-mobile"]');
+        let currentViewMode = 'split';
+
+        function syncViewModeRadios(mode) {
+          const desktopIdMap = {
+            split: 'split-view',
+            video: 'video-only',
+            map: 'map-only'
+          };
+          const mobileIdMap = {
+            split: 'split-view-mobile',
+            video: 'video-only-mobile',
+            map: 'map-only-mobile'
+          };
+          const desktopTarget = desktopIdMap[mode];
+          desktopViewRadios.forEach((radio) => {
+            radio.checked = radio.id === desktopTarget;
+          });
+          const mobileTarget = mobileIdMap[mode];
+          mobileViewRadios.forEach((radio) => {
+            radio.checked = radio.id === mobileTarget;
+          });
+        }
+
         function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");
 
@@ -2253,11 +2322,11 @@ permalink: /livestream/
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);
           }
+          currentViewMode = mode;
+          syncViewModeRadios(mode);
         }
 
-        document
-          .querySelectorAll('input[name="view-mode"]')
-          .forEach((radio) => {
+        desktopViewRadios.forEach((radio) => {
             radio.addEventListener("change", (e) => {
               const mode = e.target.id
                 .replace("-only", "")
@@ -2271,9 +2340,7 @@ permalink: /livestream/
               }
             });
           });
-        document
-          .querySelectorAll('input[name="view-mode-mobile"]')
-          .forEach((radio) => {
+        mobileViewRadios.forEach((radio) => {
             radio.addEventListener("change", (e) => {
               const mode = e.target.id
                 .replace("-only-mobile", "")
@@ -2287,6 +2354,48 @@ permalink: /livestream/
               }
             });
           });
+
+        syncViewModeRadios(currentViewMode);
+
+        const prefersCoarsePointer = window.matchMedia('(pointer: coarse)');
+        const isTouchDevice = prefersCoarsePointer.matches || 'ontouchstart' in window;
+        if (isTouchDevice && videoPanel) {
+          let swipeStartX = null;
+          let swipeStartY = null;
+          const SWIPE_THRESHOLD = 70;
+
+          videoPanel.addEventListener('touchstart', (event) => {
+            if (currentViewMode !== 'video' || event.touches.length !== 1) {
+              swipeStartX = null;
+              swipeStartY = null;
+              return;
+            }
+            const touch = event.touches[0];
+            swipeStartX = touch.clientX;
+            swipeStartY = touch.clientY;
+          }, { passive: true });
+
+          videoPanel.addEventListener('touchend', (event) => {
+            if (swipeStartX === null || swipeStartY === null || event.changedTouches.length !== 1) {
+              swipeStartX = null;
+              swipeStartY = null;
+              return;
+            }
+            const touch = event.changedTouches[0];
+            const deltaX = touch.clientX - swipeStartX;
+            const deltaY = touch.clientY - swipeStartY;
+            swipeStartX = null;
+            swipeStartY = null;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+              if (deltaX > 0) {
+                setViewMode('map');
+              } else {
+                setViewMode('split');
+              }
+            }
+          }, { passive: true });
+        }
       });
 
       function centerOnDrone() {

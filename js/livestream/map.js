@@ -929,7 +929,10 @@ class DroneMap {
         
         this.baseMapPopup.innerHTML = `
             <div class="basemap-popup__content">
-            <div style="font-weight: 600; margin-bottom: 14px; color: #1f2937; font-size: 15px; letter-spacing: -0.01em;">Base Maps</div>
+            <div class="basemap-popup__header">
+                <span>Base Maps</span>
+                <button id="basemapPopupClose" type="button" class="basemap-popup__close" aria-label="Close basemap panel">✕</button>
+            </div>
             
             <!-- Default basemap (Google Satellite) -->
             <label style="display: block; margin: 8px 0; cursor: pointer; font-size: 13px; padding: 4px 0; color: #374151; font-weight: 500; transition: color 0.2s;">
@@ -1283,6 +1286,18 @@ class DroneMap {
         if (airspaceAllExpandBtn) {
             airspaceAllExpandBtn.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
+            });
+        }
+
+        const closeButton = this.baseMapPopup.querySelector('#basemapPopupClose');
+        if (closeButton) {
+            closeButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (this.baseMapPopup && this.baseMapPopup.parentElement) {
+                    this.baseMapPopup.remove();
+                    this.baseMapPopup = null;
+                }
             });
         }
         
@@ -3852,7 +3867,7 @@ class DroneMap {
                 clearPressState();
             }, LONG_PRESS_DURATION_MS);
         }, { passive: true });
-        
+
         mapContainer.addEventListener('touchmove', (event) => {
             if (!pressTimer || !pressStartPos || event.touches.length !== 1) {
                 return;
