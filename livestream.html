@@ -33,7 +33,7 @@ permalink: /livestream/
     <meta name="twitter:card" content="summary">
     <meta name="twitter:image" content="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}">
     
-    <title>Eagle Eyes Livestream Viewer</title>
+    <title>Eagle Eyes Viewer</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -45,6 +45,15 @@ permalink: /livestream/
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <!-- Leaflet MarkerCluster CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -175,6 +184,330 @@ permalink: /livestream/
       #remoteVideo::-webkit-media-controls-enclosure {
         background-image: none !important;
         background: transparent !important;
+      }
+      .stale-data-banner {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(220, 53, 69, 0.96);
+        color: #fff;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: clamp(11px, 2.8vw, 14px);
+        font-weight: 600;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+        max-width: min(360px, calc(100% - 16px));
+        width: auto;
+        backdrop-filter: blur(3px);
+        word-break: break-word;
+      }
+      .stale-data-banner__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.3;
+        font-size: inherit;
+      }
+      .stale-data-banner__header i {
+        font-size: 1.05em;
+      }
+      .stale-data-banner__meta {
+        font-size: clamp(10px, 2.4vw, 12px);
+        font-weight: 500;
+        opacity: 0.9;
+        line-height: 1.4;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .gps-signal-banner {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(220, 53, 69, 0.95);
+        color: #ffffff;
+        border-radius: 10px;
+        padding: 12px 16px;
+        box-shadow: 0 12px 28px rgba(220, 53, 69, 0.25);
+        display: inline-flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: min(340px, calc(100% - 16px));
+        z-index: 2050;
+        font-size: clamp(13px, 3.2vw, 14px);
+        pointer-events: none;
+      }
+      .gps-signal-banner__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+      .gps-signal-banner__header i {
+        font-size: 1.15em;
+      }
+      .gps-signal-banner__meta {
+        font-size: clamp(11px, 2.8vw, 13px);
+        line-height: 1.45;
+        opacity: 0.95;
+      }
+      @media (max-width: 576px) {
+        .gps-signal-banner {
+          top: 8px;
+          right: 8px;
+          padding: 10px 14px;
+          border-radius: 8px;
+          max-width: calc(100% - 12px);
+        }
+      }
+      .basemap-popup {
+        position: absolute;
+        top: 52px;
+        left: 12px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18), 0 6px 14px rgba(15, 23, 42, 0.12);
+        padding: 16px;
+        min-width: 200px;
+        max-width: min(92vw, 360px);
+        max-height: calc(100vh - 120px);
+        overflow: hidden;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        backdrop-filter: blur(6px);
+        touch-action: pan-y;
+      }
+      .basemap-popup__content {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 6px;
+        margin-right: -2px;
+        display: flex;
+        flex-direction: column;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .basemap-popup label {
+        margin: 6px 0 !important;
+        font-size: 12.5px !important;
+      }
+      .basemap-popup__content::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+      }
+      .basemap-popup__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        color: #1f2937;
+        font-size: clamp(14px, 3.5vw, 16px);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .basemap-popup__close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: clamp(16px, 4vw, 20px);
+        font-weight: 500;
+        line-height: 1;
+        padding: 4px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .basemap-popup__close:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
+      }
+      .basemap-popup__close:hover {
+        color: #374151;
+        background: #f3f4f6;
+      }
+      .measurement-popup {
+        position: absolute;
+        top: 52px;
+        left: 12px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
+        padding: 12px;
+        max-width: min(260px, calc(100vw - 24px));
+        min-width: 180px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        touch-action: pan-y;
+      }
+      .measurement-popup__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        color: #1f2937;
+        font-size: clamp(13px, 3.5vw, 14px);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .measurement-popup__title {
+        flex: 1;
+      }
+      .measurement-popup__close {
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: clamp(18px, 4vw, 20px);
+        line-height: 1;
+        padding: 0;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .measurement-popup__close:hover {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .measurement-popup__close:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
+      }
+      .measurement-popup__content {
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-right: -2px;
+      }
+      .measurement-popup__content::-webkit-scrollbar {
+        width: 6px;
+      }
+      .measurement-popup__content::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .measurement-popup__content::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.6);
+        border-radius: 999px;
+      }
+      @media (max-width: 768px) {
+        .basemap-popup {
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: calc(100vw - 24px);
+          max-width: calc(100vw - 24px);
+          max-height: calc(100vh - 80px);
+          padding: 14px;
+        }
+        .basemap-popup__content {
+          padding-right: 2px;
+          margin-right: -1px;
+        }
+        .measurement-popup {
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          max-width: calc(100vw - 24px);
+        }
+      }
+      @media (max-width: 480px) {
+        .basemap-popup {
+          top: 10px;
+          border-radius: 10px;
+          padding: 12px;
+          font-size: 13px;
+        }
+      }
+      #mobileControls .offcanvas-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 58px);
+        padding-bottom: 1.5rem;
+      }
+      @media (max-width: 576px) {
+        .stale-data-banner {
+          top: 8px;
+          padding: 9px 14px;
+          border-radius: 8px;
+          max-width: calc(100% - 12px);
+        }
+        .stale-data-banner__header {
+          font-size: clamp(12px, 3vw, 13px);
+        }
+        .stale-data-banner__meta {
+          font-size: clamp(10px, 2.8vw, 11.5px);
+        }
+      }
+      #videoMenuOverlayBtn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(34, 44, 62, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #f8fafc;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+        backdrop-filter: blur(4px);
+        box-shadow: 0 6px 12px rgba(15, 23, 42, 0.18);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+      }
+      #videoMenuOverlayBtn i {
+        font-size: 16px;
+      }
+      #videoMenuOverlayBtn:hover {
+        background: rgba(37, 47, 69, 0.82);
+        border-color: rgba(148, 163, 184, 0.55);
+      }
+      #videoMenuOverlayBtn:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.55);
+        outline-offset: 2px;
+      }
+      #video-panel.full-view #videoMenuOverlayBtn {
+        display: flex;
+      }
+      @media (max-width: 576px) {
+        #videoMenuOverlayBtn {
+          top: 10px;
+          right: 10px;
+          width: 28px;
+          height: 28px;
+        }
+        #videoMenuOverlayBtn i {
+          font-size: 14px;
+        }
+      }
+      @media (max-height: 520px) and (orientation: landscape) {
+        .stale-data-banner {
+          top: 6px;
+          padding: 7px 12px;
+          border-radius: 8px;
+          max-width: calc(100% - 10px);
+        }
+        .stale-data-banner__header {
+          gap: 6px;
+          font-size: clamp(11px, 2.2vw, 13px);
+        }
+        .stale-data-banner__meta {
+          font-size: clamp(9.5px, 2vw, 11px);
+        }
       }
       .placeholder {
         width: 100%;
@@ -503,9 +836,26 @@ permalink: /livestream/
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        margin-bottom: 0px !important;
       }
       
       .leaflet-control-center img {
+        width: 24px !important;
+        height: 24px !important;
+      }
+      
+      /* Measurement (ruler) control styling */
+      .leaflet-control-measurement {
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 0px !important;
+        margin-top: 0px !important;
+      }
+      
+      .leaflet-control-measurement img {
         width: 24px !important;
         height: 24px !important;
       }
@@ -517,6 +867,13 @@ permalink: /livestream/
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        margin-bottom: 0px !important;
+        margin-top: 0px !important;
+      }
+      
+      /* Remove default margins from widget container divs for tight stacking */
+      .leaflet-top.leaflet-left .leaflet-bar.leaflet-control {
+        margin-bottom: 0px !important;
       }
       
       /* Base map popup styling */
@@ -536,6 +893,114 @@ permalink: /livestream/
         background: white;
       }
       
+      /* User marker popup styling - compact and mobile-friendly */
+      .user-marker-popup .leaflet-popup-content-wrapper {
+        padding: 0 !important;
+        border-radius: 4px !important;
+      }
+      
+      .user-marker-popup .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      .user-marker-popup .leaflet-popup-content button {
+        touch-action: manipulation !important; /* Better touch handling on mobile */
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+      }
+      
+      /* Mobile optimization for user marker popups */
+      @media (max-width: 768px) {
+        .user-marker-popup {
+          max-width: 160px !important;
+        }
+        
+        .user-marker-popup .leaflet-popup-content {
+          font-size: 11px !important;
+        }
+      }
+      
+      /* Multi-hit popup styling - fixed dimensions with scrolling */
+      .multi-hit-popup .leaflet-popup-content-wrapper {
+        padding: 0 !important;
+        overflow: hidden !important;
+        border-radius: 8px !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* Position close button properly - ensure it's above navigation buttons */
+      .multi-hit-popup .leaflet-popup-close-button {
+        z-index: 1001 !important;
+        width: 28px !important;
+        height: 28px !important;
+        line-height: 28px !important;
+        font-size: 20px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        top: 8px !important;
+        right: 8px !important;
+        text-align: center !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 50% !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+      }
+      
+      /* Ensure buttons are visible and not cut off */
+      .multi-hit-popup button {
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+        flex-shrink: 0 !important;
+      }
+      
+      /* Style navigation buttons to not overlap close button */
+      .multi-hit-popup .leaflet-popup-content button {
+        min-width: 36px !important;
+        min-height: 32px !important;
+        padding: 6px 10px !important;
+      }
+      
+      /* Visible scrollbar styling for popup content - always visible */
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content {
+        /* Force scrollbar to always be visible */
+        overflow-y: scroll !important;
+        scrollbar-width: thin !important;
+        scrollbar-color: #999 #f0f0f0 !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar {
+        width: 10px !important;
+        -webkit-appearance: none !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-track {
+        background: #f0f0f0 !important;
+        border-radius: 4px !important;
+        -webkit-box-shadow: inset 0 0 1px rgba(0,0,0,0.1) !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-thumb {
+        background: #999 !important;
+        border-radius: 4px !important;
+        border: 1px solid #f0f0f0 !important;
+        -webkit-box-shadow: inset 0 0 1px rgba(0,0,0,0.2) !important;
+      }
+      
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-thumb:hover {
+        background: #777 !important;
+      }
+      
+      /* Ensure scrollbar is always visible, not just on hover */
+      .multi-hit-popup .leaflet-popup-content .popup-scrollable-content::-webkit-scrollbar-thumb:active {
+        background: #666 !important;
+      }
+      
       /* Mobile optimization for center control */
       @media (max-width: 768px) {
         .leaflet-control-center {
@@ -543,6 +1008,15 @@ permalink: /livestream/
           height: 35px !important;
         }
         .leaflet-control-center img {
+          width: 20px !important;
+          height: 20px !important;
+        }
+        
+        .leaflet-control-measurement {
+          width: 35px !important;
+          height: 35px !important;
+        }
+        .leaflet-control-measurement img {
           width: 20px !important;
           height: 20px !important;
         }
@@ -668,12 +1142,41 @@ permalink: /livestream/
         height: 32px !important;
         margin-right: 0.5rem !important;
       }
+      #fullscreenNavBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9rem;
+        line-height: 1;
+      }
+      #fullscreenNavBtn .fullscreen-nav-icon-expand,
+      #fullscreenNavBtn .fullscreen-nav-icon-close {
+        font-size: 1.05rem;
+        line-height: 1;
+      }
+      #fullscreenNavBtn .fullscreen-nav-icon-close {
+        display: none;
+      }
+      #fullscreenNavBtn:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
+      }
       .navbar .btn {
         padding: 0.375rem 0.5rem;
         font-size: 0.875rem;
       }
       .navbar .btn-group .btn {
         padding: 0.375rem 0.5rem;
+      }
+      #status {
+        margin-left: 0.5rem;
+      }
+      @media (min-width: 992px) {
+        #status {
+          margin-left: 1rem;
+        }
       }
       .navbar #status {
         font-size: 0.8rem;
@@ -929,15 +1432,27 @@ permalink: /livestream/
 
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-      <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
-          <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
-          <span>Eagle Eyes Livestream Viewer</span>
-        </a>
+      <div class="container-fluid d-flex align-items-center">
+        <div class="d-flex align-items-center">
+          <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
+            <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
+            <span>Eagle Eyes Viewer</span>
+          </a>
+          <button
+            id="fullscreenNavBtn"
+            type="button"
+            class="btn btn-outline-secondary btn-sm ms-2"
+            aria-pressed="false"
+            title="Enter fullscreen mode"
+          >
+            <i class="bi bi-arrows-fullscreen fullscreen-nav-icon-expand" aria-hidden="true"></i>
+            <i class="bi bi-fullscreen-exit fullscreen-nav-icon-close" aria-hidden="true"></i>
+          </button>
+        </div>
 
         <div
           id="status"
-          class="status d-flex align-items-center text-white ms-auto me-2"
+          class="status d-flex align-items-center text-white ms-auto me-2 ms-lg-3"
         >
           <span class="status-dot"></span>
           <span class="status-text small"></span>
@@ -1195,7 +1710,7 @@ permalink: /livestream/
       id="mobileControls"
     >
       <div class="offcanvas-header">
-        <h5 class="offcanvas-title">Eagle Eyes Livestream Viewer</h5>
+        <h5 class="offcanvas-title">Eagle Eyes Viewer</h5>
         <button
           type="button"
           class="btn-close btn-close-white"
@@ -1317,7 +1832,7 @@ permalink: /livestream/
       <!-- Shared disconnected overlay -->
       <div id="sharedDisconnectedOverlay" style="
         position: absolute;
-        top: 10px;
+        top: 52px;
         left: 10px;
         right: 10px;
         background-color: rgba(220, 53, 69, 0.95);
@@ -1418,7 +1933,7 @@ permalink: /livestream/
         </div>
       </div>
 
-      <div id="video-panel">
+      <div id="video-panel" style="position: relative;">
         <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
@@ -1428,6 +1943,16 @@ permalink: /livestream/
             <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
           </div>
         </div>
+        <button
+          id="videoMenuOverlayBtn"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#mobileControls"
+          aria-controls="mobileControls"
+          aria-label="Open menu"
+        >
+          <i class="bi bi-list"></i>
+        </button>
         <div id="videoContainer">
           <div class="placeholder">
             <i class="bi bi-camera-video-off" style="font-size: 5rem"></i>
@@ -1595,7 +2120,7 @@ permalink: /livestream/
         </div>
       </div>
       </div>
-      <div id="map-panel">
+      <div id="map-panel" style="position: relative;">
         <div id="map"></div>
       </div>
     </main>
@@ -1603,6 +2128,10 @@ permalink: /livestream/
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Esri Leaflet -->
+    <script src="https://unpkg.com/esri-leaflet"></script>
     <script src="{{ '/js/livestream/map.js' | relative_url }}"></script>
     <script src="{{ '/js/livestream/client.js' | relative_url }}"></script>
     <script>
@@ -1650,30 +2179,156 @@ permalink: /livestream/
         const video = document.getElementById('remoteVideo');
         
         if (video && 'pictureInPictureEnabled' in document) {
-          // Enter PiP when page loses visibility
+          // Enter PiP when page loses visibility (user switches tabs/apps)
           document.addEventListener('visibilitychange', async () => {
-            if (document.hidden && !video.paused && video.style.display !== 'none') {
-              try {
-                if (video !== document.pictureInPictureElement) {
-                  await video.requestPictureInPicture();
-                }
-              } catch (error) {
-                console.log('PiP failed:', error);
-              }
+            if (document.hidden && !video.paused) {
+              await activatePictureInPicture();
             }
           });
           
-          // Optional: Exit PiP when page becomes visible again
+          // Optional: Exit PiP when page becomes visible again and not in map-only mode
           document.addEventListener('visibilitychange', async () => {
-            if (!document.hidden && document.pictureInPictureElement) {
+            const mapPanel = document.getElementById('map-panel');
+            const isMapFullScreen = mapPanel && mapPanel.classList.contains('full-view');
+            
+            if (!document.hidden && document.pictureInPictureElement && !isMapFullScreen) {
               try {
                 await document.exitPictureInPicture();
+                console.log('PiP exited due to page visibility change');
               } catch (error) {
                 console.log('Exit PiP failed:', error);
               }
             }
           });
         }
+      }
+      
+      // Function to manually trigger PiP
+      async function activatePictureInPicture() {
+        const video = document.getElementById('remoteVideo');
+        
+        if (!video) {
+          console.warn('Video element not found');
+          return false;
+        }
+        
+        if (!('pictureInPictureEnabled' in document)) {
+            console.warn('Picture-in-Picture not supported');
+          return false;
+        }
+        
+        if (video.paused) {
+          console.log('Video not playing, cannot activate PiP');
+          return false;
+        }
+        
+        // Check if already in PiP mode
+        if (video === document.pictureInPictureElement) {
+          console.log('Already in PiP mode');
+          return true;
+        }
+
+        const videoPanel = document.getElementById('video-panel');
+        const restoreCallbacks = [];
+
+        if (videoPanel) {
+          const previousClassName = videoPanel.className;
+          const hadDNone = videoPanel.classList.contains('d-none');
+          const previousStyles = {
+            display: videoPanel.style.display,
+            position: videoPanel.style.position,
+            width: videoPanel.style.width,
+            height: videoPanel.style.height,
+            opacity: videoPanel.style.opacity,
+            pointerEvents: videoPanel.style.pointerEvents,
+            zIndex: videoPanel.style.zIndex
+          };
+
+          if (hadDNone) {
+            videoPanel.classList.remove('d-none');
+          }
+
+          videoPanel.style.setProperty('display', 'block', 'important');
+          videoPanel.style.position = 'fixed';
+          videoPanel.style.width = '1px';
+          videoPanel.style.height = '1px';
+          videoPanel.style.opacity = '0';
+          videoPanel.style.pointerEvents = 'none';
+          videoPanel.style.zIndex = '-1';
+
+          restoreCallbacks.push(() => {
+            videoPanel.style.display = previousStyles.display;
+            videoPanel.style.position = previousStyles.position;
+            videoPanel.style.width = previousStyles.width;
+            videoPanel.style.height = previousStyles.height;
+            videoPanel.style.opacity = previousStyles.opacity;
+            videoPanel.style.pointerEvents = previousStyles.pointerEvents;
+            videoPanel.style.zIndex = previousStyles.zIndex;
+            videoPanel.className = previousClassName;
+          });
+        }
+
+        const previousVideoStyles = {
+          display: video.style.display,
+          width: video.style.width,
+          height: video.style.height,
+          opacity: video.style.opacity,
+          position: video.style.position,
+          pointerEvents: video.style.pointerEvents,
+          zIndex: video.style.zIndex
+        };
+
+        const videoComputed = window.getComputedStyle(video);
+        if (videoComputed.display === 'none' || videoComputed.visibility === 'hidden') {
+          video.style.setProperty('display', 'block', 'important');
+          video.style.width = '1px';
+          video.style.height = '1px';
+          video.style.opacity = '0';
+          video.style.position = 'fixed';
+          video.style.pointerEvents = 'none';
+          video.style.zIndex = '-1';
+
+          restoreCallbacks.push(() => {
+            video.style.display = previousVideoStyles.display;
+            video.style.width = previousVideoStyles.width;
+            video.style.height = previousVideoStyles.height;
+            video.style.opacity = previousVideoStyles.opacity;
+            video.style.position = previousVideoStyles.position;
+            video.style.pointerEvents = previousVideoStyles.pointerEvents;
+            video.style.zIndex = previousVideoStyles.zIndex;
+          });
+        }
+        
+        try {
+          await video.requestPictureInPicture();
+          console.log('PiP activated manually');
+          return true;
+        } catch (error) {
+          console.error('Failed to activate PiP:', error);
+          return false;
+        } finally {
+          while (restoreCallbacks.length) {
+            const restore = restoreCallbacks.pop();
+            if (typeof restore === 'function') {
+              restore();
+            }
+          }
+        }
+      }
+      
+      // Function to exit PiP
+      async function deactivatePictureInPicture() {
+        if (document.pictureInPictureElement) {
+          try {
+            await document.exitPictureInPicture();
+            console.log('PiP deactivated');
+            return true;
+          } catch (error) {
+            console.error('Failed to exit PiP:', error);
+            return false;
+          }
+        }
+        return false;
       }
       
       document.addEventListener("DOMContentLoaded", () => {
@@ -1733,6 +2388,31 @@ permalink: /livestream/
           }
         }
 
+        const desktopViewRadios = document.querySelectorAll('input[name="view-mode"]');
+        const mobileViewRadios = document.querySelectorAll('input[name="view-mode-mobile"]');
+        let currentViewMode = 'split';
+
+        function syncViewModeRadios(mode) {
+          const desktopIdMap = {
+            split: 'split-view',
+            video: 'video-only',
+            map: 'map-only'
+          };
+          const mobileIdMap = {
+            split: 'split-view-mobile',
+            video: 'video-only-mobile',
+            map: 'map-only-mobile'
+          };
+          const desktopTarget = desktopIdMap[mode];
+          desktopViewRadios.forEach((radio) => {
+            radio.checked = radio.id === desktopTarget;
+          });
+          const mobileTarget = mobileIdMap[mode];
+          mobileViewRadios.forEach((radio) => {
+            radio.checked = radio.id === mobileTarget;
+          });
+        }
+
         function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");
 
@@ -1744,6 +2424,10 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            // Reposition disconnected overlay for video mode
+            repositionDisconnectedOverlay();
+            // Exit PiP when returning to video or split view
+            deactivatePictureInPicture();
           } else if (mode === "map") {
             videoPanel.className = "d-none";
             videoPanel.style.flex = "";
@@ -1762,7 +2446,7 @@ permalink: /livestream/
             }
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-none";
             
-            // Center map - zoom to drone if connected, otherwise North America
+            // Center map - zoom to drone if connected, otherwise user location, otherwise North America
             if (window.droneMap && window.droneMap.map) {
               setTimeout(() => {
                 // Check if a drone is connected (has current location)
@@ -1770,20 +2454,46 @@ permalink: /livestream/
                   // Zoom to connected drone location
                   window.droneMap.map.setView(window.droneMap.currentLocation, 15);
                   console.log('Zooming to connected drone location:', window.droneMap.currentLocation);
+                } else if (window.droneMap.isMyLocationVisible && window.droneMap.myLocationMarker) {
+                  // No drone, but user location is available - zoom to user location
+                  const userLatlng = window.droneMap.myLocationMarker.getLatLng();
+                  window.droneMap.map.invalidateSize();
+                  window.droneMap.map.setView(userLatlng, 15, { animate: false });
+                  // Force another invalidate after setting view
+                  setTimeout(() => {
+                    window.droneMap.map.invalidateSize();
+                  }, 50);
+                  console.log('Zooming to user location in map-only mode:', userLatlng);
                 } else {
-                  // No drone connected - show North America scale
+                  // No drone or user location - show North America scale
                   window.droneMap.map.setView([45.0, -100.0], 3);
-                  console.log('No drone connected - showing North America scale');
+                  console.log('No drone or user location - showing North America scale');
                 }
                 // Invalidate size to ensure map tiles render properly
                 window.droneMap.map.invalidateSize();
-              }, 100);
+                // Check if map is visible and show beta disclaimer if needed
+                if (window.droneMap.checkMapVisibilityAndShowDisclaimer) {
+                  window.droneMap.checkMapVisibilityAndShowDisclaimer();
+                }
+              }, 200);
             } else if (window.droneMap && typeof window.droneMap.resize === 'function') {
               // If map exists but tiles aren't loading, try resize
               setTimeout(() => {
                 window.droneMap.resize();
+                // Check if map is visible and show beta disclaimer if needed
+                if (window.droneMap.checkMapVisibilityAndShowDisclaimer) {
+                  window.droneMap.checkMapVisibilityAndShowDisclaimer();
+                }
               }, 100);
             }
+            // Reposition disconnected overlay for map mode
+            repositionDisconnectedOverlay();
+            
+            // Activate Picture-in-Picture when switching to full-screen map
+            // Wait a bit for the UI transition to complete
+            setTimeout(() => {
+              activatePictureInPicture();
+            }, 300);
           } else {
             // split - let CSS aspect ratio media queries handle layout
             videoPanel.className = "";
@@ -1793,6 +2503,10 @@ permalink: /livestream/
             // Remove the force-show flag when switching away from map mode
             mapPanel.removeAttribute('data-force-show');
             if (coordStrip) coordStrip.className = "bg-dark text-white px-2 py-1 border-top border-secondary d-flex";
+            // Reposition disconnected overlay for split mode
+            repositionDisconnectedOverlay();
+            // Exit PiP when returning to split view
+            deactivatePictureInPicture();
             
             // Center map - zoom to drone if connected, otherwise North America
             if (window.droneMap && window.droneMap.map) {
@@ -1815,11 +2529,11 @@ permalink: /livestream/
           if (window.droneMap) {
             setTimeout(() => window.droneMap.resize(), 150);
           }
+          currentViewMode = mode;
+          syncViewModeRadios(mode);
         }
 
-        document
-          .querySelectorAll('input[name="view-mode"]')
-          .forEach((radio) => {
+        desktopViewRadios.forEach((radio) => {
             radio.addEventListener("change", (e) => {
               const mode = e.target.id
                 .replace("-only", "")
@@ -1833,9 +2547,7 @@ permalink: /livestream/
               }
             });
           });
-        document
-          .querySelectorAll('input[name="view-mode-mobile"]')
-          .forEach((radio) => {
+        mobileViewRadios.forEach((radio) => {
             radio.addEventListener("change", (e) => {
               const mode = e.target.id
                 .replace("-only-mobile", "")
@@ -1849,6 +2561,48 @@ permalink: /livestream/
               }
             });
           });
+
+        syncViewModeRadios(currentViewMode);
+
+        const prefersCoarsePointer = window.matchMedia('(pointer: coarse)');
+        const isTouchDevice = prefersCoarsePointer.matches || 'ontouchstart' in window;
+        if (isTouchDevice && videoPanel) {
+          let swipeStartX = null;
+          let swipeStartY = null;
+          const SWIPE_THRESHOLD = 70;
+
+          videoPanel.addEventListener('touchstart', (event) => {
+            if (currentViewMode !== 'video' || event.touches.length !== 1) {
+              swipeStartX = null;
+              swipeStartY = null;
+              return;
+            }
+            const touch = event.touches[0];
+            swipeStartX = touch.clientX;
+            swipeStartY = touch.clientY;
+          }, { passive: true });
+
+          videoPanel.addEventListener('touchend', (event) => {
+            if (swipeStartX === null || swipeStartY === null || event.changedTouches.length !== 1) {
+              swipeStartX = null;
+              swipeStartY = null;
+              return;
+            }
+            const touch = event.changedTouches[0];
+            const deltaX = touch.clientX - swipeStartX;
+            const deltaY = touch.clientY - swipeStartY;
+            swipeStartX = null;
+            swipeStartY = null;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > SWIPE_THRESHOLD) {
+              if (deltaX > 0) {
+                setViewMode('map');
+              } else {
+                setViewMode('split');
+              }
+            }
+          }, { passive: true });
+        }
       });
 
       function centerOnDrone() {
@@ -1903,7 +2657,41 @@ permalink: /livestream/
       function showDisconnectedMessage() {
         const overlay = document.getElementById('sharedDisconnectedOverlay');
         if (overlay) {
+          // Move overlay to the appropriate panel based on current view mode
+          repositionDisconnectedOverlay();
           overlay.style.display = 'flex';
+        }
+      }
+      
+      function repositionDisconnectedOverlay() {
+        const overlay = document.getElementById('sharedDisconnectedOverlay');
+        const videoPanel = document.getElementById('video-panel');
+        const mapPanel = document.getElementById('map-panel');
+        
+        if (!overlay || !videoPanel || !mapPanel) return;
+        
+        // Check which panel is currently visible
+        const isMapFullScreen = mapPanel.classList.contains('full-view');
+        const isVideoFullScreen = videoPanel.classList.contains('full-view');
+        
+        if (isMapFullScreen) {
+          // Full-screen map mode - move overlay to map panel
+          if (overlay.parentElement !== mapPanel) {
+            mapPanel.insertBefore(overlay, mapPanel.firstChild);
+          }
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.borderRadius = '0 0 8px 8px';
+        } else {
+          // Video visible (either full-screen or split) - move overlay to video panel
+          if (overlay.parentElement !== videoPanel) {
+            videoPanel.insertBefore(overlay, videoPanel.firstChild);
+          }
+          overlay.style.top = '52px';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.borderRadius = '0 0 8px 8px';
         }
       }
 
