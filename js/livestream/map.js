@@ -224,6 +224,7 @@ class DroneMap {
                 const acknowledged = window.localStorage.getItem(this.betaDisclaimerStorageKey);
                 if (acknowledged === 'true') {
                     this.hasShownBetaDisclaimer = true;
+                    console.log('Beta disclaimer already acknowledged (loaded from localStorage)');
                 }
             }
         } catch (error) {
@@ -2959,75 +2960,98 @@ class DroneMap {
             align-items: center;
             justify-content: center;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            padding: 10px;
+            padding: clamp(8px, 2vw, 20px);
             box-sizing: border-box;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         `;
 
         const modalContent = document.createElement('div');
+        // Calculate responsive max-height based on viewport
+        const isLandscape = window.innerWidth > window.innerHeight;
+        const maxHeightValue = isLandscape 
+            ? `min(calc(100vh - clamp(16px, 4vw, 40px)), 90vh)`
+            : `calc(100vh - clamp(16px, 4vw, 40px))`;
+        
         modalContent.style.cssText = `
             background: white;
-            border-radius: 10px;
+            border-radius: clamp(8px, 2vw, 10px);
             padding: 0;
-            max-width: 480px;
-            width: calc(100% - 40px);
-            max-height: calc(100vh - 40px);
-            margin: 20px;
+            max-width: min(480px, calc(100vw - 32px));
+            width: 100%;
+            max-height: ${maxHeightValue};
+            margin: clamp(8px, 2vw, 20px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08);
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: relative;
         `;
 
         modalContent.innerHTML = `
             <div style="
                 background: #f59e0b;
                 color: white;
-                padding: 14px 16px;
+                padding: clamp(12px, 3vw, 14px) clamp(12px, 3vw, 16px);
                 font-weight: bold;
-                font-size: clamp(16px, 4vw, 18px);
+                font-size: clamp(14px, 4vw, 18px);
                 text-align: center;
                 text-transform: uppercase;
                 flex-shrink: 0;
             ">
                 ⚠️ NOTICE
             </div>
-            <div style="padding: 16px; overflow-y: auto; flex: 1; min-height: 0;">
-                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
+            <div style="
+                padding: clamp(12px, 3vw, 16px);
+                overflow-y: auto;
+                flex: 1;
+                min-height: 0;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            ">
+                <p style="margin: 0 0 clamp(10px, 2.5vw, 12px) 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word; hyphens: auto;">
                     This is a <span style="
                         display: inline-block;
                         background-color: #ffc107;
                         color: #000;
-                        font-size: 0.7rem;
+                        font-size: clamp(0.65rem, 2vw, 0.7rem);
                         font-weight: 600;
-                        padding: 0.2rem 0.4rem;
+                        padding: clamp(0.15rem, 1vw, 0.2rem) clamp(0.3rem, 1.5vw, 0.4rem);
                         border-radius: 4px;
                         margin: 0 2px;
                         vertical-align: middle;
                     ">BETA</span> release of the Eagle Eyes Viewer.
                 </p>
-                <p style="margin: 0 0 12px 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
+                <p style="margin: 0 0 clamp(10px, 2.5vw, 12px) 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word; hyphens: auto;">
                     Map and drone data may not always reflect real-time conditions. Eagle Eyes Search Inc. accepts no liability for actions taken based on this information.
                 </p>
-                <p style="margin: 0 0 0 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word;">
-                    Always refer to regulations for your local jurisdiction and consult official airspace sources for current information. <button id="betaLocalAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 14px; padding: 4px 6px; vertical-align: middle; font-weight: bold; min-width: 24px; min-height: 24px; touch-action: manipulation;" title="View alternative airspace map">ℹ️</button>
+                <p style="margin: 0; line-height: 1.6; color: #333; font-size: clamp(13px, 3.5vw, 14px); word-wrap: break-word; hyphens: auto;">
+                    Always refer to regulations for your local jurisdiction and consult official airspace sources for current information. <button id="betaLocalAirspaceAuthorityInfoBtn" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: clamp(14px, 3.5vw, 16px); padding: clamp(6px, 1.5vw, 8px); vertical-align: middle; font-weight: bold; min-width: clamp(32px, 8vw, 36px); min-height: clamp(32px, 8vw, 36px); touch-action: manipulation; display: inline-flex; align-items: center; justify-content: center;" title="View alternative airspace map">ℹ️</button>
                 </p>
             </div>
-            <div style="padding: 12px 16px 16px; display: flex; justify-content: center; flex-shrink: 0; border-top: 1px solid #e5e7eb;">
+            <div style="
+                padding: clamp(12px, 3vw, 16px);
+                display: flex;
+                justify-content: center;
+                flex-shrink: 0;
+                border-top: 1px solid #e5e7eb;
+            ">
                 <button id="betaAcknowledgeBtn" style="
                     background: #28a745;
                     color: white;
                     border: none;
-                    padding: 12px 24px;
-                    border-radius: 6px;
+                    padding: clamp(12px, 3vw, 14px) clamp(20px, 5vw, 24px);
+                    border-radius: clamp(6px, 1.5vw, 8px);
                     cursor: pointer;
-                    font-size: clamp(13px, 3.5vw, 14px);
+                    font-size: clamp(14px, 3.5vw, 16px);
                     font-weight: 600;
-                    min-width: 160px;
+                    min-width: min(160px, calc(100% - 32px));
                     width: 100%;
                     max-width: 280px;
+                    min-height: clamp(44px, 11vw, 48px);
                     transition: background 0.2s;
                     touch-action: manipulation;
+                    -webkit-tap-highlight-color: transparent;
                 " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'" ontouchstart="this.style.background='#218838'" ontouchend="this.style.background='#28a745'">Acknowledge & Continue</button>
             </div>
         `;
@@ -3049,6 +3073,9 @@ class DroneMap {
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
                     window.localStorage.setItem(this.betaDisclaimerStorageKey, 'true');
+                    // Ensure flag is set after successful save
+                    this.hasShownBetaDisclaimer = true;
+                    console.log('Beta disclaimer acknowledged and saved to localStorage');
                 }
             } catch (error) {
                 console.warn('Unable to persist beta disclaimer acknowledgment:', error);
