@@ -1449,6 +1449,10 @@ class WebRTCViewer {
     if (coordStrip) {
       coordStrip.innerHTML = `<span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
     }
+    const coordStripMap = document.getElementById("coordinateStripMap");
+    if (coordStripMap) {
+      coordStripMap.innerHTML = `<span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
+    }
   }
 
   updateLocationDisplay() {
@@ -1497,10 +1501,25 @@ class WebRTCViewer {
       `;
     }
 
+    // Update map coordinate strip (for fullscreen map mode)
+    const coordStripMap = document.getElementById("coordinateStripMap");
+    if (coordStripMap) {
+      coordStripMap.innerHTML = `
+        <span style="white-space: nowrap; flex-shrink: 0;">🌐 ${latFormatted},${lonFormatted}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">↑🏠 ${altAhlText}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">↑${altSecondLabel} ${altSecondText}</span>
+        <span style="white-space: nowrap; flex-shrink: 0;">🧭${bearing.toFixed(0)}°</span>
+      `;
+    }
+
     // Enable pointer cursor when we have location data
     const coordStripContainer = document.getElementById("coordinateStripContainer");
     if (coordStripContainer) {
       coordStripContainer.style.cursor = "pointer";
+    }
+    const coordStripContainerMap = document.getElementById("coordinateStripContainerMap");
+    if (coordStripContainerMap) {
+      coordStripContainerMap.style.cursor = "pointer";
     }
   }
 

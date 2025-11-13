@@ -119,6 +119,26 @@ permalink: /livestream/
       #map-panel.full-view {
         flex: 1 1 100%;
       }
+      /* Show map coordinate strip only when map is in fullscreen */
+      #map-panel.full-view #coordinateStripContainerMap {
+        display: block !important;
+      }
+      #map-panel:not(.full-view) #coordinateStripContainerMap {
+        display: none !important;
+      }
+      /* Make entire coordinate strip clickable - ensure all child elements allow pointer events */
+      #coordinateStripContainer,
+      #coordinateStripContainerMap {
+        user-select: none;
+      }
+      #coordinateStripContainer *,
+      #coordinateStripContainerMap * {
+        pointer-events: none;
+      }
+      #coordinateStripContainer,
+      #coordinateStripContainerMap {
+        pointer-events: auto;
+      }
       #map-panel {
         background-color: #181818;
       }
@@ -1174,6 +1194,22 @@ permalink: /livestream/
         #status {
           display: none !important;
         }
+        /* Reduce Eagle Eyes Viewer image size on narrow screens */
+        .navbar-brand img[alt="Eagle Eyes Viewer"] {
+          height: 18px !important;
+        }
+        /* Reduce Caltopo button size on narrow screens */
+        #caltopoBtnNavMobile {
+          padding: 0.5rem 0.5rem !important;
+        }
+        #caltopoBtnNavMobile > div {
+          font-size: 0.75rem !important;
+          line-height: 1.1 !important;
+        }
+        #caltopoBtnNavMobile img {
+          height: 16px !important;
+          margin-top: 1px !important;
+        }
       }
       /* Hide history dropdown at medium sizes to prevent navbar overflow */
       @media (min-width: 768px) and (max-width: 991px) {
@@ -1335,7 +1371,7 @@ permalink: /livestream/
       " onclick="event.stopPropagation()">
         <div style="margin-bottom: 20px;">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-            <span style="font-weight: 500;">🌐 Location:</span>
+            <span style="font-weight: 500;">🌐 Drone Location:</span>
             <span id="dialogLocation" class="font-monospace" style="flex: 1;">Waiting for location data...</span>
             <button onclick="copyLocationCoordinates()" style="
               background-color: #465373;
@@ -1519,7 +1555,7 @@ permalink: /livestream/
         <div class="d-flex align-items-center">
           <a class="navbar-brand d-flex align-items-center" href="https://www.eagleeyessearch.com/">
             <img src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="height: 40px; margin-right: 10px; border-radius: 6px;">
-            <span>Eagle Eyes Viewer</span>
+            <img src="{{ '/images/Eagle Eyes Viewer.png' | relative_url }}" alt="Eagle Eyes Viewer" style="height: 24px; margin-left: 4px;">
           </a>
           <button
             id="fullscreenNavBtn"
@@ -2054,7 +2090,7 @@ permalink: /livestream/
           <div
             id="coordinateStrip"
             class="font-monospace small"
-            style="display: flex; gap: 0.75rem; overflow: hidden; align-items: center;"
+            style="display: flex; gap: 0.75rem; overflow: hidden; align-items: center; cursor: pointer;"
           >
             <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
           </div>
@@ -2236,8 +2272,17 @@ permalink: /livestream/
         </div>
       </div>
       </div>
-      <div id="map-panel" style="position: relative;">
-        <div id="map"></div>
+      <div id="map-panel" style="position: relative; display: flex; flex-direction: column;">
+        <div id="map" style="flex: 1; min-height: 0;"></div>
+        <div id="coordinateStripContainerMap" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
+          <div
+            id="coordinateStripMap"
+            class="font-monospace small"
+            style="display: flex; gap: 0.75rem; overflow: hidden; align-items: center; cursor: pointer;"
+          >
+            <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
+          </div>
+        </div>
       </div>
     </main>
 
