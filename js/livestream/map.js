@@ -31,6 +31,8 @@ class DroneMap {
         this.gpsSignalRestoreDelayMs = 1500; // Delay before hiding after signal returns
         this.disconnectedOverlay = null;
         this.isDisconnected = false;
+        this.disconnectedTimer = null;
+        this.disconnectedDelayMs = 5000; // 5 second delay before showing disconnected banner
         this.currentDroneData = null;
         this.currentDroneName = null;
         this.currentLivestreamId = null; // Current drone's livestream ID
@@ -4593,21 +4595,8 @@ class DroneMap {
     fallbackFullscreen(enter) {
         this.isFullscreen = enter;
         
-        const navbar = document.querySelector('.navbar');
-        
+        // Keep navbar visible - don't hide it
         if (enter) {
-            this.showFullscreenMapControl();
-            // Store original display value before hiding
-            if (navbar && !this.originalNavbarDisplay) {
-                const computedStyle = window.getComputedStyle(navbar);
-                this.originalNavbarDisplay = computedStyle.display;
-            }
-            
-            // Hide top bar
-            if (navbar) {
-                navbar.style.display = 'none';
-            }
-            
             // Zoom to user location if it's visible
             if (this.isMyLocationVisible && this.myLocationMarker) {
                 const latlng = this.myLocationMarker.getLatLng();
@@ -4623,20 +4612,9 @@ class DroneMap {
                 }, 300);
             }
             
-            console.log('Entered fallback fullscreen mode - top bar hidden');
+            console.log('Entered fallback fullscreen mode - navbar remains visible');
         } else {
-            this.hideFullscreenMapControl();
-            // Show top bar
-            if (navbar) {
-                // Restore original display or remove inline style to let CSS handle it
-                if (this.originalNavbarDisplay) {
-                    navbar.style.display = this.originalNavbarDisplay;
-                    this.originalNavbarDisplay = null; // Reset after restore
-                } else {
-                    navbar.style.display = ''; // Remove inline style, let CSS handle it
-                }
-            }
-            console.log('Exited fallback fullscreen mode - top bar shown');
+            console.log('Exited fallback fullscreen mode');
         }
         
         this.updateFullscreenIcon();
@@ -4669,22 +4647,8 @@ class DroneMap {
         this.isFullscreen = isCurrentlyFullscreen;
         this.updateFullscreenIcon();
         
-        // Hide/show navbar when entering/exiting fullscreen
-        const navbar = document.querySelector('.navbar');
-        
+        // Keep navbar visible - don't hide it
         if (isCurrentlyFullscreen) {
-            this.showFullscreenMapControl();
-            // Store original display value before hiding
-            if (navbar && !this.originalNavbarDisplay) {
-                const computedStyle = window.getComputedStyle(navbar);
-                this.originalNavbarDisplay = computedStyle.display;
-            }
-            
-            // Hide navbar and mobile offcanvas when entering fullscreen
-            if (navbar) {
-                navbar.style.display = 'none';
-            }
-            
             // Check if map is visible and show beta disclaimer if needed
             setTimeout(() => {
                 this.checkMapVisibilityAndShowDisclaimer();
@@ -4714,20 +4678,9 @@ class DroneMap {
                 console.log('Fullscreen: User location not available. isMyLocationVisible:', this.isMyLocationVisible, 'myLocationMarker:', this.myLocationMarker);
             }
             
-            console.log('Entered fullscreen - navbar hidden');
+            console.log('Entered fullscreen - navbar remains visible');
         } else {
-            this.hideFullscreenMapControl();
-            // Show navbar and mobile offcanvas when exiting fullscreen
-            if (navbar) {
-                // Restore original display or remove inline style to let CSS handle it
-                if (this.originalNavbarDisplay) {
-                    navbar.style.display = this.originalNavbarDisplay;
-                    this.originalNavbarDisplay = null; // Reset after restore
-                } else {
-                    navbar.style.display = ''; // Remove inline style, let CSS handle it
-                }
-            }
-            console.log('Exited fullscreen - navbar shown');
+            console.log('Exited fullscreen');
         }
         
         console.log(`Fullscreen state changed: ${isCurrentlyFullscreen ? 'entered' : 'exited'}`);
@@ -5420,11 +5373,12 @@ class DroneMap {
     }
 
     updateCaltopoButton() {
-        const caltopoBtn = document.getElementById('caltopoBtn');
-        const caltopoBtnMobile = document.getElementById('caltopoBtnMobile');
+        const caltopoBtn = document.getElementById('caltopoBtn'); // Desktop (inside navbar-collapse)
+        const caltopoBtnNavMobile = document.getElementById('caltopoBtnNavMobile'); // Mobile navbar (outside navbar-collapse)
+        const caltopoBtnMobile = document.getElementById('caltopoBtnMobile'); // Offcanvas menu
 
         if (this.caltopoInfo && this.caltopoInfo.map_id && this.caltopoInfo.map_name) {
-            // Update desktop button
+            // Update desktop button (inside navbar-collapse)
             if (caltopoBtn) {
                 caltopoBtn.style.display = 'flex';
                 const mapNameSpan = document.getElementById('caltopoMapName');
@@ -5433,7 +5387,16 @@ class DroneMap {
                 }
             }
 
-            // Update mobile button
+            // Update mobile navbar button (outside navbar-collapse)
+            if (caltopoBtnNavMobile) {
+                caltopoBtnNavMobile.style.display = 'flex';
+                const mapNameSpanNavMobile = document.getElementById('caltopoMapNameNavMobile');
+                if (mapNameSpanNavMobile) {
+                    mapNameSpanNavMobile.textContent = this.caltopoInfo.map_name;
+                }
+            }
+
+            // Update offcanvas mobile button
             if (caltopoBtnMobile) {
                 caltopoBtnMobile.style.display = 'flex';
                 const mapNameSpanMobile = document.getElementById('caltopoMapNameMobile');
@@ -5442,8 +5405,9 @@ class DroneMap {
                 }
             }
         } else {
-            // Hide both buttons
+            // Hide all buttons
             if (caltopoBtn) caltopoBtn.style.display = 'none';
+            if (caltopoBtnNavMobile) caltopoBtnNavMobile.style.display = 'none';
             if (caltopoBtnMobile) caltopoBtnMobile.style.display = 'none';
         }
     }
@@ -5777,6 +5741,13 @@ class DroneMap {
     clearData() {
         this.stopDronePopupRelativeTimer();
         this.resetGpsSignalTracking();
+        
+        // Clear disconnected timer
+        if (this.disconnectedTimer) {
+            clearTimeout(this.disconnectedTimer);
+            this.disconnectedTimer = null;
+        }
+        this.hideDisconnectedOverlay();
 
         if (this.droneMarker) {
             this.map.removeLayer(this.droneMarker);
@@ -5991,9 +5962,20 @@ class DroneMap {
 
         this.isDisconnected = isDisconnected;
 
+        // Clear any existing timer
+        if (this.disconnectedTimer) {
+            clearTimeout(this.disconnectedTimer);
+            this.disconnectedTimer = null;
+        }
+
         if (isDisconnected) {
-            this.showDisconnectedOverlay();
+            // Wait 5 seconds before showing the disconnected banner
+            this.disconnectedTimer = setTimeout(() => {
+                this.showDisconnectedOverlay();
+                this.disconnectedTimer = null;
+            }, this.disconnectedDelayMs);
         } else {
+            // Connection restored - hide immediately
             this.hideDisconnectedOverlay();
         }
     }
