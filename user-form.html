@@ -833,6 +833,90 @@ permalink: /user-form/
         }
     }
     
+    // Handle "How did you hear about us?" change - show/hide "Other" text input
+    function handleHearAboutUsChange(radio) {
+        const otherInput = document.getElementById('hear_about_us_other');
+        if (!otherInput || radio.disabled) {
+            return;
+        }
+
+        if (radio.value === 'Other') {
+            otherInput.style.display = 'block';
+            otherInput.disabled = false;
+            otherInput.required = true;
+            otherInput.focus();
+        } else {
+            otherInput.style.display = 'none';
+            otherInput.required = false;
+            otherInput.disabled = true;
+            otherInput.value = ''; // Clear the value when hidden
+        }
+    }
+
+    function setSectionInputsEnabled(container, shouldEnable) {
+        if (!container) {
+            return;
+        }
+
+        const inputs = container.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.disabled = !shouldEnable;
+
+            if (!shouldEnable) {
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            }
+        });
+    }
+
+    function setVerificationFieldsVisibility(shouldShow) {
+        const verificationFields = document.getElementById('verification-fields');
+        if (!verificationFields) {
+            return;
+        }
+
+        verificationFields.style.display = shouldShow ? 'block' : 'none';
+
+        const phoneInput = document.getElementById('phone');
+        if (phoneInput) {
+            phoneInput.disabled = !shouldShow;
+            if (!shouldShow) {
+                phoneInput.value = '';
+            }
+        }
+
+        const websiteInput = document.getElementById('website');
+        if (websiteInput) {
+            websiteInput.disabled = !shouldShow;
+            websiteInput.required = shouldShow;
+            if (!shouldShow) {
+                websiteInput.value = '';
+            }
+        }
+
+        const hearAboutUsRadios = document.querySelectorAll('input[name="hear_about_us"]');
+        hearAboutUsRadios.forEach(radio => {
+            radio.disabled = !shouldShow;
+            radio.required = shouldShow;
+            if (!shouldShow) {
+                radio.checked = false;
+            }
+        });
+
+        const hearAboutUsOtherInput = document.getElementById('hear_about_us_other');
+        if (hearAboutUsOtherInput) {
+            hearAboutUsOtherInput.disabled = true;
+            hearAboutUsOtherInput.required = false;
+            hearAboutUsOtherInput.style.display = 'none';
+            if (!shouldShow) {
+                hearAboutUsOtherInput.value = '';
+            }
+        }
+    }
+    
     // Function to show/hide appropriate form sections
     function showFormSection(formType) {
         const additionalFields = document.getElementById('additional-fields');
@@ -845,19 +929,27 @@ permalink: /user-form/
         // First, show the additional fields
         additionalFields.style.display = 'block';
         
-        // Hide all question sections first
+        // Hide all question sections first and disable their inputs
         downloadQuestions.style.display = 'none';
         trialQuestions.style.display = 'none';
         purchaseQuestions.style.display = 'none';
+
+        setSectionInputsEnabled(downloadQuestions, false);
+        setSectionInputsEnabled(trialQuestions, false);
+        setSectionInputsEnabled(purchaseQuestions, false);
         
         // Set default empty values for title and description
         titleElement.innerHTML = '';
         descriptionElement.innerHTML = '';
         
+        // Show or hide verification-only fields for trial/purchase forms
+        setVerificationFieldsVisibility(formType === 'trial' || formType === 'purchase');
+
         // Show the appropriate question section and update title/description based on form type
         switch(formType) {
             case 'trial':
                 trialQuestions.style.display = 'block';
+                setSectionInputsEnabled(trialQuestions, true);
                 titleElement.innerHTML = 'Register for a 30-day trial';
                 descriptionElement.innerHTML = 'To access a trial license, your account needs to be verified first. Please complete this form to submit your verification request. ' +
                     'Verification can take up to 3 business days, though most requests are processed within 24 hours. Once verified, we will set you up with a trial license and you\'ll be able to activate Eagle Eyes Pilot and/or Eagle Eyes Scan on up to 5 devices using your trial license.';
@@ -865,6 +957,7 @@ permalink: /user-form/
             
             case 'download':
                 downloadQuestions.style.display = 'block';
+                setSectionInputsEnabled(downloadQuestions, true);
                 titleElement.innerHTML = 'Create an account to download Eagle Eyes';
                 descriptionElement.innerHTML = 'Already have an active license for yourself or your team? Complete this form to create an account and you\'ll get immediate access to the downloads section.<br><br>' +
                     '<i>Note: An active license is required to activate Eagle Eyes on your device.</i>';
@@ -872,6 +965,7 @@ permalink: /user-form/
             
             case 'purchase':
                 purchaseQuestions.style.display = 'block';
+                setSectionInputsEnabled(purchaseQuestions, true);
                 titleElement.innerHTML = 'Get verified to purchase a license';
                 descriptionElement.innerHTML = 'To purchase a license, your account needs to be verified first. Please complete this form to submit your verification request. ' + 
                     'Verification can take up to 3 business days, though most requests are processed within 24 hours. We\'ll send you a confirmation by email as soon as your account is verified.';
@@ -1005,6 +1099,10 @@ permalink: /user-form/
         // Pack the form data into an object
         var formInputs = document.querySelectorAll('input[name], select[name], textarea[name]');
         formInputs.forEach(function(input) {
+            if (input.disabled) {
+                return;
+            }
+
             if (input.type === 'checkbox') {
                 formData[input.name] = input.checked;
             } else if (input.type === 'radio') {
@@ -1034,6 +1132,14 @@ permalink: /user-form/
             if (formData[key] === null || formData[key] === undefined || 
                 (typeof formData[key] === 'string' && formData[key].trim() === "")) {
                 delete formData[key];
+            }
+        }
+
+        // Ensure phone number stays a string (may contain + or leading zeros)
+        if (formData.hasOwnProperty('phone')) {
+            formData['phone'] = String(formData['phone']).trim();
+            if (formData['phone'] === "") {
+                delete formData['phone'];
             }
         }
 
