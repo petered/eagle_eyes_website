@@ -139,6 +139,38 @@ permalink: /livestream/
       #coordinateStripContainerMap {
         pointer-events: auto;
       }
+      #coordinateStrip,
+      #coordinateStripMap {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        overflow: hidden;
+      }
+      .coord-drone-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .coord-drone-icon {
+        height: 14px;
+        width: auto;
+        filter: brightness(1.2);
+      }
+      .coord-segments {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        overflow: hidden;
+        flex: 1;
+        min-width: 0;
+      }
+      .coord-segments [data-coordinate-segment] {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
       #map-panel {
         background-color: #181818;
       }
@@ -1428,6 +1460,137 @@ permalink: /livestream/
           font-size: 0.9rem !important;
         }
       }
+      /* Drone overview button + badge */
+      .drone-overview-btn {
+        background-color: #314268;
+        border-color: #314268;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.4rem 0.6rem;
+        position: relative;
+      }
+      .drone-overview-icon-wrapper {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .drone-overview-icon {
+        height: 18px;
+        width: auto;
+      }
+      .drone-badge {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: #ff3b30;
+        color: #fff;
+        font-size: 0.65rem;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        border: 1px solid #fff;
+        font-weight: 600;
+      }
+      .drone-overview-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 0.25rem rgba(49, 66, 104, 0.35);
+      }
+      /* Drone overview modal */
+      .drone-overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+      .drone-card {
+        background: #1f2433;
+        border: 1px solid #2f3444;
+        border-radius: 10px;
+        padding: 16px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .drone-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .drone-card-name {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .drone-card-badges {
+        display: flex;
+        gap: 6px;
+      }
+      .drone-card-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .drone-card-badge.live {
+        background: #dc3545;
+        color: #fff;
+      }
+      .drone-card-badge.offline {
+        background: #4b5563;
+        color: #fff;
+      }
+      .drone-card-badge.current {
+        background: #2563eb;
+        color: #fff;
+      }
+      .drone-card-body {
+        font-size: 0.85rem;
+        color: #cbd5f5;
+        display: grid;
+        gap: 4px;
+      }
+      .drone-card-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .drone-card-btn {
+        flex: 1;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .drone-card-btn.status-btn {
+        background: #4c556b;
+        color: #fff;
+      }
+      .drone-card-btn.livestream-btn {
+        background: #dc3545;
+        color: #fff;
+      }
+      .drone-card-btn.livestream-btn.disabled {
+        background: #4b5563;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+      .drone-card-btn:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.35);
+        outline-offset: 2px;
+      }
       /* Force default cursor everywhere to prevent loading spinner cursor */
       body, #videoContainer, .placeholder {
         cursor: default !important;
@@ -1472,6 +1635,10 @@ permalink: /livestream/
         color: white;
       " onclick="event.stopPropagation()">
         <div style="margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <img src="{{ '/images/drone_icon.png' | relative_url }}" alt="Drone icon" class="coord-drone-icon" style="height: 16px;">
+            <span id="dialogDroneName" style="font-weight: 500;">Drone: N/A</span>
+          </div>
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
             <span style="font-weight: 500;">🌐 Drone Location:</span>
             <span id="dialogLocation" class="font-monospace" style="flex: 1;">Waiting for location data...</span>
@@ -1694,6 +1861,19 @@ permalink: /livestream/
               <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" class="caltopo-logo-wide" style="height: 16px; width: auto; flex-shrink: 0;">
               <img src="{{ '/images/Caltopo_Logo.png' | relative_url }}" alt="CalTopo" class="caltopo-logo-narrow" style="height: 18px; width: auto; display: none; flex-shrink: 0;">
             </button>
+            <button
+              id="droneOverviewBtnMobile"
+              class="btn me-2 drone-overview-btn"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#droneOverviewModal"
+              title="Drone Overview"
+            >
+              <div class="drone-overview-icon-wrapper">
+                <img src="{{ '/images/drone_icon.png' | relative_url }}" alt="Drone Overview" class="drone-overview-icon">
+                <span class="drone-badge" id="droneOverviewBadgeMobile">0</span>
+              </div>
+            </button>
 
             <button
               class="btn me-2"
@@ -1729,6 +1909,19 @@ permalink: /livestream/
             >
               <span style="font-size: 0.75rem; line-height: 1.2;"><span id="caltopoMapName"></span> on</span>
               <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 16px; width: auto; flex-shrink: 0;">
+            </button>
+            <button
+              id="droneOverviewBtn"
+              class="btn me-3 drone-overview-btn"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#droneOverviewModal"
+              title="Drone Overview"
+            >
+              <div class="drone-overview-icon-wrapper">
+                <img src="{{ '/images/drone_icon.png' | relative_url }}" alt="Drone Overview" class="drone-overview-icon">
+                <span class="drone-badge" id="droneOverviewBadge">0</span>
+              </div>
             </button>
 
             <div class="btn-group me-3" role="group">
@@ -1941,6 +2134,39 @@ permalink: /livestream/
       </div>
     </div>
 
+    <!-- Drone Overview Modal -->
+    <div class="modal fade" id="droneOverviewModal" tabindex="-1" aria-labelledby="droneOverviewModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="droneOverviewModalLabel">Drone Overview</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="droneOverviewEmpty" class="text-center text-muted py-4">
+              No drones are currently visible on the map.
+            </div>
+            <div id="droneOverviewCards" class="drone-overview-grid mt-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drone Status Modal -->
+    <div class="modal fade" id="droneStatusModal" tabindex="-1" aria-labelledby="droneStatusTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="droneStatusTitle">Drone Status</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="droneStatusContent" class="drone-status-content" style="font-size: 0.9rem;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notification - Below share button -->
     <div class="toast-container position-fixed" id="toastContainer" style="display: none;">
       <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="width: auto; min-width: fit-content;">
@@ -2004,6 +2230,19 @@ permalink: /livestream/
             >
               <span style="font-size: 0.75rem; line-height: 1.2;"><span id="caltopoMapNameMobile"></span> on</span>
               <img src="{{ '/images/livestream/caltopo-full-logo.svg' | relative_url }}" alt="CalTopo" style="height: 16px; width: auto; flex-shrink: 0;">
+            </button>
+            <button
+              id="droneOverviewBtnOffcanvas"
+              class="btn drone-overview-btn"
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#droneOverviewModal"
+              title="Drone Overview"
+            >
+              <div class="drone-overview-icon-wrapper">
+                <img src="{{ '/images/drone_icon.png' | relative_url }}" alt="Drone Overview" class="drone-overview-icon">
+                <span class="drone-badge" id="droneOverviewBadgeOffcanvas">0</span>
+              </div>
             </button>
         </div>
         <hr />
@@ -2082,6 +2321,193 @@ permalink: /livestream/
         </div>
       </div>
     </div>
+
+    <script>
+      (function () {
+        const overviewState = {
+          entries: {}
+        };
+
+        function escapeHtml(value) {
+          if (value === null || value === undefined) return '';
+          return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function formatCoordinate(value) {
+          return typeof value === 'number' ? value.toFixed(4) + '°' : 'N/A';
+        }
+
+        function formatAltitude(value) {
+          return typeof value === 'number' ? value.toFixed(1) + ' m' : 'N/A';
+        }
+
+        function formatBattery(value) {
+          return typeof value === 'number' ? value + '%' : 'N/A';
+        }
+
+        function getDroneEntries() {
+          if (window.droneMap && typeof window.droneMap.getDroneOverviewEntries === 'function') {
+            return window.droneMap.getDroneOverviewEntries();
+          }
+          return [];
+        }
+
+        function buildCard(entry) {
+          const telemetry = entry.telemetry || {};
+          const lat = formatCoordinate(telemetry.latitude);
+          const lng = formatCoordinate(telemetry.longitude);
+          const altitude = formatAltitude(telemetry.altitude_asl ?? telemetry.altitude_ahl ?? telemetry.altitude_ellipsoid);
+          const battery = formatBattery(telemetry.battery_percent);
+          const bearing = typeof telemetry.bearing === 'number' ? telemetry.bearing.toFixed(1) + '°' : 'N/A';
+          const liveBadgeClass = entry.livestreamId ? 'live' : 'offline';
+          const liveBadgeText = entry.livestreamId ? 'Live' : 'Offline';
+
+          return `
+            <div class="drone-card-header">
+              <div class="drone-card-name">${escapeHtml(entry.name || 'Drone')}</div>
+              <div class="drone-card-badges">
+                ${entry.isCurrent ? '<span class="drone-card-badge current">Current</span>' : ''}
+                <span class="drone-card-badge ${liveBadgeClass}">${liveBadgeText}</span>
+              </div>
+            </div>
+            <div class="drone-card-body">
+              <div><strong>Latitude:</strong> ${lat}</div>
+              <div><strong>Longitude:</strong> ${lng}</div>
+              <div><strong>Altitude:</strong> ${altitude}</div>
+              <div><strong>Bearing:</strong> ${bearing}</div>
+              <div><strong>Battery:</strong> ${battery}</div>
+            </div>
+            <div class="drone-card-actions">
+              <button class="drone-card-btn status-btn" data-drone-status data-drone-id="${escapeHtml(entry.id)}" title="View status">
+                <span style="font-weight:700;">i</span>
+              </button>
+              <button class="drone-card-btn livestream-btn ${entry.livestreamId ? '' : 'disabled'}"
+                ${entry.livestreamId ? `data-livestream-id="${escapeHtml(entry.livestreamId)}"` : 'disabled'}
+                title="${entry.livestreamId ? 'View livestream' : 'Drone offline'}">
+                <i class="bi bi-camera-video"></i>
+              </button>
+            </div>
+          `;
+        }
+
+        function renderDroneOverview() {
+          const cardsEl = document.getElementById('droneOverviewCards');
+          const emptyEl = document.getElementById('droneOverviewEmpty');
+          if (!cardsEl || !emptyEl) return;
+
+          const entries = getDroneEntries();
+          overviewState.entries = {};
+          cardsEl.innerHTML = '';
+
+          if (!entries.length) {
+            emptyEl.style.display = 'block';
+            return;
+          }
+
+          emptyEl.style.display = 'none';
+          entries.forEach((entry) => {
+            overviewState.entries[entry.id] = entry;
+            const card = document.createElement('div');
+            card.className = 'drone-card';
+            card.innerHTML = buildCard(entry);
+            cardsEl.appendChild(card);
+          });
+        }
+
+        function showDroneStatusModal(droneId) {
+          const entry = overviewState.entries[droneId];
+          if (!entry || !window.droneMap || typeof window.droneMap.generateDronePopupContent !== 'function') {
+            return;
+          }
+
+          const modalEl = document.getElementById('droneStatusModal');
+          const titleEl = document.getElementById('droneStatusTitle');
+          const contentEl = document.getElementById('droneStatusContent');
+          if (!modalEl || !titleEl || !contentEl) return;
+
+          titleEl.textContent = entry.name || 'Drone Status';
+          const statusHtml = window.droneMap.generateDronePopupContent(entry.telemetry, entry.name, entry.livestreamId);
+          contentEl.innerHTML = statusHtml;
+
+          const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        }
+
+        function hideModalIfVisible(modalId) {
+          const el = document.getElementById(modalId);
+          if (!el) return;
+          const instance = bootstrap.Modal.getInstance(el);
+          if (instance) {
+            instance.hide();
+          }
+        }
+
+        function jumpToLivestream(livestreamId) {
+          if (!livestreamId) return;
+          hideModalIfVisible('droneOverviewModal');
+          hideModalIfVisible('droneStatusModal');
+
+          if (window.viewer && typeof window.viewer.switchToStream === 'function') {
+            window.viewer.switchToStream(livestreamId);
+          } else {
+            const url = `/livestream/?stream=${encodeURIComponent(livestreamId)}`;
+            window.open(url, '_blank');
+          }
+        }
+
+        window.updateDroneOverviewBadge = function (count) {
+          const targets = [
+            document.getElementById('droneOverviewBadge'),
+            document.getElementById('droneOverviewBadgeMobile'),
+            document.getElementById('droneOverviewBadgeOffcanvas')
+          ];
+          targets.forEach((badge) => {
+            if (!badge) return;
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'flex' : 'none';
+          });
+        };
+        window.updateDroneOverviewBadge(0);
+
+        document.addEventListener('DOMContentLoaded', () => {
+          const overviewModal = document.getElementById('droneOverviewModal');
+          if (overviewModal) {
+            overviewModal.addEventListener('show.bs.modal', () => {
+              renderDroneOverview();
+            });
+          }
+
+          const cardsEl = document.getElementById('droneOverviewCards');
+          if (cardsEl) {
+            cardsEl.addEventListener('click', (event) => {
+              const statusBtn = event.target.closest('[data-drone-status]');
+              if (statusBtn) {
+                const droneId = statusBtn.getAttribute('data-drone-id');
+                showDroneStatusModal(droneId);
+                return;
+              }
+
+              const livestreamBtn = event.target.closest('[data-livestream-id]');
+              if (livestreamBtn && !livestreamBtn.classList.contains('disabled')) {
+                const livestreamId = livestreamBtn.getAttribute('data-livestream-id');
+                jumpToLivestream(livestreamId);
+              }
+            });
+          }
+        });
+
+        window.renderDroneOverview = renderDroneOverview;
+
+        if (window.droneMap && typeof window.droneMap.updateDroneOverviewIndicator === 'function') {
+          window.droneMap.updateDroneOverviewIndicator();
+        }
+      })();
+    </script>
 
     <main id="main-content" class="row g-0" style="position: relative;">
       <!-- Shared disconnected overlay -->
@@ -2193,9 +2619,15 @@ permalink: /livestream/
           <div
             id="coordinateStrip"
             class="font-monospace small"
-            style="display: flex; gap: 0.75rem; overflow: hidden; align-items: center; cursor: pointer;"
+            style="align-items: center; cursor: pointer;"
           >
-            <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
+            <span class="coord-drone-info">
+              <img src="{{ '/images/drone_icon.png' | relative_url }}" alt="Drone icon" class="coord-drone-icon">
+              <span id="coordinateDroneNameDesktop">Drone: N/A</span>
+            </span>
+            <div id="coordinateSegmentsDesktop" class="coord-segments">
+              <span data-coordinate-segment style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
+            </div>
           </div>
         </div>
         <button
@@ -2381,9 +2813,15 @@ permalink: /livestream/
           <div
             id="coordinateStripMap"
             class="font-monospace small"
-            style="display: flex; gap: 0.75rem; overflow: hidden; align-items: center; cursor: pointer;"
+            style="align-items: center; cursor: pointer;"
           >
-            <span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
+            <span class="coord-drone-info">
+              <img src="{{ '/images/drone_icon.png' | relative_url }}" alt="Drone icon" class="coord-drone-icon">
+              <span id="coordinateDroneNameMap">Drone: N/A</span>
+            </span>
+            <div id="coordinateSegmentsMap" class="coord-segments">
+              <span data-coordinate-segment style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -2623,33 +3061,36 @@ permalink: /livestream/
 
         // Function to hide coordinate segments that don't fit completely
         function updateCoordinateSegmentVisibility() {
-          const coordStrip = document.getElementById("coordinateStrip");
-          if (!coordStrip) return;
+          const wrappers = [
+            document.getElementById("coordinateSegmentsDesktop"),
+            document.getElementById("coordinateSegmentsMap")
+          ];
 
-          const segments = Array.from(coordStrip.children);
-          if (segments.length === 0) return;
+          const gap = 12; // approx 0.75rem
 
-          // Show all segments first to measure
-          segments.forEach(seg => seg.style.display = '');
+          wrappers.forEach(wrapper => {
+            if (!wrapper) return;
+            const segments = Array.from(wrapper.querySelectorAll('[data-coordinate-segment]'));
+            if (!segments.length) return;
 
-          const containerWidth = coordStrip.offsetWidth;
-          let totalWidth = 0;
-          const gap = 12; // 0.75rem in pixels (approximate)
+            segments.forEach(seg => seg.style.display = '');
 
-          // Hide segments from right to left if they don't fit
-          for (let i = 0; i < segments.length; i++) {
-            const segmentWidth = segments[i].offsetWidth;
-            const widthWithGap = totalWidth + segmentWidth + (i > 0 ? gap : 0);
+            const containerWidth = wrapper.clientWidth;
+            let totalWidth = 0;
 
-            if (widthWithGap > containerWidth) {
-              // This segment and all following don't fit
-              for (let j = i; j < segments.length; j++) {
-                segments[j].style.display = 'none';
+            for (let i = 0; i < segments.length; i++) {
+              const segmentWidth = segments[i].offsetWidth;
+              const widthWithGap = totalWidth + segmentWidth + (i > 0 ? gap : 0);
+
+              if (widthWithGap > containerWidth) {
+                for (let j = i; j < segments.length; j++) {
+                  segments[j].style.display = 'none';
+                }
+                break;
               }
-              break;
+              totalWidth = widthWithGap;
             }
-            totalWidth = widthWithGap;
-          }
+          });
         }
 
         // Create ResizeObserver for coordinate strip
@@ -2664,11 +3105,28 @@ permalink: /livestream/
           const mutationObserver = new MutationObserver(() => {
             updateCoordinateSegmentVisibility();
           });
-          const coordStrip = document.getElementById("coordinateStrip");
-          if (coordStrip) {
-            mutationObserver.observe(coordStrip, { childList: true, subtree: true });
+          const coordSegmentsDesktop = document.getElementById("coordinateSegmentsDesktop");
+          if (coordSegmentsDesktop) {
+            mutationObserver.observe(coordSegmentsDesktop, { childList: true, subtree: true });
           }
         }
+
+        const coordStripContainerMap = document.getElementById("coordinateStripContainerMap");
+        if (coordStripContainerMap) {
+          const resizeObserverMap = new ResizeObserver(() => {
+            updateCoordinateSegmentVisibility();
+          });
+          resizeObserverMap.observe(coordStripContainerMap);
+
+          const mutationObserverMap = new MutationObserver(() => {
+            updateCoordinateSegmentVisibility();
+          });
+          const coordSegmentsMap = document.getElementById("coordinateSegmentsMap");
+          if (coordSegmentsMap) {
+            mutationObserverMap.observe(coordSegmentsMap, { childList: true, subtree: true });
+          }
+        }
+        window.updateCoordinateSegmentVisibility = updateCoordinateSegmentVisibility;
 
         const desktopViewRadios = document.querySelectorAll('input[name="view-mode"]');
         const mobileViewRadios = document.querySelectorAll('input[name="view-mode-mobile"]');
@@ -3037,6 +3495,11 @@ permalink: /livestream/
 
       function showCoordinateDialog() {
         const dialog = document.getElementById('coordinateDialog');
+        const droneNameLabel = document.getElementById('dialogDroneName');
+        if (droneNameLabel) {
+          const name = (window.viewer && window.viewer.currentPublisherName) ? window.viewer.currentPublisherName : 'N/A';
+          droneNameLabel.textContent = `Drone: ${name}`;
+        }
 
         // Get current location data from the viewer
         if (window.viewer && window.viewer.currentLocation) {

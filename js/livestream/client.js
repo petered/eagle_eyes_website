@@ -4,6 +4,7 @@ class WebRTCViewer {
     this.peerConnection = null;
     this.currentRoomId = null; // Also used as streamId
     this.currentPublisherName = null;
+    this.updateDroneNameDisplay();
     this.wasStreaming = false; // Track if we were actually streaming
     this.streamReceived = false; // Track if we've received a stream
     this.isRoomFull = false; // Track if room is full (viewer limit reached)
@@ -831,7 +832,8 @@ class WebRTCViewer {
     this.socket.on("joined-as-viewer", (data) => {
       console.log("Joined room as viewer:", data);
       this.currentRoomId = data.roomId;
-      this.currentPublisherName = data.publisherName;
+    this.currentPublisherName = data.publisherName;
+    this.updateDroneNameDisplay();
       this.updateRoomId(data.roomId);
       this.updateViewerList(data.viewers || []);
       this.leaveBtn.disabled = false;
@@ -864,7 +866,8 @@ class WebRTCViewer {
 
     this.socket.on("publisher-joined", (data) => {
       console.log("Publisher joined the room");
-      this.currentPublisherName = data.publisherName;
+    this.currentPublisherName = data.publisherName;
+    this.updateDroneNameDisplay();
       this.updateStatus("waiting", "Connecting to stream...");
 
       // Update history with publisher name
@@ -1042,9 +1045,17 @@ class WebRTCViewer {
     if (coordTextMobile) {
       coordTextMobile.innerHTML = "Waiting for location data...";
     }
-    const coordTextDesktop = document.getElementById("coordTextDesktop");
-    if (coordTextDesktop) {
-      coordTextDesktop.innerHTML = "Waiting for location data...";
+    const coordSegmentsDesktop = document.getElementById("coordinateSegmentsDesktop");
+    if (coordSegmentsDesktop) {
+      coordSegmentsDesktop.innerHTML = `<span data-coordinate-segment style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
+    }
+    const coordSegmentsMap = document.getElementById("coordinateSegmentsMap");
+    if (coordSegmentsMap) {
+      coordSegmentsMap.innerHTML = `<span data-coordinate-segment style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
+    }
+    this.updateDroneNameDisplay();
+    if (window.updateCoordinateSegmentVisibility) {
+      window.updateCoordinateSegmentVisibility();
     }
 
     // Remove pointer cursor when no location data
@@ -1445,13 +1456,17 @@ class WebRTCViewer {
     }
     
     // Initialize desktop coordinate display
-    const coordStrip = document.getElementById("coordinateStrip");
-    if (coordStrip) {
-      coordStrip.innerHTML = `<span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
+    const coordSegmentsDesktop = document.getElementById("coordinateSegmentsDesktop");
+    if (coordSegmentsDesktop) {
+      coordSegmentsDesktop.innerHTML = `<span data-coordinate-segment style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
     }
-    const coordStripMap = document.getElementById("coordinateStripMap");
-    if (coordStripMap) {
-      coordStripMap.innerHTML = `<span style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
+    const coordSegmentsMap = document.getElementById("coordinateSegmentsMap");
+    if (coordSegmentsMap) {
+      coordSegmentsMap.innerHTML = `<span data-coordinate-segment style="white-space: nowrap; flex-shrink: 0;">Waiting for location data...</span>`;
+    }
+    this.updateDroneNameDisplay();
+    if (window.updateCoordinateSegmentVisibility) {
+      window.updateCoordinateSegmentVisibility();
     }
   }
 
@@ -1490,26 +1505,29 @@ class WebRTCViewer {
     }
 
     // Update desktop coordinate strip (segmented format for responsive hiding)
-    const coordStrip = document.getElementById("coordinateStrip");
-    if (coordStrip) {
-      // Create separate segments that can hide individually when space is limited
-      coordStrip.innerHTML = `
-        <span style="white-space: nowrap; flex-shrink: 0;">🌐 ${latFormatted},${lonFormatted}</span>
-        <span style="white-space: nowrap; flex-shrink: 0;">↑🏠 ${altAhlText}</span>
-        <span style="white-space: nowrap; flex-shrink: 0;">↑${altSecondLabel} ${altSecondText}</span>
-        <span style="white-space: nowrap; flex-shrink: 0;">🧭${bearing.toFixed(0)}°</span>
+    const coordSegmentsDesktop = document.getElementById("coordinateSegmentsDesktop");
+    if (coordSegmentsDesktop) {
+      coordSegmentsDesktop.innerHTML = `
+        <span data-coordinate-segment>🌐 ${latFormatted},${lonFormatted}</span>
+        <span data-coordinate-segment>↑🏠 ${altAhlText}</span>
+        <span data-coordinate-segment>↑${altSecondLabel} ${altSecondText}</span>
+        <span data-coordinate-segment>🧭${bearing.toFixed(0)}°</span>
       `;
     }
 
     // Update map coordinate strip (for fullscreen map mode)
-    const coordStripMap = document.getElementById("coordinateStripMap");
-    if (coordStripMap) {
-      coordStripMap.innerHTML = `
-        <span style="white-space: nowrap; flex-shrink: 0;">🌐 ${latFormatted},${lonFormatted}</span>
-        <span style="white-space: nowrap; flex-shrink: 0;">↑🏠 ${altAhlText}</span>
-        <span style="white-space: nowrap; flex-shrink: 0;">↑${altSecondLabel} ${altSecondText}</span>
-        <span style="white-space: nowrap; flex-shrink: 0;">🧭${bearing.toFixed(0)}°</span>
+    const coordSegmentsMap = document.getElementById("coordinateSegmentsMap");
+    if (coordSegmentsMap) {
+      coordSegmentsMap.innerHTML = `
+        <span data-coordinate-segment>🌐 ${latFormatted},${lonFormatted}</span>
+        <span data-coordinate-segment>↑🏠 ${altAhlText}</span>
+        <span data-coordinate-segment>↑${altSecondLabel} ${altSecondText}</span>
+        <span data-coordinate-segment>🧭${bearing.toFixed(0)}°</span>
       `;
+    }
+
+    if (window.updateCoordinateSegmentVisibility) {
+      window.updateCoordinateSegmentVisibility();
     }
 
     // Enable pointer cursor when we have location data
@@ -1521,6 +1539,16 @@ class WebRTCViewer {
     if (coordStripContainerMap) {
       coordStripContainerMap.style.cursor = "pointer";
     }
+  }
+
+  updateDroneNameDisplay() {
+    const name = this.currentPublisherName ? `Drone: ${this.currentPublisherName}` : 'Drone: N/A';
+    ['coordinateDroneNameDesktop', 'coordinateDroneNameMap'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = name;
+    });
+    const dialogName = document.getElementById("dialogDroneName");
+    if (dialogName) dialogName.textContent = name;
   }
 
   copyCoordinates(coordinates) {
