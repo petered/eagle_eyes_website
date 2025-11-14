@@ -135,18 +135,20 @@ permalink: /user-form/
         const hangOnMessage = document.getElementById('hang-on-message');
         const postForm = document.getElementById('post-form');
         const submitButton = document.getElementById('submitButton');
-        const form = document.getElementById('emailSignInForm'); // or whatever your form ID is
+        const signupForm = document.getElementById('fields'); // The main signup form
         
-        // If we have a submit button, attach the handler
-        if (submitButton) {
-            // Remove the click handler and handle form submit instead
-            form.addEventListener('submit', function(e) {
+        // If we have a submit button and form, attach the handler
+        if (submitButton && signupForm) {
+            // Prevent default form submission and use our custom handler
+            signupForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 // Prevent double submission
                 if (submitButton.classList.contains('processing')) {
-                    return;
+                    return false;
                 }
                 submitForm();
+                return false;
             });
         }
         
@@ -232,18 +234,24 @@ permalink: /user-form/
     
     // Consolidated form submission handler
     function submitForm() {
+        console.log('submitForm() called');
         const submitButton = document.getElementById('submitButton');
         if (submitButton.classList.contains('processing')) {
             console.log('Form already being processed');
             return;
         }
         
+        console.log('Validating form...');
         // Get form validation result and data
         const result = validateFormAndGetData();
+        console.log('Validation result:', result);
         
         if (!result.valid) {
+            console.log('Form validation failed, not submitting');
             return false; // Form validation failed
         }
+        
+        console.log('Form validation passed, proceeding with submission');
         
         // Show processing state
         submitButton.classList.add('processing');
@@ -289,6 +297,10 @@ permalink: /user-form/
                 return; // Abort submission
             }
         }
+        
+        // Log what we're about to send
+        console.log("Submitting form data to Firebase:", JSON.stringify(formData, null, 2));
+        console.log("Form data keys:", Object.keys(formData));
         
         // Get auth token and submit
         firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
@@ -402,6 +414,15 @@ permalink: /user-form/
         const formContainer = document.getElementById('form-container');
         const hangOnMessage = document.getElementById('hang-on-message');
         const postForm = document.getElementById('post-form');
+
+        // If success message is already showing, don't check again (form was already submitted)
+        if (postForm) {
+            const postFormStyle = window.getComputedStyle(postForm);
+            if (postFormStyle.display !== 'none' && postForm.innerHTML.trim() !== '') {
+                console.log('Form already submitted, success message is showing. Skipping check.');
+                return;
+            }
+        }
 
         // Ensure the form is hidden until we get a result.
         formContainer.style.display = 'none';
@@ -738,6 +759,16 @@ permalink: /user-form/
  
 
     function redirectOrNot(user) {
+        // Check if form was already successfully submitted
+        const postForm = document.getElementById('post-form');
+        if (postForm) {
+            const postFormStyle = window.getComputedStyle(postForm);
+            if (postFormStyle.display !== 'none' && postForm.innerHTML.trim() !== '') {
+                console.log('Form already submitted, success message is showing. Skipping redirectOrNot.');
+                return;
+            }
+        }
+
         // Get URL parameters first
         const urlParams = new URLSearchParams(window.location.search);
         const reason = urlParams.get('reason');
@@ -858,8 +889,15 @@ permalink: /user-form/
             return;
         }
 
+        // Only process inputs that are actually inside this container
+        // This prevents accidentally disabling common fields
         const inputs = container.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
+            // Double-check the input is actually a child of this container
+            if (!container.contains(input)) {
+                return;
+            }
+            
             input.disabled = !shouldEnable;
 
             if (!shouldEnable) {
