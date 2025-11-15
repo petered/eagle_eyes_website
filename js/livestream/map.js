@@ -32,7 +32,7 @@ class DroneMap {
         this.disconnectedOverlay = null;
         this.isDisconnected = false;
         this.disconnectedTimer = null;
-        this.disconnectedDelayMs = 5000; // 5 second delay before showing disconnected banner
+        this.disconnectedDelayMs = 2000; // 2 second delay before showing disconnected banner
         this.currentDroneData = null;
         this.currentDroneName = null;
         this.currentLivestreamId = null; // Current drone's livestream ID
@@ -4861,8 +4861,10 @@ class DroneMap {
             // Continuously center on drone when in CONTINUOUS mode
             this.map.panTo(this.currentLocation);
         }
+
+        this.updateDroneOverviewIndicator();
     }
-    generateDronePopupContent(droneData = null, droneName = null, livestreamId = null) {
+    generateDronePopupContent(droneData = null, droneName = null, livestreamId = null, options = {}) {
         // Use parameters if provided, otherwise fall back to current drone data
         const data = droneData || this.currentDroneData;
         const name = droneName || this.currentDroneName;
@@ -4904,9 +4906,10 @@ class DroneMap {
         const pitchText = pitch != null ? pitch.toFixed(1) + '°' : 'N/A';
         const batteryText = battery_percent != null ? battery_percent + '%' : 'N/A';
 
-        const nameHeader = name
-            ? `<strong style="font-size: 1.1em;">${name}</strong><br><br>`
-            : `<strong style="font-size: 1.1em;">Drone Position</strong><br><br>`;
+        const nameHeader = options.hideHeader ? '' :
+            (name
+                ? `<strong style="font-size: 1.1em;">${name}</strong><br><br>`
+                : `<strong style="font-size: 1.1em;">Drone Position</strong><br><br>`);
 
         // Add "View Livestream" button if this drone is streaming and it's not the current stream
         const currentViewingStream = window.viewer?.currentRoomId;
@@ -5807,6 +5810,7 @@ class DroneMap {
         this.lastDroneTelemetryTimestamp = null;
         this.caltopoInfo = null;
         this.updateCaltopoButton();
+        this.updateDroneOverviewIndicator();
     }
 
     setDataStale(isStale) {
@@ -6009,25 +6013,10 @@ class DroneMap {
 
         // Update or create markers for each drone
         for (const [droneId, telemetryData] of Object.entries(otherDronesData)) {
-            const location = telemetryData.state?.drone_gps_location;
-            const pose = telemetryData.state?.drone_pose;
+            const droneData = this.extractDroneDataFromTelemetry(telemetryData);
+            if (!droneData) continue;
 
-            if (!location || !pose) continue;
-
-            const latLng = [location.lat, location.lng];
-
-            // Convert telemetry data to format expected by generateDronePopupContent
-            const droneData = {
-                latitude: location.lat,
-                longitude: location.lng,
-                altitude_ahl: location.altitude_ahl_m,
-                altitude_asl: location.altitude_asl_m,
-                altitude_ellipsoid: location.altitude_ellipsoid_m,
-                bearing: pose.yaw_deg,
-                pitch: pose.pitch_deg,
-                battery_percent: telemetryData.state?.misc?.battery_percent
-            };
-
+            const latLng = [droneData.latitude, droneData.longitude];
             const droneName = telemetryData.drone_name || telemetryData.drone_id || 'Other Drone';
             const livestreamId = telemetryData.livestream_id || null;
 
@@ -6038,8 +6027,9 @@ class DroneMap {
 
             if (!this.otherDroneMarkers[droneId]) {
                 // Create new marker
+                const yaw = typeof droneData.bearing === 'number' ? droneData.bearing : 0;
                 const otherDroneIcon = L.divIcon({
-                    html: `<div style="position: relative; width: 28px; height: 28px;"><img src="${this.getAssetPath('/images/livestream/map_other_drone_flyer_2.png')}" style="width: 28px; height: 28px; transform: rotate(${pose.yaw_deg}deg); transform-origin: center;">${redDot}</div>`,
+                    html: `<div style="position: relative; width: 28px; height: 28px;"><img src="${this.getAssetPath('/images/livestream/map_other_drone_flyer_2.png')}" style="width: 28px; height: 28px; transform: rotate(${yaw}deg); transform-origin: center;">${redDot}</div>`,
                     className: 'other-drone-marker',
                     iconSize: [28, 28],
                     iconAnchor: [14, 14]
@@ -6070,7 +6060,8 @@ class DroneMap {
                     if (container) {
                         const img = container.querySelector('img');
                         if (img) {
-                            img.style.transform = `rotate(${pose.yaw_deg}deg)`;
+                            const yawValue = typeof droneData.bearing === 'number' ? droneData.bearing : 0;
+                            img.style.transform = `rotate(${yawValue}deg)`;
                         }
 
                         // Update red dot visibility
@@ -6094,6 +6085,91 @@ class DroneMap {
                 }
             }
         }
+
+        this.updateDroneOverviewIndicator();
+    }
+
+    extractDroneDataFromTelemetry(telemetryData) {
+        if (!telemetryData || !telemetryData.state) return null;
+        const location = telemetryData.state.drone_gps_location;
+        const pose = telemetryData.state.drone_pose;
+        if (!location || !pose) return null;
+
+        return {
+            latitude: location.lat,
+            longitude: location.lng,
+            altitude_ahl: location.altitude_ahl_m,
+            altitude_asl: location.altitude_asl_m,
+            altitude_ellipsoid: location.altitude_ellipsoid_m,
+            bearing: pose.yaw_deg,
+            pitch: pose.pitch_deg,
+            battery_percent: telemetryData.state?.misc?.battery_percent ?? null,
+            timestamp: telemetryData.state?.timestamp ?? Date.now()
+        };
+    }
+
+    getDroneOverviewEntries() {
+        const entries = [];
+
+        if (this.currentDroneData) {
+            entries.push({
+                id: 'current-drone',
+                name: this.currentDroneName || 'Active Drone',
+                telemetry: this.currentDroneData,
+                livestreamId: this.currentLivestreamId || null,
+                isCurrent: true,
+                updatedAt: this.lastDroneUpdate ? this.lastDroneUpdate.getTime() : Date.now()
+            });
+        }
+
+        Object.entries(this.otherDroneMarkers).forEach(([droneId, markerInfo]) => {
+            const telemetryData = markerInfo.telemetryData;
+            const droneData = this.extractDroneDataFromTelemetry(telemetryData);
+            if (!droneData) return;
+            entries.push({
+                id: droneId,
+                name: telemetryData.drone_name || telemetryData.drone_id || 'Other Drone',
+                telemetry: droneData,
+                livestreamId: telemetryData.livestream_id || null,
+                isCurrent: false,
+                updatedAt: droneData.timestamp || Date.now()
+            });
+        });
+
+        return entries;
+    }
+
+    zoomToDrone(droneId) {
+        if (!this.map) return false;
+
+        if (droneId === 'current-drone' && this.currentLocation) {
+            this.map.setView(this.currentLocation, 16, { animate: true });
+            return true;
+        }
+
+        const markerInfo = this.otherDroneMarkers[droneId];
+        const telemetry = markerInfo?.telemetryData;
+        const location = telemetry?.state?.drone_gps_location;
+
+        if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
+            this.map.setView([location.lat, location.lng], 16, { animate: true });
+            return true;
+        }
+
+        const entry = window.overviewState?.entries?.[droneId];
+        const entryTelemetry = entry?.telemetry;
+        if (entryTelemetry && typeof entryTelemetry.latitude === 'number' && typeof entryTelemetry.longitude === 'number') {
+            this.map.setView([entryTelemetry.latitude, entryTelemetry.longitude], 16, { animate: true });
+            return true;
+        }
+
+        return false;
+    }
+
+    updateDroneOverviewIndicator() {
+        if (typeof window.updateDroneOverviewBadge !== 'function') return;
+        const entries = this.getDroneOverviewEntries();
+        window.updateDroneOverviewBadge(entries.length);
     }
 
     clearOtherDrones() {
@@ -6103,6 +6179,7 @@ class DroneMap {
             this.map.removeLayer(this.otherDroneMarkers[droneId].marker);
         }
         this.otherDroneMarkers = {};
+        this.updateDroneOverviewIndicator();
     }
 
     resize() {
