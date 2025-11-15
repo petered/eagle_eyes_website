@@ -32,7 +32,7 @@ class DroneMap {
         this.disconnectedOverlay = null;
         this.isDisconnected = false;
         this.disconnectedTimer = null;
-        this.disconnectedDelayMs = 5000; // 5 second delay before showing disconnected banner
+        this.disconnectedDelayMs = 2000; // 2 second delay before showing disconnected banner
         this.currentDroneData = null;
         this.currentDroneName = null;
         this.currentLivestreamId = null; // Current drone's livestream ID
@@ -4864,7 +4864,7 @@ class DroneMap {
 
         this.updateDroneOverviewIndicator();
     }
-    generateDronePopupContent(droneData = null, droneName = null, livestreamId = null) {
+    generateDronePopupContent(droneData = null, droneName = null, livestreamId = null, options = {}) {
         // Use parameters if provided, otherwise fall back to current drone data
         const data = droneData || this.currentDroneData;
         const name = droneName || this.currentDroneName;
@@ -4906,9 +4906,10 @@ class DroneMap {
         const pitchText = pitch != null ? pitch.toFixed(1) + '°' : 'N/A';
         const batteryText = battery_percent != null ? battery_percent + '%' : 'N/A';
 
-        const nameHeader = name
-            ? `<strong style="font-size: 1.1em;">${name}</strong><br><br>`
-            : `<strong style="font-size: 1.1em;">Drone Position</strong><br><br>`;
+        const nameHeader = options.hideHeader ? '' :
+            (name
+                ? `<strong style="font-size: 1.1em;">${name}</strong><br><br>`
+                : `<strong style="font-size: 1.1em;">Drone Position</strong><br><br>`);
 
         // Add "View Livestream" button if this drone is streaming and it's not the current stream
         const currentViewingStream = window.viewer?.currentRoomId;
@@ -6136,6 +6137,33 @@ class DroneMap {
         });
 
         return entries;
+    }
+
+    zoomToDrone(droneId) {
+        if (!this.map) return false;
+
+        if (droneId === 'current-drone' && this.currentLocation) {
+            this.map.setView(this.currentLocation, 16, { animate: true });
+            return true;
+        }
+
+        const markerInfo = this.otherDroneMarkers[droneId];
+        const telemetry = markerInfo?.telemetryData;
+        const location = telemetry?.state?.drone_gps_location;
+
+        if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
+            this.map.setView([location.lat, location.lng], 16, { animate: true });
+            return true;
+        }
+
+        const entry = window.overviewState?.entries?.[droneId];
+        const entryTelemetry = entry?.telemetry;
+        if (entryTelemetry && typeof entryTelemetry.latitude === 'number' && typeof entryTelemetry.longitude === 'number') {
+            this.map.setView([entryTelemetry.latitude, entryTelemetry.longitude], 16, { animate: true });
+            return true;
+        }
+
+        return false;
     }
 
     updateDroneOverviewIndicator() {
