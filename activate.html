@@ -1300,14 +1300,13 @@ permalink: /activate/
                         console.log('Parsed licenses data:', licenseData);
                         
                         if (licenseData && licenseData.licenses_and_dispensed) {
-                            // Get existing keys for this machine for the current user only
+                            // Get existing keys for this machine (regardless of which user activated them)
                             const existingKeysForMachine = [];
                             if (licenseData.tokens_and_codes) {
-                                const currentUserEmail = globalUser?.email;
                                 for (const tokenId in licenseData.tokens_and_codes) {
                                     const tokenAndCode = licenseData.tokens_and_codes[tokenId];
-                                    // Only include tokens that belong to the current user
-                                    if (tokenAndCode && tokenAndCode.token && tokenAndCode.token.email === currentUserEmail) {
+                                    // Include all tokens for this machine_id, regardless of email
+                                    if (tokenAndCode && tokenAndCode.token && tokenAndCode.token.license_id) {
                                         existingKeysForMachine.push(tokenAndCode.token.license_id);
                                     }
                                 }
@@ -1859,14 +1858,13 @@ permalink: /activate/
         }
         
         if (licenseData && licenseData.licenses_and_dispensed) {
-            // Get existing keys for this machine for the current user only
+            // Get existing keys for this machine (regardless of which user activated them)
             const existingKeysForMachine = [];
             if (licenseData.tokens_and_codes) {
-                const currentUserEmail = currentUser.email;
                 for (const tokenId in licenseData.tokens_and_codes) {
                     const tokenAndCode = licenseData.tokens_and_codes[tokenId];
-                    // Only include tokens that belong to the current user
-                    if (tokenAndCode && tokenAndCode.token && tokenAndCode.token.email === currentUserEmail) {
+                    // Include all tokens for this machine_id, regardless of email
+                    if (tokenAndCode && tokenAndCode.token && tokenAndCode.token.license_id) {
                         existingKeysForMachine.push(tokenAndCode.token.license_id);
                     }
                 }
