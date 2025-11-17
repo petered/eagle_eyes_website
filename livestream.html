@@ -57,6 +57,7 @@ permalink: /livestream/
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/piexifjs@2.0.0/piexif.js"></script>
     <style>
       body,
       html {
@@ -823,6 +824,20 @@ permalink: /livestream/
           transform: translateX(-50%);
           max-width: calc(100vw - 24px);
         }
+        .photo-points-list-container {
+          max-height: calc(100vh - 200px) !important;
+        }
+        .photo-point-list-item {
+          padding: 8px !important;
+          font-size: 11px !important;
+        }
+        .photo-point-list-item > div:first-child {
+          font-size: 11px !important;
+        }
+        #addPhotoPointBtn {
+          padding: 10px !important;
+          font-size: 12px !important;
+        }
       }
       @media (max-width: 480px) {
         .basemap-popup {
@@ -830,6 +845,20 @@ permalink: /livestream/
           border-radius: 10px;
           padding: 12px;
           font-size: 13px;
+        }
+        .photo-points-list-container {
+          max-height: calc(100vh - 180px) !important;
+        }
+        .photo-point-list-item {
+          padding: 6px !important;
+          margin-bottom: 6px !important;
+        }
+        .photo-point-list-item > div {
+          font-size: 10px !important;
+        }
+        #addPhotoPointBtn {
+          padding: 8px !important;
+          font-size: 11px !important;
         }
       }
       #mobileControls .offcanvas-body {
@@ -1257,12 +1286,26 @@ permalink: /livestream/
       /* Measurement (ruler) control styling */
       .leaflet-control-measurement {
         width: 40px !important;
+      }
+      
+      /* Photo points control styling */
+      .leaflet-control-photo-points {
+        width: 40px !important;
         height: 40px !important;
+        background-color: rgba(44, 44, 44, 0.6) !important;
+        border: 1px solid #444 !important;
+        border-radius: 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        transition: all 0.3s ease !important;
         margin-bottom: 0px !important;
-        margin-top: 0px !important;
+      }
+      
+      .leaflet-control-photo-points:hover {
+        background-color: rgba(60, 60, 60, 0.8) !important;
+        border-color: #555 !important;
       }
       
       .leaflet-control-measurement img {
@@ -1388,7 +1431,34 @@ permalink: /livestream/
       /* Mobile optimization for photo point popups */
       @media (max-width: 768px) {
         .photo-point-popup {
+          max-width: 220px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content {
+          font-size: 0.8em !important;
+          padding: 4px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content strong {
+          font-size: 0.95em !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content img {
           max-width: 200px !important;
+          margin-bottom: 6px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content button {
+          font-size: 0.85em !important;
+          padding: 6px 10px !important;
+          margin-bottom: 4px !important;
+        }
+      }
+      
+      /* Small mobile screens */
+      @media (max-width: 480px) {
+        .photo-point-popup {
+          max-width: 180px !important;
         }
         
         .photo-point-popup .leaflet-popup-content {
@@ -1396,12 +1466,7 @@ permalink: /livestream/
         }
         
         .photo-point-popup .leaflet-popup-content img {
-          max-width: 180px !important;
-        }
-        
-        .photo-point-popup .leaflet-popup-content button {
-          font-size: 0.85em !important;
-          padding: 5px 10px !important;
+          max-width: 160px !important;
         }
       }
       
@@ -2594,6 +2659,53 @@ permalink: /livestream/
       </div>
     </div>
 
+    <!-- Photo Point Name Modal -->
+    <div class="modal fade" id="photoPointNameModal" tabindex="-1" aria-labelledby="photoPointNameModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="photoPointNameModalLabel">Name Photo Point</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <label for="photoPointNameInput" class="form-label">Enter a name for this photo point:</label>
+            <input
+              type="text"
+              id="photoPointNameInput"
+              class="form-control bg-dark text-white border-secondary"
+              placeholder="Photo Point Name"
+              autocomplete="off"
+            />
+            <div id="photoPointInfo" class="mt-3" style="font-size: 0.85rem; color: #adb5bd; font-style: italic; line-height: 1.5;">
+              <!-- Will be populated by JavaScript -->
+            </div>
+          </div>
+          <div class="modal-footer border-secondary">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="photoPointNameSaveBtn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo Point Share Modal -->
+    <div class="modal fade" id="photoPointShareModal" tabindex="-1" aria-labelledby="photoPointShareModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="photoPointShareModalLabel">Share Photo Point</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p>Share this photo point?</p>
+            <button type="button" class="btn btn-primary w-100" id="photoPointShareBtn">
+              <i class="bi bi-share"></i> Share
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notification - Below share button -->
     <div class="toast-container position-fixed" id="toastContainer" style="display: none;">
       <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="width: auto; min-width: fit-content;">
@@ -2602,6 +2714,14 @@ permalink: /livestream/
             <i class="bi bi-check-circle"></i> URL copied to clipboard
           </div>
           <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+      <div id="photoPointUrlCopiedToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="position: fixed; top: 80px; right: 20px; z-index: 10005; width: auto; min-width: 280px; display: none; opacity: 1; visibility: visible;">
+        <div class="d-flex align-items-center justify-content-center">
+          <div class="toast-body text-center" style="padding: 12px 20px; font-size: 0.9rem;">
+            <i class="bi bi-check-circle"></i> URL for photo point copied to clipboard
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2" onclick="document.getElementById('photoPointUrlCopiedToast').style.display='none'"></button>
         </div>
       </div>
     </div>
@@ -3651,7 +3771,8 @@ permalink: /livestream/
           });
         }
 
-        function setViewMode(mode) {
+        // Make setViewMode globally accessible
+        window.setViewMode = function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");
 
           if (mode === "video") {

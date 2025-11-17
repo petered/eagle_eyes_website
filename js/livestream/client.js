@@ -707,6 +707,12 @@ class WebRTCViewer {
       videoPanel.classList.add('col-12');
     }
     if (coordStripContainer) coordStripContainer.style.display = 'none';
+    
+    // Hide photo points control when not streaming
+    const controlContainer = document.getElementById('photoPointsControl');
+    if (controlContainer) {
+      controlContainer.style.display = 'none';
+    }
   }
 
   showStreaming() {
@@ -778,6 +784,14 @@ class WebRTCViewer {
           window.droneMap.checkMapVisibilityAndShowDisclaimer();
         }
       }, 100);
+    }
+    
+    // Show photo points control when streaming
+    if (window.droneMap && window.droneMap.photoPointsControl) {
+      const controlContainer = document.getElementById('photoPointsControl');
+      if (controlContainer) {
+        controlContainer.style.display = 'block';
+      }
     }
   }
 
