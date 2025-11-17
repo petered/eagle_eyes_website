@@ -5282,11 +5282,15 @@ class DroneMap {
     }
     
     // Add watermarks and text overlays to canvas
-    async addWatermarksToCanvas(ctx, width, height) {
+    async addWatermarksToCanvas(ctx, width, height, photoPoint = null) {
         // Get current drone data
         const droneName = this.currentDroneName || 'Unknown Drone';
         const [lat, lng] = this.currentLocation || [0, 0];
         const now = new Date();
+        
+        // Get bearing/heading from photoPoint if available, otherwise from current drone data
+        const droneData = this.currentDroneData;
+        const bearing = photoPoint?.bearing ?? droneData?.bearing ?? null;
         
         // Format timestamp
         const timeOptions = {
@@ -5364,7 +5368,9 @@ class DroneMap {
         
         // Calculate line height for text
         const lineHeight = textSize * 1.4;
-        const textHeight = lineHeight * 3; // Height of three text lines
+        // Calculate text height based on number of lines (drone name, coordinates, heading, timestamp)
+        const numTextLines = bearing !== null ? 4 : 3;
+        const textHeight = lineHeight * numTextLines;
         
         // Load QR code logo - smaller size
         let qrCodeWidth = 0;
@@ -5406,12 +5412,19 @@ class DroneMap {
         const textX = qrCodeX + qrCodeWidth + padding * 2;
         const textY = padding;
         
-        // Prepare text lines - drone name first, then coordinates, then timestamp
+        // Prepare text lines - drone name first, then coordinates, then heading, then timestamp
         const textLines = [
             `Drone: ${droneName}`,
-            `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-            `${timeStr} ${dateStr}`
+            `${lat.toFixed(6)}, ${lng.toFixed(6)}`
         ];
+        
+        // Add heading if available (below coordinates, above time)
+        if (bearing !== null) {
+            textLines.push(`Heading: ${bearing.toFixed(1)}°`);
+        }
+        
+        // Add timestamp last
+        textLines.push(`${timeStr} ${dateStr}`);
         
         // Set font and alignment - left align so text starts to the right of QR code
         ctx.font = `${textSize}px Arial, sans-serif`;
@@ -5549,6 +5562,10 @@ class DroneMap {
         }
 
         const [lat, lng] = this.currentLocation;
+        
+        // Get current drone data for bearing/heading
+        const droneData = this.currentDroneData;
+        const bearing = droneData?.bearing || null;
 
         // Create photo point
         const photoPoint = {
@@ -5558,7 +5575,8 @@ class DroneMap {
             lng: lng,
             imageData: imageData,
             timestamp: Date.now(),
-            droneName: this.currentDroneName || 'Unknown Drone'
+            droneName: this.currentDroneName || 'Unknown Drone',
+            bearing: bearing
         };
 
         // Add to storage
@@ -6065,7 +6083,8 @@ class DroneMap {
             const droneData = this.currentDroneData;
             const droneName = this.currentDroneName || 'Unknown Drone';
             const altitude = droneData?.altitude_asl || droneData?.altitude_ahl || null;
-            const bearing = droneData?.bearing || null;
+            // Use bearing from photoPoint if available, otherwise from current drone data
+            const bearing = photoPoint?.bearing ?? droneData?.bearing ?? null;
             const pitch = droneData?.pitch || null;
             const battery = droneData?.battery_percent || null;
 
@@ -6113,29 +6132,50 @@ class DroneMap {
 
                             // GPS data
                             // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
+                            // EXIF requires rational numbers: [[degrees, 1], [minutes, 1], [seconds*100, 100]]
                             const toDMS = (decimal) => {
                                 const abs = Math.abs(decimal);
                                 const deg = Math.floor(abs);
                                 const minFloat = (abs - deg) * 60;
                                 const min = Math.floor(minFloat);
                                 const sec = (minFloat - min) * 60;
-                                // Return as [numerator, denominator] pairs
+                                // Return as EXIF rational format: [[numerator, denominator], ...]
                                 return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
                             };
 
                             const latDMS = toDMS(photoPoint.lat);
                             const lngDMS = toDMS(photoPoint.lng);
 
+                            // GPS Version ID (required)
                             gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
+                            
+                            // GPS Latitude (required)
                             gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
                             gps[piexif.GPSIFD.GPSLatitude] = latDMS;
+                            
+                            // GPS Longitude (required)
                             gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
                             gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
                             
+                            // GPS Altitude (optional)
                             if (altitude !== null) {
-                                gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level
-                                gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100];
+                                gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level, 1 = below sea level
+                                gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100]; // Rational: [meters*100, 100]
                             }
+                            
+                            // GPS Time Stamp (optional but recommended)
+                            const gpsHours = timestamp.getUTCHours();
+                            const gpsMinutes = timestamp.getUTCMinutes();
+                            const gpsSeconds = timestamp.getUTCSeconds();
+                            gps[piexif.GPSIFD.GPSTimeStamp] = [
+                                [gpsHours, 1],
+                                [gpsMinutes, 1],
+                                [gpsSeconds, 1]
+                            ];
+                            
+                            // GPS Date (optional but recommended)
+                            const gpsDateStr = `${String(year).padStart(4, '0')}:${String(month).padStart(2, '0')}:${String(day).padStart(2, '0')}`;
+                            gps[piexif.GPSIFD.GPSDateStamp] = gpsDateStr;
 
                             // Additional drone metadata in UserComment
                             let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
@@ -6414,7 +6454,8 @@ class DroneMap {
         const droneData = this.currentDroneData;
         const droneName = this.currentDroneName || 'Unknown Drone';
         const altitude = droneData?.altitude_asl || droneData?.altitude_ahl || null;
-        const bearing = droneData?.bearing || null;
+        // Use bearing from photoPoint if available, otherwise from current drone data
+        const bearing = photoPoint?.bearing ?? droneData?.bearing ?? null;
         const pitch = droneData?.pitch || null;
         const battery = droneData?.battery_percent || null;
 
@@ -6434,14 +6475,14 @@ class DroneMap {
                 const reader = new FileReader();
                 reader.onload = () => {
                     try {
-                        // Get current date/time in EXIF format: "YYYY:MM:DD HH:MM:SS"
-                        const now = new Date();
-                        const year = now.getFullYear();
-                        const month = String(now.getMonth() + 1).padStart(2, '0');
-                        const day = String(now.getDate()).padStart(2, '0');
-                        const hours = String(now.getHours()).padStart(2, '0');
-                        const minutes = String(now.getMinutes()).padStart(2, '0');
-                        const seconds = String(now.getSeconds()).padStart(2, '0');
+                        // Get timestamp from photo point
+                        const timestamp = new Date(photoPoint.timestamp);
+                        const year = timestamp.getFullYear();
+                        const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+                        const day = String(timestamp.getDate()).padStart(2, '0');
+                        const hours = String(timestamp.getHours()).padStart(2, '0');
+                        const minutes = String(timestamp.getMinutes()).padStart(2, '0');
+                        const seconds = String(timestamp.getSeconds()).padStart(2, '0');
                         const dateStr = `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
 
                         // Prepare EXIF data
@@ -6462,29 +6503,50 @@ class DroneMap {
 
                         // GPS data
                         // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
+                        // EXIF requires rational numbers: [[degrees, 1], [minutes, 1], [seconds*100, 100]]
                         const toDMS = (decimal) => {
                             const abs = Math.abs(decimal);
                             const deg = Math.floor(abs);
                             const minFloat = (abs - deg) * 60;
                             const min = Math.floor(minFloat);
                             const sec = (minFloat - min) * 60;
-                            // Return as [numerator, denominator] pairs
+                            // Return as EXIF rational format: [[numerator, denominator], ...]
                             return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
                         };
 
                         const latDMS = toDMS(photoPoint.lat);
                         const lngDMS = toDMS(photoPoint.lng);
 
+                        // GPS Version ID (required)
                         gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
+                        
+                        // GPS Latitude (required) - in DMS format as EXIF rationals
                         gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
                         gps[piexif.GPSIFD.GPSLatitude] = latDMS;
+                        
+                        // GPS Longitude (required) - in DMS format as EXIF rationals
                         gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
                         gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
                         
+                        // GPS Altitude (optional)
                         if (altitude !== null) {
-                            gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level
-                            gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100];
+                            gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level, 1 = below sea level
+                            gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100]; // Rational: [meters*100, 100]
                         }
+                        
+                        // GPS Time Stamp (optional but recommended)
+                        const gpsHours = timestamp.getUTCHours();
+                        const gpsMinutes = timestamp.getUTCMinutes();
+                        const gpsSeconds = timestamp.getUTCSeconds();
+                        gps[piexif.GPSIFD.GPSTimeStamp] = [
+                            [gpsHours, 1],
+                            [gpsMinutes, 1],
+                            [gpsSeconds, 1]
+                        ];
+                        
+                        // GPS Date (optional but recommended)
+                        const gpsDateStr = `${String(year).padStart(4, '0')}:${String(month).padStart(2, '0')}:${String(day).padStart(2, '0')}`;
+                        gps[piexif.GPSIFD.GPSDateStamp] = gpsDateStr;
 
                         // Additional drone metadata in UserComment
                         let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
