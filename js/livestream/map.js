@@ -5282,7 +5282,7 @@ class DroneMap {
     }
 
     // Capture video screenshot and generate JPEG with EXIF GPS metadata directly
-    async captureVideoScreenshotWithExif(photoPoint, altitude = null) {
+    async captureVideoScreenshotWithExif(photoPoint, altitude = null, lat = null, lng = null) {
         // Check if piexif is available
         if (typeof piexif === 'undefined') {
             console.error('piexif library not loaded! Cannot add EXIF metadata.');
@@ -5299,14 +5299,20 @@ class DroneMap {
             return null;
         }
 
-        // Get coordinates from the same source as watermark (this.currentLocation)
-        if (!this.currentLocation || !Array.isArray(this.currentLocation) || this.currentLocation.length !== 2) {
-            console.error('Current location not available for EXIF:', this.currentLocation);
+        // Get coordinates - use provided lat/lng, or fall back to this.currentLocation (same as watermark)
+        if (lat === null || lng === null) {
+            const location = this.currentLocation || [0, 0];
+            lat = location[0];
+            lng = location[1];
+        }
+        
+        // Ensure we have valid coordinates
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+            console.error('Invalid coordinates for EXIF:', { lat, lng, currentLocation: this.currentLocation });
             return null;
         }
-        const [lat, lng] = this.currentLocation;
         
-        // Update photoPoint with actual coordinates from currentLocation
+        // Update photoPoint with coordinates
         photoPoint.lat = lat;
         photoPoint.lng = lng;
 
@@ -5767,7 +5773,8 @@ class DroneMap {
         };
 
         // Capture video and generate JPEG with EXIF metadata directly
-        const jpegWithExif = await this.captureVideoScreenshotWithExif(photoPoint, altitude);
+        // Pass coordinates directly to avoid re-checking currentLocation
+        const jpegWithExif = await this.captureVideoScreenshotWithExif(photoPoint, altitude, lat, lng);
         if (!jpegWithExif) {
             alert('Failed to capture screenshot with EXIF metadata. Please ensure video is playing.');
             // Reset button state
