@@ -6520,186 +6520,196 @@ class DroneMap {
             // Re-add watermarks to ensure they're present (in case imageData was stored without them)
             await this.addWatermarksToCanvas(ctx, canvas.width, canvas.height, photoPoint);
 
-            // Convert to JPEG for EXIF support (PNG doesn't support EXIF)
-            canvas.toBlob((blob) => {
-                // Read blob as array buffer, then convert to binary string for piexif
-                const reader = new FileReader();
-                reader.onload = () => {
-                    try {
-                        // Convert ArrayBuffer to binary string for piexif
-                        const arrayBuffer = reader.result;
-                        const bytes = new Uint8Array(arrayBuffer);
-                        let binary = '';
-                        for (let i = 0; i < bytes.length; i++) {
-                            binary += String.fromCharCode(bytes[i]);
-                        }
+            // Convert to JPEG data URL (base64) for EXIF support
+            // This approach is more reliable than toBlob for piexif
+            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            
+            // Extract base64 data from data URL
+            const base64Data = jpegDataUrl.split(',')[1];
+            
+            // Convert base64 to binary string for piexif
+            // piexif.insert() can work with binary string or base64, but binary is more reliable
+            const binaryString = atob(base64Data);
+            
+            try {
+                // Get timestamp from photo point
+                const timestamp = new Date(photoPoint.timestamp);
+                const year = timestamp.getFullYear();
+                const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+                const day = String(timestamp.getDate()).padStart(2, '0');
+                const hours = String(timestamp.getHours()).padStart(2, '0');
+                const minutes = String(timestamp.getMinutes()).padStart(2, '0');
+                const seconds = String(timestamp.getSeconds()).padStart(2, '0');
+                const dateStr = `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
 
-                        // Get timestamp from photo point
-                        const timestamp = new Date(photoPoint.timestamp);
-                        const year = timestamp.getFullYear();
-                        const month = String(timestamp.getMonth() + 1).padStart(2, '0');
-                        const day = String(timestamp.getDate()).padStart(2, '0');
-                        const hours = String(timestamp.getHours()).padStart(2, '0');
-                        const minutes = String(timestamp.getMinutes()).padStart(2, '0');
-                        const seconds = String(timestamp.getSeconds()).padStart(2, '0');
-                        const dateStr = `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
+                // Prepare EXIF data
+                const zeroth = {};
+                const exif = {};
+                const gps = {};
 
-                        // Prepare EXIF data
-                        const zeroth = {};
-                        const exif = {};
-                        const gps = {};
+                // Basic image info
+                zeroth[piexif.ImageIFD.Make] = "Eagle Eyes";
+                zeroth[piexif.ImageIFD.Model] = droneName;
+                zeroth[piexif.ImageIFD.Software] = "Eagle Eyes Viewer";
+                zeroth[piexif.ImageIFD.DateTime] = dateStr;
+                zeroth[piexif.ImageIFD.ImageDescription] = `Eagle Eyes Photo Point: ${photoPoint.name}`;
 
-                        // Basic image info
-                        zeroth[piexif.ImageIFD.Make] = "Eagle Eyes";
-                        zeroth[piexif.ImageIFD.Model] = droneName;
-                        zeroth[piexif.ImageIFD.Software] = "Eagle Eyes Viewer";
-                        zeroth[piexif.ImageIFD.DateTime] = dateStr;
-                        zeroth[piexif.ImageIFD.ImageDescription] = `Eagle Eyes Photo Point: ${photoPoint.name}`;
+                // EXIF data
+                exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
+                exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
 
-                        // EXIF data
-                        exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
-                        exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
-
-                        // GPS data
-                        // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
-                        // EXIF requires rational numbers: [[degrees, 1], [minutes, 1], [seconds*100, 100]]
-                        const toDMS = (decimal) => {
-                            const abs = Math.abs(decimal);
-                            const deg = Math.floor(abs);
-                            const minFloat = (abs - deg) * 60;
-                            const min = Math.floor(minFloat);
-                            const sec = (minFloat - min) * 60;
-                            // Return as EXIF rational format: [[numerator, denominator], ...]
-                            return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
-                        };
-
-                        const latDMS = toDMS(photoPoint.lat);
-                        const lngDMS = toDMS(photoPoint.lng);
-
-                        // GPS Version ID (required)
-                        gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
-                        
-                        // GPS Latitude (required) - in DMS format as EXIF rationals
-                        gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
-                        gps[piexif.GPSIFD.GPSLatitude] = latDMS;
-                        
-                        // GPS Longitude (required) - in DMS format as EXIF rationals
-                        gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
-                        gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
-                        
-                        // GPS Altitude (optional)
-                        if (altitude !== null) {
-                            gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level, 1 = below sea level
-                            gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100]; // Rational: [meters*100, 100]
-                        }
-                        
-                        // GPS Time Stamp (optional but recommended)
-                        const gpsHours = timestamp.getUTCHours();
-                        const gpsMinutes = timestamp.getUTCMinutes();
-                        const gpsSeconds = timestamp.getUTCSeconds();
-                        gps[piexif.GPSIFD.GPSTimeStamp] = [
-                            [gpsHours, 1],
-                            [gpsMinutes, 1],
-                            [gpsSeconds, 1]
-                        ];
-                        
-                        // GPS Date (optional but recommended)
-                        const gpsDateStr = `${String(year).padStart(4, '0')}:${String(month).padStart(2, '0')}:${String(day).padStart(2, '0')}`;
-                        gps[piexif.GPSIFD.GPSDateStamp] = gpsDateStr;
-                        
-                        // GPS Image Direction (optional but ideal) - camera/drone heading
-                        if (bearing !== null && !isNaN(bearing)) {
-                            // Normalize bearing to 0-360
-                            const normalizedBearing = ((bearing % 360) + 360) % 360;
-                            gps[piexif.GPSIFD.GPSImgDirectionRef] = "T"; // T = True North, M = Magnetic North
-                            gps[piexif.GPSIFD.GPSImgDirection] = [Math.round(normalizedBearing * 100), 100]; // Rational: [degrees*100, 100]
-                        }
-
-                        // Additional drone metadata in UserComment
-                        let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
-                        userComment += `Drone: ${droneName}\n`;
-                        userComment += `Location: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}\n`;
-                        if (altitude !== null) userComment += `Altitude: ${altitude.toFixed(1)}m\n`;
-                        if (bearing !== null) userComment += `Bearing: ${bearing.toFixed(1)}°\n`;
-                        if (pitch !== null) userComment += `Pitch: ${pitch.toFixed(1)}°\n`;
-                        if (battery !== null) userComment += `Battery: ${battery.toFixed(0)}%\n`;
-                        exif[piexif.ExifIFD.UserComment] = userComment;
-
-                        // Create EXIF string
-                        const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
-                        let exifStr;
-                        try {
-                            exifStr = piexif.dump(exifObj);
-                            console.log('EXIF data prepared:', {
-                                hasGPS: !!gps && Object.keys(gps).length > 0,
-                                gpsFields: Object.keys(gps),
-                                lat: photoPoint.lat,
-                                lng: photoPoint.lng
-                            });
-                        } catch (dumpError) {
-                            console.error('Error dumping EXIF data:', dumpError);
-                            throw dumpError;
-                        }
-
-                        // Insert EXIF into JPEG binary string
-                        let jpegDataWithExif;
-                        try {
-                            jpegDataWithExif = piexif.insert(exifStr, binary);
-                            console.log('EXIF inserted into JPEG, new size:', jpegDataWithExif.length, 'original:', binary.length);
-                        } catch (insertError) {
-                            console.error('Error inserting EXIF into JPEG:', insertError);
-                            throw insertError;
-                        }
-                        
-                        // Verify EXIF was inserted by reading it back
-                        try {
-                            const verifyExif = piexif.load(jpegDataWithExif);
-                            if (!verifyExif.GPS || Object.keys(verifyExif.GPS).length === 0) {
-                                console.error('EXIF GPS data verification failed - GPS block is empty!');
-                                console.error('Available EXIF sections:', Object.keys(verifyExif));
-                            } else {
-                                console.log('✓ EXIF GPS data verified successfully:', {
-                                    lat: verifyExif.GPS[piexif.GPSIFD.GPSLatitude],
-                                    lng: verifyExif.GPS[piexif.GPSIFD.GPSLongitude],
-                                    hasDirection: !!verifyExif.GPS[piexif.GPSIFD.GPSImgDirection],
-                                    gpsFields: Object.keys(verifyExif.GPS)
-                                });
-                            }
-                        } catch (verifyError) {
-                            console.error('Could not verify EXIF data:', verifyError);
-                        }
-
-                        // Convert binary string back to ArrayBuffer
-                        const jpegBytes = new Uint8Array(jpegDataWithExif.length);
-                        for (let i = 0; i < jpegDataWithExif.length; i++) {
-                            jpegBytes[i] = jpegDataWithExif.charCodeAt(i);
-                        }
-
-                        // Create blob and download
-                        const finalBlob = new Blob([jpegBytes], { type: 'image/jpeg' });
-                        const url = URL.createObjectURL(finalBlob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    } catch (error) {
-                        console.error('Error adding EXIF data:', error);
-                        // Fallback: download without EXIF
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    }
+                // GPS data
+                // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
+                // EXIF requires rational numbers: [[degrees, 1], [minutes, 1], [seconds*100, 100]]
+                const toDMS = (decimal) => {
+                    const abs = Math.abs(decimal);
+                    const deg = Math.floor(abs);
+                    const minFloat = (abs - deg) * 60;
+                    const min = Math.floor(minFloat);
+                    const sec = (minFloat - min) * 60;
+                    // Return as EXIF rational format: [[numerator, denominator], ...]
+                    return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
                 };
-                reader.readAsArrayBuffer(blob);
-            }, 'image/jpeg', 0.95); // Use JPEG with high quality
+
+                const latDMS = toDMS(photoPoint.lat);
+                const lngDMS = toDMS(photoPoint.lng);
+
+                // GPS Version ID (required)
+                gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
+                
+                // GPS Latitude (required) - in DMS format as EXIF rationals
+                gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
+                gps[piexif.GPSIFD.GPSLatitude] = latDMS;
+                
+                // GPS Longitude (required) - in DMS format as EXIF rationals
+                gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
+                gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
+                
+                // GPS Altitude (optional)
+                if (altitude !== null) {
+                    gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level, 1 = below sea level
+                    gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100]; // Rational: [meters*100, 100]
+                }
+                
+                // GPS Time Stamp (optional but recommended)
+                const gpsHours = timestamp.getUTCHours();
+                const gpsMinutes = timestamp.getUTCMinutes();
+                const gpsSeconds = timestamp.getUTCSeconds();
+                gps[piexif.GPSIFD.GPSTimeStamp] = [
+                    [gpsHours, 1],
+                    [gpsMinutes, 1],
+                    [gpsSeconds, 1]
+                ];
+                
+                // GPS Date (optional but recommended)
+                const gpsDateStr = `${String(year).padStart(4, '0')}:${String(month).padStart(2, '0')}:${String(day).padStart(2, '0')}`;
+                gps[piexif.GPSIFD.GPSDateStamp] = gpsDateStr;
+                
+                // GPS Image Direction (optional but ideal) - camera/drone heading
+                if (bearing !== null && !isNaN(bearing)) {
+                    // Normalize bearing to 0-360
+                    const normalizedBearing = ((bearing % 360) + 360) % 360;
+                    gps[piexif.GPSIFD.GPSImgDirectionRef] = "T"; // T = True North, M = Magnetic North
+                    gps[piexif.GPSIFD.GPSImgDirection] = [Math.round(normalizedBearing * 100), 100]; // Rational: [degrees*100, 100]
+                }
+
+                // Additional drone metadata in UserComment
+                let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
+                userComment += `Drone: ${droneName}\n`;
+                userComment += `Location: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}\n`;
+                if (altitude !== null) userComment += `Altitude: ${altitude.toFixed(1)}m\n`;
+                if (bearing !== null) userComment += `Bearing: ${bearing.toFixed(1)}°\n`;
+                if (pitch !== null) userComment += `Pitch: ${pitch.toFixed(1)}°\n`;
+                if (battery !== null) userComment += `Battery: ${battery.toFixed(0)}%\n`;
+                exif[piexif.ExifIFD.UserComment] = userComment;
+
+                // Create EXIF string
+                const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
+                let exifStr;
+                try {
+                    exifStr = piexif.dump(exifObj);
+                    console.log('EXIF data prepared:', {
+                        hasGPS: !!gps && Object.keys(gps).length > 0,
+                        gpsFields: Object.keys(gps),
+                        lat: photoPoint.lat,
+                        lng: photoPoint.lng
+                    });
+                } catch (dumpError) {
+                    console.error('Error dumping EXIF data:', dumpError);
+                    throw dumpError;
+                }
+
+                // Insert EXIF into JPEG binary string
+                let jpegDataWithExif;
+                try {
+                    jpegDataWithExif = piexif.insert(exifStr, binaryString);
+                    console.log('EXIF inserted into JPEG, new size:', jpegDataWithExif.length, 'original:', binaryString.length);
+                } catch (insertError) {
+                    console.error('Error inserting EXIF into JPEG:', insertError);
+                    console.error('Error details:', {
+                        exifStrLength: exifStr ? exifStr.length : 0,
+                        binaryStringLength: binaryString ? binaryString.length : 0,
+                        error: insertError.message || insertError
+                    });
+                    throw insertError;
+                }
+                
+                // Verify EXIF was inserted by reading it back
+                try {
+                    const verifyExif = piexif.load(jpegDataWithExif);
+                    if (!verifyExif.GPS || Object.keys(verifyExif.GPS).length === 0) {
+                        console.error('EXIF GPS data verification failed - GPS block is empty!');
+                        console.error('Available EXIF sections:', Object.keys(verifyExif));
+                    } else {
+                        console.log('✓ EXIF GPS data verified successfully:', {
+                            lat: verifyExif.GPS[piexif.GPSIFD.GPSLatitude],
+                            lng: verifyExif.GPS[piexif.GPSIFD.GPSLongitude],
+                            hasDirection: !!verifyExif.GPS[piexif.GPSIFD.GPSImgDirection],
+                            gpsFields: Object.keys(verifyExif.GPS)
+                        });
+                    }
+                } catch (verifyError) {
+                    console.error('Could not verify EXIF data:', verifyError);
+                }
+
+                // Convert binary string back to ArrayBuffer
+                const jpegBytes = new Uint8Array(jpegDataWithExif.length);
+                for (let i = 0; i < jpegDataWithExif.length; i++) {
+                    jpegBytes[i] = jpegDataWithExif.charCodeAt(i);
+                }
+
+                // Create blob and download
+                const finalBlob = new Blob([jpegBytes], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(finalBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error adding EXIF data:', error);
+                console.error('Stack trace:', error.stack);
+                // Fallback: download without EXIF (convert data URL to blob)
+                const base64Data = jpegDataUrl.split(',')[1];
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const fallbackBlob = new Blob([byteArray], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(fallbackBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                alert('Warning: Could not add EXIF metadata to image. Image downloaded without GPS data.');
+            }
         };
         img.src = photoPoint.imageData;
     }
