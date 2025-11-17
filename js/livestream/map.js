@@ -917,7 +917,7 @@ class DroneMap {
                 container.style.width = '40px';
                 container.style.height = '40px';
                 container.id = 'photoPointsControl';
-                container.style.display = 'none'; // Hidden by default, shown when streaming
+                container.style.display = 'block'; // Always visible
                 
                 const button = L.DomUtil.create('a', 'leaflet-control-photo-points', container);
                 button.innerHTML = `<i class="bi bi-camera-fill" style="font-size: 20px; color: white; display: block; margin: auto;"></i>`;
@@ -963,7 +963,7 @@ class DroneMap {
                 
                 button.href = '#';
                 button.role = 'button';
-                button.title = 'Base Maps';
+                button.title = 'Map Layers';
                 button.style.display = 'flex';
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
@@ -2058,8 +2058,8 @@ class DroneMap {
                     <i class="bi bi-camera-fill" style="font-size: 16px;"></i>
                     Add Photo Point
                 </button>
-                <div class="photo-points-list-container" style="max-height: 400px; overflow-y: auto;">
-                    <div style="font-size: 11px; color: #6b7280; font-weight: 500; margin-bottom: 10px;">Existing Photo Points:</div>
+                <div style="font-size: 11px; color: #6b7280; font-weight: 500; margin-bottom: 10px;">Existing Photo Points:</div>
+                <div class="photo-points-list-container" style="max-height: 400px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; margin-right: -2px;">
                     ${photoPointsList}
                 </div>
             </div>
@@ -2068,8 +2068,8 @@ class DroneMap {
         mapContainer.appendChild(this.photoPointsPopup);
         this.positionPhotoPointsPopup();
         
-        // Add touch event handling for mobile to prevent map dragging
-        this.setupPhotoPointsPopupTouchHandling(this.photoPointsPopup);
+        // Add scrollable popup interactions to prevent map dragging (same as basemap popup)
+        this.attachScrollablePopupInteractions(this.photoPointsPopup);
         
         // Add event listeners
         const closeButton = this.photoPointsPopup.querySelector('#closePhotoPointsBtn');
@@ -2099,35 +2099,6 @@ class DroneMap {
         this.photoPointsPopupResizeHandler = () => this.positionPhotoPointsPopup();
         window.addEventListener('resize', this.photoPointsPopupResizeHandler);
         window.addEventListener('orientationchange', this.photoPointsPopupResizeHandler);
-    }
-    
-    setupPhotoPointsPopupTouchHandling(popupElement) {
-        // Prevent map dragging when touching the popup (similar to measurement popup)
-        const stopPropagation = (e) => {
-            e.stopPropagation();
-        };
-        
-        const onTouchStart = (e) => {
-            e.stopPropagation();
-            this.handlePopupTouchStart(e.touches.length);
-        };
-        
-        const onTouchEnd = (e) => {
-            e.stopPropagation();
-            this.handlePopupTouchEnd(e.changedTouches.length);
-        };
-        
-        const onTouchCancel = (e) => {
-            e.stopPropagation();
-            this.handlePopupTouchEnd(e.changedTouches.length);
-        };
-        
-        popupElement.addEventListener('touchstart', onTouchStart, { passive: false });
-        popupElement.addEventListener('touchend', onTouchEnd, { passive: false });
-        popupElement.addEventListener('touchcancel', onTouchCancel, { passive: false });
-        popupElement.addEventListener('pointerdown', stopPropagation, { passive: false });
-        popupElement.addEventListener('pointermove', stopPropagation, { passive: false });
-        popupElement.addEventListener('pointerup', stopPropagation, { passive: false });
     }
     
     positionPhotoPointsPopup() {
@@ -5289,7 +5260,7 @@ class DroneMap {
     }
 
     // Capture screenshot from video element
-    captureVideoScreenshot() {
+    async captureVideoScreenshot() {
         const video = document.getElementById('remoteVideo');
         if (!video || video.readyState < 2) {
             console.error('Video not ready for screenshot');
@@ -5302,7 +5273,169 @@ class DroneMap {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
+        // Add watermarks and overlays
+        await this.addWatermarksToCanvas(ctx, canvas.width, canvas.height);
+        
         return canvas.toDataURL('image/png');
+    }
+    
+    // Add watermarks and text overlays to canvas
+    async addWatermarksToCanvas(ctx, width, height) {
+        // Get current drone data
+        const droneName = this.currentDroneName || 'Unknown Drone';
+        const [lat, lng] = this.currentLocation || [0, 0];
+        const now = new Date();
+        
+        // Format timestamp
+        const timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        };
+        const dateOptions = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        };
+        const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+        const dateStr = now.toLocaleDateString('en-US', dateOptions);
+        
+        // Calculate watermark sizes (super small, proportional to image size)
+        const logoSize = Math.max(30, Math.min(width, height) * 0.05); // 5% of smaller dimension, min 30px
+        const textSize = Math.max(8, Math.min(width, height) * 0.012); // 1.2% of smaller dimension, min 8px
+        const padding = Math.max(6, Math.min(width, height) * 0.008); // 0.8% padding, min 6px
+        
+        // Load and draw logo watermark (bottom left)
+        try {
+            // Load main logo
+            const logoImg = new Image();
+            logoImg.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+                logoImg.onload = resolve;
+                logoImg.onerror = reject;
+                logoImg.src = this.getAssetPath('/images/eagle-eyes-beta-logo-new.png');
+            });
+            
+            // Load text logo
+            const textLogoImg = new Image();
+            textLogoImg.crossOrigin = 'anonymous';
+            let textLogoLoaded = false;
+            try {
+                await new Promise((resolve, reject) => {
+                    textLogoImg.onload = () => {
+                        textLogoLoaded = true;
+                        resolve();
+                    };
+                    textLogoImg.onerror = reject;
+                    // Handle space in filename - use encodeURI or direct path
+                    const textLogoPath = this.getAssetPath('/images/Eagle Eyes Viewer (1).png');
+                    textLogoImg.src = textLogoPath;
+                });
+            } catch (err) {
+                console.warn('Could not load text logo, will use text instead:', err);
+            }
+            
+            // Draw logo in bottom left (no background)
+            const logoX = padding;
+            const logoY = height - logoSize - padding;
+            const textLogoWidth = textLogoLoaded ? logoSize * 1.5 : logoSize * 2;
+            
+            // Draw logo image (no background)
+            ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+            
+            // Draw text logo or text next to main logo (no background)
+            if (textLogoLoaded) {
+                const textLogoHeight = logoSize * 0.6; // Proportional to main logo
+                ctx.drawImage(textLogoImg, logoX + logoSize + padding/2, logoY + (logoSize - textLogoHeight)/2, textLogoWidth, textLogoHeight);
+            } else {
+                // Fallback: draw text if image not available
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.font = `bold ${textSize * 0.7}px Arial, sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Eagle Eyes Viewer', logoX + logoSize + padding/2, logoY + logoSize/2);
+            }
+        } catch (err) {
+            console.warn('Could not load logo for watermark:', err);
+        }
+        
+        // Calculate line height for text
+        const lineHeight = textSize * 1.4;
+        const textHeight = lineHeight * 3; // Height of three text lines
+        
+        // Load QR code logo first to calculate its size
+        let qrCodeWidth = 0;
+        let qrCodeHeight = 0;
+        let qrCodeImg = null;
+        
+        try {
+            qrCodeImg = new Image();
+            qrCodeImg.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+                qrCodeImg.onload = () => {
+                    console.log('QR Code logo loaded successfully, dimensions:', qrCodeImg.width, 'x', qrCodeImg.height);
+                    resolve();
+                };
+                qrCodeImg.onerror = (err) => {
+                    console.error('Failed to load QR Code logo:', err, qrCodeImg.src);
+                    reject(err);
+                };
+                // URL encode the path to handle spaces in filename
+                const qrCodePath = this.getAssetPath('/images/QR Code Logo.png');
+                qrCodeImg.src = qrCodePath.replace(/ /g, '%20'); // Encode spaces
+                console.log('Loading QR Code logo from:', qrCodeImg.src);
+            });
+            
+            // Calculate QR code size - use maximum resolution, halfway between 85% and 105%
+            const nativeAspectRatio = qrCodeImg.width / qrCodeImg.height;
+            
+            // Make QR code slightly taller than text height (105%) and use native resolution if available
+            const minHeight = textHeight * 1.05; // 105% of text height - slightly taller
+            // Use native resolution if it's larger, but cap at 15% of image height for reasonable size
+            const maxHeight = Math.min(height * 0.15, qrCodeImg.height);
+            qrCodeHeight = Math.max(minHeight, maxHeight); // Use larger of minimum or native (capped)
+            qrCodeWidth = qrCodeHeight * nativeAspectRatio; // Maintain aspect ratio
+        } catch (err) {
+            console.warn('Could not load QR code logo for watermark:', err);
+        }
+        
+        // Position QR code in top left corner
+        const qrCodeX = padding;
+        const qrCodeY = padding;
+        
+        // Position text to the right of QR code
+        const textX = qrCodeX + qrCodeWidth + padding * 2; // Position text with padding to the right of QR code
+        const textY = padding;
+        
+        // Prepare text lines
+        const textLines = [
+            `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+            `Drone: ${droneName}`,
+            `${timeStr} ${dateStr}`
+        ];
+        
+        // Set font and alignment - left align so text starts to the right of QR code
+        ctx.font = `${textSize}px Arial, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        // Draw text lines (no background, white font) - left aligned
+        ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+        textLines.forEach((line, index) => {
+            ctx.fillText(line, textX, textY + (lineHeight * index));
+        });
+        
+        // Draw QR code logo in top left corner
+        if (qrCodeImg) {
+            console.log('Drawing QR Code logo at top left:', qrCodeX, qrCodeY, 'size:', qrCodeWidth, 'x', qrCodeHeight);
+            
+            // Use image smoothing for better quality when scaling
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Draw QR code logo at maximum resolution
+            ctx.drawImage(qrCodeImg, qrCodeX, qrCodeY, qrCodeWidth, qrCodeHeight);
+        }
     }
 
     // Attach event handlers to photo point button in popup
@@ -5404,7 +5537,7 @@ class DroneMap {
         }
 
         // Capture screenshot
-        const imageData = this.captureVideoScreenshot();
+        const imageData = await this.captureVideoScreenshot();
         if (!imageData) {
             alert('Failed to capture screenshot. Please ensure video is playing.');
             // Reset button state
@@ -5751,6 +5884,15 @@ class DroneMap {
         const latStr = photoPoint.lat.toFixed(6);
         const lngStr = photoPoint.lng.toFixed(6);
         
+        // Detect if we're on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (window.innerWidth <= 768 && 'ontouchstart' in window);
+        
+        // Show "Share" button on mobile, "Copy to Clipboard" on desktop
+        const shareButtonText = isMobile ? 'Share' : 'Copy to Clipboard';
+        const shareButtonIcon = isMobile ? 'bi-share' : 'bi-clipboard';
+        const shareButtonAction = isMobile ? `window.droneMap.sharePhotoPoint('${photoPoint.id}')` : `window.droneMap.copyPhotoPointUrlAndOpen('${photoPoint.id}')`;
+        
         return `
             <div style="min-width: 180px; max-width: 220px;">
                 <strong style="font-size: 1em; display: block; margin-bottom: 6px;">${photoPoint.name}</strong>
@@ -5761,7 +5903,7 @@ class DroneMap {
                 </div>
                 <img src="${photoPoint.imageData}" style="width: 100%; max-width: 200px; border-radius: 4px; cursor: pointer; margin-bottom: 6px;" onclick="event.stopPropagation(); window.droneMap.showPhotoFullscreen('${photoPoint.id}'); return false;" alt="Photo point thumbnail"><br>
                 <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="event.stopPropagation(); window.droneMap.sharePhotoPoint('${photoPoint.id}'); return false;" style="padding: 4px 8px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi bi-share"></i> Share</button>
+                    <button onclick="event.stopPropagation(); ${shareButtonAction}; return false;" style="padding: 4px 8px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi ${shareButtonIcon}"></i> ${shareButtonText}</button>
                     <button onclick="event.stopPropagation(); window.droneMap.downloadPhotoPoint('${photoPoint.id}'); return false;" style="padding: 4px 8px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi bi-download"></i> Download</button>
                     <button onclick="event.stopPropagation(); window.droneMap.removePhotoPoint('${photoPoint.id}'); return false;" style="padding: 4px 8px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi bi-trash"></i> Remove</button>
                 </div>
@@ -5827,12 +5969,30 @@ class DroneMap {
             modal.remove();
         };
         
+        // Create download button
+        const downloadBtn = document.createElement('button');
+        downloadBtn.innerHTML = '<i class="bi bi-download" style="font-size: 20px;"></i>';
+        downloadBtn.style.cssText = 'position: absolute; top: 20px; right: 80px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; font-size: 20px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease;';
+        downloadBtn.onmouseover = () => {
+            downloadBtn.style.background = 'rgba(255,255,255,0.3)';
+            downloadBtn.style.borderColor = 'rgba(255,255,255,0.8)';
+        };
+        downloadBtn.onmouseout = () => {
+            downloadBtn.style.background = 'rgba(255,255,255,0.2)';
+            downloadBtn.style.borderColor = 'rgba(255,255,255,0.5)';
+        };
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.downloadPhotoPoint(photoPointId);
+        };
+        
         const img = document.createElement('img');
         img.src = photoPoint.imageData;
         img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
         img.onclick = (e) => e.stopPropagation();
         
         modal.appendChild(closeBtn);
+        modal.appendChild(downloadBtn);
         modal.appendChild(img);
         modal.onclick = (e) => {
             if (e.target === modal) {
@@ -5840,6 +6000,124 @@ class DroneMap {
             }
         };
         document.body.appendChild(modal);
+    }
+
+    // Create georeferenced image file for sharing/downloading
+    async createGeoreferencedImageFile(photoPoint) {
+        return new Promise((resolve, reject) => {
+            // Get drone data for additional metadata
+            const droneData = this.currentDroneData;
+            const droneName = this.currentDroneName || 'Unknown Drone';
+            const altitude = droneData?.altitude_asl || droneData?.altitude_ahl || null;
+            const bearing = droneData?.bearing || null;
+            const pitch = droneData?.pitch || null;
+            const battery = droneData?.battery_percent || null;
+
+            // Create image from data URL
+            const img = new Image();
+            img.onload = () => {
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                // Convert to JPEG for EXIF support (PNG doesn't support EXIF)
+                canvas.toBlob((blob) => {
+                    // Read blob as array buffer
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        try {
+                            // Get timestamp from photo point
+                            const timestamp = new Date(photoPoint.timestamp);
+                            const year = timestamp.getFullYear();
+                            const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+                            const day = String(timestamp.getDate()).padStart(2, '0');
+                            const hours = String(timestamp.getHours()).padStart(2, '0');
+                            const minutes = String(timestamp.getMinutes()).padStart(2, '0');
+                            const seconds = String(timestamp.getSeconds()).padStart(2, '0');
+                            const dateStr = `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
+
+                            // Prepare EXIF data
+                            const zeroth = {};
+                            const exif = {};
+                            const gps = {};
+
+                            // Basic image info
+                            zeroth[piexif.ImageIFD.Make] = "Eagle Eyes";
+                            zeroth[piexif.ImageIFD.Model] = droneName;
+                            zeroth[piexif.ImageIFD.Software] = "Eagle Eyes Viewer";
+                            zeroth[piexif.ImageIFD.DateTime] = dateStr;
+                            zeroth[piexif.ImageIFD.ImageDescription] = `Eagle Eyes Photo Point: ${photoPoint.name}`;
+
+                            // EXIF data
+                            exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
+                            exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
+
+                            // GPS data
+                            // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
+                            const toDMS = (decimal) => {
+                                const abs = Math.abs(decimal);
+                                const deg = Math.floor(abs);
+                                const minFloat = (abs - deg) * 60;
+                                const min = Math.floor(minFloat);
+                                const sec = (minFloat - min) * 60;
+                                // Return as [numerator, denominator] pairs
+                                return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
+                            };
+
+                            const latDMS = toDMS(photoPoint.lat);
+                            const lngDMS = toDMS(photoPoint.lng);
+
+                            gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
+                            gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
+                            gps[piexif.GPSIFD.GPSLatitude] = latDMS;
+                            gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
+                            gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
+                            
+                            if (altitude !== null) {
+                                gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level
+                                gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100];
+                            }
+
+                            // Additional drone metadata in UserComment
+                            let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
+                            userComment += `Drone: ${droneName}\n`;
+                            userComment += `Location: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}\n`;
+                            if (altitude !== null) userComment += `Altitude: ${altitude.toFixed(1)}m\n`;
+                            if (bearing !== null) userComment += `Bearing: ${bearing.toFixed(1)}°\n`;
+                            if (pitch !== null) userComment += `Pitch: ${pitch.toFixed(1)}°\n`;
+                            if (battery !== null) userComment += `Battery: ${battery.toFixed(0)}%\n`;
+                            exif[piexif.ExifIFD.UserComment] = userComment;
+
+                            // Create EXIF string
+                            const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
+                            const exifStr = piexif.dump(exifObj);
+
+                            // Insert EXIF into JPEG
+                            const jpegData = piexif.insert(exifStr, reader.result);
+
+                            // Create blob and file
+                            const blob = new Blob([jpegData], { type: 'image/jpeg' });
+                            const fileName = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                            const file = new File([blob], fileName, { type: 'image/jpeg' });
+                            
+                            resolve(file);
+                        } catch (error) {
+                            console.error('Error adding EXIF data:', error);
+                            // Fallback: create file without EXIF
+                            const fileName = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                            const file = new File([blob], fileName, { type: 'image/jpeg' });
+                            resolve(file);
+                        }
+                    };
+                    reader.readAsArrayBuffer(blob);
+                }, 'image/jpeg', 0.95); // Use JPEG with high quality
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = photoPoint.imageData;
+        });
     }
 
     // Share photo point
@@ -5852,51 +6130,51 @@ class DroneMap {
             return;
         }
 
-        // Generate share URL - clean URL, force map view
-        const currentUrl = new URL(window.location.href);
-        // Remove all existing query parameters
-        currentUrl.search = '';
-        // Add only photo point parameters
-        currentUrl.searchParams.set('photoPoint', photoPointId);
-        currentUrl.searchParams.set('view', 'map'); // Force map view mode
-        currentUrl.searchParams.set('zoom', '18');
-        currentUrl.searchParams.set('lat', photoPoint.lat);
-        currentUrl.searchParams.set('lng', photoPoint.lng);
-        const shareUrl = currentUrl.toString();
-        
-        console.log('Share URL generated:', shareUrl);
-
         // Detect if we're on mobile (touch device with small screen)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                          (window.innerWidth <= 768 && 'ontouchstart' in window);
 
-        // Only use native share on mobile devices
-        if (isMobile && navigator.share) {
-            try {
-                // Convert data URL to blob for sharing
-                const response = await fetch(photoPoint.imageData);
-                const blob = await response.blob();
-                const file = new File([blob], `EagleEyes_${photoPoint.name}.png`, { type: 'image/png' });
-
-                await navigator.share({
-                    title: `Eagle Eyes Photo Point: ${photoPoint.name}`,
-                    text: `Check out this photo point from Eagle Eyes: ${photoPoint.name}`,
-                    url: shareUrl,
-                    files: [file]
-                });
-                // Don't show toast on mobile when native share succeeds
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.log('Mobile share failed, falling back to URL copy:', err);
-                    // Fallback to URL copy - show toast
-                    this.copyPhotoPointUrl(shareUrl);
+        // Create georeferenced image file
+        try {
+            const georeferencedFile = await this.createGeoreferencedImageFile(photoPoint);
+            
+            // On mobile, use native share with the image file
+            if (isMobile && navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `Eagle Eyes Photo Point: ${photoPoint.name}`,
+                        text: `Check out this georeferenced photo from Eagle Eyes: ${photoPoint.name}`,
+                        files: [georeferencedFile]
+                    });
+                    // Don't show toast on mobile when native share succeeds
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.log('Mobile share failed:', err);
+                        // Fallback: trigger download
+                        const url = URL.createObjectURL(georeferencedFile);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = georeferencedFile.name;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
                 }
-                // If AbortError, user cancelled - don't show toast
+            } else {
+                // Desktop: trigger download of the georeferenced image
+                const url = URL.createObjectURL(georeferencedFile);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = georeferencedFile.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
             }
-        } else {
-            // Desktop: always copy URL to clipboard and show toast
-            console.log('Desktop detected, copying URL to clipboard');
-            this.copyPhotoPointUrl(shareUrl);
+        } catch (error) {
+            console.error('Error creating georeferenced image:', error);
+            alert('Failed to create georeferenced image for sharing');
         }
     }
 
@@ -5920,6 +6198,62 @@ class DroneMap {
         this.photoPoints = this.photoPoints.filter(p => p.id !== photoPointId);
         delete this.photoPointMarkers[photoPointId];
         this.savePhotoPointsToStorage();
+    }
+
+    // Copy photo point URL to clipboard and open it
+    async copyPhotoPointUrlAndOpen(photoPointId) {
+        console.log('copyPhotoPointUrlAndOpen called with ID:', photoPointId);
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) {
+            console.error('Photo point not found:', photoPointId);
+            alert('Photo point not found');
+            return;
+        }
+
+        // Generate share URL - clean URL, force map view
+        const currentUrl = new URL(window.location.href);
+        // Remove all existing query parameters
+        currentUrl.search = '';
+        // Add only photo point parameters
+        currentUrl.searchParams.set('photoPoint', photoPointId);
+        currentUrl.searchParams.set('view', 'map'); // Force map view mode
+        currentUrl.searchParams.set('zoom', '18');
+        currentUrl.searchParams.set('lat', photoPoint.lat);
+        currentUrl.searchParams.set('lng', photoPoint.lng);
+        const shareUrl = currentUrl.toString();
+        
+        console.log('Share URL generated:', shareUrl);
+
+        // Copy to clipboard
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            console.log('URL copied to clipboard successfully');
+            // Show toast notification
+            this.showPhotoPointUrlCopiedToast();
+        } catch (err) {
+            console.log('Clipboard API failed, using fallback:', err);
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = shareUrl;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            try {
+                document.execCommand('copy');
+                console.log('URL copied using fallback method');
+                // Show toast notification
+                this.showPhotoPointUrlCopiedToast();
+            } catch (fallbackErr) {
+                console.error('Fallback copy failed:', fallbackErr);
+                alert('Failed to copy URL. Please copy manually: ' + shareUrl);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // Open the URL in a new tab/window
+        window.open(shareUrl, '_blank');
     }
 
     // Copy photo point URL to clipboard

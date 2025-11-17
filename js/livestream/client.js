@@ -708,11 +708,7 @@ class WebRTCViewer {
     }
     if (coordStripContainer) coordStripContainer.style.display = 'none';
     
-    // Hide photo points control when not streaming
-    const controlContainer = document.getElementById('photoPointsControl');
-    if (controlContainer) {
-      controlContainer.style.display = 'none';
-    }
+    // Photo points control is always visible now
   }
 
   showStreaming() {
@@ -786,13 +782,7 @@ class WebRTCViewer {
       }, 100);
     }
     
-    // Show photo points control when streaming
-    if (window.droneMap && window.droneMap.photoPointsControl) {
-      const controlContainer = document.getElementById('photoPointsControl');
-      if (controlContainer) {
-        controlContainer.style.display = 'block';
-      }
-    }
+    // Photo points control is always visible now
   }
 
   retryConnection() {
