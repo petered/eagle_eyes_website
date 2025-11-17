@@ -149,10 +149,34 @@ permalink: /livestream/
           min-height: 30%;
         }
       }
-      /* Full size for single-view modes */
+      /* Full size for single-view modes - override landscape proportions */
       #video-panel.full-view,
       #map-panel.full-view {
-        flex: 1 1 100%;
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
+      /* Ensure full-view panels take full width in landscape */
+      @media (min-aspect-ratio: 1/1) {
+        #video-panel.full-view {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+        }
+        #map-panel.full-view {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+        }
+      }
+      /* Ensure full-view panels take full width in mobile landscape */
+      @media (orientation: landscape) and (max-width: 1024px) {
+        #video-panel.full-view {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+        }
+        #map-panel.full-view {
+          flex: 0 0 100% !important;
+          max-width: 100% !important;
+        }
       }
       /* Show map coordinate strip only when map is in fullscreen */
       #map-panel.full-view #coordinateStripContainerMap {
@@ -289,6 +313,56 @@ permalink: /livestream/
       }
       #map-panel {
         background-color: #181818;
+      }
+      /* Video fullscreen button - bottom right of video panel */
+      /* Only visible when video panel is in full-view mode */
+      #videoFullscreenBtn {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        background-color: rgba(44, 44, 44, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 5px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        transition: all 0.2s ease;
+        color: white;
+        font-size: 14px;
+      }
+      /* Show button only when video panel is in full-view mode */
+      #video-panel.full-view #videoFullscreenBtn {
+        display: flex !important;
+      }
+      #videoFullscreenBtn:hover {
+        background-color: rgba(60, 60, 60, 0.9);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: scale(1.05);
+      }
+      #videoFullscreenBtn:active {
+        transform: scale(0.95);
+      }
+      /* Hide navbar when in video fullscreen mode */
+      body.video-fullscreen-mode .navbar {
+        display: none !important;
+      }
+      /* Hide video fullscreen button when video panel is hidden */
+      #video-panel.d-none #videoFullscreenBtn {
+        display: none !important;
+      }
+      /* Mobile optimization */
+      @media (max-width: 768px) {
+        #videoFullscreenBtn {
+          width: 28px;
+          height: 28px;
+          bottom: 10px;
+          right: 10px;
+          font-size: 12px;
+        }
       }
       #videoContainer,
       #map {
@@ -3129,6 +3203,16 @@ permalink: /livestream/
             </a>
           </div>
         </div>
+        <!-- Video fullscreen button - bottom right -->
+        <button
+          id="videoFullscreenBtn"
+          type="button"
+          onclick="toggleVideoFullscreen()"
+          title="Enter fullscreen video view"
+          aria-label="Toggle fullscreen video view"
+        >
+          <i class="bi bi-arrows-fullscreen" id="videoFullscreenIcon"></i>
+        </button>
       </div>
       </div>
       <div id="map-panel" style="position: relative; display: flex; flex-direction: column;">
@@ -3675,6 +3759,34 @@ permalink: /livestream/
 
       function centerOnDrone() {
         if (window.droneMap) window.droneMap.centerOnDrone();
+      }
+
+      // Toggle video fullscreen mode (hides navbar, keeps coordinate bar)
+      function toggleVideoFullscreen() {
+        const body = document.body;
+        const btn = document.getElementById('videoFullscreenBtn');
+        const icon = document.getElementById('videoFullscreenIcon');
+        const navbar = document.querySelector('.navbar');
+        
+        if (!btn || !icon) return;
+        
+        const isFullscreen = body.classList.contains('video-fullscreen-mode');
+        
+        if (isFullscreen) {
+          // Exit fullscreen - show navbar
+          body.classList.remove('video-fullscreen-mode');
+          icon.classList.remove('bi-fullscreen-exit');
+          icon.classList.add('bi-arrows-fullscreen');
+          btn.setAttribute('title', 'Enter fullscreen video view');
+          btn.setAttribute('aria-label', 'Enter fullscreen video view');
+        } else {
+          // Enter fullscreen - hide navbar
+          body.classList.add('video-fullscreen-mode');
+          icon.classList.remove('bi-arrows-fullscreen');
+          icon.classList.add('bi-fullscreen-exit');
+          btn.setAttribute('title', 'Exit fullscreen video view');
+          btn.setAttribute('aria-label', 'Exit fullscreen video view');
+        }
       }
 
       function toggleMyLocation() {
