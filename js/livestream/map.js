@@ -6486,7 +6486,17 @@ class DroneMap {
     // Download photo point with geotagging
     downloadPhotoPoint(photoPointId) {
         const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
-        if (!photoPoint) return;
+        if (!photoPoint) {
+            console.error('Photo point not found:', photoPointId);
+            return;
+        }
+
+        // Check if piexif is available
+        if (typeof piexif === 'undefined') {
+            console.error('piexif library not loaded! Cannot add EXIF metadata.');
+            alert('Error: EXIF library not loaded. Please refresh the page.');
+            return;
+        }
 
         // Get drone data for additional metadata
         const droneData = this.currentDroneData;
@@ -6499,13 +6509,16 @@ class DroneMap {
 
         // Create image from data URL
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
             // Create canvas
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
+            
+            // Re-add watermarks to ensure they're present (in case imageData was stored without them)
+            await this.addWatermarksToCanvas(ctx, canvas.width, canvas.height, photoPoint);
 
             // Convert to JPEG for EXIF support (PNG doesn't support EXIF)
             canvas.toBlob((blob) => {
@@ -6614,25 +6627,46 @@ class DroneMap {
 
                         // Create EXIF string
                         const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
-                        const exifStr = piexif.dump(exifObj);
+                        let exifStr;
+                        try {
+                            exifStr = piexif.dump(exifObj);
+                            console.log('EXIF data prepared:', {
+                                hasGPS: !!gps && Object.keys(gps).length > 0,
+                                gpsFields: Object.keys(gps),
+                                lat: photoPoint.lat,
+                                lng: photoPoint.lng
+                            });
+                        } catch (dumpError) {
+                            console.error('Error dumping EXIF data:', dumpError);
+                            throw dumpError;
+                        }
 
                         // Insert EXIF into JPEG binary string
-                        const jpegDataWithExif = piexif.insert(exifStr, binary);
+                        let jpegDataWithExif;
+                        try {
+                            jpegDataWithExif = piexif.insert(exifStr, binary);
+                            console.log('EXIF inserted into JPEG, new size:', jpegDataWithExif.length, 'original:', binary.length);
+                        } catch (insertError) {
+                            console.error('Error inserting EXIF into JPEG:', insertError);
+                            throw insertError;
+                        }
                         
                         // Verify EXIF was inserted by reading it back
                         try {
                             const verifyExif = piexif.load(jpegDataWithExif);
                             if (!verifyExif.GPS || Object.keys(verifyExif.GPS).length === 0) {
-                                console.warn('EXIF GPS data verification failed - GPS block is empty');
+                                console.error('EXIF GPS data verification failed - GPS block is empty!');
+                                console.error('Available EXIF sections:', Object.keys(verifyExif));
                             } else {
-                                console.log('EXIF GPS data verified:', {
+                                console.log('✓ EXIF GPS data verified successfully:', {
                                     lat: verifyExif.GPS[piexif.GPSIFD.GPSLatitude],
                                     lng: verifyExif.GPS[piexif.GPSIFD.GPSLongitude],
-                                    hasDirection: !!verifyExif.GPS[piexif.GPSIFD.GPSImgDirection]
+                                    hasDirection: !!verifyExif.GPS[piexif.GPSIFD.GPSImgDirection],
+                                    gpsFields: Object.keys(verifyExif.GPS)
                                 });
                             }
                         } catch (verifyError) {
-                            console.warn('Could not verify EXIF data:', verifyError);
+                            console.error('Could not verify EXIF data:', verifyError);
                         }
 
                         // Convert binary string back to ArrayBuffer
