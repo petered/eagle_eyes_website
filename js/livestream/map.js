@@ -5290,10 +5290,25 @@ class DroneMap {
         }
 
         const video = document.getElementById('remoteVideo');
-        if (!video || video.readyState < 2) {
-            console.error('Video not ready for screenshot');
+        if (!video) {
+            console.error('Video element not found');
             return null;
         }
+        if (video.readyState < 2) {
+            console.error('Video not ready for screenshot, readyState:', video.readyState);
+            return null;
+        }
+
+        // Get coordinates from the same source as watermark (this.currentLocation)
+        if (!this.currentLocation || !Array.isArray(this.currentLocation) || this.currentLocation.length !== 2) {
+            console.error('Current location not available for EXIF:', this.currentLocation);
+            return null;
+        }
+        const [lat, lng] = this.currentLocation;
+        
+        // Update photoPoint with actual coordinates from currentLocation
+        photoPoint.lat = lat;
+        photoPoint.lng = lng;
 
         // Create canvas and capture video
         const canvas = document.createElement('canvas');
