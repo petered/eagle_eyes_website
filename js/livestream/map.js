@@ -41,6 +41,10 @@ class DroneMap {
         this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
         this.dronePopupRelativeTimer = null; // Interval for updating "Last Updated" relative text
         
+        // Photo points storage
+        this.photoPoints = []; // Array of { id, name, lat, lng, imageData, timestamp }
+        this.photoPointMarkers = {}; // Map of photoPointId -> marker
+        
         // OpenAIP Airspace layer
         this.airspaceLayer = null;
         this.isAirspaceEnabled = false;
@@ -776,6 +780,14 @@ class DroneMap {
 
             console.log('Drone map initialized with Leaflet');
             console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
+            
+            // Load photo points from storage
+            this.loadPhotoPointsFromStorage();
+            
+            // Load photo point from URL parameter if present
+            setTimeout(() => {
+                this.loadPhotoPointFromUrl();
+            }, 1000);
             
             // Automatically start location tracking on page load
             // This will try to center on user's location, with fallback to default view
@@ -4915,7 +4927,15 @@ class DroneMap {
         const currentViewingStream = window.viewer?.currentRoomId;
         const showLivestreamButton = streamId && streamId !== currentViewingStream;
         const livestreamButton = showLivestreamButton ?
-            `<br><br><button onclick="window.viewer.switchToStream('${streamId}')" style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;">View Livestream</button>` :
+            `<br><br><button onclick="window.viewer.switchToStream('${streamId}')" style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%;">View Livestream</button>` :
+            '';
+        
+        // Add "Add Photo Point" button if currently streaming (only for current drone, not other drones)
+        const isCurrentDrone = !isOtherDrone;
+        const isStreaming = window.viewer && window.viewer.getState && window.viewer.getState() === 'STREAMING';
+        const showPhotoPointButton = isCurrentDrone && isStreaming;
+        const photoPointButton = showPhotoPointButton ?
+            `<br><br><button onclick="window.droneMap.addPhotoPoint()" style="padding: 6px 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%;"><i class="bi bi-camera"></i> Add Photo Point</button>` :
             '';
 
         // Format last update timestamp
@@ -4967,7 +4987,7 @@ class DroneMap {
                 <strong>↑🛰️ Altitude (GPS):</strong> ${altEllipsoidText}<br>
                 <strong>Bearing:</strong> ${bearing.toFixed(1)}°<br>
                 <strong>Pitch:</strong> ${pitchText}<br>
-                <strong>🔋 Battery:</strong> ${batteryText}${lastUpdateText}${livestreamButton}
+                <strong>🔋 Battery:</strong> ${batteryText}${lastUpdateText}${livestreamButton}${photoPointButton}
             </div>
         `;
     }
@@ -5038,6 +5058,265 @@ class DroneMap {
         if (this.dronePopupRelativeTimer) {
             clearInterval(this.dronePopupRelativeTimer);
             this.dronePopupRelativeTimer = null;
+        }
+    }
+
+    // Capture screenshot from video element
+    captureVideoScreenshot() {
+        const video = document.getElementById('remoteVideo');
+        if (!video || video.readyState < 2) {
+            console.error('Video not ready for screenshot');
+            return null;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || video.clientWidth;
+        canvas.height = video.videoHeight || video.clientHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        return canvas.toDataURL('image/png');
+    }
+
+    // Add photo point - main entry point
+    async addPhotoPoint() {
+        // Check if streaming
+        if (!window.viewer || !window.viewer.getState || window.viewer.getState() !== 'STREAMING') {
+            alert('Livestream must be connected and streaming to add a photo point.');
+            return;
+        }
+
+        // Capture screenshot
+        const imageData = this.captureVideoScreenshot();
+        if (!imageData) {
+            alert('Failed to capture screenshot. Please ensure video is playing.');
+            return;
+        }
+
+        // Get current drone location
+        if (!this.currentLocation || !Array.isArray(this.currentLocation) || this.currentLocation.length !== 2) {
+            alert('Drone location not available.');
+            return;
+        }
+
+        const [lat, lng] = this.currentLocation;
+
+        // Show naming dialog
+        const name = await this.showPhotoPointNameDialog();
+        if (!name) {
+            return; // User cancelled
+        }
+
+        // Create photo point
+        const photoPoint = {
+            id: 'photo_' + Date.now(),
+            name: name,
+            lat: lat,
+            lng: lng,
+            imageData: imageData,
+            timestamp: Date.now()
+        };
+
+        // Add to storage
+        this.photoPoints.push(photoPoint);
+        this.savePhotoPointsToStorage();
+
+        // Add marker to map
+        this.addPhotoPointMarker(photoPoint);
+
+        // Show success and share options
+        this.showPhotoPointOptions(photoPoint);
+    }
+
+    // Show naming dialog
+    showPhotoPointNameDialog() {
+        return new Promise((resolve) => {
+            const name = prompt('Enter a name for this photo point:', 'Photo Point ' + (this.photoPoints.length + 1));
+            resolve(name);
+        });
+    }
+
+    // Add photo point marker to map
+    addPhotoPointMarker(photoPoint) {
+        if (!this.map) return;
+
+        // Create photo icon (camera symbol)
+        const photoIcon = L.divIcon({
+            html: `<div style="background-color: #fff; border: 2px solid #28a745; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="bi bi-camera-fill" style="color: #28a745; font-size: 18px;"></i></div>`,
+            className: 'photo-point-marker',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([photoPoint.lat, photoPoint.lng], {
+            icon: photoIcon
+        }).addTo(this.map);
+
+        // Bind popup with photo point info
+        marker.bindPopup(() => this.generatePhotoPointPopupContent(photoPoint), {
+            maxWidth: 300,
+            className: 'photo-point-popup'
+        });
+
+        this.photoPointMarkers[photoPoint.id] = marker;
+    }
+
+    // Generate popup content for photo point
+    generatePhotoPointPopupContent(photoPoint) {
+        const date = new Date(photoPoint.timestamp);
+        const dateStr = date.toLocaleString();
+        
+        return `
+            <div style="min-width: 200px;">
+                <strong>${photoPoint.name}</strong><br>
+                <small style="color: #666;">${dateStr}</small><br><br>
+                <img src="${photoPoint.imageData}" style="width: 100%; max-width: 250px; border-radius: 4px; cursor: pointer;" onclick="window.droneMap.showPhotoFullscreen('${photoPoint.id}')" alt="Photo point thumbnail"><br><br>
+                <button onclick="window.droneMap.sharePhotoPoint('${photoPoint.id}')" style="padding: 6px 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%; margin-bottom: 4px;"><i class="bi bi-share"></i> Share</button>
+                <button onclick="window.droneMap.downloadPhotoPoint('${photoPoint.id}')" style="padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%;"><i class="bi bi-download"></i> Download</button>
+            </div>
+        `;
+    }
+
+    // Show photo point options (after creation)
+    showPhotoPointOptions(photoPoint) {
+        const options = `Photo point "${photoPoint.name}" added!\n\nWhat would you like to do?\n1. Share\n2. Download\n3. Close`;
+        const choice = confirm(`Photo point "${photoPoint.name}" added! Click OK to share, or Cancel to close.`);
+        
+        if (choice) {
+            this.sharePhotoPoint(photoPoint.id);
+        }
+    }
+
+    // Show photo fullscreen
+    showPhotoFullscreen(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+
+        // Create fullscreen modal
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;';
+        modal.onclick = () => modal.remove();
+        
+        const img = document.createElement('img');
+        img.src = photoPoint.imageData;
+        img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+        img.onclick = (e) => e.stopPropagation();
+        
+        modal.appendChild(img);
+        document.body.appendChild(modal);
+    }
+
+    // Share photo point
+    async sharePhotoPoint(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+
+        // Generate share URL
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('photoPoint', photoPointId);
+        currentUrl.searchParams.set('zoom', '18');
+        currentUrl.searchParams.set('lat', photoPoint.lat);
+        currentUrl.searchParams.set('lng', photoPoint.lng);
+        const shareUrl = currentUrl.toString();
+
+        // Check if mobile share API is available
+        if (navigator.share) {
+            try {
+                // Convert data URL to blob for sharing
+                const response = await fetch(photoPoint.imageData);
+                const blob = await response.blob();
+                const file = new File([blob], `EagleEyes_${photoPoint.name}.png`, { type: 'image/png' });
+
+                await navigator.share({
+                    title: `Eagle Eyes Photo Point: ${photoPoint.name}`,
+                    text: `Check out this photo point from Eagle Eyes: ${photoPoint.name}`,
+                    url: shareUrl,
+                    files: [file]
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    // Fallback to URL copy
+                    this.copyPhotoPointUrl(shareUrl);
+                }
+            }
+        } else {
+            // Desktop: copy URL to clipboard
+            this.copyPhotoPointUrl(shareUrl);
+        }
+    }
+
+    // Copy photo point URL to clipboard
+    copyPhotoPointUrl(url) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Photo point URL copied to clipboard!');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Photo point URL copied to clipboard!');
+        });
+    }
+
+    // Download photo point
+    downloadPhotoPoint(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+
+        // Convert data URL to blob
+        const link = document.createElement('a');
+        link.href = photoPoint.imageData;
+        link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Load photo points from localStorage
+    loadPhotoPointsFromStorage() {
+        try {
+            const stored = localStorage.getItem('eagleEyesPhotoPoints');
+            if (stored) {
+                this.photoPoints = JSON.parse(stored);
+                // Recreate markers for all photo points
+                this.photoPoints.forEach(photoPoint => {
+                    this.addPhotoPointMarker(photoPoint);
+                });
+            }
+        } catch (e) {
+            console.error('Failed to load photo points from storage:', e);
+        }
+    }
+
+    // Save photo points to localStorage
+    savePhotoPointsToStorage() {
+        try {
+            localStorage.setItem('eagleEyesPhotoPoints', JSON.stringify(this.photoPoints));
+        } catch (e) {
+            console.error('Failed to save photo points to storage:', e);
+        }
+    }
+
+    // Load photo point from URL parameter
+    loadPhotoPointFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const photoPointId = urlParams.get('photoPoint');
+        if (!photoPointId) return;
+
+        // Try to find photo point in storage
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (photoPoint && this.map) {
+            // Zoom to photo point and open popup
+            this.map.setView([photoPoint.lat, photoPoint.lng], 18);
+            const marker = this.photoPointMarkers[photoPointId];
+            if (marker) {
+                setTimeout(() => {
+                    marker.openPopup();
+                }, 500);
+            }
         }
     }
 
