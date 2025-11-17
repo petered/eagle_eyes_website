@@ -784,8 +784,10 @@ class DroneMap {
             console.log('Drone map initialized with Leaflet');
             console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
             
-            // Load photo points from storage
-            this.loadPhotoPointsFromStorage();
+            // Load photo points from storage (async)
+            this.loadPhotoPointsFromStorage().catch(err => {
+                console.error('Error loading photo points:', err);
+            });
             
             // Load photo point from URL parameter if present
             setTimeout(() => {
@@ -5313,7 +5315,8 @@ class DroneMap {
             await new Promise((resolve, reject) => {
                 logoImg.onload = resolve;
                 logoImg.onerror = reject;
-                logoImg.src = this.getAssetPath('/images/eagle-eyes-beta-logo-new.png');
+                const logoPath = this.getAssetPath('/images/Eagle Eyes Logo.png');
+                logoImg.src = logoPath.replace(/ /g, '%20'); // Encode spaces
             });
             
             // Load text logo
@@ -5328,8 +5331,8 @@ class DroneMap {
                     };
                     textLogoImg.onerror = reject;
                     // Handle space in filename - use encodeURI or direct path
-                    const textLogoPath = this.getAssetPath('/images/Eagle Eyes Viewer (1).png');
-                    textLogoImg.src = textLogoPath;
+                    const textLogoPath = this.getAssetPath('/images/Eagle Eyes Search.png');
+                    textLogoImg.src = textLogoPath.replace(/ /g, '%20'); // Encode spaces
                 });
             } catch (err) {
                 console.warn('Could not load text logo, will use text instead:', err);
@@ -5363,7 +5366,7 @@ class DroneMap {
         const lineHeight = textSize * 1.4;
         const textHeight = lineHeight * 3; // Height of three text lines
         
-        // Load QR code logo first to calculate its size
+        // Load QR code logo - smaller size
         let qrCodeWidth = 0;
         let qrCodeHeight = 0;
         let qrCodeImg = null;
@@ -5380,21 +5383,17 @@ class DroneMap {
                     console.error('Failed to load QR Code logo:', err, qrCodeImg.src);
                     reject(err);
                 };
-                // URL encode the path to handle spaces in filename
                 const qrCodePath = this.getAssetPath('/images/QR Code Logo.png');
                 qrCodeImg.src = qrCodePath.replace(/ /g, '%20'); // Encode spaces
                 console.log('Loading QR Code logo from:', qrCodeImg.src);
             });
             
-            // Calculate QR code size - use maximum resolution, halfway between 85% and 105%
+            // Calculate QR code size - slightly bigger (35% of text height)
             const nativeAspectRatio = qrCodeImg.width / qrCodeImg.height;
-            
-            // Make QR code slightly taller than text height (105%) and use native resolution if available
-            const minHeight = textHeight * 1.05; // 105% of text height - slightly taller
-            // Use native resolution if it's larger, but cap at 15% of image height for reasonable size
-            const maxHeight = Math.min(height * 0.15, qrCodeImg.height);
-            qrCodeHeight = Math.max(minHeight, maxHeight); // Use larger of minimum or native (capped)
-            qrCodeWidth = qrCodeHeight * nativeAspectRatio; // Maintain aspect ratio
+            const minHeight = textHeight * 0.35; // 35% of text height - slightly bigger
+            const maxHeight = Math.min(height * 0.09, qrCodeImg.height); // Cap at 9% of image height
+            qrCodeHeight = Math.max(minHeight, maxHeight);
+            qrCodeWidth = qrCodeHeight * nativeAspectRatio;
         } catch (err) {
             console.warn('Could not load QR code logo for watermark:', err);
         }
@@ -5403,14 +5402,14 @@ class DroneMap {
         const qrCodeX = padding;
         const qrCodeY = padding;
         
-        // Position text to the right of QR code
-        const textX = qrCodeX + qrCodeWidth + padding * 2; // Position text with padding to the right of QR code
+        // Position text to the right of QR code (with padding)
+        const textX = qrCodeX + qrCodeWidth + padding * 2;
         const textY = padding;
         
-        // Prepare text lines
+        // Prepare text lines - drone name first, then coordinates, then timestamp
         const textLines = [
-            `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
             `Drone: ${droneName}`,
+            `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
             `${timeStr} ${dateStr}`
         ];
         
@@ -5428,12 +5427,8 @@ class DroneMap {
         // Draw QR code logo in top left corner
         if (qrCodeImg) {
             console.log('Drawing QR Code logo at top left:', qrCodeX, qrCodeY, 'size:', qrCodeWidth, 'x', qrCodeHeight);
-            
-            // Use image smoothing for better quality when scaling
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            
-            // Draw QR code logo at maximum resolution
             ctx.drawImage(qrCodeImg, qrCodeX, qrCodeY, qrCodeWidth, qrCodeHeight);
         }
     }
@@ -5749,7 +5744,44 @@ class DroneMap {
             // Update info div with drone name and timestamp
             const infoDiv = document.getElementById('photoPointInfo');
             if (infoDiv) {
-                infoDiv.innerHTML = `from drone: <strong>${droneName}</strong><br>taken at: ${timeStr} ${dateStr} (${timezoneDisplay})`;
+                // Get the info button if it exists, or create it
+                let infoBtn = infoDiv.querySelector('#photoPointInfoBtn');
+                const infoText = `from drone: <strong>${droneName}</strong><br>taken at: ${timeStr} ${dateStr} (${timezoneDisplay})`;
+                
+                if (!infoBtn) {
+                    // Create info button - grey clickable square
+                    infoBtn = document.createElement('button');
+                    infoBtn.type = 'button';
+                    infoBtn.id = 'photoPointInfoBtn';
+                    infoBtn.className = 'btn btn-sm';
+                    infoBtn.style.cssText = 'background: #6c757d; border: 1px solid #5a6268; color: white; padding: 4px 6px; font-size: 0.75rem; line-height: 1; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 8px; transition: all 0.2s;';
+                    infoBtn.innerHTML = '<i class="bi bi-info" style="font-size: 0.8rem; font-weight: bold;"></i>';
+                    infoBtn.title = 'Info';
+                    infoBtn.onmouseover = function() {
+                        this.style.background = '#5a6268';
+                        this.style.borderColor = '#495057';
+                    };
+                    infoBtn.onmouseout = function() {
+                        this.style.background = '#6c757d';
+                        this.style.borderColor = '#5a6268';
+                    };
+                    infoBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const infoModal = document.getElementById('photoPointInfoModal');
+                        if (infoModal) {
+                            const bsModal = new bootstrap.Modal(infoModal);
+                            bsModal.show();
+                        }
+                    });
+                }
+                
+                // Set the text content and append button
+                const textSpan = document.createElement('span');
+                textSpan.innerHTML = infoText;
+                infoDiv.innerHTML = '';
+                infoDiv.appendChild(textSpan);
+                infoDiv.appendChild(infoBtn);
             }
             
             // Get fresh reference to save button after potential DOM changes
@@ -5893,19 +5925,39 @@ class DroneMap {
         const shareButtonIcon = isMobile ? 'bi-share' : 'bi-clipboard';
         const shareButtonAction = isMobile ? `window.droneMap.sharePhotoPoint('${photoPoint.id}')` : `window.droneMap.copyPhotoPointUrlAndOpen('${photoPoint.id}')`;
         
+        // Mobile-specific styles
+        const containerStyle = isMobile 
+            ? 'min-width: 150px; max-width: 90vw; width: auto;'
+            : 'min-width: 180px; max-width: 220px;';
+        const titleStyle = isMobile
+            ? 'font-size: clamp(0.85rem, 4vw, 1rem); display: block; margin-bottom: 4px; word-wrap: break-word;'
+            : 'font-size: 1em; display: block; margin-bottom: 6px;';
+        const infoStyle = isMobile
+            ? 'font-size: clamp(0.55rem, 2.5vw, 0.65rem); color: #6c757d; font-style: italic; margin-bottom: 4px; line-height: 1.2;'
+            : 'font-size: 0.65rem; color: #6c757d; font-style: italic; margin-bottom: 6px; line-height: 1.3;';
+        const imageStyle = isMobile
+            ? 'width: 100%; max-width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 4px; display: block;'
+            : 'width: 100%; max-width: 200px; border-radius: 4px; cursor: pointer; margin-bottom: 6px; display: block;';
+        const buttonContainerStyle = isMobile
+            ? 'display: flex; flex-direction: column; gap: 4px; width: 100%;'
+            : 'display: flex; gap: 4px; flex-wrap: wrap;';
+        const buttonStyle = isMobile
+            ? 'padding: 6px 8px; background-color: var(--btn-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: clamp(0.7rem, 3vw, 0.75rem); width: 100%; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);'
+            : 'padding: 4px 8px; background-color: var(--btn-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;';
+        
         return `
-            <div style="min-width: 180px; max-width: 220px;">
-                <strong style="font-size: 1em; display: block; margin-bottom: 6px;">${photoPoint.name}</strong>
-                <div style="font-size: 0.65rem; color: #6c757d; font-style: italic; margin-bottom: 6px; line-height: 1.3;">
+            <div style="${containerStyle}">
+                <strong style="${titleStyle}">${photoPoint.name}</strong>
+                <div style="${infoStyle}">
                     drone: <strong>${droneName}</strong><br>
                     ${timeStr} ${dateStr} (${timezoneDisplay})<br>
                     ${latStr}, ${lngStr}
                 </div>
-                <img src="${photoPoint.imageData}" style="width: 100%; max-width: 200px; border-radius: 4px; cursor: pointer; margin-bottom: 6px;" onclick="event.stopPropagation(); window.droneMap.showPhotoFullscreen('${photoPoint.id}'); return false;" alt="Photo point thumbnail"><br>
-                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button onclick="event.stopPropagation(); ${shareButtonAction}; return false;" style="padding: 4px 8px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi ${shareButtonIcon}"></i> ${shareButtonText}</button>
-                    <button onclick="event.stopPropagation(); window.droneMap.downloadPhotoPoint('${photoPoint.id}'); return false;" style="padding: 4px 8px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi bi-download"></i> Download</button>
-                    <button onclick="event.stopPropagation(); window.droneMap.removePhotoPoint('${photoPoint.id}'); return false;" style="padding: 4px 8px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;"><i class="bi bi-trash"></i> Remove</button>
+                <img src="${photoPoint.imageData}" style="${imageStyle}" onclick="event.stopPropagation(); window.droneMap.showPhotoFullscreen('${photoPoint.id}'); return false;" alt="Photo point thumbnail">
+                <div style="${buttonContainerStyle}">
+                    <button onclick="event.stopPropagation(); ${shareButtonAction}; return false;" style="${buttonStyle.replace('var(--btn-color)', '#007bff')}"><i class="bi ${shareButtonIcon}"></i> ${shareButtonText}</button>
+                    <button onclick="event.stopPropagation(); window.droneMap.downloadPhotoPoint('${photoPoint.id}'); return false;" style="${buttonStyle.replace('var(--btn-color)', '#6c757d')}"><i class="bi bi-download"></i> Download</button>
+                    <button onclick="event.stopPropagation(); window.droneMap.removePhotoPoint('${photoPoint.id}'); return false;" style="${buttonStyle.replace('var(--btn-color)', '#dc3545')}"><i class="bi bi-trash"></i> Remove</button>
                 </div>
             </div>
         `;
@@ -5952,34 +6004,38 @@ class DroneMap {
         const modal = document.createElement('div');
         modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;';
         
-        // Create close button
+        // Create close button with visible outline
         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '×';
-        closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; font-size: 32px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease;';
+        closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); border: 3px solid rgba(255,255,255,0.9); color: white; font-size: 32px; font-weight: bold; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.5);';
         closeBtn.onmouseover = () => {
-            closeBtn.style.background = 'rgba(255,255,255,0.3)';
-            closeBtn.style.borderColor = 'rgba(255,255,255,0.8)';
+            closeBtn.style.background = 'rgba(0,0,0,0.7)';
+            closeBtn.style.borderColor = 'rgba(255,255,255,1)';
+            closeBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.7)';
         };
         closeBtn.onmouseout = () => {
-            closeBtn.style.background = 'rgba(255,255,255,0.2)';
-            closeBtn.style.borderColor = 'rgba(255,255,255,0.5)';
+            closeBtn.style.background = 'rgba(0,0,0,0.5)';
+            closeBtn.style.borderColor = 'rgba(255,255,255,0.9)';
+            closeBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
         };
         closeBtn.onclick = (e) => {
             e.stopPropagation();
             modal.remove();
         };
         
-        // Create download button
+        // Create download button with visible outline
         const downloadBtn = document.createElement('button');
         downloadBtn.innerHTML = '<i class="bi bi-download" style="font-size: 20px;"></i>';
-        downloadBtn.style.cssText = 'position: absolute; top: 20px; right: 80px; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; font-size: 20px; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease;';
+        downloadBtn.style.cssText = 'position: absolute; top: 20px; right: 80px; background: rgba(0,0,0,0.5); border: 3px solid rgba(255,255,255,0.9); color: white; font-size: 20px; font-weight: bold; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.5);';
         downloadBtn.onmouseover = () => {
-            downloadBtn.style.background = 'rgba(255,255,255,0.3)';
-            downloadBtn.style.borderColor = 'rgba(255,255,255,0.8)';
+            downloadBtn.style.background = 'rgba(0,0,0,0.7)';
+            downloadBtn.style.borderColor = 'rgba(255,255,255,1)';
+            downloadBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.7)';
         };
         downloadBtn.onmouseout = () => {
-            downloadBtn.style.background = 'rgba(255,255,255,0.2)';
-            downloadBtn.style.borderColor = 'rgba(255,255,255,0.5)';
+            downloadBtn.style.background = 'rgba(0,0,0,0.5)';
+            downloadBtn.style.borderColor = 'rgba(255,255,255,0.9)';
+            downloadBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
         };
         downloadBtn.onclick = (e) => {
             e.stopPropagation();
@@ -6478,29 +6534,205 @@ class DroneMap {
         img.src = photoPoint.imageData;
     }
 
-    // Load photo points from localStorage
-    loadPhotoPointsFromStorage() {
+    // Load photo points from localStorage with IndexedDB fallback
+    async loadPhotoPointsFromStorage() {
         try {
             const stored = localStorage.getItem('eagleEyesPhotoPoints');
             if (stored) {
                 this.photoPoints = JSON.parse(stored);
+                console.log('Loaded photo points from localStorage:', this.photoPoints.length);
+                
+                // If some points are missing imageData, try to load from IndexedDB
+                const missingImages = this.photoPoints.filter(pp => !pp.imageData);
+                if (missingImages.length > 0) {
+                    console.log('Some photo points missing images, attempting to load from IndexedDB...');
+                    try {
+                        const indexedDBPoints = await this.loadPhotoPointsFromIndexedDB();
+                        // Merge imageData from IndexedDB
+                        indexedDBPoints.forEach(idbPoint => {
+                            const localPoint = this.photoPoints.find(pp => pp.id === idbPoint.id);
+                            if (localPoint && !localPoint.imageData && idbPoint.imageData) {
+                                localPoint.imageData = idbPoint.imageData;
+                            }
+                        });
+                        // Save merged data back
+                        this.savePhotoPointsToStorage();
+                    } catch (err) {
+                        console.warn('Could not load from IndexedDB:', err);
+                    }
+                }
+                
                 // Recreate markers for all photo points
                 this.photoPoints.forEach(photoPoint => {
                     this.addPhotoPointMarker(photoPoint);
                 });
+            } else {
+                // No localStorage data, try IndexedDB
+                console.log('No localStorage data, attempting IndexedDB...');
+                try {
+                    const indexedDBPoints = await this.loadPhotoPointsFromIndexedDB();
+                    if (indexedDBPoints.length > 0) {
+                        this.photoPoints = indexedDBPoints;
+                        // Save to localStorage for faster access next time
+                        this.savePhotoPointsToStorage();
+                        // Recreate markers
+                        this.photoPoints.forEach(photoPoint => {
+                            this.addPhotoPointMarker(photoPoint);
+                        });
+                        console.log('Loaded photo points from IndexedDB:', this.photoPoints.length);
+                    }
+                } catch (err) {
+                    console.warn('Could not load from IndexedDB:', err);
+                }
             }
         } catch (e) {
             console.error('Failed to load photo points from storage:', e);
+            // Try IndexedDB as last resort
+            try {
+                const indexedDBPoints = await this.loadPhotoPointsFromIndexedDB();
+                if (indexedDBPoints.length > 0) {
+                    this.photoPoints = indexedDBPoints;
+                    this.photoPoints.forEach(photoPoint => {
+                        this.addPhotoPointMarker(photoPoint);
+                    });
+                    console.log('Loaded photo points from IndexedDB (fallback):', this.photoPoints.length);
+                }
+            } catch (err) {
+                console.error('Failed to load from IndexedDB:', err);
+            }
         }
     }
 
-    // Save photo points to localStorage
+    // Save photo points to localStorage with improved persistence
     savePhotoPointsToStorage() {
         try {
-            localStorage.setItem('eagleEyesPhotoPoints', JSON.stringify(this.photoPoints));
+            const dataStr = JSON.stringify(this.photoPoints);
+            const dataSize = new Blob([dataStr]).size;
+            const maxSize = 4 * 1024 * 1024; // 4MB limit (leave room for other localStorage data)
+            
+            if (dataSize > maxSize) {
+                console.warn('Photo points data too large for localStorage, attempting to compress...');
+                // Try to save without imageData for very old points, keeping only recent ones with images
+                const recentPhotoPoints = this.photoPoints.slice(-10); // Keep last 10 with full data
+                const olderPhotoPoints = this.photoPoints.slice(0, -10).map(pp => ({
+                    ...pp,
+                    imageData: null // Remove image data from older points
+                }));
+                const compressedPoints = [...olderPhotoPoints, ...recentPhotoPoints];
+                const compressedStr = JSON.stringify(compressedPoints);
+                const compressedSize = new Blob([compressedStr]).size;
+                
+                if (compressedSize < maxSize) {
+                    localStorage.setItem('eagleEyesPhotoPoints', compressedStr);
+                    console.log('Saved compressed photo points to localStorage');
+                } else {
+                    // Still too large, keep only IDs and metadata
+                    const minimalPoints = this.photoPoints.map(pp => ({
+                        id: pp.id,
+                        name: pp.name,
+                        lat: pp.lat,
+                        lng: pp.lng,
+                        timestamp: pp.timestamp,
+                        droneName: pp.droneName,
+                        imageData: null // Remove all image data
+                    }));
+                    localStorage.setItem('eagleEyesPhotoPoints', JSON.stringify(minimalPoints));
+                    console.log('Saved minimal photo points (without images) to localStorage due to size constraints');
+                }
+            } else {
+                localStorage.setItem('eagleEyesPhotoPoints', dataStr);
+                console.log('Saved photo points to localStorage, size:', (dataSize / 1024).toFixed(2), 'KB');
+            }
+            
+            // Also try IndexedDB as backup for better persistence
+            this.savePhotoPointsToIndexedDB(this.photoPoints).catch(err => {
+                console.warn('Failed to save to IndexedDB (non-critical):', err);
+            });
         } catch (e) {
-            console.error('Failed to save photo points to storage:', e);
+            if (e.name === 'QuotaExceededError' || e.code === 22) {
+                console.error('localStorage quota exceeded, attempting IndexedDB fallback...');
+                // Try IndexedDB as fallback
+                this.savePhotoPointsToIndexedDB(this.photoPoints).catch(err => {
+                    console.error('Failed to save photo points to storage:', err);
+                });
+            } else {
+                console.error('Failed to save photo points to storage:', e);
+            }
         }
+    }
+    
+    // Save photo points to IndexedDB for better persistence
+    async savePhotoPointsToIndexedDB(photoPoints) {
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) {
+                reject(new Error('IndexedDB not supported'));
+                return;
+            }
+            
+            const request = indexedDB.open('EagleEyesPhotoPoints', 1);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['photoPoints'], 'readwrite');
+                const store = transaction.objectStore('photoPoints');
+                
+                // Clear existing data
+                store.clear();
+                
+                // Add all photo points
+                photoPoints.forEach((pp, index) => {
+                    store.add(pp, pp.id);
+                });
+                
+                transaction.oncomplete = () => {
+                    console.log('Saved photo points to IndexedDB');
+                    resolve();
+                };
+                transaction.onerror = () => reject(transaction.error);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('photoPoints')) {
+                    const objectStore = db.createObjectStore('photoPoints', { keyPath: 'id' });
+                    objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
+        });
+    }
+    
+    // Load photo points from IndexedDB (fallback)
+    async loadPhotoPointsFromIndexedDB() {
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) {
+                resolve([]);
+                return;
+            }
+            
+            const request = indexedDB.open('EagleEyesPhotoPoints', 1);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['photoPoints'], 'readonly');
+                const store = transaction.objectStore('photoPoints');
+                const getAllRequest = store.getAll();
+                
+                getAllRequest.onsuccess = () => {
+                    resolve(getAllRequest.result || []);
+                };
+                getAllRequest.onerror = () => reject(getAllRequest.error);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('photoPoints')) {
+                    const objectStore = db.createObjectStore('photoPoints', { keyPath: 'id' });
+                    objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
+        });
     }
 
     // Load photo point from URL parameter
@@ -7660,7 +7892,7 @@ class DroneMap {
         if (!this.map) return false;
 
         if (droneId === 'current-drone' && this.currentLocation) {
-            this.map.setView(this.currentLocation, 16, { animate: true });
+            this.map.setView(this.currentLocation, 18, { animate: true });
             return true;
         }
 
@@ -7669,14 +7901,14 @@ class DroneMap {
         const location = telemetry?.state?.drone_gps_location;
 
         if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
-            this.map.setView([location.lat, location.lng], 16, { animate: true });
+            this.map.setView([location.lat, location.lng], 18, { animate: true });
             return true;
         }
 
         const entry = window.overviewState?.entries?.[droneId];
         const entryTelemetry = entry?.telemetry;
         if (entryTelemetry && typeof entryTelemetry.latitude === 'number' && typeof entryTelemetry.longitude === 'number') {
-            this.map.setView([entryTelemetry.latitude, entryTelemetry.longitude], 16, { animate: true });
+            this.map.setView([entryTelemetry.latitude, entryTelemetry.longitude], 18, { animate: true });
             return true;
         }
 
