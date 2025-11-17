@@ -5306,8 +5306,8 @@ class DroneMap {
             lng = location[1];
         }
         
-        // Ensure we have valid coordinates
-        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        // Ensure we have valid coordinates (check for NaN, but allow 0 values)
+        if (lat === null || lng === null || isNaN(lat) || isNaN(lng) || lat === undefined || lng === undefined) {
             console.error('Invalid coordinates for EXIF:', { lat, lng, currentLocation: this.currentLocation });
             return null;
         }
