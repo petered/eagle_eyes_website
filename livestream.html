@@ -7,6 +7,47 @@ permalink: /livestream/
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Eagle Eyes Viewer - Real-time drone livestream viewer with georeferenced photo points, CalTopo integration, and live mapping for Search and Rescue and public safety operations.">
+    <meta name="keywords" content="Eagle Eyes Viewer, drone livestream, georeferenced photos, CalTopo integration, Search and Rescue, public safety, drone mapping, live streaming, situational awareness">
+    <meta name="author" content="Eagle Eyes">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ site.url }}{{ '/livestream/' | relative_url }}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Eagle Eyes Viewer - Drone Livestream & Mapping">
+    <meta property="og:description" content="Real-time drone livestream viewer with georeferenced photo points, CalTopo integration, and live mapping for Search and Rescue and public safety operations.">
+    <meta property="og:url" content="{{ site.url }}{{ '/livestream/' | relative_url }}">
+    <meta property="og:site_name" content="Eagle Eyes Viewer">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Eagle Eyes Viewer - Drone Livestream & Mapping">
+    <meta name="twitter:description" content="Real-time drone livestream viewer with georeferenced photo points, CalTopo integration, and live mapping for Search and Rescue and public safety operations.">
+    
+    <!-- Structured Data (JSON-LD) for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Eagle Eyes Viewer",
+      "applicationCategory": "MappingApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Real-time drone livestream viewer with georeferenced photo points, CalTopo integration, and live mapping for Search and Rescue and public safety operations.",
+      "keywords": "drone livestream, georeferenced photos, CalTopo integration, Search and Rescue, public safety, drone mapping",
+      "author": {
+        "@type": "Organization",
+        "name": "Eagle Eyes"
+      }
+    }
+    </script>
+    
     <!-- Favicon -->
     <link rel="icon" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" type="image/png">
     <link rel="shortcut icon" href="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" type="image/png">
@@ -57,6 +98,7 @@ permalink: /livestream/
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/piexifjs@2.0.0/piexif.js"></script>
     <style>
       body,
       html {
@@ -194,6 +236,13 @@ permalink: /livestream/
       #coordinateStripContainerMap * {
         pointer-events: none;
       }
+      #coordinateStripContainer [data-priority="3"],
+      #coordinateStripContainerMap [data-priority="3"] {
+        overflow: visible !important;
+        text-overflow: clip !important;
+        max-width: none !important;
+        white-space: nowrap !important;
+      }
       #coordinateStripContainer,
       #coordinateStripContainerMap {
         pointer-events: auto;
@@ -209,19 +258,21 @@ permalink: /livestream/
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        overflow: hidden;
+        overflow: visible;
         font-size: clamp(0.65rem, 2vw, 0.875rem);
+        width: 100%;
+        min-width: 0;
       }
       .coord-drone-info {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+        font-size: clamp(0.65rem, 1.8vw, 0.875rem);
         white-space: nowrap;
         flex-shrink: 1;
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        max-width: fit-content;
+        margin-right: 0.5rem;
       }
       .coord-drone-icon {
         height: clamp(12px, 3vw, 14px);
@@ -233,34 +284,66 @@ permalink: /livestream/
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        overflow: hidden;
+        overflow: visible;
         flex: 1 1 auto;
         min-width: 0;
+        margin-left: 0;
       }
       .coord-segments [data-coordinate-segment] {
         white-space: nowrap;
         flex-shrink: 0;
         font-size: inherit;
+        overflow: visible;
+      }
+      .coord-segments [data-priority="1"] {
+        flex-shrink: 0;
+        min-width: fit-content;
+      }
+      .coord-segments [data-priority="3"] {
+        flex-shrink: 0;
+        min-width: fit-content;
+        white-space: nowrap;
+        overflow: visible;
+        text-overflow: clip;
+        max-width: none;
+      }
+      /* Ensure text scales down instead of truncating */
+      .coord-drone-info,
+      .coord-segments [data-coordinate-segment] {
+        text-overflow: clip;
+        overflow: visible;
       }
       /* Mobile portrait: prioritize coordinates, shrink drone name more aggressively */
       @media (max-width: 768px) and (orientation: portrait) {
         #coordinateStrip,
         #coordinateStripMap {
-          font-size: clamp(0.6rem, 2.5vw, 0.75rem);
-          gap: 0.5rem;
+          font-size: clamp(0.5rem, 2.2vw, 0.7rem);
+          gap: 0.4rem;
         }
         .coord-drone-info {
           font-size: clamp(0.55rem, 2vw, 0.7rem);
-          max-width: 40%;
+          max-width: 35%;
           flex-shrink: 2;
         }
         .coord-segments {
           flex: 1 1 auto;
-          min-width: 50%;
-          gap: 0.5rem;
+          min-width: 55%;
+          gap: 0.4rem;
         }
         .coord-segments [data-coordinate-segment] {
-          font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+          font-size: clamp(0.5rem, 2.2vw, 0.7rem);
+        }
+        .coord-segments [data-priority="1"] {
+          font-size: clamp(0.52rem, 2.3vw, 0.72rem);
+        }
+        .coord-segments [data-priority="3"] {
+          font-size: clamp(0.5rem, 2.2vw, 0.7rem);
+          white-space: nowrap;
+          overflow: visible;
+          text-overflow: clip;
+          flex-shrink: 0;
+          min-width: fit-content;
+          max-width: none;
         }
       }
       /* Landscape: autoscale coordinates when space is limited */
@@ -271,14 +354,16 @@ permalink: /livestream/
           gap: 0.5rem;
         }
         .coord-drone-info {
-          font-size: clamp(0.45rem, 1vw, 0.7rem);
-          flex-shrink: 2;
-          max-width: 30%;
+          font-size: clamp(0.5rem, 1.2vw, 0.8rem);
+          flex-shrink: 1;
+          max-width: fit-content;
+          margin-right: 0.5rem;
         }
         .coord-segments {
           flex: 1 1 auto;
           min-width: 0;
           gap: 0.5rem;
+          margin-left: 0;
         }
         .coord-segments [data-coordinate-segment] {
           font-size: clamp(0.5rem, 1.2vw, 0.8rem);
@@ -291,24 +376,36 @@ permalink: /livestream/
       @media (orientation: landscape) and (max-width: 1024px) {
         #coordinateStrip,
         #coordinateStripMap {
-          font-size: clamp(0.45rem, 1.5vw, 0.65rem);
-          gap: 0.4rem;
+          font-size: clamp(0.4rem, 1.3vw, 0.6rem);
+          gap: 0.35rem;
         }
         .coord-drone-info {
-          font-size: clamp(0.4rem, 1.2vw, 0.6rem);
-          max-width: 25%;
+          font-size: clamp(0.45rem, 1.3vw, 0.6rem);
+          max-width: 22%;
           flex-shrink: 3;
         }
         .coord-segments {
           flex: 1 1 auto;
           min-width: 0;
-          gap: 0.4rem;
+          gap: 0.35rem;
         }
         .coord-segments [data-coordinate-segment] {
-          font-size: clamp(0.45rem, 1.5vw, 0.65rem);
+          font-size: clamp(0.4rem, 1.3vw, 0.6rem);
+        }
+        .coord-segments [data-priority="1"] {
+          font-size: clamp(0.42rem, 1.35vw, 0.62rem);
+        }
+        .coord-segments [data-priority="3"] {
+          font-size: clamp(0.4rem, 1.3vw, 0.6rem);
+          white-space: nowrap;
+          overflow: visible;
+          text-overflow: clip;
+          flex-shrink: 0;
+          min-width: fit-content;
+          max-width: none;
         }
         .coord-drone-icon {
-          height: clamp(9px, 1.8vw, 11px);
+          height: clamp(8px, 1.6vw, 10px);
         }
       }
       #map-panel {
@@ -790,8 +887,11 @@ permalink: /livestream/
       }
       .measurement-popup__content {
         overflow-y: auto;
+        overscroll-behavior: contain;
         padding-right: 4px;
         margin-right: -2px;
+        display: flex;
+        flex-direction: column;
       }
       .measurement-popup__content::-webkit-scrollbar {
         width: 6px;
@@ -802,6 +902,25 @@ permalink: /livestream/
       .measurement-popup__content::-webkit-scrollbar-thumb {
         background: rgba(148, 163, 184, 0.6);
         border-radius: 999px;
+      }
+      .photo-points-list-container {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+      }
+      .photo-points-list-container::-webkit-scrollbar {
+        width: 6px;
+      }
+      .photo-points-list-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .photo-points-list-container::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.6);
+        border-radius: 999px;
+      }
+      .photo-points-list-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.8);
       }
       @media (max-width: 768px) {
         .basemap-popup {
@@ -823,6 +942,20 @@ permalink: /livestream/
           transform: translateX(-50%);
           max-width: calc(100vw - 24px);
         }
+        .photo-points-list-container {
+          max-height: calc(100vh - 200px) !important;
+        }
+        .photo-point-list-item {
+          padding: 8px !important;
+          font-size: 11px !important;
+        }
+        .photo-point-list-item > div:first-child {
+          font-size: 11px !important;
+        }
+        #addPhotoPointBtn {
+          padding: 10px !important;
+          font-size: 12px !important;
+        }
       }
       @media (max-width: 480px) {
         .basemap-popup {
@@ -830,6 +963,20 @@ permalink: /livestream/
           border-radius: 10px;
           padding: 12px;
           font-size: 13px;
+        }
+        .photo-points-list-container {
+          max-height: calc(100vh - 180px) !important;
+        }
+        .photo-point-list-item {
+          padding: 6px !important;
+          margin-bottom: 6px !important;
+        }
+        .photo-point-list-item > div {
+          font-size: 10px !important;
+        }
+        #addPhotoPointBtn {
+          padding: 8px !important;
+          font-size: 11px !important;
         }
       }
       #mobileControls .offcanvas-body {
@@ -1257,12 +1404,26 @@ permalink: /livestream/
       /* Measurement (ruler) control styling */
       .leaflet-control-measurement {
         width: 40px !important;
+      }
+      
+      /* Photo points control styling */
+      .leaflet-control-photo-points {
+        width: 40px !important;
         height: 40px !important;
+        background-color: rgba(44, 44, 44, 0.6) !important;
+        border: 1px solid #444 !important;
+        border-radius: 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        transition: all 0.3s ease !important;
         margin-bottom: 0px !important;
-        margin-top: 0px !important;
+      }
+      
+      .leaflet-control-photo-points:hover {
+        background-color: rgba(60, 60, 60, 0.8) !important;
+        border-color: #555 !important;
       }
       
       .leaflet-control-measurement img {
@@ -1317,6 +1478,151 @@ permalink: /livestream/
       .user-marker-popup .leaflet-popup-content button {
         touch-action: manipulation !important; /* Better touch handling on mobile */
         -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+      }
+      
+      /* Drone popup styling - compact and mobile-friendly */
+      .drone-popup .leaflet-popup-content-wrapper {
+        padding: 8px !important;
+        border-radius: 4px !important;
+      }
+      
+      .drone-popup .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 0.9em;
+      }
+      
+      .drone-popup .leaflet-popup-content button {
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+        margin-top: 8px;
+        width: 100%;
+      }
+      
+      /* Mobile optimization for drone popups */
+      @media (max-width: 768px) {
+        .drone-popup {
+          max-width: 200px !important;
+        }
+        
+        .drone-popup .leaflet-popup-content {
+          font-size: 0.75em !important;
+        }
+        
+        .drone-popup .leaflet-popup-content strong {
+          font-size: 0.9em !important;
+        }
+        
+        .drone-popup .leaflet-popup-content button {
+          font-size: 0.85em !important;
+          padding: 5px 10px !important;
+        }
+      }
+      
+      /* Photo point popup styling */
+      .photo-point-popup .leaflet-popup-content-wrapper {
+        padding: 8px !important;
+        border-radius: 4px !important;
+      }
+      
+      .photo-point-popup .leaflet-popup-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 0.9em;
+      }
+      
+      .photo-point-popup .leaflet-popup-content img {
+        width: 100%;
+        max-width: 250px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 8px 0;
+      }
+      
+      .photo-point-popup .leaflet-popup-content button {
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1) !important;
+        margin-top: 4px;
+      }
+      
+      /* Mobile optimization for photo point popups */
+      @media (max-width: 768px) {
+        .photo-point-popup {
+          max-width: 90vw !important;
+          min-width: 150px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content-wrapper {
+          padding: 6px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content {
+          font-size: clamp(0.75em, 3vw, 0.9em) !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content strong {
+          font-size: clamp(0.85rem, 4vw, 1rem) !important;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        
+        .photo-point-popup .leaflet-popup-content img {
+          max-width: 100% !important;
+          width: 100% !important;
+          margin-bottom: 4px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content > div {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content button {
+          font-size: clamp(0.7rem, 3vw, 0.75rem) !important;
+          padding: 6px 8px !important;
+          margin-bottom: 4px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          flex: none !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content > div > div:last-child {
+          display: flex !important;
+          flex-direction: column !important;
+          width: 100% !important;
+        }
+      }
+      
+      /* Small mobile screens */
+      @media (max-width: 480px) {
+        .photo-point-popup {
+          max-width: 85vw !important;
+          min-width: 140px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content-wrapper {
+          padding: 4px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content {
+          font-size: clamp(0.7em, 2.8vw, 0.85em) !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content strong {
+          font-size: clamp(0.8rem, 3.5vw, 0.95rem) !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content img {
+          margin-bottom: 3px !important;
+        }
+        
+        .photo-point-popup .leaflet-popup-content button {
+          font-size: clamp(0.65rem, 2.8vw, 0.7rem) !important;
+          padding: 5px 6px !important;
+          margin-bottom: 3px !important;
+        }
       }
       
       /* Mobile optimization for user marker popups */
@@ -2508,6 +2814,71 @@ permalink: /livestream/
       </div>
     </div>
 
+    <!-- Photo Point Name Modal -->
+    <div class="modal fade" id="photoPointNameModal" tabindex="-1" aria-labelledby="photoPointNameModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="photoPointNameModalLabel">Name Photo Point</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <label for="photoPointNameInput" class="form-label">Enter a name for this photo point:</label>
+            <input
+              type="text"
+              id="photoPointNameInput"
+              class="form-control bg-dark text-white border-secondary"
+              placeholder="Photo Point Name"
+              autocomplete="off"
+            />
+            <div id="photoPointInfo" class="mt-3" style="font-size: 0.85rem; color: #adb5bd; font-style: italic; line-height: 1.5; display: flex; align-items: center; gap: 6px;">
+              <!-- Will be populated by JavaScript -->
+            </div>
+          </div>
+          <div class="modal-footer border-secondary">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="photoPointNameSaveBtn">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo Point Info Modal -->
+    <div class="modal fade" id="photoPointInfoModal" tabindex="-1" aria-labelledby="photoPointInfoModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="photoPointInfoModalLabel">Photo Storage Information</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Captured photos are temporarily saved to your device (browser cache) along with their map location. Refreshing or clearing your cache may delete them. Use the download button to save images permanently.</p>
+          </div>
+          <div class="modal-footer border-secondary">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo Point Share Modal -->
+    <div class="modal fade" id="photoPointShareModal" tabindex="-1" aria-labelledby="photoPointShareModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-secondary">
+            <h5 class="modal-title" id="photoPointShareModalLabel">Share Photo Point</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p>Share this photo point?</p>
+            <button type="button" class="btn btn-primary w-100" id="photoPointShareBtn">
+              <i class="bi bi-share"></i> Share
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notification - Below share button -->
     <div class="toast-container position-fixed" id="toastContainer" style="display: none;">
       <div id="copyToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="width: auto; min-width: fit-content;">
@@ -2516,6 +2887,14 @@ permalink: /livestream/
             <i class="bi bi-check-circle"></i> URL copied to clipboard
           </div>
           <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+      <div id="photoPointUrlCopiedToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" style="position: fixed; top: 80px; right: 20px; z-index: 10005; width: auto; min-width: 280px; display: none; opacity: 1; visibility: visible;">
+        <div class="d-flex align-items-center justify-content-center">
+          <div class="toast-body text-center" style="padding: 12px 20px; font-size: 0.9rem;">
+            <i class="bi bi-check-circle"></i> URL for photo point copied to clipboard
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2" onclick="document.getElementById('photoPointUrlCopiedToast').style.display='none'"></button>
         </div>
       </div>
     </div>
@@ -2587,8 +2966,8 @@ permalink: /livestream/
               </div>
             </button>
             <div id="airopsOffcanvas">
-              <button class="btn airops-nav-btn" onclick="openAirOpsMap()" title="Download Eagle Eyes Pilot to access AirOps Map and see other drones on the incident" style="width: 100%;">
-                Download AirOps Map
+              <button class="btn airops-nav-btn" onclick="openAirOpsMap()" title="Download Eagle Eyes Pilot to access AirOps Map and see other drones on the incident" style="width: 100%; font-size: 0.7rem; padding: 0.5rem;">
+                Download EE Pilot on Android to view AirOps Map
               </button>
             </div>
         </div>
@@ -2712,12 +3091,18 @@ permalink: /livestream/
             ? "{{ '/images/livestream/map_drone_flyer.png' | relative_url }}"
             : "{{ '/images/map_drone_flyer_nav.png' | relative_url }}";
 
+          const batteryPercent = entry.telemetry?.battery_percent;
+          const batteryText = batteryPercent != null ? `🔋 Battery: ${batteryPercent}%` : '🔋 Battery: N/A';
+          
           return `
             <div class="drone-card-header">
               <div>
-                <div class="drone-card-name">
-                  <img src="${iconPath}" alt="" style="height: 18px; width: auto; margin-right: 6px;">
-                  ${escapeHtml(entry.name || 'Drone')}
+                <div class="drone-card-name" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <img src="${iconPath}" alt="" style="height: 18px; width: auto;">
+                    ${escapeHtml(entry.name || 'Drone')}
+                  </div>
+                  <span style="font-size: 0.85rem; font-weight: normal; color: #adb5bd;">${batteryText}</span>
                 </div>
                 <div class="drone-card-badges">
                   ${entry.isCurrent ? '<span class="drone-card-badge current">Current</span>' : ''}
@@ -2731,7 +3116,7 @@ permalink: /livestream/
             </div>
             <div class="drone-card-actions">
               <button class="drone-card-btn status-btn" data-drone-status data-drone-id="${escapeHtml(entry.id)}" title="View status">
-                <span style="font-weight:700;">i</span>
+                Details
               </button>
               <button class="drone-card-btn livestream-btn ${entry.livestreamId ? '' : 'disabled'}"
                 ${entry.livestreamId ? `data-livestream-id="${escapeHtml(entry.livestreamId)}"` : 'disabled'}
@@ -2954,10 +3339,8 @@ permalink: /livestream/
           </button>
         </div>
       </div>
-      <div id="airOpsDownloadBanner">
-        <span>See other drones' live locations on the Eagle Eyes AirOps Map and access active livestreams.</span>
-        <span style="font-size: 0.85rem; color: #cdd6f4;">Download Eagle Eyes Pilot here to access AirOps Map on your Android mobile device.</span>
-        <button type="button" onclick="openAirOpsMap()">Download AirOps Map</button>
+      <!-- AirOps Download Banner removed -->
+      <div id="airOpsDownloadBanner" style="display: none !important;">
       </div>
 
       <!-- Connection failed overlay -->
@@ -3005,13 +3388,13 @@ permalink: /livestream/
       </div>
 
       <div id="video-panel" style="position: relative;">
-        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
+        <div id="coordinateStripContainer" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer; overflow: visible;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStrip"
             class="font-monospace small"
             style="align-items: center; cursor: pointer;"
           >
-            <span class="coord-drone-info">
+            <span class="coord-drone-info" data-priority="2" style="flex-shrink: 2;">
               <img src="{{ '/images/livestream/map_drone_flyer.png' | relative_url }}" alt="Drone icon" class="coord-drone-icon">
               <span id="coordinateDroneNameDesktop">Drone: N/A</span>
             </span>
@@ -3217,13 +3600,13 @@ permalink: /livestream/
       </div>
       <div id="map-panel" style="position: relative; display: flex; flex-direction: column;">
         <div id="map" style="flex: 1; min-height: 0;"></div>
-        <div id="coordinateStripContainerMap" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer;" onclick="showCoordinateDialog()">
+        <div id="coordinateStripContainerMap" class="bg-dark text-white px-2 py-1 border-top border-secondary" style="flex: 0 0 auto; display: none; cursor: pointer; overflow: visible;" onclick="showCoordinateDialog()">
           <div
             id="coordinateStripMap"
             class="font-monospace small"
             style="align-items: center; cursor: pointer;"
           >
-            <span class="coord-drone-info">
+            <span class="coord-drone-info" data-priority="2" style="flex-shrink: 2;">
               <img src="{{ '/images/livestream/map_drone_flyer.png' | relative_url }}" alt="Drone icon" class="coord-drone-icon">
               <span id="coordinateDroneNameMap">Drone: N/A</span>
             </span>
@@ -3472,35 +3855,99 @@ permalink: /livestream/
         setupPictureInPicture();
 
         // Function to hide coordinate segments that don't fit completely
+        // Prioritizes: coordinates (1), drone name (2), battery (3), others (4+)
         function updateCoordinateSegmentVisibility() {
-          const wrappers = [
-            document.getElementById("coordinateSegmentsDesktop"),
-            document.getElementById("coordinateSegmentsMap")
+          const stripContainers = [
+            document.getElementById("coordinateStrip"),
+            document.getElementById("coordinateStripMap")
           ];
 
           const gap = 12; // approx 0.75rem
 
-          wrappers.forEach(wrapper => {
-            if (!wrapper) return;
-            const segments = Array.from(wrapper.querySelectorAll('[data-coordinate-segment]'));
-            if (!segments.length) return;
+          stripContainers.forEach(strip => {
+            if (!strip) return;
+            
+            // Get all elements that need prioritization: drone info and segments
+            const droneInfo = strip.querySelector('.coord-drone-info');
+            const segmentsWrapper = strip.querySelector('.coord-segments');
+            if (!segmentsWrapper) return;
+            
+            const segments = Array.from(segmentsWrapper.querySelectorAll('[data-coordinate-segment]'));
+            
+            // Collect all prioritizable elements
+            const allElements = [];
+            if (droneInfo) {
+              allElements.push({ element: droneInfo, priority: 2 });
+            }
+            segments.forEach(seg => {
+              const priority = parseInt(seg.getAttribute('data-priority') || '999');
+              allElements.push({ element: seg, priority });
+            });
 
-            segments.forEach(seg => seg.style.display = '');
+            if (!allElements.length) return;
 
-            const containerWidth = wrapper.clientWidth;
+            // Show all elements first
+            allElements.forEach(item => item.element.style.display = '');
+
+            // Sort by priority (lower number = higher priority)
+            allElements.sort((a, b) => a.priority - b.priority);
+
+            const containerWidth = strip.clientWidth;
             let totalWidth = 0;
+            
+            // Calculate gap between elements (use CSS gap or default)
+            const computedGap = parseFloat(getComputedStyle(strip).gap) || gap;
 
-            for (let i = 0; i < segments.length; i++) {
-              const segmentWidth = segments[i].offsetWidth;
-              const widthWithGap = totalWidth + segmentWidth + (i > 0 ? gap : 0);
+            // Try to fit elements in priority order
+            // First pass: try to fit all elements
+            for (let i = 0; i < allElements.length; i++) {
+              const element = allElements[i].element;
+              const priority = allElements[i].priority;
+              // Force a reflow to get accurate width
+              element.style.display = '';
+              
+              const elementWidth = element.offsetWidth;
+              const widthWithGap = totalWidth + elementWidth + (i > 0 ? computedGap : 0);
 
-              if (widthWithGap > containerWidth) {
-                for (let j = i; j < segments.length; j++) {
-                  segments[j].style.display = 'none';
+              if (widthWithGap <= containerWidth) {
+                element.style.display = '';
+                totalWidth = widthWithGap;
+              } else {
+                // For priority 3 (battery), always try to show it
+                // Allow it to overflow slightly if needed
+                if (priority === 3) {
+                  element.style.display = '';
+                  totalWidth = widthWithGap;
+                  // Don't hide lower priority items if battery is shown
+                  continue;
+                }
+                // Can't fit this element, hide it and all lower priority ones
+                for (let j = i; j < allElements.length; j++) {
+                  allElements[j].element.style.display = 'none';
                 }
                 break;
               }
-              totalWidth = widthWithGap;
+            }
+            
+            // Second pass: if we're on mobile and things don't fit, try reducing font size
+            // But only apply this reduction temporarily, and remove it when space is available
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile && totalWidth > containerWidth * 0.95) {
+              // We're close to the limit, reduce font size slightly for lower priority items
+              allElements.forEach((item, index) => {
+                if (item.element.style.display !== 'none' && item.priority > 1) {
+                  const currentFontSize = parseFloat(getComputedStyle(item.element).fontSize);
+                  const reductionFactor = 0.92; // Reduce by 8%
+                  item.element.style.fontSize = `${currentFontSize * reductionFactor}px`;
+                }
+              });
+            } else {
+              // Remove any inline font-size styles to allow CSS to control sizing
+              allElements.forEach((item) => {
+                if (item.element.style.fontSize) {
+                  item.element.style.fontSize = '';
+                }
+              });
             }
           });
         }
@@ -3565,7 +4012,8 @@ permalink: /livestream/
           });
         }
 
-        function setViewMode(mode) {
+        // Make setViewMode globally accessible
+        window.setViewMode = function setViewMode(mode) {
           const coordStrip = document.getElementById("coordinateStripContainer");
 
           if (mode === "video") {
@@ -3884,10 +4332,8 @@ permalink: /livestream/
       }
 
       function showAirOpsDownloadBanner() {
-        const banner = document.getElementById('airOpsDownloadBanner');
-        if (!banner) return;
-        banner.style.display = 'flex';
-        repositionAirOpsDownloadBanner();
+        // Banner disabled - do nothing
+        return;
       }
 
       function hideAirOpsDownloadBanner() {

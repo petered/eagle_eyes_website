@@ -41,6 +41,12 @@ class DroneMap {
         this.droneMapCenteringState = 'OFF'; // 'CONTINUOUS' or 'OFF'
         this.dronePopupRelativeTimer = null; // Interval for updating "Last Updated" relative text
         
+        // Photo points storage
+        this.photoPoints = []; // Array of { id, name, lat, lng, imageData, timestamp }
+        this.photoPointMarkers = {}; // Map of photoPointId -> marker
+        this.photoPointsControl = null;
+        this.photoPointsPopup = null;
+        
         // OpenAIP Airspace layer
         this.airspaceLayer = null;
         this.isAirspaceEnabled = false;
@@ -199,6 +205,7 @@ class DroneMap {
         this.measurementArea = 0; // Area in square meters
         this.isDraggingRadius = false; // Track if user is dragging to set radius
         this.measurementPopupResizeHandler = null;
+        this.photoPointsPopupResizeHandler = null;
         this.popupTouchActiveCount = 0;
         this.mapDraggingWasEnabledBeforePopup = null;
         
@@ -777,6 +784,16 @@ class DroneMap {
             console.log('Drone map initialized with Leaflet');
             console.log('toggleMyLocation method available:', typeof this.toggleMyLocation === 'function');
             
+            // Load photo points from storage (async)
+            this.loadPhotoPointsFromStorage().catch(err => {
+                console.error('Error loading photo points:', err);
+            });
+            
+            // Load photo point from URL parameter if present
+            setTimeout(() => {
+                this.loadPhotoPointFromUrl();
+            }, 1000);
+            
             // Automatically start location tracking on page load
             // This will try to center on user's location, with fallback to default view
             setTimeout(() => {
@@ -845,6 +862,9 @@ class DroneMap {
         
         // Add measurement control third (below basemap control)
         this.addMeasurementControl();
+        
+        // Add photo points control fourth (below measurement control)
+        this.addPhotoPointsControl();
     }
     
     addMeasurementControl() {
@@ -886,6 +906,44 @@ class DroneMap {
         this.map.addControl(new MeasurementControl());
     }
     
+    addPhotoPointsControl() {
+        const PhotoPointsControl = L.Control.extend({
+            options: {
+                position: 'topleft'
+            },
+            onAdd: (map) => {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                container.style.marginTop = '10px';
+                container.style.marginLeft = '10px';
+                container.style.marginBottom = '0px';
+                container.style.width = '40px';
+                container.style.height = '40px';
+                container.id = 'photoPointsControl';
+                container.style.display = 'block'; // Always visible
+                
+                const button = L.DomUtil.create('a', 'leaflet-control-photo-points', container);
+                button.innerHTML = `<i class="bi bi-camera-fill" style="font-size: 20px; color: white; display: block; margin: auto;"></i>`;
+                button.href = '#';
+                button.role = 'button';
+                button.title = 'Photo Points';
+                button.style.display = 'flex';
+                button.style.alignItems = 'center';
+                button.style.justifyContent = 'center';
+                button.style.width = '100%';
+                button.style.height = '100%';
+
+                L.DomEvent.on(button, 'click', L.DomEvent.stop)
+                          .on(button, 'click', () => {
+                              window.droneMap.showPhotoPointsPopup();
+                          }, this);
+
+                return container;
+            }
+        });
+        this.photoPointsControl = new PhotoPointsControl();
+        this.map.addControl(this.photoPointsControl);
+    }
+    
     addBaseMapControl() {
         const BaseMapControl = L.Control.extend({
             options: {
@@ -907,7 +965,7 @@ class DroneMap {
                 
                 button.href = '#';
                 button.role = 'button';
-                button.title = 'Base Maps';
+                button.title = 'Map Layers';
                 button.style.display = 'flex';
                 button.style.alignItems = 'center';
                 button.style.justifyContent = 'center';
@@ -1947,6 +2005,163 @@ class DroneMap {
         this.isDraggingRadius = false;
         this.measurementTotalDistance = 0;
         this.measurementArea = 0;
+    }
+    
+    showPhotoPointsPopup() {
+        if (this.photoPointsPopup) {
+            this.closePhotoPointsPopup();
+        }
+        
+        const mapContainer = this.map ? this.map.getContainer() : null;
+        if (!mapContainer) return;
+        
+        this.photoPointsPopup = document.createElement('div');
+        this.photoPointsPopup.className = 'measurement-popup'; // Reuse measurement popup styles
+        
+        // Generate list of photo points
+        const photoPointsList = this.photoPoints.length > 0
+            ? this.photoPoints.map(pp => {
+                const date = new Date(pp.timestamp);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="photo-point-list-item" data-photo-point-id="${pp.id}" style="padding: 10px; margin-bottom: 8px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb'">
+                        <div style="font-weight: 600; font-size: 12px; color: #374151; margin-bottom: 4px;">${pp.name}</div>
+                        <div style="font-size: 10px; color: #6b7280;">${dateStr} ${timeStr}</div>
+                        <div style="font-size: 10px; color: #6b7280;">${pp.lat.toFixed(6)}, ${pp.lng.toFixed(6)}</div>
+                    </div>
+                `;
+            }).join('')
+            : '<div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">No photo points yet</div>';
+        
+        this.photoPointsPopup.innerHTML = `
+            <div class="measurement-popup__header">
+                <div class="measurement-popup__title">Photo Points</div>
+                <button id="closePhotoPointsBtn" class="measurement-popup__close" type="button" aria-label="Close photo points panel">×</button>
+            </div>
+            <div class="measurement-popup__content">
+                <button id="addPhotoPointBtn" style="
+                    width: 100%;
+                    padding: 12px;
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 500;
+                    margin-bottom: 15px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
+                    <i class="bi bi-camera-fill" style="font-size: 16px;"></i>
+                    Add Photo Point
+                </button>
+                <div style="font-size: 11px; color: #6b7280; font-weight: 500; margin-bottom: 10px;">Existing Photo Points:</div>
+                <div class="photo-points-list-container" style="max-height: 400px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; margin-right: -2px;">
+                    ${photoPointsList}
+                </div>
+            </div>
+        `;
+        
+        mapContainer.appendChild(this.photoPointsPopup);
+        this.positionPhotoPointsPopup();
+        
+        // Add scrollable popup interactions to prevent map dragging (same as basemap popup)
+        this.attachScrollablePopupInteractions(this.photoPointsPopup);
+        
+        // Add event listeners
+        const closeButton = this.photoPointsPopup.querySelector('#closePhotoPointsBtn');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => this.closePhotoPointsPopup());
+        }
+        
+        const addButton = this.photoPointsPopup.querySelector('#addPhotoPointBtn');
+        if (addButton) {
+            addButton.addEventListener('click', () => {
+                this.closePhotoPointsPopup();
+                this.addPhotoPoint();
+            });
+        }
+        
+        // Add click handlers for photo point list items
+        const listItems = this.photoPointsPopup.querySelectorAll('.photo-point-list-item');
+        listItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const photoPointId = item.getAttribute('data-photo-point-id');
+                this.zoomToPhotoPoint(photoPointId);
+                this.closePhotoPointsPopup();
+            });
+        });
+        
+        // Handle resize
+        this.photoPointsPopupResizeHandler = () => this.positionPhotoPointsPopup();
+        window.addEventListener('resize', this.photoPointsPopupResizeHandler);
+        window.addEventListener('orientationchange', this.photoPointsPopupResizeHandler);
+    }
+    
+    positionPhotoPointsPopup() {
+        if (!this.photoPointsPopup || !this.map) return;
+        
+        const mapContainer = this.map.getContainer();
+        const mapBounds = mapContainer.getBoundingClientRect();
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // Mobile: center the popup
+            const popupWidth = Math.min(320, window.innerWidth - 24);
+            this.photoPointsPopup.style.position = 'absolute';
+            this.photoPointsPopup.style.left = '50%';
+            this.photoPointsPopup.style.top = '12px';
+            this.photoPointsPopup.style.transform = 'translateX(-50%)';
+            this.photoPointsPopup.style.width = `${popupWidth}px`;
+            this.photoPointsPopup.style.maxWidth = `calc(100vw - 24px)`;
+            this.photoPointsPopup.style.zIndex = '1000';
+        } else {
+            // Desktop: position to the right of controls
+            const popupWidth = 320;
+            const left = 60;
+            const top = 10;
+            
+            this.photoPointsPopup.style.position = 'absolute';
+            this.photoPointsPopup.style.left = `${left}px`;
+            this.photoPointsPopup.style.top = `${top}px`;
+            this.photoPointsPopup.style.width = `${popupWidth}px`;
+            this.photoPointsPopup.style.transform = 'none';
+            this.photoPointsPopup.style.maxWidth = 'none';
+            this.photoPointsPopup.style.zIndex = '1000';
+        }
+    }
+    
+    closePhotoPointsPopup() {
+        if (this.photoPointsPopupResizeHandler) {
+            window.removeEventListener('resize', this.photoPointsPopupResizeHandler);
+            window.removeEventListener('orientationchange', this.photoPointsPopupResizeHandler);
+            this.photoPointsPopupResizeHandler = null;
+        }
+        if (this.photoPointsPopup) {
+            this.photoPointsPopup.remove();
+            this.photoPointsPopup = null;
+        }
+    }
+    
+    zoomToPhotoPoint(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint || !this.map) return;
+        
+        // Zoom to photo point
+        this.map.setView([photoPoint.lat, photoPoint.lng], 18);
+        
+        // Open popup after a short delay to ensure map has moved
+        setTimeout(() => {
+            const marker = this.photoPointMarkers[photoPointId];
+            if (marker) {
+                marker.openPopup();
+            }
+        }, 500);
     }
     
     updateMeasurementDisplay() {
@@ -4801,7 +5016,9 @@ class DroneMap {
 
             this.droneClickMarker.bindPopup(() => this.generateDronePopupContent(), {
                 maxWidth: 300,
-                className: 'drone-popup'
+                className: 'drone-popup',
+                closeOnClick: false,
+                autoClose: false
             });
 
             this.droneClickMarker.on('popupopen', () => {
@@ -4915,8 +5132,11 @@ class DroneMap {
         const currentViewingStream = window.viewer?.currentRoomId;
         const showLivestreamButton = streamId && streamId !== currentViewingStream;
         const livestreamButton = showLivestreamButton ?
-            `<br><br><button onclick="window.viewer.switchToStream('${streamId}')" style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;">View Livestream</button>` :
+            `<br><br><button onclick="window.viewer.switchToStream('${streamId}')" style="padding: 6px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; width: 100%;">View Livestream</button>` :
             '';
+        
+        // Photo point button removed - now available via camera widget
+        const photoPointButton = '';
 
         // Format last update timestamp
         let lastUpdateText = '';
@@ -4967,7 +5187,7 @@ class DroneMap {
                 <strong>↑🛰️ Altitude (GPS):</strong> ${altEllipsoidText}<br>
                 <strong>Bearing:</strong> ${bearing.toFixed(1)}°<br>
                 <strong>Pitch:</strong> ${pitchText}<br>
-                <strong>🔋 Battery:</strong> ${batteryText}${lastUpdateText}${livestreamButton}
+                <strong>🔋 Battery:</strong> ${batteryText}${lastUpdateText}${livestreamButton}${photoPointButton}
             </div>
         `;
     }
@@ -5038,6 +5258,1535 @@ class DroneMap {
         if (this.dronePopupRelativeTimer) {
             clearInterval(this.dronePopupRelativeTimer);
             this.dronePopupRelativeTimer = null;
+        }
+    }
+
+    // Capture screenshot from video element
+    async captureVideoScreenshot() {
+        const video = document.getElementById('remoteVideo');
+        if (!video || video.readyState < 2) {
+            console.error('Video not ready for screenshot');
+            return null;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || video.clientWidth;
+        canvas.height = video.videoHeight || video.clientHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Add watermarks and overlays
+        await this.addWatermarksToCanvas(ctx, canvas.width, canvas.height);
+        
+        return canvas.toDataURL('image/png');
+    }
+    
+    // Add watermarks and text overlays to canvas
+    async addWatermarksToCanvas(ctx, width, height) {
+        // Get current drone data
+        const droneName = this.currentDroneName || 'Unknown Drone';
+        const [lat, lng] = this.currentLocation || [0, 0];
+        const now = new Date();
+        
+        // Format timestamp
+        const timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        };
+        const dateOptions = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        };
+        const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+        const dateStr = now.toLocaleDateString('en-US', dateOptions);
+        
+        // Calculate watermark sizes (super small, proportional to image size)
+        const logoSize = Math.max(30, Math.min(width, height) * 0.05); // 5% of smaller dimension, min 30px
+        const textSize = Math.max(8, Math.min(width, height) * 0.012); // 1.2% of smaller dimension, min 8px
+        const padding = Math.max(6, Math.min(width, height) * 0.008); // 0.8% padding, min 6px
+        
+        // Load and draw logo watermark (bottom left)
+        try {
+            // Load main logo
+            const logoImg = new Image();
+            logoImg.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+                logoImg.onload = resolve;
+                logoImg.onerror = reject;
+                const logoPath = this.getAssetPath('/images/Eagle Eyes Logo.png');
+                logoImg.src = logoPath.replace(/ /g, '%20'); // Encode spaces
+            });
+            
+            // Load text logo
+            const textLogoImg = new Image();
+            textLogoImg.crossOrigin = 'anonymous';
+            let textLogoLoaded = false;
+            try {
+                await new Promise((resolve, reject) => {
+                    textLogoImg.onload = () => {
+                        textLogoLoaded = true;
+                        resolve();
+                    };
+                    textLogoImg.onerror = reject;
+                    // Handle space in filename - use encodeURI or direct path
+                    const textLogoPath = this.getAssetPath('/images/Eagle Eyes Search.png');
+                    textLogoImg.src = textLogoPath.replace(/ /g, '%20'); // Encode spaces
+                });
+            } catch (err) {
+                console.warn('Could not load text logo, will use text instead:', err);
+            }
+            
+            // Draw logo in bottom left (no background)
+            const logoX = padding;
+            const logoY = height - logoSize - padding;
+            const textLogoWidth = textLogoLoaded ? logoSize * 1.5 : logoSize * 2;
+            
+            // Draw logo image (no background)
+            ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+            
+            // Draw text logo or text next to main logo (no background)
+            if (textLogoLoaded) {
+                const textLogoHeight = logoSize * 0.6; // Proportional to main logo
+                ctx.drawImage(textLogoImg, logoX + logoSize + padding/2, logoY + (logoSize - textLogoHeight)/2, textLogoWidth, textLogoHeight);
+            } else {
+                // Fallback: draw text if image not available
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.font = `bold ${textSize * 0.7}px Arial, sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Eagle Eyes Viewer', logoX + logoSize + padding/2, logoY + logoSize/2);
+            }
+        } catch (err) {
+            console.warn('Could not load logo for watermark:', err);
+        }
+        
+        // Calculate line height for text
+        const lineHeight = textSize * 1.4;
+        const textHeight = lineHeight * 3; // Height of three text lines
+        
+        // Load QR code logo - smaller size
+        let qrCodeWidth = 0;
+        let qrCodeHeight = 0;
+        let qrCodeImg = null;
+        
+        try {
+            qrCodeImg = new Image();
+            qrCodeImg.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+                qrCodeImg.onload = () => {
+                    console.log('QR Code logo loaded successfully, dimensions:', qrCodeImg.width, 'x', qrCodeImg.height);
+                    resolve();
+                };
+                qrCodeImg.onerror = (err) => {
+                    console.error('Failed to load QR Code logo:', err, qrCodeImg.src);
+                    reject(err);
+                };
+                const qrCodePath = this.getAssetPath('/images/QR Code Logo.png');
+                qrCodeImg.src = qrCodePath.replace(/ /g, '%20'); // Encode spaces
+                console.log('Loading QR Code logo from:', qrCodeImg.src);
+            });
+            
+            // Calculate QR code size - slightly bigger (35% of text height)
+            const nativeAspectRatio = qrCodeImg.width / qrCodeImg.height;
+            const minHeight = textHeight * 0.35; // 35% of text height - slightly bigger
+            const maxHeight = Math.min(height * 0.09, qrCodeImg.height); // Cap at 9% of image height
+            qrCodeHeight = Math.max(minHeight, maxHeight);
+            qrCodeWidth = qrCodeHeight * nativeAspectRatio;
+        } catch (err) {
+            console.warn('Could not load QR code logo for watermark:', err);
+        }
+        
+        // Position QR code in top left corner
+        const qrCodeX = padding;
+        const qrCodeY = padding;
+        
+        // Position text to the right of QR code (with padding)
+        const textX = qrCodeX + qrCodeWidth + padding * 2;
+        const textY = padding;
+        
+        // Prepare text lines - drone name first, then coordinates, then timestamp
+        const textLines = [
+            `Drone: ${droneName}`,
+            `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+            `${timeStr} ${dateStr}`
+        ];
+        
+        // Set font and alignment - left align so text starts to the right of QR code
+        ctx.font = `${textSize}px Arial, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        // Draw text lines (no background, white font) - left aligned
+        ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+        textLines.forEach((line, index) => {
+            ctx.fillText(line, textX, textY + (lineHeight * index));
+        });
+        
+        // Draw QR code logo in top left corner
+        if (qrCodeImg) {
+            console.log('Drawing QR Code logo at top left:', qrCodeX, qrCodeY, 'size:', qrCodeWidth, 'x', qrCodeHeight);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(qrCodeImg, qrCodeX, qrCodeY, qrCodeWidth, qrCodeHeight);
+        }
+    }
+
+    // Attach event handlers to photo point button in popup
+    attachPhotoPointButtonHandlers(container) {
+        const button = container.querySelector('.add-photo-point-btn');
+        if (button) {
+            // Remove any existing event listeners by cloning
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Add hover effects via CSS classes
+            newButton.addEventListener('mouseenter', () => {
+                newButton.style.backgroundColor = '#218838';
+            });
+            newButton.addEventListener('mouseleave', () => {
+                if (!newButton.disabled) {
+                    newButton.style.backgroundColor = '#28a745';
+                }
+            });
+            
+            // Add click handler with immediate feedback
+            let isProcessing = false;
+            newButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                // Prevent double-clicks
+                if (isProcessing) {
+                    console.log('Already processing photo point');
+                    return false;
+                }
+                
+                isProcessing = true;
+                console.log('Add Photo Point button clicked');
+                
+                // Immediate visual feedback
+                newButton.disabled = true;
+                newButton.style.opacity = '0.7';
+                newButton.style.cursor = 'wait';
+                const originalText = newButton.innerHTML;
+                newButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+                
+                try {
+                    if (window.droneMap && typeof window.droneMap.addPhotoPoint === 'function') {
+                        // Call immediately - don't await, let it handle the modal
+                        window.droneMap.addPhotoPoint().catch(err => {
+                            console.error('Error adding photo point:', err);
+                            // Reset button on error
+                            newButton.disabled = false;
+                            newButton.style.opacity = '1';
+                            newButton.style.cursor = 'pointer';
+                            newButton.innerHTML = originalText;
+                            isProcessing = false;
+                        });
+                    } else {
+                        console.error('droneMap.addPhotoPoint not available', window.droneMap);
+                        alert('Photo point feature not available');
+                        // Reset button
+                        newButton.disabled = false;
+                        newButton.style.opacity = '1';
+                        newButton.style.cursor = 'pointer';
+                        newButton.innerHTML = originalText;
+                        isProcessing = false;
+                    }
+                } catch (err) {
+                    console.error('Error in addPhotoPoint:', err);
+                    // Reset button on error
+                    newButton.disabled = false;
+                    newButton.style.opacity = '1';
+                    newButton.style.cursor = 'pointer';
+                    newButton.innerHTML = originalText;
+                    isProcessing = false;
+                }
+                
+                return false;
+            });
+        }
+    }
+
+    // Add photo point - main entry point
+    async addPhotoPoint() {
+        console.log('addPhotoPoint called');
+        
+        // Check if streaming
+        if (!window.viewer || !window.viewer.getState || window.viewer.getState() !== 'STREAMING') {
+            alert('Livestream must be connected and streaming to add a photo point.');
+            // Reset button state
+            this.resetPhotoPointButton();
+            return;
+        }
+
+        // Show naming dialog IMMEDIATELY (before capturing)
+        const name = await this.showPhotoPointNameDialog();
+        console.log('Name from dialog:', name);
+        if (!name) {
+            // User cancelled - reset button state
+            this.resetPhotoPointButton();
+            return;
+        }
+
+        // Capture screenshot
+        const imageData = await this.captureVideoScreenshot();
+        if (!imageData) {
+            alert('Failed to capture screenshot. Please ensure video is playing.');
+            // Reset button state
+            this.resetPhotoPointButton();
+            return;
+        }
+
+        // Get current drone location
+        if (!this.currentLocation || !Array.isArray(this.currentLocation) || this.currentLocation.length !== 2) {
+            alert('Drone location not available.');
+            // Reset button state
+            this.resetPhotoPointButton();
+            return;
+        }
+
+        const [lat, lng] = this.currentLocation;
+
+        // Create photo point
+        const photoPoint = {
+            id: 'photo_' + Date.now(),
+            name: name,
+            lat: lat,
+            lng: lng,
+            imageData: imageData,
+            timestamp: Date.now(),
+            droneName: this.currentDroneName || 'Unknown Drone'
+        };
+
+        // Add to storage
+        this.photoPoints.push(photoPoint);
+        this.savePhotoPointsToStorage();
+
+        // Add marker to map
+        this.addPhotoPointMarker(photoPoint);
+
+        // Reset button state after successful creation
+        this.resetPhotoPointButton();
+
+        // Show success and share options
+        this.showPhotoPointOptions(photoPoint);
+    }
+    
+    // Reset photo point button state
+    resetPhotoPointButton() {
+        const button = document.querySelector('.add-photo-point-btn');
+        if (button) {
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+            button.innerHTML = '<i class="bi bi-camera"></i> Add Photo Point';
+        }
+    }
+
+    // Show naming dialog
+    showPhotoPointNameDialog() {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('photoPointNameModal');
+            const input = document.getElementById('photoPointNameInput');
+            const saveBtn = document.getElementById('photoPointNameSaveBtn');
+            
+            console.log('showPhotoPointNameDialog - modal:', modal, 'input:', input, 'saveBtn:', saveBtn);
+            console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+            
+            if (!modal || !input || !saveBtn) {
+                console.error('Modal elements not found');
+                alert('Photo point naming dialog not available. Please refresh the page.');
+                resolve(null);
+                return;
+            }
+
+            if (typeof bootstrap === 'undefined') {
+                console.error('Bootstrap not loaded');
+                alert('Bootstrap not loaded. Please refresh the page.');
+                resolve(null);
+                return;
+            }
+
+            // Set default name
+            input.value = 'EE_LivestreamPhoto' + (this.photoPoints.length + 1);
+            
+            // Get drone name and current time for info display
+            const droneName = this.currentDroneName || 'Unknown Drone';
+            const now = new Date();
+            
+            // Format time in local timezone
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const dateOptions = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            
+            const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+            const dateStr = now.toLocaleDateString('en-US', dateOptions);
+            
+            // Get simplified timezone name
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            let timezoneDisplay = 'Unknown';
+            
+            // Map common IANA timezones to simple names
+            const timezoneMap = {
+                // Pacific
+                'America/Vancouver': 'Pacific',
+                'America/Los_Angeles': 'Pacific',
+                'America/Tijuana': 'Pacific',
+                'America/Santa_Isabel': 'Pacific',
+                'America/Dawson': 'Pacific',
+                'America/Whitehorse': 'Pacific',
+                // Mountain
+                'America/Denver': 'Mountain',
+                'America/Phoenix': 'Mountain',
+                'America/Boise': 'Mountain',
+                'America/Edmonton': 'Mountain',
+                'America/Yellowknife': 'Mountain',
+                'America/Inuvik': 'Mountain',
+                'America/Dawson_Creek': 'Mountain',
+                'America/Fort_Nelson': 'Mountain',
+                'America/Creston': 'Mountain',
+                'America/Chihuahua': 'Mountain',
+                'America/Mazatlan': 'Mountain',
+                'America/Hermosillo': 'Mountain',
+                'America/Shiprock': 'Mountain',
+                // Central
+                'America/Chicago': 'Central',
+                'America/Mexico_City': 'Central',
+                'America/Winnipeg': 'Central',
+                'America/Regina': 'Central',
+                'America/Swift_Current': 'Central',
+                'America/Menominee': 'Central',
+                'America/Indiana/Knox': 'Central',
+                'America/Indiana/Tell_City': 'Central',
+                'America/Indiana/Petersburg': 'Central',
+                'America/Indiana/Marengo': 'Central',
+                'America/Indiana/Winamac': 'Central',
+                'America/North_Dakota/Center': 'Central',
+                'America/North_Dakota/New_Salem': 'Central',
+                'America/North_Dakota/Beulah': 'Central',
+                'America/Rainy_River': 'Central',
+                'America/Resolute': 'Central',
+                'America/Rankin_Inlet': 'Central',
+                'America/Merida': 'Central',
+                'America/Monterrey': 'Central',
+                'America/Bahia_Banderas': 'Central',
+                'America/Belize': 'Central',
+                'America/Costa_Rica': 'Central',
+                'America/El_Salvador': 'Central',
+                'America/Guatemala': 'Central',
+                'America/Managua': 'Central',
+                'America/Tegucigalpa': 'Central',
+                // Eastern
+                'America/New_York': 'Eastern',
+                'America/Toronto': 'Eastern',
+                'America/Montreal': 'Eastern',
+                'America/Detroit': 'Eastern',
+                'America/Indianapolis': 'Eastern',
+                'America/Louisville': 'Eastern',
+                'America/Kentucky/Louisville': 'Eastern',
+                'America/Kentucky/Monticello': 'Eastern',
+                'America/Indiana/Indianapolis': 'Eastern',
+                'America/Indiana/Vincennes': 'Eastern',
+                'America/Nipigon': 'Eastern',
+                'America/Thunder_Bay': 'Eastern',
+                'America/Iqaluit': 'Eastern',
+                'America/Pangnirtung': 'Eastern',
+                'America/Atikokan': 'Eastern',
+                'America/Philadelphia': 'Eastern',
+                'America/Boston': 'Eastern',
+                'America/Pittsburgh': 'Eastern',
+                'America/Cleveland': 'Eastern',
+                'America/Cancun': 'Eastern',
+                'America/Panama': 'Eastern',
+                'America/Bogota': 'Eastern',
+                'America/Port-au-Prince': 'Eastern',
+                'America/Havana': 'Eastern',
+                'America/Jamaica': 'Eastern',
+                'America/Cayman': 'Eastern',
+                'America/Nassau': 'Eastern',
+                'America/Turks_and_Caicos': 'Eastern',
+                // Atlantic
+                'America/Halifax': 'Atlantic',
+                'America/Glace_Bay': 'Atlantic',
+                'America/Moncton': 'Atlantic',
+                'America/Goose_Bay': 'Atlantic',
+                'America/Blanc-Sablon': 'Atlantic',
+                'America/Puerto_Rico': 'Atlantic',
+                'America/St_Thomas': 'Atlantic',
+                'America/Santo_Domingo': 'Atlantic',
+                // Newfoundland
+                'America/St_Johns': 'Newfoundland',
+                // Alaska
+                'America/Anchorage': 'Alaska',
+                'America/Juneau': 'Alaska',
+                'America/Sitka': 'Alaska',
+                'America/Metlakatla': 'Alaska',
+                'America/Yakutat': 'Alaska',
+                'America/Nome': 'Alaska',
+                // Hawaii
+                'Pacific/Honolulu': 'Hawaii',
+                'America/Adak': 'Hawaii-Aleutian',
+                'Pacific/Midway': 'Hawaii-Aleutian'
+            };
+            
+            timezoneDisplay = timezoneMap[timezone] || timezone.split('/').pop().replace(/_/g, ' ');
+            
+            // Update info div with drone name and timestamp
+            const infoDiv = document.getElementById('photoPointInfo');
+            if (infoDiv) {
+                // Get the info button if it exists, or create it
+                let infoBtn = infoDiv.querySelector('#photoPointInfoBtn');
+                const infoText = `from drone: <strong>${droneName}</strong><br>taken at: ${timeStr} ${dateStr} (${timezoneDisplay})`;
+                
+                if (!infoBtn) {
+                    // Create info button - grey clickable square
+                    infoBtn = document.createElement('button');
+                    infoBtn.type = 'button';
+                    infoBtn.id = 'photoPointInfoBtn';
+                    infoBtn.className = 'btn btn-sm';
+                    infoBtn.style.cssText = 'background: #6c757d; border: 1px solid #5a6268; color: white; padding: 4px 6px; font-size: 0.75rem; line-height: 1; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 8px; transition: all 0.2s;';
+                    infoBtn.innerHTML = '<i class="bi bi-info" style="font-size: 0.8rem; font-weight: bold;"></i>';
+                    infoBtn.title = 'Info';
+                    infoBtn.onmouseover = function() {
+                        this.style.background = '#5a6268';
+                        this.style.borderColor = '#495057';
+                    };
+                    infoBtn.onmouseout = function() {
+                        this.style.background = '#6c757d';
+                        this.style.borderColor = '#5a6268';
+                    };
+                    infoBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const infoModal = document.getElementById('photoPointInfoModal');
+                        if (infoModal) {
+                            const bsModal = new bootstrap.Modal(infoModal);
+                            bsModal.show();
+                        }
+                    });
+                }
+                
+                // Set the text content and append button
+                const textSpan = document.createElement('span');
+                textSpan.innerHTML = infoText;
+                infoDiv.innerHTML = '';
+                infoDiv.appendChild(textSpan);
+                infoDiv.appendChild(infoBtn);
+            }
+            
+            // Get fresh reference to save button after potential DOM changes
+            let currentSaveBtn = document.getElementById('photoPointNameSaveBtn');
+            if (!currentSaveBtn) {
+                console.error('Save button not found after refresh');
+                resolve(null);
+                return;
+            }
+            
+            // Clear previous event listeners by cloning
+            const newSaveBtn = currentSaveBtn.cloneNode(true);
+            currentSaveBtn.parentNode.replaceChild(newSaveBtn, currentSaveBtn);
+            
+            // Show modal
+            const bsModal = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: true });
+            bsModal.show();
+            
+            // Focus input after modal is shown
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 300);
+            
+            // Handle save
+            const handleSave = () => {
+                const name = input.value.trim();
+                console.log('Save clicked, name:', name);
+                if (name) {
+                    bsModal.hide();
+                    resolve(name);
+                }
+            };
+            
+            newSaveBtn.addEventListener('click', handleSave);
+            
+            // Remove old keypress listeners and add new one
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSave();
+                }
+            };
+            input.removeEventListener('keypress', handleKeyPress); // Remove if exists
+            input.addEventListener('keypress', handleKeyPress);
+            
+            // Handle cancel/close
+            const handleClose = () => {
+                console.log('Modal closed');
+                resolve(null);
+            };
+            modal.removeEventListener('hidden.bs.modal', handleClose); // Remove if exists
+            modal.addEventListener('hidden.bs.modal', handleClose, { once: true });
+        });
+    }
+
+    // Add photo point marker to map
+    addPhotoPointMarker(photoPoint) {
+        if (!this.map) return;
+
+        // Create photo icon (camera symbol)
+        const photoIcon = L.divIcon({
+            html: `<div style="background-color: #fff; border: 2px solid #28a745; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="bi bi-camera-fill" style="color: #28a745; font-size: 18px;"></i></div>`,
+            className: 'photo-point-marker',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([photoPoint.lat, photoPoint.lng], {
+            icon: photoIcon
+        }).addTo(this.map);
+
+        // Bind popup with photo point info
+        marker.bindPopup(() => this.generatePhotoPointPopupContent(photoPoint), {
+            maxWidth: 220,
+            className: 'photo-point-popup'
+        });
+
+        this.photoPointMarkers[photoPoint.id] = marker;
+    }
+
+    // Generate popup content for photo point
+    generatePhotoPointPopupContent(photoPoint) {
+        // Format timestamp
+        const timestamp = new Date(photoPoint.timestamp);
+        const timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        };
+        const dateOptions = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        };
+        
+        const timeStr = timestamp.toLocaleTimeString('en-US', timeOptions);
+        const dateStr = timestamp.toLocaleDateString('en-US', dateOptions);
+        
+        // Get simplified timezone name
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const timezoneMap = {
+            'America/Vancouver': 'Pacific',
+            'America/Los_Angeles': 'Pacific',
+            'America/Tijuana': 'Pacific',
+            'America/Santa_Isabel': 'Pacific',
+            'America/Dawson': 'Pacific',
+            'America/Whitehorse': 'Pacific',
+            'America/Denver': 'Mountain',
+            'America/Phoenix': 'Mountain',
+            'America/Boise': 'Mountain',
+            'America/Edmonton': 'Mountain',
+            'America/Chicago': 'Central',
+            'America/Mexico_City': 'Central',
+            'America/Winnipeg': 'Central',
+            'America/Regina': 'Central',
+            'America/New_York': 'Eastern',
+            'America/Toronto': 'Eastern',
+            'America/Montreal': 'Eastern',
+            'America/Detroit': 'Eastern',
+            'America/Halifax': 'Atlantic',
+            'America/St_Johns': 'Newfoundland',
+            'America/Anchorage': 'Alaska',
+            'Pacific/Honolulu': 'Hawaii'
+        };
+        const timezoneDisplay = timezoneMap[timezone] || timezone.split('/').pop().replace(/_/g, ' ');
+        
+        // Get drone name from photo point metadata or use stored value
+        const droneName = photoPoint.droneName || this.currentDroneName || 'Unknown Drone';
+        
+        // Format coordinates
+        const latStr = photoPoint.lat.toFixed(6);
+        const lngStr = photoPoint.lng.toFixed(6);
+        
+        // Detect if we're on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (window.innerWidth <= 768 && 'ontouchstart' in window);
+        
+        // Show "Share" button on mobile, "Copy to Clipboard" on desktop
+        const shareButtonText = isMobile ? 'Share' : 'Copy to Clipboard';
+        const shareButtonIcon = isMobile ? 'bi-share' : 'bi-clipboard';
+        const shareButtonAction = isMobile ? `window.droneMap.sharePhotoPoint('${photoPoint.id}')` : `window.droneMap.copyPhotoPointUrlAndOpen('${photoPoint.id}')`;
+        
+        // Mobile-specific styles
+        const containerStyle = isMobile 
+            ? 'min-width: 150px; max-width: 90vw; width: auto;'
+            : 'min-width: 180px; max-width: 220px;';
+        const titleStyle = isMobile
+            ? 'font-size: clamp(0.85rem, 4vw, 1rem); display: block; margin-bottom: 4px; word-wrap: break-word;'
+            : 'font-size: 1em; display: block; margin-bottom: 6px;';
+        const infoStyle = isMobile
+            ? 'font-size: clamp(0.55rem, 2.5vw, 0.65rem); color: #6c757d; font-style: italic; margin-bottom: 4px; line-height: 1.2;'
+            : 'font-size: 0.65rem; color: #6c757d; font-style: italic; margin-bottom: 6px; line-height: 1.3;';
+        const imageStyle = isMobile
+            ? 'width: 100%; max-width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 4px; display: block;'
+            : 'width: 100%; max-width: 200px; border-radius: 4px; cursor: pointer; margin-bottom: 6px; display: block;';
+        const buttonContainerStyle = isMobile
+            ? 'display: flex; flex-direction: column; gap: 4px; width: 100%;'
+            : 'display: flex; gap: 4px; flex-wrap: wrap;';
+        const buttonStyle = isMobile
+            ? 'padding: 6px 8px; background-color: var(--btn-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: clamp(0.7rem, 3vw, 0.75rem); width: 100%; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);'
+            : 'padding: 4px 8px; background-color: var(--btn-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75em; flex: 1; min-width: 60px;';
+        
+        return `
+            <div style="${containerStyle}">
+                <strong style="${titleStyle}">${photoPoint.name}</strong>
+                <div style="${infoStyle}">
+                    drone: <strong>${droneName}</strong><br>
+                    ${timeStr} ${dateStr} (${timezoneDisplay})<br>
+                    ${latStr}, ${lngStr}
+                </div>
+                <img src="${photoPoint.imageData}" style="${imageStyle}" onclick="event.stopPropagation(); window.droneMap.showPhotoFullscreen('${photoPoint.id}'); return false;" alt="Photo point thumbnail">
+                <div style="${buttonContainerStyle}">
+                    <button onclick="event.stopPropagation(); ${shareButtonAction}; return false;" style="${buttonStyle.replace('var(--btn-color)', '#007bff')}"><i class="bi ${shareButtonIcon}"></i> ${shareButtonText}</button>
+                    <button onclick="event.stopPropagation(); window.droneMap.downloadPhotoPoint('${photoPoint.id}'); return false;" style="${buttonStyle.replace('var(--btn-color)', '#6c757d')}"><i class="bi bi-download"></i> Download</button>
+                    <button onclick="event.stopPropagation(); window.droneMap.removePhotoPoint('${photoPoint.id}'); return false;" style="${buttonStyle.replace('var(--btn-color)', '#dc3545')}"><i class="bi bi-trash"></i> Remove</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Show photo point options (after creation)
+    showPhotoPointOptions(photoPoint) {
+        console.log('showPhotoPointOptions called for photo point:', photoPoint.id);
+        const modal = document.getElementById('photoPointShareModal');
+        const shareBtn = document.getElementById('photoPointShareBtn');
+        
+        if (!modal || !shareBtn) {
+            console.error('Modal or share button not found');
+            return;
+        }
+
+        // Clear previous event listeners
+        const newShareBtn = shareBtn.cloneNode(true);
+        shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
+        
+        // Show modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        // Handle share - ensure we use the correct photo point ID
+        newShareBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Share button clicked in modal for photo point:', photoPoint.id);
+            bsModal.hide();
+            // Wait for modal to fully close, then share
+            modal.addEventListener('hidden.bs.modal', () => {
+                this.sharePhotoPoint(photoPoint.id);
+            }, { once: true });
+        }, { once: true });
+    }
+
+    // Show photo fullscreen
+    showPhotoFullscreen(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+
+        // Create fullscreen modal
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;';
+        
+        // Create close button with visible outline
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); border: 3px solid rgba(255,255,255,0.9); color: white; font-size: 32px; font-weight: bold; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.5);';
+        closeBtn.onmouseover = () => {
+            closeBtn.style.background = 'rgba(0,0,0,0.7)';
+            closeBtn.style.borderColor = 'rgba(255,255,255,1)';
+            closeBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.7)';
+        };
+        closeBtn.onmouseout = () => {
+            closeBtn.style.background = 'rgba(0,0,0,0.5)';
+            closeBtn.style.borderColor = 'rgba(255,255,255,0.9)';
+            closeBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+        };
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            modal.remove();
+        };
+        
+        // Create download button with visible outline
+        const downloadBtn = document.createElement('button');
+        downloadBtn.innerHTML = '<i class="bi bi-download" style="font-size: 20px;"></i>';
+        downloadBtn.style.cssText = 'position: absolute; top: 20px; right: 80px; background: rgba(0,0,0,0.5); border: 3px solid rgba(255,255,255,0.9); color: white; font-size: 20px; font-weight: bold; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; z-index: 10001; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.5);';
+        downloadBtn.onmouseover = () => {
+            downloadBtn.style.background = 'rgba(0,0,0,0.7)';
+            downloadBtn.style.borderColor = 'rgba(255,255,255,1)';
+            downloadBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.7)';
+        };
+        downloadBtn.onmouseout = () => {
+            downloadBtn.style.background = 'rgba(0,0,0,0.5)';
+            downloadBtn.style.borderColor = 'rgba(255,255,255,0.9)';
+            downloadBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+        };
+        downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.downloadPhotoPoint(photoPointId);
+        };
+        
+        const img = document.createElement('img');
+        img.src = photoPoint.imageData;
+        img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+        img.onclick = (e) => e.stopPropagation();
+        
+        modal.appendChild(closeBtn);
+        modal.appendChild(downloadBtn);
+        modal.appendChild(img);
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        };
+        document.body.appendChild(modal);
+    }
+
+    // Create georeferenced image file for sharing/downloading
+    async createGeoreferencedImageFile(photoPoint) {
+        return new Promise((resolve, reject) => {
+            // Get drone data for additional metadata
+            const droneData = this.currentDroneData;
+            const droneName = this.currentDroneName || 'Unknown Drone';
+            const altitude = droneData?.altitude_asl || droneData?.altitude_ahl || null;
+            const bearing = droneData?.bearing || null;
+            const pitch = droneData?.pitch || null;
+            const battery = droneData?.battery_percent || null;
+
+            // Create image from data URL
+            const img = new Image();
+            img.onload = () => {
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                // Convert to JPEG for EXIF support (PNG doesn't support EXIF)
+                canvas.toBlob((blob) => {
+                    // Read blob as array buffer
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        try {
+                            // Get timestamp from photo point
+                            const timestamp = new Date(photoPoint.timestamp);
+                            const year = timestamp.getFullYear();
+                            const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+                            const day = String(timestamp.getDate()).padStart(2, '0');
+                            const hours = String(timestamp.getHours()).padStart(2, '0');
+                            const minutes = String(timestamp.getMinutes()).padStart(2, '0');
+                            const seconds = String(timestamp.getSeconds()).padStart(2, '0');
+                            const dateStr = `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
+
+                            // Prepare EXIF data
+                            const zeroth = {};
+                            const exif = {};
+                            const gps = {};
+
+                            // Basic image info
+                            zeroth[piexif.ImageIFD.Make] = "Eagle Eyes";
+                            zeroth[piexif.ImageIFD.Model] = droneName;
+                            zeroth[piexif.ImageIFD.Software] = "Eagle Eyes Viewer";
+                            zeroth[piexif.ImageIFD.DateTime] = dateStr;
+                            zeroth[piexif.ImageIFD.ImageDescription] = `Eagle Eyes Photo Point: ${photoPoint.name}`;
+
+                            // EXIF data
+                            exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
+                            exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
+
+                            // GPS data
+                            // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
+                            const toDMS = (decimal) => {
+                                const abs = Math.abs(decimal);
+                                const deg = Math.floor(abs);
+                                const minFloat = (abs - deg) * 60;
+                                const min = Math.floor(minFloat);
+                                const sec = (minFloat - min) * 60;
+                                // Return as [numerator, denominator] pairs
+                                return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
+                            };
+
+                            const latDMS = toDMS(photoPoint.lat);
+                            const lngDMS = toDMS(photoPoint.lng);
+
+                            gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
+                            gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
+                            gps[piexif.GPSIFD.GPSLatitude] = latDMS;
+                            gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
+                            gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
+                            
+                            if (altitude !== null) {
+                                gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level
+                                gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100];
+                            }
+
+                            // Additional drone metadata in UserComment
+                            let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
+                            userComment += `Drone: ${droneName}\n`;
+                            userComment += `Location: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}\n`;
+                            if (altitude !== null) userComment += `Altitude: ${altitude.toFixed(1)}m\n`;
+                            if (bearing !== null) userComment += `Bearing: ${bearing.toFixed(1)}°\n`;
+                            if (pitch !== null) userComment += `Pitch: ${pitch.toFixed(1)}°\n`;
+                            if (battery !== null) userComment += `Battery: ${battery.toFixed(0)}%\n`;
+                            exif[piexif.ExifIFD.UserComment] = userComment;
+
+                            // Create EXIF string
+                            const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
+                            const exifStr = piexif.dump(exifObj);
+
+                            // Insert EXIF into JPEG
+                            const jpegData = piexif.insert(exifStr, reader.result);
+
+                            // Create blob and file
+                            const blob = new Blob([jpegData], { type: 'image/jpeg' });
+                            const fileName = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                            const file = new File([blob], fileName, { type: 'image/jpeg' });
+                            
+                            resolve(file);
+                        } catch (error) {
+                            console.error('Error adding EXIF data:', error);
+                            // Fallback: create file without EXIF
+                            const fileName = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                            const file = new File([blob], fileName, { type: 'image/jpeg' });
+                            resolve(file);
+                        }
+                    };
+                    reader.readAsArrayBuffer(blob);
+                }, 'image/jpeg', 0.95); // Use JPEG with high quality
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = photoPoint.imageData;
+        });
+    }
+
+    // Share photo point
+    async sharePhotoPoint(photoPointId) {
+        console.log('sharePhotoPoint called with ID:', photoPointId);
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) {
+            console.error('Photo point not found:', photoPointId);
+            alert('Photo point not found');
+            return;
+        }
+
+        // Detect if we're on mobile (touch device with small screen)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (window.innerWidth <= 768 && 'ontouchstart' in window);
+
+        // Create georeferenced image file
+        try {
+            const georeferencedFile = await this.createGeoreferencedImageFile(photoPoint);
+            
+            // On mobile, use native share with the image file
+            if (isMobile && navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `Eagle Eyes Photo Point: ${photoPoint.name}`,
+                        text: `Check out this georeferenced photo from Eagle Eyes: ${photoPoint.name}`,
+                        files: [georeferencedFile]
+                    });
+                    // Don't show toast on mobile when native share succeeds
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.log('Mobile share failed:', err);
+                        // Fallback: trigger download
+                        const url = URL.createObjectURL(georeferencedFile);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = georeferencedFile.name;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                }
+            } else {
+                // Desktop: trigger download of the georeferenced image
+                const url = URL.createObjectURL(georeferencedFile);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = georeferencedFile.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('Error creating georeferenced image:', error);
+            alert('Failed to create georeferenced image for sharing');
+        }
+    }
+
+    // Remove photo point
+    removePhotoPoint(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+
+        // Confirm deletion
+        if (!confirm(`Are you sure you want to remove photo point "${photoPoint.name}"?`)) {
+            return;
+        }
+
+        // Remove marker from map
+        const marker = this.photoPointMarkers[photoPointId];
+        if (marker && this.map) {
+            this.map.removeLayer(marker);
+        }
+
+        // Remove from storage
+        this.photoPoints = this.photoPoints.filter(p => p.id !== photoPointId);
+        delete this.photoPointMarkers[photoPointId];
+        this.savePhotoPointsToStorage();
+    }
+
+    // Copy photo point URL to clipboard and open it
+    async copyPhotoPointUrlAndOpen(photoPointId) {
+        console.log('copyPhotoPointUrlAndOpen called with ID:', photoPointId);
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) {
+            console.error('Photo point not found:', photoPointId);
+            alert('Photo point not found');
+            return;
+        }
+
+        // Generate share URL - clean URL, force map view
+        const currentUrl = new URL(window.location.href);
+        // Remove all existing query parameters
+        currentUrl.search = '';
+        // Add only photo point parameters
+        currentUrl.searchParams.set('photoPoint', photoPointId);
+        currentUrl.searchParams.set('view', 'map'); // Force map view mode
+        currentUrl.searchParams.set('zoom', '18');
+        currentUrl.searchParams.set('lat', photoPoint.lat);
+        currentUrl.searchParams.set('lng', photoPoint.lng);
+        const shareUrl = currentUrl.toString();
+        
+        console.log('Share URL generated:', shareUrl);
+
+        // Copy to clipboard
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            console.log('URL copied to clipboard successfully');
+            // Show toast notification
+            this.showPhotoPointUrlCopiedToast();
+        } catch (err) {
+            console.log('Clipboard API failed, using fallback:', err);
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = shareUrl;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            try {
+                document.execCommand('copy');
+                console.log('URL copied using fallback method');
+                // Show toast notification
+                this.showPhotoPointUrlCopiedToast();
+            } catch (fallbackErr) {
+                console.error('Fallback copy failed:', fallbackErr);
+                alert('Failed to copy URL. Please copy manually: ' + shareUrl);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // Open the URL in a new tab/window
+        window.open(shareUrl, '_blank');
+    }
+
+    // Copy photo point URL to clipboard
+    copyPhotoPointUrl(url) {
+        console.log('copyPhotoPointUrl called with URL:', url);
+        navigator.clipboard.writeText(url).then(() => {
+            console.log('URL copied to clipboard successfully');
+            // Show toast notification
+            this.showPhotoPointUrlCopiedToast();
+        }).catch((err) => {
+            console.log('Clipboard API failed, using fallback:', err);
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            try {
+                document.execCommand('copy');
+                console.log('URL copied using fallback method');
+                // Show toast notification
+                this.showPhotoPointUrlCopiedToast();
+            } catch (fallbackErr) {
+                console.error('Fallback copy failed:', fallbackErr);
+                alert('Failed to copy URL. Please copy manually: ' + url);
+            }
+            document.body.removeChild(textarea);
+        });
+    }
+
+    // Show toast notification for copied URL
+    showPhotoPointUrlCopiedToast() {
+        console.log('showPhotoPointUrlCopiedToast called');
+        const toastElement = document.getElementById('photoPointUrlCopiedToast');
+        if (!toastElement) {
+            console.error('Toast element not found');
+            // Fallback: show alert
+            alert('URL copied to clipboard!');
+            return;
+        }
+        
+        console.log('Toast element found, showing...');
+        
+        // Remove the !important display:none from inline styles by removing the style attribute and re-adding
+        toastElement.removeAttribute('style');
+        
+        // Use Bootstrap toast API if available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            try {
+                // Dispose any existing toast instance
+                const existingToast = bootstrap.Toast.getInstance(toastElement);
+                if (existingToast) {
+                    existingToast.dispose();
+                }
+                
+                // Set position and z-index before showing
+                toastElement.style.position = 'fixed';
+                toastElement.style.top = '80px';
+                toastElement.style.right = '20px';
+                toastElement.style.zIndex = '10005'; // Higher than Leaflet popups (1000)
+                
+                const toast = new bootstrap.Toast(toastElement, {
+                    autohide: true,
+                    delay: 2000 // 2 seconds as requested
+                });
+                toast.show();
+                console.log('Bootstrap toast shown');
+            } catch (err) {
+                console.error('Error showing Bootstrap toast:', err);
+                // Fallback: manual display
+                this.showToastManually(toastElement);
+            }
+        } else {
+            console.log('Bootstrap not available, using manual display');
+            // Fallback: manual display
+            this.showToastManually(toastElement);
+        }
+    }
+    
+    // Manual toast display fallback
+    showToastManually(toastElement) {
+        // Remove inline styles that might have !important
+        toastElement.removeAttribute('style');
+        
+        // Set all styles fresh
+        toastElement.style.cssText = 'position: fixed !important; top: 80px !important; right: 20px !important; z-index: 10005 !important; width: auto !important; min-width: 280px !important; display: block !important; opacity: 1 !important; visibility: visible !important;';
+        
+        // Auto-hide after 2 seconds
+        setTimeout(() => {
+            toastElement.style.display = 'none';
+        }, 2000);
+    }
+
+    // Download photo point with geotagging
+    downloadPhotoPoint(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+
+        // Get drone data for additional metadata
+        const droneData = this.currentDroneData;
+        const droneName = this.currentDroneName || 'Unknown Drone';
+        const altitude = droneData?.altitude_asl || droneData?.altitude_ahl || null;
+        const bearing = droneData?.bearing || null;
+        const pitch = droneData?.pitch || null;
+        const battery = droneData?.battery_percent || null;
+
+        // Create image from data URL
+        const img = new Image();
+        img.onload = () => {
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            // Convert to JPEG for EXIF support (PNG doesn't support EXIF)
+            canvas.toBlob((blob) => {
+                // Read blob as array buffer
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        // Get current date/time in EXIF format: "YYYY:MM:DD HH:MM:SS"
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const hours = String(now.getHours()).padStart(2, '0');
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const seconds = String(now.getSeconds()).padStart(2, '0');
+                        const dateStr = `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
+
+                        // Prepare EXIF data
+                        const zeroth = {};
+                        const exif = {};
+                        const gps = {};
+
+                        // Basic image info
+                        zeroth[piexif.ImageIFD.Make] = "Eagle Eyes";
+                        zeroth[piexif.ImageIFD.Model] = droneName;
+                        zeroth[piexif.ImageIFD.Software] = "Eagle Eyes Viewer";
+                        zeroth[piexif.ImageIFD.DateTime] = dateStr;
+                        zeroth[piexif.ImageIFD.ImageDescription] = `Eagle Eyes Photo Point: ${photoPoint.name}`;
+
+                        // EXIF data
+                        exif[piexif.ExifIFD.DateTimeOriginal] = dateStr;
+                        exif[piexif.ExifIFD.DateTimeDigitized] = dateStr;
+
+                        // GPS data
+                        // Convert decimal degrees to degrees, minutes, seconds (DMS format for EXIF)
+                        const toDMS = (decimal) => {
+                            const abs = Math.abs(decimal);
+                            const deg = Math.floor(abs);
+                            const minFloat = (abs - deg) * 60;
+                            const min = Math.floor(minFloat);
+                            const sec = (minFloat - min) * 60;
+                            // Return as [numerator, denominator] pairs
+                            return [[deg, 1], [min, 1], [Math.round(sec * 100), 100]];
+                        };
+
+                        const latDMS = toDMS(photoPoint.lat);
+                        const lngDMS = toDMS(photoPoint.lng);
+
+                        gps[piexif.GPSIFD.GPSVersionID] = [2, 3, 0, 0];
+                        gps[piexif.GPSIFD.GPSLatitudeRef] = photoPoint.lat >= 0 ? "N" : "S";
+                        gps[piexif.GPSIFD.GPSLatitude] = latDMS;
+                        gps[piexif.GPSIFD.GPSLongitudeRef] = photoPoint.lng >= 0 ? "E" : "W";
+                        gps[piexif.GPSIFD.GPSLongitude] = lngDMS;
+                        
+                        if (altitude !== null) {
+                            gps[piexif.GPSIFD.GPSAltitudeRef] = 0; // 0 = above sea level
+                            gps[piexif.GPSIFD.GPSAltitude] = [Math.round(altitude * 100), 100];
+                        }
+
+                        // Additional drone metadata in UserComment
+                        let userComment = `Eagle Eyes Photo Point: ${photoPoint.name}\n`;
+                        userComment += `Drone: ${droneName}\n`;
+                        userComment += `Location: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}\n`;
+                        if (altitude !== null) userComment += `Altitude: ${altitude.toFixed(1)}m\n`;
+                        if (bearing !== null) userComment += `Bearing: ${bearing.toFixed(1)}°\n`;
+                        if (pitch !== null) userComment += `Pitch: ${pitch.toFixed(1)}°\n`;
+                        if (battery !== null) userComment += `Battery: ${battery}%\n`;
+                        userComment += `Timestamp: ${now.toISOString()}`;
+
+                        exif[piexif.ExifIFD.UserComment] = userComment;
+
+                        // Create EXIF string
+                        const exifObj = { "0th": zeroth, "Exif": exif, "GPS": gps };
+                        const exifStr = piexif.dump(exifObj);
+
+                        // Insert EXIF into JPEG
+                        const jpegData = piexif.insert(exifStr, reader.result);
+
+                        // Create blob and download
+                        const blob = new Blob([jpegData], { type: 'image/jpeg' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    } catch (error) {
+                        console.error('Error adding EXIF data:', error);
+                        // Fallback: download without EXIF
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `EagleEyes_${photoPoint.name.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                };
+                reader.readAsArrayBuffer(blob);
+            }, 'image/jpeg', 0.95); // Use JPEG with high quality
+        };
+        img.src = photoPoint.imageData;
+    }
+
+    // Load photo points from localStorage with IndexedDB fallback
+    async loadPhotoPointsFromStorage() {
+        try {
+            const stored = localStorage.getItem('eagleEyesPhotoPoints');
+            if (stored) {
+                this.photoPoints = JSON.parse(stored);
+                console.log('Loaded photo points from localStorage:', this.photoPoints.length);
+                
+                // If some points are missing imageData, try to load from IndexedDB
+                const missingImages = this.photoPoints.filter(pp => !pp.imageData);
+                if (missingImages.length > 0) {
+                    console.log('Some photo points missing images, attempting to load from IndexedDB...');
+                    try {
+                        const indexedDBPoints = await this.loadPhotoPointsFromIndexedDB();
+                        // Merge imageData from IndexedDB
+                        indexedDBPoints.forEach(idbPoint => {
+                            const localPoint = this.photoPoints.find(pp => pp.id === idbPoint.id);
+                            if (localPoint && !localPoint.imageData && idbPoint.imageData) {
+                                localPoint.imageData = idbPoint.imageData;
+                            }
+                        });
+                        // Save merged data back
+                        this.savePhotoPointsToStorage();
+                    } catch (err) {
+                        console.warn('Could not load from IndexedDB:', err);
+                    }
+                }
+                
+                // Recreate markers for all photo points
+                this.photoPoints.forEach(photoPoint => {
+                    this.addPhotoPointMarker(photoPoint);
+                });
+            } else {
+                // No localStorage data, try IndexedDB
+                console.log('No localStorage data, attempting IndexedDB...');
+                try {
+                    const indexedDBPoints = await this.loadPhotoPointsFromIndexedDB();
+                    if (indexedDBPoints.length > 0) {
+                        this.photoPoints = indexedDBPoints;
+                        // Save to localStorage for faster access next time
+                        this.savePhotoPointsToStorage();
+                        // Recreate markers
+                        this.photoPoints.forEach(photoPoint => {
+                            this.addPhotoPointMarker(photoPoint);
+                        });
+                        console.log('Loaded photo points from IndexedDB:', this.photoPoints.length);
+                    }
+                } catch (err) {
+                    console.warn('Could not load from IndexedDB:', err);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load photo points from storage:', e);
+            // Try IndexedDB as last resort
+            try {
+                const indexedDBPoints = await this.loadPhotoPointsFromIndexedDB();
+                if (indexedDBPoints.length > 0) {
+                    this.photoPoints = indexedDBPoints;
+                    this.photoPoints.forEach(photoPoint => {
+                        this.addPhotoPointMarker(photoPoint);
+                    });
+                    console.log('Loaded photo points from IndexedDB (fallback):', this.photoPoints.length);
+                }
+            } catch (err) {
+                console.error('Failed to load from IndexedDB:', err);
+            }
+        }
+    }
+
+    // Save photo points to localStorage with improved persistence
+    savePhotoPointsToStorage() {
+        try {
+            const dataStr = JSON.stringify(this.photoPoints);
+            const dataSize = new Blob([dataStr]).size;
+            const maxSize = 4 * 1024 * 1024; // 4MB limit (leave room for other localStorage data)
+            
+            if (dataSize > maxSize) {
+                console.warn('Photo points data too large for localStorage, attempting to compress...');
+                // Try to save without imageData for very old points, keeping only recent ones with images
+                const recentPhotoPoints = this.photoPoints.slice(-10); // Keep last 10 with full data
+                const olderPhotoPoints = this.photoPoints.slice(0, -10).map(pp => ({
+                    ...pp,
+                    imageData: null // Remove image data from older points
+                }));
+                const compressedPoints = [...olderPhotoPoints, ...recentPhotoPoints];
+                const compressedStr = JSON.stringify(compressedPoints);
+                const compressedSize = new Blob([compressedStr]).size;
+                
+                if (compressedSize < maxSize) {
+                    localStorage.setItem('eagleEyesPhotoPoints', compressedStr);
+                    console.log('Saved compressed photo points to localStorage');
+                } else {
+                    // Still too large, keep only IDs and metadata
+                    const minimalPoints = this.photoPoints.map(pp => ({
+                        id: pp.id,
+                        name: pp.name,
+                        lat: pp.lat,
+                        lng: pp.lng,
+                        timestamp: pp.timestamp,
+                        droneName: pp.droneName,
+                        imageData: null // Remove all image data
+                    }));
+                    localStorage.setItem('eagleEyesPhotoPoints', JSON.stringify(minimalPoints));
+                    console.log('Saved minimal photo points (without images) to localStorage due to size constraints');
+                }
+            } else {
+                localStorage.setItem('eagleEyesPhotoPoints', dataStr);
+                console.log('Saved photo points to localStorage, size:', (dataSize / 1024).toFixed(2), 'KB');
+            }
+            
+            // Also try IndexedDB as backup for better persistence
+            this.savePhotoPointsToIndexedDB(this.photoPoints).catch(err => {
+                console.warn('Failed to save to IndexedDB (non-critical):', err);
+            });
+        } catch (e) {
+            if (e.name === 'QuotaExceededError' || e.code === 22) {
+                console.error('localStorage quota exceeded, attempting IndexedDB fallback...');
+                // Try IndexedDB as fallback
+                this.savePhotoPointsToIndexedDB(this.photoPoints).catch(err => {
+                    console.error('Failed to save photo points to storage:', err);
+                });
+            } else {
+                console.error('Failed to save photo points to storage:', e);
+            }
+        }
+    }
+    
+    // Save photo points to IndexedDB for better persistence
+    async savePhotoPointsToIndexedDB(photoPoints) {
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) {
+                reject(new Error('IndexedDB not supported'));
+                return;
+            }
+            
+            const request = indexedDB.open('EagleEyesPhotoPoints', 1);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['photoPoints'], 'readwrite');
+                const store = transaction.objectStore('photoPoints');
+                
+                // Clear existing data
+                store.clear();
+                
+                // Add all photo points
+                photoPoints.forEach((pp, index) => {
+                    store.add(pp, pp.id);
+                });
+                
+                transaction.oncomplete = () => {
+                    console.log('Saved photo points to IndexedDB');
+                    resolve();
+                };
+                transaction.onerror = () => reject(transaction.error);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('photoPoints')) {
+                    const objectStore = db.createObjectStore('photoPoints', { keyPath: 'id' });
+                    objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
+        });
+    }
+    
+    // Load photo points from IndexedDB (fallback)
+    async loadPhotoPointsFromIndexedDB() {
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) {
+                resolve([]);
+                return;
+            }
+            
+            const request = indexedDB.open('EagleEyesPhotoPoints', 1);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['photoPoints'], 'readonly');
+                const store = transaction.objectStore('photoPoints');
+                const getAllRequest = store.getAll();
+                
+                getAllRequest.onsuccess = () => {
+                    resolve(getAllRequest.result || []);
+                };
+                getAllRequest.onerror = () => reject(getAllRequest.error);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('photoPoints')) {
+                    const objectStore = db.createObjectStore('photoPoints', { keyPath: 'id' });
+                    objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
+        });
+    }
+
+    // Load photo point from URL parameter
+    loadPhotoPointFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const photoPointId = urlParams.get('photoPoint');
+        if (!photoPointId) return;
+
+        // Check if we should force map view mode
+        const viewMode = urlParams.get('view');
+        if (viewMode === 'map') {
+            // Switch to map view mode
+            if (typeof window.setViewMode === 'function') {
+                window.setViewMode('map');
+            }
+        }
+
+        // Try to find photo point in storage
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (photoPoint && this.map) {
+            // Get zoom level from URL or use default
+            const zoom = parseInt(urlParams.get('zoom')) || 18;
+            const lat = parseFloat(urlParams.get('lat')) || photoPoint.lat;
+            const lng = parseFloat(urlParams.get('lng')) || photoPoint.lng;
+            
+            // Zoom to photo point
+            this.map.setView([lat, lng], zoom);
+            
+            // Wait for map to finish loading, then open popup
+            const openPopup = () => {
+                const marker = this.photoPointMarkers[photoPointId];
+                if (marker) {
+                    // Ensure marker popup content is up to date
+                    marker.setPopupContent(this.generatePhotoPointPopupContent(photoPoint));
+                    marker.openPopup();
+                } else {
+                    // Marker might not exist yet, create it
+                    this.addPhotoPointMarker(photoPoint);
+                    setTimeout(() => {
+                        const newMarker = this.photoPointMarkers[photoPointId];
+                        if (newMarker) {
+                            newMarker.openPopup();
+                        }
+                    }, 500);
+                }
+            };
+            
+            // Wait for map view to settle
+            this.map.whenReady(() => {
+                setTimeout(openPopup, 1000);
+            });
+            
+            // Also try after a longer delay in case whenReady doesn't fire
+            setTimeout(openPopup, 2000);
         }
     }
 
@@ -6143,7 +7892,7 @@ class DroneMap {
         if (!this.map) return false;
 
         if (droneId === 'current-drone' && this.currentLocation) {
-            this.map.setView(this.currentLocation, 16, { animate: true });
+            this.map.setView(this.currentLocation, 18, { animate: true });
             return true;
         }
 
@@ -6152,14 +7901,14 @@ class DroneMap {
         const location = telemetry?.state?.drone_gps_location;
 
         if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
-            this.map.setView([location.lat, location.lng], 16, { animate: true });
+            this.map.setView([location.lat, location.lng], 18, { animate: true });
             return true;
         }
 
         const entry = window.overviewState?.entries?.[droneId];
         const entryTelemetry = entry?.telemetry;
         if (entryTelemetry && typeof entryTelemetry.latitude === 'number' && typeof entryTelemetry.longitude === 'number') {
-            this.map.setView([entryTelemetry.latitude, entryTelemetry.longitude], 16, { animate: true });
+            this.map.setView([entryTelemetry.latitude, entryTelemetry.longitude], 18, { animate: true });
             return true;
         }
 

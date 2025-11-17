@@ -707,6 +707,8 @@ class WebRTCViewer {
       videoPanel.classList.add('col-12');
     }
     if (coordStripContainer) coordStripContainer.style.display = 'none';
+    
+    // Photo points control is always visible now
   }
 
   showStreaming() {
@@ -779,6 +781,8 @@ class WebRTCViewer {
         }
       }, 100);
     }
+    
+    // Photo points control is always visible now
   }
 
   retryConnection() {
@@ -1505,13 +1509,15 @@ class WebRTCViewer {
     }
 
     // Update desktop coordinate strip (segmented format for responsive hiding)
+    // Priority: coordinates (1), drone name (2), battery (3), others (4+)
     const coordSegmentsDesktop = document.getElementById("coordinateSegmentsDesktop");
     if (coordSegmentsDesktop) {
       coordSegmentsDesktop.innerHTML = `
-        <span data-coordinate-segment>🌐 ${latFormatted},${lonFormatted}</span>
-        <span data-coordinate-segment>↑🏠 ${altAhlText}</span>
-        <span data-coordinate-segment>↑${altSecondLabel} ${altSecondText}</span>
-        <span data-coordinate-segment>🧭${bearing.toFixed(0)}°</span>
+        <span data-coordinate-segment data-priority="1">🌐 ${latFormatted},${lonFormatted}</span>
+        <span data-coordinate-segment data-priority="4">↑🏠 ${altAhlText}</span>
+        <span data-coordinate-segment data-priority="5">↑${altSecondLabel} ${altSecondText}</span>
+        <span data-coordinate-segment data-priority="6">🧭${bearing.toFixed(0)}°</span>
+        <span data-coordinate-segment data-segment-type="battery" data-priority="3" style="white-space: nowrap; flex-shrink: 0;">🔋 Battery: N/A</span>
       `;
     }
 
@@ -1519,12 +1525,16 @@ class WebRTCViewer {
     const coordSegmentsMap = document.getElementById("coordinateSegmentsMap");
     if (coordSegmentsMap) {
       coordSegmentsMap.innerHTML = `
-        <span data-coordinate-segment>🌐 ${latFormatted},${lonFormatted}</span>
-        <span data-coordinate-segment>↑🏠 ${altAhlText}</span>
-        <span data-coordinate-segment>↑${altSecondLabel} ${altSecondText}</span>
-        <span data-coordinate-segment>🧭${bearing.toFixed(0)}°</span>
+        <span data-coordinate-segment data-priority="1">🌐 ${latFormatted},${lonFormatted}</span>
+        <span data-coordinate-segment data-priority="4">↑🏠 ${altAhlText}</span>
+        <span data-coordinate-segment data-priority="5">↑${altSecondLabel} ${altSecondText}</span>
+        <span data-coordinate-segment data-priority="6">🧭${bearing.toFixed(0)}°</span>
+        <span data-coordinate-segment data-segment-type="battery" data-priority="3" style="white-space: nowrap; flex-shrink: 0;">🔋 Battery: N/A</span>
       `;
     }
+    
+    // Update battery display after setting up segments
+    this.updateDroneNameDisplay();
 
     if (window.updateCoordinateSegmentVisibility) {
       window.updateCoordinateSegmentVisibility();
@@ -1542,11 +1552,24 @@ class WebRTCViewer {
   }
 
   updateDroneNameDisplay() {
-    const name = this.currentPublisherName ? `Drone: ${this.currentPublisherName}` : 'Drone: N/A';
+    const name = this.currentPublisherName ? this.currentPublisherName : 'N/A';
+    
+    // Get battery percentage from current location data
+    const batteryPercent = this.currentLocation?.battery_percent;
+    const batteryText = batteryPercent != null ? `🔋 Battery: ${batteryPercent}%` : '🔋 Battery: N/A';
+    
+    // Update drone name (without "Drone:" prefix and without battery)
     ['coordinateDroneNameDesktop', 'coordinateDroneNameMap'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.textContent = name;
     });
+    
+    // Update battery as separate segment with priority
+    const batterySegments = document.querySelectorAll('[data-segment-type="battery"]');
+    batterySegments.forEach(el => {
+      el.textContent = batteryText;
+    });
+    
     const dialogName = document.getElementById("dialogDroneName");
     if (dialogName) dialogName.textContent = name;
   }
