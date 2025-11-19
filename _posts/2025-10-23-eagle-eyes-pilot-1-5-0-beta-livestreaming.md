@@ -6,7 +6,7 @@ date: 2025-10-23 09:00:00 -0800
 author: Eagle Eyes Team
 permalink: /blog/eagle-eyes-pilot-1-5-0-beta-livestreaming
 categories: product-updates pilot livestreaming
-published: false
+published: true
 ---
 <br>
 Eagle Eyes Pilot version 1.5.0 Beta is now live. This release includes:
