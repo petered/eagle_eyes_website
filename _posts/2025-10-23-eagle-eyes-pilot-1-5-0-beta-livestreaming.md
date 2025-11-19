@@ -2,7 +2,7 @@
 layout: post
 title: "Eagle Eyes Pilot 1.5.0 Beta - Livestreaming has arrived"
 image: "images/blog/ee-livestream.png"
-date: 2025-10-23 09:00:00 -0800
+date: 2025-11-19 09:00:00 -0800
 author: Eagle Eyes Team
 permalink: /blog/eagle-eyes-pilot-1-5-0-beta-livestreaming
 categories: product-updates pilot livestreaming
