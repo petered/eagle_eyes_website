@@ -101,6 +101,12 @@ So whether your drones are flying in different locations or all on separate hots
 
 No more repeated logins. Eagle Eyes Pilot now supports <a href="https://training.caltopo.com/all_users/team-accounts/teamapi" target="_blank">CalTopo service accounts</a>, letting you link each of your team's drone controllers to your CalTopo account once during setup, no sign-ins required after that. You can set a default map the controller will always connect to, and instantly switch to a new map by scanning the CalTopo QR code with the drone's camera without needing to sign into CalTopo on the drone controller again. From that moment on, your drone will live track into that map.
 
+<div style="max-width: 80%; margin: 40px auto 20px auto;">
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
+<iframe src="https://www.youtube.com/embed/AcoXas2zgsY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
+</div>
+</div>
+
 <br>
 <br>
 ## Field-focused improvements since 1.3.1
