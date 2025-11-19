@@ -7,6 +7,39 @@ author: Eagle Eyes Team
 permalink: /blog/eagle-eyes-pilot-1-5-0-beta-livestreaming
 categories: product-updates pilot livestreaming
 ---
+
+<style>
+.download-button {
+    background: #007bff;
+    color: white !important;
+    border: none;
+    border-radius: 8px;
+    padding: 25px 15px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin: 40px 0;
+    line-height: 1.2;
+    width: auto;
+}
+
+.download-button:hover {
+    background: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
+.download-button-container {
+    text-align: center;
+    margin: 25px 0 0 0;
+}
+</style>
+
 <br>
 Eagle Eyes Pilot version 1.5.0 Beta is now live. This release includes:
 
@@ -19,7 +52,10 @@ Eagle Eyes Pilot version 1.5.0 Beta is now live. This release includes:
 
 You can install the Beta <img src="{{ '/images/eagle-eyes-beta-logo.png' | relative_url }}" alt="Beta badge" style="height: 26px; vertical-align: middle; margin: 0 4px;"> alongside the latest Stable <img src="{{ '/images/Eagle Eyes Logo.png' | relative_url }}" alt="Stable badge" style="height: 26px; vertical-align: middle; margin: 0 4px;"> version on the same device. Our licenses are per-device, so running multiple versions of Eagle Eyes Pilot on the same device won't use an additional license.
 
-<br>
+<div class="download-button-container">
+    <a href="https://www.eagleeyessearch.com/download/" target="_blank" class="download-button">Download Eagle Eyes Pilot 1.5.0 Beta</a>
+</div>
+
 ## Livestreaming
 
 This first beta release of Eagle Eyes Livestreaming works only while flying your DJI drone in Eagle Eyes Pilot, and supports up to three remote viewers. That means three separate devices can watch the drone's live stream at the same time.
