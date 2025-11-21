@@ -2019,6 +2019,111 @@ class DroneMap {
         this.photoPointsPopup.className = 'measurement-popup'; // Reuse measurement popup styles
         
         // Generate list of photo points
+        // Get timezone for photo point info display
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const timezoneMap = {
+            // Pacific
+            'America/Vancouver': 'Pacific',
+            'America/Los_Angeles': 'Pacific',
+            'America/Tijuana': 'Pacific',
+            'America/Santa_Isabel': 'Pacific',
+            'America/Dawson': 'Pacific',
+            'America/Whitehorse': 'Pacific',
+            // Mountain
+            'America/Denver': 'Mountain',
+            'America/Phoenix': 'Mountain',
+            'America/Boise': 'Mountain',
+            'America/Edmonton': 'Mountain',
+            'America/Yellowknife': 'Mountain',
+            'America/Inuvik': 'Mountain',
+            'America/Dawson_Creek': 'Mountain',
+            'America/Fort_Nelson': 'Mountain',
+            'America/Creston': 'Mountain',
+            'America/Chihuahua': 'Mountain',
+            'America/Mazatlan': 'Mountain',
+            'America/Hermosillo': 'Mountain',
+            'America/Shiprock': 'Mountain',
+            // Central
+            'America/Chicago': 'Central',
+            'America/Mexico_City': 'Central',
+            'America/Winnipeg': 'Central',
+            'America/Regina': 'Central',
+            'America/Swift_Current': 'Central',
+            'America/Menominee': 'Central',
+            'America/Indiana/Knox': 'Central',
+            'America/Indiana/Tell_City': 'Central',
+            'America/Indiana/Petersburg': 'Central',
+            'America/Indiana/Marengo': 'Central',
+            'America/Indiana/Winamac': 'Central',
+            'America/North_Dakota/Center': 'Central',
+            'America/North_Dakota/New_Salem': 'Central',
+            'America/North_Dakota/Beulah': 'Central',
+            'America/Rainy_River': 'Central',
+            'America/Resolute': 'Central',
+            'America/Rankin_Inlet': 'Central',
+            'America/Merida': 'Central',
+            'America/Monterrey': 'Central',
+            'America/Bahia_Banderas': 'Central',
+            'America/Belize': 'Central',
+            'America/Costa_Rica': 'Central',
+            'America/El_Salvador': 'Central',
+            'America/Guatemala': 'Central',
+            'America/Managua': 'Central',
+            'America/Tegucigalpa': 'Central',
+            // Eastern
+            'America/New_York': 'Eastern',
+            'America/Toronto': 'Eastern',
+            'America/Montreal': 'Eastern',
+            'America/Detroit': 'Eastern',
+            'America/Indianapolis': 'Eastern',
+            'America/Louisville': 'Eastern',
+            'America/Kentucky/Louisville': 'Eastern',
+            'America/Kentucky/Monticello': 'Eastern',
+            'America/Indiana/Indianapolis': 'Eastern',
+            'America/Indiana/Vincennes': 'Eastern',
+            'America/Nipigon': 'Eastern',
+            'America/Thunder_Bay': 'Eastern',
+            'America/Iqaluit': 'Eastern',
+            'America/Pangnirtung': 'Eastern',
+            'America/Atikokan': 'Eastern',
+            'America/Philadelphia': 'Eastern',
+            'America/Boston': 'Eastern',
+            'America/Pittsburgh': 'Eastern',
+            'America/Cleveland': 'Eastern',
+            'America/Cancun': 'Eastern',
+            'America/Panama': 'Eastern',
+            'America/Bogota': 'Eastern',
+            'America/Port-au-Prince': 'Eastern',
+            'America/Havana': 'Eastern',
+            'America/Jamaica': 'Eastern',
+            'America/Cayman': 'Eastern',
+            'America/Nassau': 'Eastern',
+            'America/Turks_and_Caicos': 'Eastern',
+            // Atlantic
+            'America/Halifax': 'Atlantic',
+            'America/Glace_Bay': 'Atlantic',
+            'America/Moncton': 'Atlantic',
+            'America/Goose_Bay': 'Atlantic',
+            'America/Blanc-Sablon': 'Atlantic',
+            'America/Puerto_Rico': 'Atlantic',
+            'America/St_Thomas': 'Atlantic',
+            'America/Santo_Domingo': 'Atlantic',
+            // Newfoundland
+            'America/St_Johns': 'Newfoundland',
+            // Alaska
+            'America/Anchorage': 'Alaska',
+            'America/Juneau': 'Alaska',
+            'America/Sitka': 'Alaska',
+            'America/Metlakatla': 'Alaska',
+            'America/Yakutat': 'Alaska',
+            'America/Nome': 'Alaska',
+            // Hawaii
+            'Pacific/Honolulu': 'Hawaii',
+            'America/Adak': 'Hawaii-Aleutian',
+            'Pacific/Midway': 'Hawaii-Aleutian'
+        };
+        const timezoneDisplay = timezoneMap[timezone] || timezone.split('/').pop().replace(/_/g, ' ');
+
         const photoPointsList = this.photoPoints.length > 0
             ? this.photoPoints.map(pp => {
                 const date = new Date(pp.timestamp);
@@ -2026,8 +2131,13 @@ class DroneMap {
                 const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 return `
                     <div class="photo-point-list-item" data-photo-point-id="${pp.id}" style="padding: 10px; margin-bottom: 8px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb'">
-                        <div style="font-weight: 600; font-size: 12px; color: #374151; margin-bottom: 4px;">${pp.name}</div>
-                        <div style="font-size: 10px; color: #6b7280;">${dateStr} ${timeStr}</div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                            <div style="font-weight: 600; font-size: 12px; color: #374151; flex: 1;">${pp.name}</div>
+                            <button class="photo-point-info-btn" data-photo-point-id="${pp.id}" style="background: #6c757d; border: 1px solid #5a6268; color: white; padding: 2px 4px; font-size: 0.7rem; line-height: 1; border-radius: 3px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" title="Info">
+                                <i class="bi bi-info" style="font-size: 0.75rem;"></i>
+                            </button>
+                        </div>
+                        <div style="font-size: 10px; color: #6b7280;">${dateStr} ${timeStr} (${timezoneDisplay})</div>
                         <div style="font-size: 10px; color: #6b7280;">${pp.lat.toFixed(6)}, ${pp.lng.toFixed(6)}</div>
                     </div>
                 `;
@@ -2089,10 +2199,40 @@ class DroneMap {
         // Add click handlers for photo point list items
         const listItems = this.photoPointsPopup.querySelectorAll('.photo-point-list-item');
         listItems.forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                // Don't navigate if clicking the info button
+                if (e.target.closest('.photo-point-info-btn')) {
+                    return;
+                }
                 const photoPointId = item.getAttribute('data-photo-point-id');
                 this.zoomToPhotoPoint(photoPointId);
                 this.closePhotoPointsPopup();
+            });
+        });
+
+        // Add click handlers for info buttons
+        const infoButtons = this.photoPointsPopup.querySelectorAll('.photo-point-info-btn');
+        infoButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const photoPointId = btn.getAttribute('data-photo-point-id');
+                const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+                if (photoPoint) {
+                    const date = new Date(photoPoint.timestamp);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    alert(`Photo Point: ${photoPoint.name}\nDrone: ${photoPoint.droneName || 'Unknown'}\nTaken: ${timeStr} ${dateStr} (${timezoneDisplay})\nLocation: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}`);
+                }
+            });
+
+            // Add hover effects
+            btn.addEventListener('mouseover', function() {
+                this.style.background = '#5a6268';
+                this.style.borderColor = '#495057';
+            });
+            btn.addEventListener('mouseout', function() {
+                this.style.background = '#6c757d';
+                this.style.borderColor = '#5a6268';
             });
         });
 
