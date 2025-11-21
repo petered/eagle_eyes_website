@@ -2140,10 +2140,10 @@ class DroneMap {
             : '<div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">No photo points yet</div>';
         
         this.photoPointsPopup.innerHTML = `
-            <div class="measurement-popup__header">
-                <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+            <div class="measurement-popup__header" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 6px;">
                     <div class="measurement-popup__title">Photo Points</div>
-                    <button id="photoPointsHeaderInfoBtn" class="measurement-popup__close" type="button" aria-label="Photo points info" style="background: #6c757d; border: 1px solid #5a6268; color: white; padding: 2px 4px; width: 20px; height: 20px; margin: 0; font-size: 0.8rem;">
+                    <button id="photoPointsHeaderInfoBtn" type="button" aria-label="Photo points info" style="background: #6c757d; border: 1px solid #5a6268; color: white; padding: 2px 4px; width: 20px; height: 20px; margin: 0; font-size: 0.8rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
                         <i class="bi bi-info" style="font-size: 0.8rem;"></i>
                     </button>
                 </div>
@@ -2211,7 +2211,11 @@ class DroneMap {
         if (headerInfoBtn) {
             headerInfoBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                alert('Photo Points Widget\n\nCapture photos from the drone livestream and save them as geotagged photo points on the map.\n\nFeatures:\n• Name and save photos\n• View all captured photos\n• Export with GPS coordinates\n• Share with others\n• Timestamps show in your local timezone');
+                const infoModal = document.getElementById('photoPointInfoModal');
+                if (infoModal) {
+                    const bsModal = new bootstrap.Modal(infoModal);
+                    bsModal.show();
+                }
             });
 
             // Add hover effects
