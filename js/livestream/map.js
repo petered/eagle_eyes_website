@@ -2068,17 +2068,16 @@ class DroneMap {
         `;
         
         mapContainer.appendChild(this.photoPointsPopup);
-        this.positionPhotoPointsPopup();
-        
+
         // Add scrollable popup interactions to prevent map dragging (same as basemap popup)
         this.attachScrollablePopupInteractions(this.photoPointsPopup);
-        
+
         // Add event listeners
         const closeButton = this.photoPointsPopup.querySelector('#closePhotoPointsBtn');
         if (closeButton) {
             closeButton.addEventListener('click', () => this.closePhotoPointsPopup());
         }
-        
+
         const addButton = this.photoPointsPopup.querySelector('#addPhotoPointBtn');
         if (addButton) {
             addButton.addEventListener('click', () => {
@@ -2086,7 +2085,7 @@ class DroneMap {
                 this.addPhotoPoint();
             });
         }
-        
+
         // Add click handlers for photo point list items
         const listItems = this.photoPointsPopup.querySelectorAll('.photo-point-list-item');
         listItems.forEach(item => {
@@ -2096,11 +2095,17 @@ class DroneMap {
                 this.closePhotoPointsPopup();
             });
         });
-        
-        // Handle resize
-        this.photoPointsPopupResizeHandler = () => this.positionPhotoPointsPopup();
+
+        // Handle resize with dynamic sizing
+        if (this.photoPointsPopupResizeHandler) {
+            window.removeEventListener('resize', this.photoPointsPopupResizeHandler);
+            window.removeEventListener('orientationchange', this.photoPointsPopupResizeHandler);
+        }
+        this.photoPointsPopupResizeHandler = () => this.updatePhotoPointsPopupSizing();
         window.addEventListener('resize', this.photoPointsPopupResizeHandler);
         window.addEventListener('orientationchange', this.photoPointsPopupResizeHandler);
+        this.updatePhotoPointsPopupSizing();
+        requestAnimationFrame(() => this.updatePhotoPointsPopupSizing());
     }
     
     positionPhotoPointsPopup() {
@@ -2135,7 +2140,89 @@ class DroneMap {
             this.photoPointsPopup.style.zIndex = '1000';
         }
     }
-    
+
+    updatePhotoPointsPopupSizing() {
+        if (!this.photoPointsPopup) return;
+        const mapContainer = this.map ? this.map.getContainer() : null;
+        if (!mapContainer) return;
+
+        const containerRect = mapContainer.getBoundingClientRect();
+        const containerHeight = containerRect.height || mapContainer.clientHeight || 0;
+        const containerWidth = containerRect.width || mapContainer.clientWidth || 0;
+        const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
+
+        const candidateHeights = [];
+        if (containerHeight > 0) {
+            candidateHeights.push(containerHeight - 24);
+        }
+        if (viewportHeight > 0) {
+            candidateHeights.push(viewportHeight - 120);
+        }
+
+        let desiredHeight = 300;
+        const positiveCandidates = candidateHeights.filter(value => Number.isFinite(value) && value > 0);
+        if (positiveCandidates.length > 0) {
+            const smallestCandidate = Math.min(...positiveCandidates);
+            if (smallestCandidate >= 180) {
+                desiredHeight = Math.min(smallestCandidate, 500);
+            } else {
+                desiredHeight = Math.max(160, smallestCandidate);
+            }
+        } else if (containerHeight > 0) {
+            const available = containerHeight - 24;
+            desiredHeight = available >= 180 ? Math.min(available, 500) : Math.max(160, available);
+        } else if (viewportHeight > 0) {
+            const available = viewportHeight - 120;
+            desiredHeight = available >= 180 ? Math.min(available, 500) : Math.max(160, available);
+        }
+
+        if (containerHeight > 0) {
+            const containerCap = Math.max(160, containerHeight - 16);
+            desiredHeight = Math.min(desiredHeight, containerCap);
+        }
+
+        const finalHeight = Math.max(160, desiredHeight);
+        this.photoPointsPopup.style.maxHeight = `${finalHeight}px`;
+
+        if (containerWidth > 0) {
+            const widthAvailable = containerWidth - 16;
+            if (widthAvailable > 0) {
+                if (widthAvailable >= 200) {
+                    const resolvedWidth = Math.min(widthAvailable, 320);
+                    this.photoPointsPopup.style.width = `${resolvedWidth}px`;
+                } else {
+                    this.photoPointsPopup.style.width = '';
+                }
+            } else {
+                this.photoPointsPopup.style.width = '';
+            }
+        } else {
+            this.photoPointsPopup.style.width = '';
+        }
+
+        const computedStyle = window.getComputedStyle(this.photoPointsPopup);
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+        const headerEl = this.photoPointsPopup.querySelector('.measurement-popup__header');
+        const contentEl = this.photoPointsPopup.querySelector('.measurement-popup__content');
+
+        if (contentEl) {
+            const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+            const extraSpacing = 12;
+            const contentAvailable = Math.max(120, finalHeight - headerHeight - paddingTop - paddingBottom - extraSpacing);
+            contentEl.style.maxHeight = `${contentAvailable}px`;
+            contentEl.style.overflowY = 'auto';
+            contentEl.style.webkitOverflowScrolling = 'touch';
+        }
+
+        if (containerHeight > 0) {
+            const defaultTop = window.innerWidth <= 768 ? 12 : 50;
+            const maxTop = Math.max(8, containerHeight - finalHeight - 12);
+            const computedTop = Math.min(defaultTop, maxTop);
+            this.photoPointsPopup.style.top = `${computedTop}px`;
+        }
+    }
+
     closePhotoPointsPopup() {
         if (this.photoPointsPopupResizeHandler) {
             window.removeEventListener('resize', this.photoPointsPopupResizeHandler);
