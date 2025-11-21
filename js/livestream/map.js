@@ -2131,12 +2131,7 @@ class DroneMap {
                 const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 return `
                     <div class="photo-point-list-item" data-photo-point-id="${pp.id}" style="padding: 10px; margin-bottom: 8px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb'">
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                            <div style="font-weight: 600; font-size: 12px; color: #374151; flex: 1;">${pp.name}</div>
-                            <button class="photo-point-info-btn" data-photo-point-id="${pp.id}" style="background: #6c757d; border: 1px solid #5a6268; color: white; padding: 2px 4px; font-size: 0.7rem; line-height: 1; border-radius: 3px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" title="Info">
-                                <i class="bi bi-info" style="font-size: 0.75rem;"></i>
-                            </button>
-                        </div>
+                        <div style="font-weight: 600; font-size: 12px; color: #374151; margin-bottom: 4px;">${pp.name}</div>
                         <div style="font-size: 10px; color: #6b7280;">${dateStr} ${timeStr} (${timezoneDisplay})</div>
                         <div style="font-size: 10px; color: #6b7280;">${pp.lat.toFixed(6)}, ${pp.lng.toFixed(6)}</div>
                     </div>
@@ -2146,7 +2141,12 @@ class DroneMap {
         
         this.photoPointsPopup.innerHTML = `
             <div class="measurement-popup__header">
-                <div class="measurement-popup__title">Photo Points</div>
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+                    <div class="measurement-popup__title">Photo Points</div>
+                    <button id="photoPointsHeaderInfoBtn" class="measurement-popup__close" type="button" aria-label="Photo points info" style="background: #6c757d; border: 1px solid #5a6268; color: white; padding: 2px 4px; width: 20px; height: 20px; margin: 0; font-size: 0.8rem;">
+                        <i class="bi bi-info" style="font-size: 0.8rem;"></i>
+                    </button>
+                </div>
                 <button id="closePhotoPointsBtn" class="measurement-popup__close" type="button" aria-label="Close photo points panel">×</button>
             </div>
             <div class="measurement-popup__content">
@@ -2199,42 +2199,31 @@ class DroneMap {
         // Add click handlers for photo point list items
         const listItems = this.photoPointsPopup.querySelectorAll('.photo-point-list-item');
         listItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                // Don't navigate if clicking the info button
-                if (e.target.closest('.photo-point-info-btn')) {
-                    return;
-                }
+            item.addEventListener('click', () => {
                 const photoPointId = item.getAttribute('data-photo-point-id');
                 this.zoomToPhotoPoint(photoPointId);
                 this.closePhotoPointsPopup();
             });
         });
 
-        // Add click handlers for info buttons
-        const infoButtons = this.photoPointsPopup.querySelectorAll('.photo-point-info-btn');
-        infoButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Add click handler for header info button
+        const headerInfoBtn = this.photoPointsPopup.querySelector('#photoPointsHeaderInfoBtn');
+        if (headerInfoBtn) {
+            headerInfoBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const photoPointId = btn.getAttribute('data-photo-point-id');
-                const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
-                if (photoPoint) {
-                    const date = new Date(photoPoint.timestamp);
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-                    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    alert(`Photo Point: ${photoPoint.name}\nDrone: ${photoPoint.droneName || 'Unknown'}\nTaken: ${timeStr} ${dateStr} (${timezoneDisplay})\nLocation: ${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}`);
-                }
+                alert('Photo Points Widget\n\nCapture photos from the drone livestream and save them as geotagged photo points on the map.\n\nFeatures:\n• Name and save photos\n• View all captured photos\n• Export with GPS coordinates\n• Share with others\n• Timestamps show in your local timezone');
             });
 
             // Add hover effects
-            btn.addEventListener('mouseover', function() {
+            headerInfoBtn.addEventListener('mouseover', function() {
                 this.style.background = '#5a6268';
                 this.style.borderColor = '#495057';
             });
-            btn.addEventListener('mouseout', function() {
+            headerInfoBtn.addEventListener('mouseout', function() {
                 this.style.background = '#6c757d';
                 this.style.borderColor = '#5a6268';
             });
-        });
+        }
 
         // Handle resize with dynamic sizing
         if (this.photoPointsPopupResizeHandler) {
