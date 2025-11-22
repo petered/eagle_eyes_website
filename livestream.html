@@ -448,6 +448,13 @@ permalink: /livestream/
       body.video-fullscreen-mode .navbar {
         display: none !important;
       }
+      /* Logo display control for fullscreen mode */
+      #videoFullscreenLogo {
+        display: none !important;
+      }
+      body.video-fullscreen-mode #videoFullscreenLogo {
+        display: block !important;
+      }
       /* Hide video fullscreen button when video panel is hidden */
       #video-panel.d-none #videoFullscreenBtn {
         display: none !important;
@@ -3576,8 +3583,8 @@ permalink: /livestream/
             </a>
           </div>
           <video id="remoteVideo" autoplay playsinline muted></video>
-          <!-- Eagle Eyes Logo for fullscreen video mode -->
-          <img id="videoFullscreenLogo" src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="position: absolute; bottom: 12px; right: 12px; height: 40px; opacity: 0.4; display: none; z-index: 99; border-radius: 4px;">
+          <!-- Eagle Eyes Logo for fullscreen video mode - top left -->
+          <img id="videoFullscreenLogo" src="{{ '/images/eagle-eyes-beta-logo-new.png' | relative_url }}" alt="Eagle Eyes Logo" style="position: absolute; top: 12px; left: 12px; height: 40px; opacity: 0.4; z-index: 99; border-radius: 4px;">
           <div class="play-overlay" id="playOverlay" onclick="resumeVideo()">
             <i class="bi bi-play-fill"></i>
           </div>
@@ -4212,34 +4219,30 @@ permalink: /livestream/
         if (window.droneMap) window.droneMap.centerOnDrone();
       }
 
-      // Toggle video fullscreen mode (hides navbar, keeps coordinate bar)
+      // Toggle video fullscreen mode (hides navbar, shows logo, keeps coordinate bar)
       function toggleVideoFullscreen() {
         const body = document.body;
         const btn = document.getElementById('videoFullscreenBtn');
         const icon = document.getElementById('videoFullscreenIcon');
-        const navbar = document.querySelector('.navbar');
-        const logo = document.getElementById('videoFullscreenLogo');
 
         if (!btn || !icon) return;
 
         const isFullscreen = body.classList.contains('video-fullscreen-mode');
 
         if (isFullscreen) {
-          // Exit fullscreen - show navbar and hide logo
+          // Exit fullscreen - show navbar, hide logo
           body.classList.remove('video-fullscreen-mode');
           icon.classList.remove('bi-fullscreen-exit');
           icon.classList.add('bi-arrows-fullscreen');
           btn.setAttribute('title', 'Enter fullscreen video view');
           btn.setAttribute('aria-label', 'Enter fullscreen video view');
-          if (logo) logo.style.display = 'none';
         } else {
-          // Enter fullscreen - hide navbar and show logo
+          // Enter fullscreen - hide navbar, show logo
           body.classList.add('video-fullscreen-mode');
           icon.classList.remove('bi-arrows-fullscreen');
           icon.classList.add('bi-fullscreen-exit');
           btn.setAttribute('title', 'Exit fullscreen video view');
           btn.setAttribute('aria-label', 'Exit fullscreen video view');
-          if (logo) logo.style.display = 'block';
         }
       }
 

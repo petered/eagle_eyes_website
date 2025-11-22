@@ -5467,11 +5467,11 @@ class DroneMap {
         if (this.dronePopupRelativeTimer) {
             return;
         }
-        // Update immediately, then start interval
+        // Update immediately, then start interval (every 5 seconds to avoid jittering)
         this.updateDronePopupRelativeTime();
         this.dronePopupRelativeTimer = setInterval(() => {
             this.updateDronePopupRelativeTime();
-        }, 1000);
+        }, 5000);
     }
 
     stopDronePopupRelativeTimer() {
