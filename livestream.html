@@ -4887,11 +4887,15 @@ permalink: /livestream/
       let wasDisconnected = false;
       let viewerGeoData = { country: '', region: '' };
       let publisherGeoData = { country: '', region: '' };
+      let publisherDroneName = '';
       let livestreamId = '';
       let viewerName = '';
       let viewerEmail = '';
       let viewerCount = 0;
       let streamActive = false;
+      let connectionStatus = '';
+      let connectionErrorCode = '';
+      let connectionErrorReason = '';
       
       // Get or generate persistent viewer ID from localStorage
       function getViewerId() {
@@ -5129,6 +5133,11 @@ permalink: /livestream/
         // Only include disconnected_at for stream_disconnected events
         const shouldIncludeDisconnectedAt = payload.event_type === 'stream_disconnected';
         
+        // Get current publisher drone name from livestream session metadata
+        if (window.viewer && window.viewer.currentPublisherName) {
+          publisherDroneName = window.viewer.currentPublisherName;
+        }
+        
         const fullPayload = {
           timestamp_iso: timestampIso,
           timestamp_pacific: timestampPacific,
@@ -5140,14 +5149,18 @@ permalink: /livestream/
           viewer_device: parseViewerDevice(),
           viewer_country: payload.viewer_country || viewerGeoData.country || '',
           viewer_region: payload.viewer_region || viewerGeoData.region || '',
-          publisher_country: payload.publisher_country || publisherGeoData.country || '',
-          publisher_region: payload.publisher_region || publisherGeoData.region || '',
+          publisher_country: payload.publisher_country !== undefined ? payload.publisher_country : publisherGeoData.country || '',
+          publisher_region: payload.publisher_region !== undefined ? payload.publisher_region : publisherGeoData.region || '',
+          publisher_drone_name: payload.publisher_drone_name !== undefined ? payload.publisher_drone_name : publisherDroneName || '',
           connected_at: shouldIncludeConnectedAt ? (payload.connected_at || connectedAt || '') : '',
           disconnected_at: shouldIncludeDisconnectedAt ? (payload.disconnected_at || streamDisconnectedAt || '') : '',
           view_duration_ms: payload.view_duration_ms || 0,
           view_duration_readable: String(formatDuration(payload.view_duration_ms || 0)), // Ensure it's a string for Excel
           reconnected: payload.reconnected !== undefined ? payload.reconnected : false,
-          viewer_count: payload.viewer_count !== undefined ? payload.viewer_count : currentViewerCount
+          viewer_count: payload.viewer_count !== undefined ? payload.viewer_count : currentViewerCount,
+          connection_status: payload.connection_status !== undefined ? payload.connection_status : connectionStatus || '',
+          connection_error_code: payload.connection_error_code !== undefined ? payload.connection_error_code : connectionErrorCode || '',
+          connection_error_reason: payload.connection_error_reason !== undefined ? payload.connection_error_reason : connectionErrorReason || ''
         };
         
         // Send POST request (ignore response, use no-cors)
@@ -5171,6 +5184,11 @@ permalink: /livestream/
         streamActive = true;
         streamActivatedAt = new Date().toISOString();
         connectedAt = streamActivatedAt; // Set connected_at only for stream_activated
+        
+        // Set connection status
+        connectionStatus = 'connected';
+        connectionErrorCode = '';
+        connectionErrorReason = '';
         
         // Get current livestream ID
         if (window.viewer && window.viewer.currentRoomId) {
@@ -5211,7 +5229,10 @@ permalink: /livestream/
           event_type: 'stream_activated',
           connected_at: streamActivatedAt,
           livestream_id: livestreamId,
-          reconnected: isReconnecting
+          reconnected: isReconnecting,
+          connection_status: 'connected',
+          connection_error_code: '',
+          connection_error_reason: ''
         });
         
         // Reset disconnect tracking
@@ -5227,6 +5248,11 @@ permalink: /livestream/
         streamDisconnectedAt = new Date().toISOString();
         const viewDurationMs = streamActivatedAt ? (Date.now() - new Date(streamActivatedAt).getTime()) : 0;
         
+        // Set connection status
+        connectionStatus = 'disconnected';
+        connectionErrorCode = '';
+        connectionErrorReason = '';
+        
         // Store previous livestream ID for reconnection detection
         previousLivestreamId = livestreamId;
         wasDisconnected = true;
@@ -5235,12 +5261,30 @@ permalink: /livestream/
           event_type: 'stream_disconnected',
           disconnected_at: streamDisconnectedAt,
           view_duration_ms: viewDurationMs,
-          livestream_id: livestreamId
+          livestream_id: livestreamId,
+          connection_status: 'disconnected',
+          connection_error_code: '',
+          connection_error_reason: ''
         });
         
         // Clear connected_at since stream is disconnected
         connectedAt = null;
         streamActivatedAt = null;
+      }
+      
+      // Track connection failure
+      function trackConnectionFailed(errorCode, errorReason) {
+        connectionStatus = 'failed';
+        connectionErrorCode = errorCode || '';
+        connectionErrorReason = errorReason || '';
+        
+        sendAnalyticsEvent({
+          event_type: 'connection_failed',
+          livestream_id: livestreamId,
+          connection_status: 'failed',
+          connection_error_code: connectionErrorCode,
+          connection_error_reason: connectionErrorReason
+        });
       }
       
       // Initialize analytics on page load
@@ -5309,8 +5353,15 @@ permalink: /livestream/
         setTimeout(() => clearInterval(checkViewerInfo), 60000);
         
         // Send page visit event (no connected_at for page visit)
+        connectionStatus = '';
+        connectionErrorCode = '';
+        connectionErrorReason = '';
+        
         sendAnalyticsEvent({
-          event_type: 'page_visit'
+          event_type: 'page_visit',
+          connection_status: '',
+          connection_error_code: '',
+          connection_error_reason: ''
         });
         
         // Monitor for stream activation (when video starts playing)
@@ -5344,11 +5395,43 @@ permalink: /livestream/
           });
         }
         
-        // Monitor WebRTC connection state changes
+        // Monitor publisher name and drone name
+        const monitorPublisherInfo = setInterval(() => {
+          if (window.viewer) {
+            if (window.viewer.currentPublisherName) {
+              publisherDroneName = window.viewer.currentPublisherName;
+            }
+          }
+        }, 1000);
+        
+        // Stop monitoring after 5 minutes
+        setTimeout(() => clearInterval(monitorPublisherInfo), 300000);
+        
+        // Monitor WebRTC connection state changes and errors
         // Wait for viewer to be initialized, then hook into events
         const checkViewerReady = setInterval(() => {
           if (window.viewer) {
             clearInterval(checkViewerReady);
+            
+            // Hook into socket error events
+            if (window.viewer.socket) {
+              const originalSocketOnError = window.viewer.socket.listeners('error')[0];
+              window.viewer.socket.on('error', (error) => {
+                if (originalSocketOnError) {
+                  originalSocketOnError.call(window.viewer, error);
+                }
+                
+                // Determine error code
+                let errorCode = 'SOCKET_ERROR';
+                if (error.code === 'ROOM_FULL') {
+                  errorCode = 'ROOM_FULL';
+                } else if (error.message === 'No publisher available') {
+                  errorCode = 'NO_PUBLISHER';
+                }
+                
+                trackConnectionFailed(errorCode, error.message || '');
+              });
+            }
             
             // Monitor peer connection state by polling (since we can't easily override)
             const monitorConnectionState = setInterval(() => {
@@ -5356,17 +5439,47 @@ permalink: /livestream/
                 const state = window.viewer.peerConnection.connectionState;
                 const video = document.getElementById('remoteVideo');
                 
+                // Update connection status
+                if (state && ['connected', 'disconnected', 'failed', 'closed', 'connecting'].includes(state)) {
+                  connectionStatus = state;
+                }
+                
                 // Check if stream is active (video playing and connection connected)
                 if (state === 'connected' && video && !video.paused && video.readyState >= 2 && !streamActive) {
                   trackStreamActivated();
                 } else if ((state === 'disconnected' || state === 'failed' || state === 'closed') && streamActive) {
                   trackStreamDisconnected(state);
+                } else if (state === 'failed' && !streamActive) {
+                  // Connection failed before stream was activated
+                  trackConnectionFailed('PEER_ERROR', `Peer connection failed: ${state}`);
                 }
               }
             }, 1000);
             
             // Stop monitoring after 5 minutes of inactivity (stream likely ended)
             setTimeout(() => clearInterval(monitorConnectionState), 300000);
+            
+            // Hook into peer connection errors if possible
+            if (window.viewer.createPeerConnection) {
+              const originalCreatePeerConnection = window.viewer.createPeerConnection;
+              window.viewer.createPeerConnection = function() {
+                originalCreatePeerConnection.call(this);
+                
+                if (this.peerConnection) {
+                  // Track peer connection errors
+                  this.peerConnection.onerror = (error) => {
+                    trackConnectionFailed('PEER_ERROR', error.message || 'Peer connection error');
+                  };
+                  
+                  // Track ICE connection failures
+                  this.peerConnection.oniceconnectionstatechange = () => {
+                    if (this.peerConnection.iceConnectionState === 'failed') {
+                      trackConnectionFailed('PEER_ERROR', 'ICE connection failed');
+                    }
+                  };
+                }
+              };
+            }
             
             // Update livestream ID when it changes
             const originalSetRoomId = window.viewer.setRoomId;
@@ -5481,6 +5594,7 @@ permalink: /livestream/
         updatePublisherLocation,
         trackStreamActivated,
         trackStreamDisconnected,
+        trackConnectionFailed,
         getViewerCount
       };
     </script>
