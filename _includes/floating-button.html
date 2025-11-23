@@ -197,8 +197,50 @@
         const questionForm = document.getElementById('questionForm');
         const questionInput = document.getElementById('questionInput');
 
+        // FAQ Analytics Tracking
+        const FAQ_TRACKING_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwoF1eGxs1D2BCYIoWZfkgwzSEKfCy4EYxj3SFlnylOVGoVKyR8ivo4BUzdKzXpzxZF/exec';
+        
+        // Generate or retrieve persistent session ID (same as FAQ page)
+        function getSessionId() {
+            let sessionId = localStorage.getItem('faq_session_id');
+            if (!sessionId) {
+                sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('faq_session_id', sessionId);
+            }
+            return sessionId;
+        }
+        
+        // Track ask question event
+        function trackAskQuestion(questionText) {
+            const eventData = {
+                event_type: 'ask_question',
+                ask_question_clicked: true,
+                ask_question_text: questionText || '',
+                page_path: location.pathname + location.search,
+                session_id: getSessionId(),
+                user_agent: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Send to FAQ analytics endpoint
+            fetch(FAQ_TRACKING_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+                body: JSON.stringify(eventData)
+            }).catch(err => {
+                // Silently fail - don't interrupt user experience
+                console.error('Analytics tracking error:', err);
+            });
+        }
+
+        // Track button click
+        let buttonClicked = false;
+        
         // Open the form
         triggerBtn.addEventListener('click', function() {
+            buttonClicked = true;
             floatingBtn.classList.remove('collapsed');
             floatingBtn.classList.add('expanded');
             questionInput.focus();
@@ -209,6 +251,7 @@
             floatingBtn.classList.remove('expanded');
             floatingBtn.classList.add('collapsed');
             questionInput.value = '';
+            buttonClicked = false;
         });
 
         // Handle form submission
@@ -217,6 +260,11 @@
 
             const query = questionInput.value.trim();
             if (query) {
+                // Track analytics event when question is submitted
+                if (buttonClicked) {
+                    trackAskQuestion(query);
+                }
+                
                 // Redirect to FAQ page with query parameter
                 const encodedQuery = encodeURIComponent(query);
                 window.location.href = '/faq?query=' + encodedQuery;
