@@ -13,8 +13,8 @@ published: true
 Eagle Eyes Pilot version 1.5.0 Beta is now live. This release includes:
 
 <ul style="margin-left: 30px; margin-top: 10px; margin-bottom: 20px;">
-<li>Wireless livestreaming from your DJI drone to up to three remote devices (viewers)</li>
-<li>Full support for CalTopo service accounts for faster, easier map access</li>
+<li><strong>Wireless livestreaming</strong> from your DJI drone to up to three remote devices (viewers)</li>
+<li>Full support for <strong>CalTopo service accounts</strong> for faster, easier map access</li>
 <li>A long list of fixes, performance improvements, and expanded capabilities</li>
 </ul>
 
@@ -56,6 +56,9 @@ You can install Eagle Eyes Pilot Beta <img src="{{ '/images/eagle-eyes-beta-logo
 
 <div class="download-button-container">
     <a href="https://www.eagleeyessearch.com/download/" target="_blank" class="download-button">Download Eagle Eyes Pilot 1.5.0 Beta</a>
+    <div style="text-align: center; margin-top: 2px;">
+        <a href="#setup-video" style="font-size: 14px; color: #007bff; text-decoration: none; font-weight: bold;">(See Eagle Eyes Pilot setup video)</a>
+    </div>
 </div>
 
 ## Livestreaming
@@ -113,12 +116,24 @@ This release includes dozens of practical upgrades based on field feedback. A fe
 - All drone tracks now go into a single "Drone Ops" folder in your CalTopo map
 
 <br>
+<strong>See this video for a ~12 minute walk through of the core Eagle Eyes Pilot features:</strong>
+
 <div style="max-width: 95%; margin: 20px auto 10px auto;">
 <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
 <iframe src="https://www.youtube.com/embed/AcoXas2zgsY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
 </div>
 </div>
 
+<br>
+<strong id="setup-video">See this ~8.5 minute Tutorial on EagleEyes Pilot Setup:</strong>
+
+<div style="max-width: 95%; margin: 20px auto;">
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
+<iframe src="https://www.youtube.com/embed/I9HXqqNuelM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"></iframe>
+</div>
+</div>
+
+<br>
 <br>
 ## Feedback or suggestions?
 
