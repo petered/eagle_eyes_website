@@ -3180,24 +3180,33 @@ permalink: /download/
         const urlParams = new URLSearchParams(window.location.search);
         const cameFromFree = urlParams.get('source') === 'free_pilot';
         
+        // Also check sessionStorage for a flag in case URL parameter is lost
+        const sessionFlag = sessionStorage.getItem('came_from_free_button') === 'true';
+        const actuallyCameFromFree = cameFromFree || sessionFlag;
+        
         let userName = '';
         let userEmail = '';
         
-        if (cameFromFree) {
+        if (actuallyCameFromFree) {
             // Try to get from sessionStorage (set by geteagleeyes form)
             userName = sessionStorage.getItem('free_download_name') || '';
             userEmail = sessionStorage.getItem('free_download_email') || '';
             console.log('[Download Analytics] Free button data retrieved:', {
                 came_from_free_button: true,
+                url_has_source_param: cameFromFree,
+                session_flag: sessionFlag,
                 user_name: userName,
-                user_email: userEmail
+                user_email: userEmail,
+                sessionStorage_keys: Object.keys(sessionStorage).filter(k => k.includes('free'))
             });
         } else {
-            console.log('[Download Analytics] Not from free button');
+            console.log('[Download Analytics] Not from free button. URL source param:', cameFromFree, 'Session flag:', sessionFlag);
+            console.log('[Download Analytics] Current URL:', window.location.href);
+            console.log('[Download Analytics] SessionStorage keys:', Object.keys(sessionStorage));
         }
         
         return {
-            came_from_free_button: cameFromFree,
+            came_from_free_button: actuallyCameFromFree,
             user_name: userName,
             user_email: userEmail
         };
@@ -3239,6 +3248,7 @@ permalink: /download/
         
         // Get free button data
         const freeButtonData = getFreeButtonData();
+        console.log('[Download Analytics] Free button data at download time:', freeButtonData);
         
         // Ensure geo lookup resolves before building payload
         let geoData = userGeoData;
@@ -3486,6 +3496,16 @@ permalink: /download/
     document.addEventListener('DOMContentLoaded', function() {
         handleHashNavigation();
         handleURLParameters();
+        
+        // Check if user came from free button on page load
+        const freeButtonData = getFreeButtonData();
+        if (freeButtonData.came_from_free_button) {
+            console.log('[Download Analytics] Page loaded - User came from free button');
+            console.log('[Download Analytics] Stored data available:', {
+                user_name: freeButtonData.user_name,
+                user_email: freeButtonData.user_email
+            });
+        }
     });
     
     // Check hash on hash change
