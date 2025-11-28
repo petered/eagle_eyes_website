@@ -109,14 +109,16 @@ Open the file `_data/faqs.yml` and add a new entry following this structure:
 
 **Required Fields:**
 - **`id`** - The unique identifier (lowercase, hyphens only)
-- **`emoji`** - A single emoji that visually represents the topic
+- **`emoji`** - A single emoji that visually represents the topic. **Important:** Each emoji must be unique across all FAQs - no duplicate emoji symbols should be used.
 - **`question`** - The FAQ question text (plain text)
 - **`pages`** - An array specifying which pages should display this FAQ
 - **`content`** - The answer content (can include HTML)
 
-**Optional Fields (but recommended for better search):**
-- **`alternates`** - Alternative ways users might ask this question
-- **`tags`** - Keywords related to the FAQ topic
+**Required Fields for Search (must be included):**
+- **`search.alternates`** - Alternative ways users might ask this question (2-4 natural phrasings)
+- **`search.tags`** - Keywords related to the FAQ topic (3-8 relevant keywords)
+
+**Note:** Search metadata is required for all FAQs. The validation script will fail if `alternates` or `tags` are missing.
 
 #### Understanding the `pages` Field
 
@@ -141,9 +143,9 @@ The `pages` field controls where your FAQ appears:
   pages: [scan, product2]
 ```
 
-### Step 3: Add Search Metadata (Alternates & Tags)
+### Step 3: Add Search Metadata (Alternates & Tags) - REQUIRED
 
-While the `alternates` and `tags` fields are optional, adding them significantly improves search functionality.
+**Important:** The `alternates` and `tags` fields are **required** for all FAQs. The validation script will fail if they are missing. These fields are essential for optimal search functionality.
 
 #### What are ALTERNATES?
 
@@ -360,6 +362,7 @@ Here's a complete FAQ entry with multiple components:
 ### DON'T:
 
 - **Reuse IDs** from other FAQ items (must be unique)
+- **Reuse emoji symbols** - each FAQ must have a unique emoji (no duplicate unicode symbols across FAQs)
 - **Edit faq.html directly** - always edit `_data/faqs.yml` instead
 - **Use spaces in IDs** - use hyphens instead (e.g., `free-trial`, not `free trial`)
 - **Forget to set the `pages` field** - even if it's just `[]`
@@ -443,28 +446,73 @@ After adding or modifying FAQs, test the following:
 
 ### Automated Validation
 
-Run the validation script before committing:
+**Run the validation script before committing** - it will show errors in your terminal:
 
 ```bash
 python3 validate_faq_structure.py
 ```
 
-**The script checks:**
-- No duplicate IDs across all FAQs
-- All required fields are present
-- Proper structure and formatting
-- Share button functionality (when rendered)
-- Search metadata coverage
-- YAML syntax is valid
+**Where to see the output:** The validation results appear in your terminal/command line window where you run the script.
 
-**Expected output:**
+**The script checks:**
+- ✅ No duplicate IDs across all FAQs
+- ✅ No duplicate emoji symbols (each FAQ must have a unique emoji)
+- ✅ All required fields are present (id, emoji, question, pages, content)
+- ✅ **Search metadata is required** (alternates and tags must be present)
+- ✅ YAML syntax is valid
+
+**Example output when validation passes:**
 ```
-✓ All FAQ items have unique IDs
-✓ All FAQ items have proper structure
-✓ All share buttons reference valid IDs
-✓ Search metadata coverage: X/31 items
-✓ No structural issues found
+🔍 Validating FAQ Structure...
+
+============================================================
+
+✅ Found 41 FAQ items
+✅ YAML syntax is valid
+✅ No duplicate IDs found
+✅ No duplicate emoji symbols found
+✅ All FAQ items have required fields
+✅ All FAQ items have search metadata (alternates and tags)
+
+============================================================
+
+📊 VALIDATION SUMMARY:
+   Total FAQ Items: 41
+   Unique IDs: 41
+   Unique Emojis: 41
+   Search Metadata Coverage: 41/41 (100%)
+
+✅ All validations passed! FAQ structure is perfect.
+   ✓ All 41 FAQs have unique IDs
+   ✓ All 41 FAQs have unique emojis
+   ✓ All 41 FAQs have required fields
+   ✓ All 41 FAQs have search metadata
 ```
+
+**Example output when validation fails:**
+```
+❌ DUPLICATE EMOJI SYMBOLS FOUND:
+   - Emoji '📹' is used 2 times
+     → FAQ #15 (id: 'scan-live-video-analysis'): How do I use Eagle Eyes Scan...
+     → FAQ #18 (id: 'dji-pilot-gps-tracking'): How to make sure the drone GPS...
+
+   ⚠️  Each FAQ must have a unique emoji symbol!
+   Please change one of the duplicate emojis to a different symbol.
+
+❌ MISSING SEARCH METADATA (REQUIRED):
+   Search metadata (alternates and tags) is required for all FAQs...
+   
+   FAQs missing search metadata:
+   - FAQ 'purchase-license': How do I purchase an Eagle Eyes license?...
+     ❌ Missing: alternates, tags
+     → Add 'alternates' field with 2-4 natural phrasings of the question
+     → Add 'tags' field with 3-8 relevant keywords
+
+❌ ISSUES FOUND: Duplicate emoji symbols: 1, Missing search metadata: 1
+Please fix the issues above before deploying.
+```
+
+**Important:** The script will exit with an error code (1) if issues are found, preventing deployment until fixed.
 
 ### Local Development Testing
 
@@ -1023,11 +1071,11 @@ When adding a new FAQ question, check off each item:
 
 - [ ] Created a unique, descriptive ID (lowercase, hyphens)
 - [ ] Added entry to `_data/faqs.yml` with all required fields
-- [ ] Set `emoji` with an appropriate icon
+- [ ] Set `emoji` with a unique icon (check no other FAQ uses the same emoji)
 - [ ] Wrote clear, concise `question` text
 - [ ] Set `pages` array appropriately ([] for FAQ only, [scan] for FAQ + scan page)
-- [ ] Added `alternates` with 2-4 natural phrasings of the question
-- [ ] Added `tags` with 3-8 relevant keywords
+- [ ] **Added `search.alternates` with 2-4 natural phrasings of the question (REQUIRED)**
+- [ ] **Added `search.tags` with 3-8 relevant keywords (REQUIRED)**
 - [ ] Wrote complete `content` using proper HTML
 - [ ] Tested locally with `bundle exec jekyll serve`
 - [ ] Verified question expands/collapses correctly
