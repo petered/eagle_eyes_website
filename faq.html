@@ -1000,7 +1000,17 @@ function showEmailCopyNotification() {
     
     // Send event to tracking endpoint
     function sendEvent(eventData) {
-        const fullData = { ...getCommonData(), ...eventData };
+        // Get current search text at the time of event dispatch
+        const searchInput = document.getElementById('faq-search-input');
+        const searchTextAtEvent = searchInput ? searchInput.value.trim() : currentSearchText;
+        
+        // Build full data with search tracking fields
+        const fullData = { 
+            ...getCommonData(), 
+            ...eventData,
+            faq_search_used: searchTextAtEvent.length > 0, // true if search bar has non-empty text
+            faq_search_text: searchTextAtEvent // latest search text (or empty string if cleared)
+        };
         const payload = JSON.stringify(fullData);
         
         // Send to Google Apps Script endpoint
@@ -1016,15 +1026,18 @@ function showEmailCopyNotification() {
         });
     }
     
-    // Track search events
+    // Track search events and search bar usage
     let searchStartTime = null;
+    let currentSearchText = ''; // Track current search text for faq_search_text field
     
     function trackSearch() {
         const searchInput = document.getElementById('faq-search-input');
         if (!searchInput) return;
         
+        // Track any input in the search bar (for faq_search_used and faq_search_text)
         searchInput.addEventListener('input', function(e) {
             const query = e.target.value.trim();
+            currentSearchText = query; // Update current search text
             
             if (query.length > 2) { // Only track searches with 3+ characters
                 // Debounce search tracking
@@ -1042,6 +1055,14 @@ function showEmailCopyNotification() {
                     searchStartTime = Date.now();
                 }, 1000); // Wait 1 second after typing stops
             }
+        });
+        
+        // Track when search bar is cleared
+        // The input event already handles clearing (when query.trim() is empty)
+        // But we also update on blur to ensure we capture the final state
+        searchInput.addEventListener('blur', function(e) {
+            const query = e.target.value.trim();
+            currentSearchText = query; // Update to final value (empty if cleared)
         });
     }
     
@@ -1067,6 +1088,7 @@ function showEmailCopyNotification() {
                 question_id: questionId,
                 question_title: questionTitle,
                 time_to_click_ms: timeToClick
+                // faq_search_used and faq_search_text are added automatically by sendEvent
             });
         });
     }
@@ -1093,6 +1115,7 @@ function showEmailCopyNotification() {
                 link_url: linkUrl,
                 question_id: questionId,
                 question_title: questionTitle
+                // faq_search_used and faq_search_text are added automatically by sendEvent
             });
         });
     }
