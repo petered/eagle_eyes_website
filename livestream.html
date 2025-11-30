@@ -5062,6 +5062,43 @@ permalink: /livestream/
         return { country: '', region: '' };
       }
       
+      // Calculate approximate coordinates from region name using geocoding
+      // This anonymizes the location to the region center rather than exact location
+      async function getRegionCoordinates(regionName, countryName) {
+        if (!regionName || !countryName) {
+          return { lat: '', lng: '' };
+        }
+        
+        try {
+          // Use OpenStreetMap Nominatim for forward geocoding (region name -> coordinates)
+          // This gives us the approximate center of the region, anonymizing the exact location
+          const query = encodeURIComponent(`${regionName}, ${countryName}`);
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&addressdetails=1`,
+            {
+              headers: {
+                'User-Agent': 'EagleEyes-Viewer/1.0' // Required by Nominatim
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.length > 0) {
+              const result = data[0];
+              return {
+                lat: parseFloat(result.lat),
+                lng: parseFloat(result.lon)
+              };
+            }
+          }
+        } catch (err) {
+          console.log('[Analytics] Region geocoding failed:', err);
+        }
+        
+        return { lat: '', lng: '' };
+      }
+      
       // Update publisher location when drone coordinates are available
       let publisherLocationUpdatePending = false;
       async function updatePublisherLocation(lat, lng) {
@@ -5121,7 +5158,7 @@ permalink: /livestream/
       }
       
       // Send analytics event
-      function sendAnalyticsEvent(payload) {
+      async function sendAnalyticsEvent(payload) {
         const timestampIso = new Date().toISOString();
         const timestampPacific = toPacific(timestampIso);
         
@@ -5138,24 +5175,60 @@ permalink: /livestream/
           publisherDroneName = window.viewer.currentPublisherName;
         }
         
+        // Get viewer and publisher region data
+        const viewerCountry = payload.viewer_country || viewerGeoData.country || '';
+        const viewerRegion = payload.viewer_region || viewerGeoData.region || '';
+        const publisherCountry = payload.publisher_country !== undefined ? payload.publisher_country : publisherGeoData.country || '';
+        const publisherRegion = payload.publisher_region !== undefined ? payload.publisher_region : publisherGeoData.region || '';
+        
+        // Calculate livestream_type from livestream_id length
+        // Use the same livestreamId variable that was being sent as livestream_id before
+        // Also check payload.livestream_id and window.viewer.currentRoomId as fallbacks
+        const idToCheck = payload.livestream_id || livestreamId || (window.viewer && window.viewer.currentRoomId) || '';
+        
+        // Compute livestream_type based on ID length - MUST be computed before building payload
+        let livestreamType = '';
+        if (idToCheck && typeof idToCheck === 'string' && idToCheck.length > 0) {
+          const idLength = idToCheck.length;
+          if (idLength === 8) {
+            livestreamType = 'unique';
+          } else if (idLength === 10) {
+            livestreamType = 'permalink';
+          }
+          console.log('[Analytics] ✓ Livestream ID found:', idToCheck, 'Length:', idLength, '→ Type:', livestreamType);
+        } else {
+          console.log('[Analytics] ✗ No valid livestream ID found.');
+          console.log('[Analytics]   - payload.livestream_id:', payload.livestream_id);
+          console.log('[Analytics]   - livestreamId variable:', livestreamId);
+          console.log('[Analytics]   - window.viewer.currentRoomId:', window.viewer?.currentRoomId);
+          livestreamType = ''; // Explicitly set to empty string
+        }
+        
+        // Get region coordinates (anonymized to region center)
+        const viewerCoords = await getRegionCoordinates(viewerRegion, viewerCountry);
+        const publisherCoords = await getRegionCoordinates(publisherRegion, publisherCountry);
+        
         const fullPayload = {
           timestamp_iso: timestampIso,
           timestamp_pacific: timestampPacific,
           event_type: payload.event_type || '',
-          livestream_id: payload.livestream_id || livestreamId || '',
+          livestream_id: idToCheck, // Send livestream_id so Google Script can compute livestream_type from length
           viewer_id: getViewerId(),
           viewer_name: payload.viewer_name !== undefined ? payload.viewer_name : viewerName,
           viewer_email: payload.viewer_email !== undefined ? payload.viewer_email : viewerEmail,
           viewer_device: parseViewerDevice(),
-          viewer_country: payload.viewer_country || viewerGeoData.country || '',
-          viewer_region: payload.viewer_region || viewerGeoData.region || '',
-          publisher_country: payload.publisher_country !== undefined ? payload.publisher_country : publisherGeoData.country || '',
-          publisher_region: payload.publisher_region !== undefined ? payload.publisher_region : publisherGeoData.region || '',
+          viewer_country: viewerCountry,
+          viewer_region: viewerRegion,
+          viewer_region_lat: viewerCoords.lat || '',
+          viewer_region_lng: viewerCoords.lng || '',
+          publisher_country: publisherCountry,
+          publisher_region: publisherRegion,
+          publisher_region_lat: publisherCoords.lat || '',
+          publisher_region_lng: publisherCoords.lng || '',
           publisher_drone_name: payload.publisher_drone_name !== undefined ? payload.publisher_drone_name : publisherDroneName || '',
           connected_at: shouldIncludeConnectedAt ? (payload.connected_at || connectedAt || '') : '',
           disconnected_at: shouldIncludeDisconnectedAt ? (payload.disconnected_at || streamDisconnectedAt || '') : '',
           view_duration_ms: payload.view_duration_ms || 0,
-          view_duration_readable: String(formatDuration(payload.view_duration_ms || 0)), // Ensure it's a string for Excel
           reconnected: payload.reconnected !== undefined ? payload.reconnected : false,
           viewer_count: payload.viewer_count !== undefined ? payload.viewer_count : currentViewerCount,
           connection_status: payload.connection_status !== undefined ? payload.connection_status : connectionStatus || '',
@@ -5163,14 +5236,26 @@ permalink: /livestream/
           connection_error_reason: payload.connection_error_reason !== undefined ? payload.connection_error_reason : connectionErrorReason || ''
         };
         
+        // Debug: Log the payload to verify livestream_type is included
+        console.log('[Analytics] ===== SENDING ANALYTICS EVENT =====');
+        console.log('[Analytics] Livestream ID used:', idToCheck);
+        console.log('[Analytics] Computed livestream_type:', livestreamType);
+        console.log('[Analytics] Full payload JSON:', JSON.stringify(fullPayload, null, 2));
+        console.log('[Analytics] Payload has livestream_type field:', 'livestream_type' in fullPayload);
+        console.log('[Analytics] livestream_type value:', fullPayload.livestream_type);
+        
         // Send POST request (ignore response, use no-cors)
+        const payloadJson = JSON.stringify(fullPayload);
+        console.log('[Analytics] Sending to endpoint:', ANALYTICS_ENDPOINT);
+        console.log('[Analytics] Request body:', payloadJson);
+        
         fetch(ANALYTICS_ENDPOINT, {
           method: 'POST',
           mode: 'no-cors',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(fullPayload)
+          body: payloadJson
         }).catch(err => {
           // Silently fail - don't affect user experience
           console.log('[Analytics] Event send failed (silent):', err);
@@ -5182,6 +5267,7 @@ permalink: /livestream/
         if (streamActive) return; // Already tracked
         
         streamActive = true;
+        streamPaused = false; // Reset pause state on activation
         streamActivatedAt = new Date().toISOString();
         connectedAt = streamActivatedAt; // Set connected_at only for stream_activated
         
@@ -5240,11 +5326,64 @@ permalink: /livestream/
         streamDisconnectedAt = null;
       }
       
+      // Track stream paused (immediate tracking when video pauses)
+      let streamPaused = false;
+      let streamPausedAt = null;
+      
+      function trackStreamPaused(reason) {
+        if (!streamActive || streamPaused) return; // Not active or already paused
+        
+        streamPaused = true;
+        streamPausedAt = new Date().toISOString();
+        const viewDurationMs = streamActivatedAt ? (Date.now() - new Date(streamActivatedAt).getTime()) : 0;
+        
+        // Set connection status
+        connectionStatus = 'paused';
+        connectionErrorCode = '';
+        connectionErrorReason = reason || 'video_paused';
+        
+        sendAnalyticsEvent({
+          event_type: 'stream_paused',
+          disconnected_at: streamPausedAt,
+          view_duration_ms: viewDurationMs,
+          livestream_id: livestreamId,
+          connection_status: 'paused',
+          connection_error_code: '',
+          connection_error_reason: connectionErrorReason
+        });
+      }
+      
+      // Track when stream resumes from pause
+      function trackStreamResumed() {
+        if (!streamPaused) return; // Wasn't paused
+        
+        streamPaused = false;
+        const pauseDurationMs = streamPausedAt ? (Date.now() - new Date(streamPausedAt).getTime()) : 0;
+        
+        // Restore connection status
+        connectionStatus = 'connected';
+        connectionErrorCode = '';
+        connectionErrorReason = '';
+        
+        sendAnalyticsEvent({
+          event_type: 'stream_resumed',
+          view_duration_ms: pauseDurationMs,
+          livestream_id: livestreamId,
+          connection_status: 'connected',
+          connection_error_code: '',
+          connection_error_reason: ''
+        });
+        
+        streamPausedAt = null;
+      }
+      
       // Track stream disconnection
       function trackStreamDisconnected(reason) {
         if (!streamActive) return; // Wasn't active, don't track
         
         streamActive = false;
+        streamPaused = false; // Reset pause state on disconnect
+        streamPausedAt = null; // Clear pause timestamp
         streamDisconnectedAt = new Date().toISOString();
         const viewDurationMs = streamActivatedAt ? (Date.now() - new Date(streamActivatedAt).getTime()) : 0;
         
@@ -5377,20 +5516,25 @@ permalink: /livestream/
             }, 500);
           }, { once: false });
           
-          // Track when video ends or is paused for extended period (disconnect)
-          let pauseTimeout;
+          // Track when video is paused (immediate tracking)
           remoteVideo.addEventListener('pause', function() {
-            pauseTimeout = setTimeout(() => {
-              if (remoteVideo.paused && streamActive) {
-                trackStreamDisconnected('video_paused');
-              }
-            }, 5000); // 5 second pause = disconnect
+            if (remoteVideo.paused && streamActive) {
+              // Track pause immediately
+              trackStreamPaused('video_paused');
+              
+              // Also track as disconnect after extended pause (5 seconds)
+              setTimeout(() => {
+                if (remoteVideo.paused && streamActive && streamPaused) {
+                  trackStreamDisconnected('video_paused_extended');
+                }
+              }, 5000); // 5 second pause = disconnect
+            }
           });
           
+          // Track when video resumes from pause
           remoteVideo.addEventListener('play', function() {
-            if (pauseTimeout) {
-              clearTimeout(pauseTimeout);
-              pauseTimeout = null;
+            if (streamPaused && streamActive) {
+              trackStreamResumed();
             }
           });
         }
@@ -5406,6 +5550,33 @@ permalink: /livestream/
         
         // Stop monitoring after 5 minutes
         setTimeout(() => clearInterval(monitorPublisherInfo), 300000);
+        
+        // Monitor for location data updates stopping (when "location data not updating" message appears)
+        let lastLocationUpdateTime = null;
+        let locationDataStoppedTracked = false;
+        const monitorLocationUpdates = setInterval(() => {
+          if (window.droneMap && streamActive) {
+            // Check if disconnected banner is showing (location data not updating)
+            if (window.droneMap.isDisconnected && !locationDataStoppedTracked) {
+              // Location data has stopped updating
+              locationDataStoppedTracked = true;
+              trackStreamPaused('location_data_not_updating');
+            } else if (!window.droneMap.isDisconnected && locationDataStoppedTracked) {
+              // Location data resumed
+              locationDataStoppedTracked = false;
+              if (streamPaused) {
+                trackStreamResumed();
+              }
+            }
+          }
+          
+          if (!streamActive) {
+            clearInterval(monitorLocationUpdates);
+          }
+        }, 1000); // Check every second
+        
+        // Stop monitoring after 5 minutes
+        setTimeout(() => clearInterval(monitorLocationUpdates), 300000);
         
         // Monitor WebRTC connection state changes and errors
         // Wait for viewer to be initialized, then hook into events
@@ -5593,6 +5764,8 @@ permalink: /livestream/
         getPublisherGeoLocation,
         updatePublisherLocation,
         trackStreamActivated,
+        trackStreamPaused,
+        trackStreamResumed,
         trackStreamDisconnected,
         trackConnectionFailed,
         getViewerCount
