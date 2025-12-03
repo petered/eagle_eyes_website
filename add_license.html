@@ -562,15 +562,18 @@ permalink: /add_license/
                         }
 
                         statusSpan.html(statusMessage).removeClass('error-box info-box').addClass('success-box');
+                        scrollToStatus();
                     } catch (error) {
                         console.error("Error parsing response:", error);
                         statusSpan.html('<div class="success-box"><strong>✓ User Status Updated Successfully</strong></div>').removeClass('error-box info-box').addClass('success-box');
+                        scrollToStatus();
                     }
                     $('#createLicenseButton').removeClass('processing');
                 },
                 error: function (xhr, status, error) {
                     console.log("Error updating user status:", xhr.responseText);
                     statusSpan.html('<div class="error-box"><strong>✗ Error Updating User Status</strong><p>' + xhr.responseText + '</p></div>').removeClass('success-box info-box').addClass('error-box');
+                    scrollToStatus();
                     $('#createLicenseButton').removeClass('processing');
                 }
             });
@@ -622,9 +625,11 @@ permalink: /add_license/
                         }
 
                         statusSpan.html(licenseDataDisplay).removeClass('error-box info-box').addClass('success-box');
+                        scrollToStatus();
                     } catch (error) {
                         console.error("Error parsing license data:", error);
                         statusSpan.html('<div class="error-box"><strong>✗ Error Displaying License Information</strong><p>License may have been created but there was an error displaying it. Please check the console for details.</p></div>').removeClass('success-box info-box').addClass('error-box');
+                        scrollToStatus();
                     }
                     $('#createLicenseButton').removeClass('processing');
                 },
@@ -632,10 +637,19 @@ permalink: /add_license/
                     console.log("Error creating license:", xhr.responseText);
                     let errorMessage = xhr.responseText || 'Unknown error occurred';
                     statusSpan.html(`<div class="error-box"><strong>✗ Error Creating License</strong><p>${errorMessage}</p></div>`).removeClass('success-box info-box').addClass('error-box');
+                    scrollToStatus();
                     $('#createLicenseButton').removeClass('processing');
                 }
             });
         });
+    }
+
+    // Function to scroll to the status message
+    function scrollToStatus() {
+        const statusElement = document.getElementById('creationStatus');
+        if (statusElement && statusElement.innerHTML.trim() !== '') {
+            statusElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     function prefillEmail() {
@@ -646,10 +660,16 @@ permalink: /add_license/
         const isPurchase = urlParams.get('purchase') === 'true'; // Check for purchase=true
         const teamName = urlParams.get('team'); // Get 'team' parameter from URL
         const licenseType = urlParams.get('license_type'); // Get 'license_type' parameter from URL
-        
+        const adminPassword = urlParams.get('admin_password'); // Get 'admin_password' parameter from URL
+
         // Check if the 'emails' parameter exists and set the value of the input field
         if (email) {
             document.getElementById('emails').value = email;
+        }
+
+        // Prefill admin password if provided
+        if (adminPassword) {
+            document.getElementById('extra_security_password').value = adminPassword;
         }
         
         // Handle license_type parameter
