@@ -389,22 +389,23 @@ permalink: /add_license/
                                 setTimeout(ensureTrialLicenseIdVisibility, 200);
                             } else {
                                 console.log('User not verified as admin');
-                                $('#creationStatus').text('Access denied. You are not authorized to add licenses.');
+                                $('#creationStatus').html('<div class="error-box"><strong>✗ Access Denied</strong><p>You are not authorized to add licenses. Only admin users can access this page.</p></div>');
+                                $('#creationStatus').addClass('error-box');
                                 $('#form').hide();
                             }
                         },
                         error: function (xhr, status, error) {
                             console.error('Admin verification failed:', xhr.status, error);
-                            $('#creationStatus').html('<p>Failed to verify admin status.</p><p>Error: ' + error + '</p><p>Status: ' + xhr.status + '</p>');
+                            $('#creationStatus').html(`<div class="error-box"><strong>✗ Admin Verification Failed</strong><p>Could not verify admin status.</p><p><strong>Error:</strong> ${error}</p><p><strong>Status Code:</strong> ${xhr.status}</p></div>`);
                             $('#creationStatus').addClass('error-box');
                             // If in emulator mode, offer bypass option for testing
                             if (useLocalFirebaseEmulator) {
                                 console.log('Emulator mode detected, offering admin bypass for testing');
-                                $('#creationStatus').append('<p>Since you are in emulator mode, you can <button id="bypassAdminCheck">bypass admin check</button> for testing purposes.</p>');
+                                $('#creationStatus').append('<p style="margin-top: 10px;">Since you are in emulator mode, you can <button id="bypassAdminCheck">bypass admin check</button> for testing purposes.</p>');
                                 $('#bypassAdminCheck').on('click', function() {
                                     console.log('Admin check bypassed for emulator testing');
                                     $('#form').show();
-                                    $('#creationStatus').removeClass('error-box').addClass('info-box').text('Admin check bypassed for testing');
+                                    $('#creationStatus').removeClass('error-box').addClass('info-box').html('<div class="info-box"><strong>ℹ Admin Check Bypassed</strong><p>Running in emulator test mode.</p></div>');
                                     setTimeout(ensureTrialLicenseIdVisibility, 200);
                                 });
                             }
@@ -412,7 +413,7 @@ permalink: /add_license/
                     });
                 }).catch(function(error) {
                     console.error('Error getting ID token:', error);
-                    $('#creationStatus').html('<p>Authentication error: ' + error.message + '</p>');
+                    $('#creationStatus').html(`<div class="error-box"><strong>✗ Authentication Error</strong><p>${error.message}</p></div>`);
                     $('#creationStatus').addClass('error-box');
                 });
             });
@@ -548,28 +549,28 @@ permalink: /add_license/
                     console.log("User status updated successfully:", response);
                     try {
                         const responseData = JSON.parse(response);
-                        let statusMessage = '<div class="info-box">User status updated successfully:</div>';
-                        
+                        let statusMessage = '<div class="success-box"><strong>✓ User Status Updated Successfully</strong></div>';
+
                         if (responseData.user_status === 'approved') {
-                            statusMessage += '<p>User has been verified and approved.</p>';
+                            statusMessage += '<p>The user has been verified and approved for use.</p>';
                         } else if (responseData.user_status === 'reviewed') {
-                            statusMessage += '<p>Request has been declined and marked as reviewed.</p>';
+                            statusMessage += '<p>The trial request has been declined and marked as reviewed.</p>';
                         }
-                        
+
                         if (responseData.trial_request_id) {
-                            statusMessage += `<p>Trial Request ID: ${responseData.trial_request_id}</p>`;
+                            statusMessage += `<p>Trial Request ID: <strong>${responseData.trial_request_id}</strong></p>`;
                         }
-                        
-                        statusSpan.html(statusMessage).removeClass('error-box').addClass('info-box');
+
+                        statusSpan.html(statusMessage).removeClass('error-box info-box').addClass('success-box');
                     } catch (error) {
                         console.error("Error parsing response:", error);
-                        statusSpan.html('<div class="info-box">User status updated successfully.</div>').removeClass('error-box').addClass('info-box');
+                        statusSpan.html('<div class="success-box"><strong>✓ User Status Updated Successfully</strong></div>').removeClass('error-box info-box').addClass('success-box');
                     }
                     $('#createLicenseButton').removeClass('processing');
                 },
                 error: function (xhr, status, error) {
                     console.log("Error updating user status:", xhr.responseText);
-                    statusSpan.html('<div class="error-box">Error updating user status: ' + xhr.responseText + '</div>');
+                    statusSpan.html('<div class="error-box"><strong>✗ Error Updating User Status</strong><p>' + xhr.responseText + '</p></div>').removeClass('success-box info-box').addClass('error-box');
                     $('#createLicenseButton').removeClass('processing');
                 }
             });
@@ -594,41 +595,43 @@ permalink: /add_license/
                     console.log("License created successfully:", response);
                     try {
                         const licenseData = JSON.parse(response);
-                        let licenseDataDisplay = '<div class="info-box">License(s) created successfully:</div>';
-                        
+                        const licenseCount = Object.keys(licenseData).length;
+                        let licenseDataDisplay = `<div class="success-box"><strong>✓ License${licenseCount > 1 ? 's' : ''} Created Successfully</strong><p>${licenseCount} license${licenseCount > 1 ? 's' : ''} created.</p></div>`;
+
                         for (const licenseId in licenseData) {
                             if (licenseData.hasOwnProperty(licenseId)) {
                                 const license = licenseData[licenseId];
                                 let expiryDateStr = 'No Expiry';
-                                
+
                                 if (license.expiry_timestamp) {
                                     expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
                                 }
-                                
+
                                 const linkToViewFirestore = useLocalFirebaseEmulator
                                     ? `http://localhost:4000/firestore/default/data/licenses/${licenseId}`
                                     : `https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F${licenseId}`;
-                                
+
                                 licenseDataDisplay += `
-                                    <div class="license-info">
-                                        <pre>${JSON.stringify(license, null, 2)}</pre>
-                                        <p>Expiry: ${expiryDateStr}</p>
-                                        <p><a href="${linkToViewFirestore}" target="_blank">View License in Firestore</a></p>
+                                    <div class="license-info" style="margin-top: 10px; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; background-color: #f8fff9;">
+                                        <pre style="font-size: 12px;">${JSON.stringify(license, null, 2)}</pre>
+                                        <p><strong>Expiry:</strong> ${expiryDateStr}</p>
+                                        <p><a href="${linkToViewFirestore}" target="_blank">View License in Firestore →</a></p>
                                     </div>
                                 `;
                             }
                         }
-                        
-                        statusSpan.html(licenseDataDisplay).removeClass('error-box').addClass('info-box');
+
+                        statusSpan.html(licenseDataDisplay).removeClass('error-box info-box').addClass('success-box');
                     } catch (error) {
                         console.error("Error parsing license data:", error);
-                        statusSpan.html('<div class="error-box">Error displaying license information. Please check the console for details.</div>');
+                        statusSpan.html('<div class="error-box"><strong>✗ Error Displaying License Information</strong><p>License may have been created but there was an error displaying it. Please check the console for details.</p></div>').removeClass('success-box info-box').addClass('error-box');
                     }
                     $('#createLicenseButton').removeClass('processing');
                 },
                 error: function (xhr, status, error) {
                     console.log("Error creating license:", xhr.responseText);
-                    statusSpan.html('<div class="error-box">Error creating license: ' + xhr.responseText + '</div>');
+                    let errorMessage = xhr.responseText || 'Unknown error occurred';
+                    statusSpan.html(`<div class="error-box"><strong>✗ Error Creating License</strong><p>${errorMessage}</p></div>`).removeClass('success-box info-box').addClass('error-box');
                     $('#createLicenseButton').removeClass('processing');
                 }
             });
