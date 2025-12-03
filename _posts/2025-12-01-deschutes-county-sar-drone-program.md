@@ -92,10 +92,10 @@ Among the team's largest investments is their Air Operations and Incident Manage
 <br>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
   <div style="flex: 1; margin-right: 10px;">
-    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 600px; object-fit: contain;">
+    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 450px; object-fit: contain;">
   </div>
   <div style="flex: 1; margin-left: 10px;">
-    <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="width: 100%; height: 400px; object-fit: contain;">
+    <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="width: 100%; height: 450px; object-fit: contain;">
   </div>
 </div>
 <div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
