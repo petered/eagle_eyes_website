@@ -652,25 +652,60 @@ permalink: /add_license/
             document.getElementById('no_license').checked = true;
             updateFieldVisibility();
         }
-        // If there's a trial request ID, handle trial license setup
+        // Handle license_type parameter if present (independent of trial_request_id)
+        else if (licenseType && licenseType !== 'review' && licenseType !== 'no_license') {
+            console.log("Setting up license type:", licenseType);
+
+            // Prepare license title based on team name or email
+            let licenseTitle = "";
+            if (teamName) {
+                licenseTitle = `${licenseType.charAt(0).toUpperCase() + licenseType.slice(1)} license for ${teamName}`;
+            } else if (email) {
+                licenseTitle = `${licenseType.charAt(0).toUpperCase() + licenseType.slice(1)} license for ${email}`;
+            }
+
+            if (licenseType === 'trial') {
+                // Set trial radio button
+                const trialRadio = document.getElementById('trial');
+                trialRadio.checked = true;
+
+                // Set trial defaults
+                $('#licenseDurationSelect').val('one_month');
+                $('#number_of_keys').val(6);
+
+                // Set license title
+                if (licenseTitle) {
+                    document.getElementById('license_name').value = licenseTitle;
+                }
+
+                // Show trial request ID container
+                $('#trialRequestIdContainer').show();
+
+            } else if (licenseType === 'paid') {
+                // Set paid radio button
+                document.getElementById('paid').checked = true;
+
+                // Set license title
+                if (licenseTitle) {
+                    document.getElementById('license_name').value = licenseTitle;
+                }
+            }
+
+            updateFieldVisibility();
+        }
+        // If there's a trial request ID but no license_type, handle trial license setup (backward compatibility)
         else if (trialRequestId) {
             console.log("Setting up with trial request ID:", trialRequestId);
-            
-            // Prefill the trial request ID in the field and make it read-only
-            const trialRequestIdField = document.getElementById('trialRequestId');
-            trialRequestIdField.value = trialRequestId;
-            trialRequestIdField.readOnly = true;
-            trialRequestIdField.style.backgroundColor = "#f0f0f0"; // Visual indication that it's read-only
-            
+
             // By default, set license type to "trial"
             const trialRadio = document.getElementById('trial');
             trialRadio.checked = true;
-            
+
             // Set license duration to "1 Month" and 6 keys
             $('#licenseDurationSelect').val('one_month');
             $('#number_of_keys').val(6);
-            
-            // Prefill license title with "Trial license for [team]" if team parameter exists, 
+
+            // Prefill license title with "Trial license for [team]" if team parameter exists,
             // otherwise use email or default
             let licenseTitle = "Trial license";
             if (teamName) {
@@ -679,25 +714,29 @@ permalink: /add_license/
                 licenseTitle = `Trial license for ${email}`;
             }
             document.getElementById('license_name').value = licenseTitle;
-            
+
             // Update fields visibility and ensure trial license ID container is shown
             updateFieldVisibility();
             $('#trialRequestIdContainer').show();
-            
+        } else {
+            // If no specific action, ensure fields are still properly initialized
+            updateFieldVisibility();
+        }
+
+        // Handle trial_request_id if present (works with any license_type or independently)
+        if (trialRequestId) {
+            console.log("Pre-filling trial request ID:", trialRequestId);
+            const trialRequestIdField = document.getElementById('trialRequestId');
+            trialRequestIdField.value = trialRequestId;
+            trialRequestIdField.readOnly = true;
+            trialRequestIdField.style.backgroundColor = "#f0f0f0";
+            $('#trialRequestIdContainer').show();
+
             // Add a small delay to ensure UI updates properly
             setTimeout(function() {
                 console.log("Ensuring trial request ID container visibility");
                 $('#trialRequestIdContainer').show();
-                // Double-check that trial is selected
-                if (!trialRadio.checked) {
-                    console.log("Re-selecting trial license type");
-                    trialRadio.checked = true;
-                    updateFieldVisibility();
-                }
             }, 100);
-        } else {
-            // If no specific action, ensure fields are still properly initialized
-            updateFieldVisibility();
         }
     }
 
