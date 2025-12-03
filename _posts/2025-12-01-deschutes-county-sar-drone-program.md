@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "From Peaks to Pixels"
-subtitle: "How Deschutes County SAR Built a drone program for Oregon's toughest terrain"
+subtitle: "How Deschutes County SAR built a drone program for Oregon's toughest terrain"
 image: "images/blog/deschutes2.jpg"
 date: 2025-12-01 09:00:00 -0800
 author: Joep Maas
@@ -24,9 +24,7 @@ That success didn't come from a drone flight that day, but it made clear to the 
 
 Central Oregon is a proving ground for both people and machines. Snowy ridges rise above volcanic plateaus, dense forests give way to desert canyons, and weather can turn without warning. For the Deschutes County Search and Rescue Air Operations Team, every mission begins with uncertainty.
 
-To understand how the team navigates that environment, we spoke with Dan Dawson, a coordinator for the Air Operations Team.
-
-"We can operate in all seasons," says Dan, but "strong winds, heavy precipitation, and dense canopy can limit effectiveness and demand careful planning."
+To understand how the team navigates that environment, we spoke with Dan Dawson, a coordinator for the Air Operations Team. "We can operate in all seasons," says Dan, but "strong winds, heavy precipitation, and dense canopy can limit effectiveness and demand careful planning."
 
 Flying in these conditions is a mix of science, skill, and patience. Winter missions drain batteries fast, while summer heat tests both equipment and crews. Dense canopy and steep canyons make visibility a constant challenge. Pilots often need to fly at steeper angles and adjust their approach to scan gaps in the terrain.
 
@@ -42,19 +40,6 @@ Flying in these conditions is a mix of science, skill, and patience. Winter miss
 Despite those conditions, Deschutes County's Air Ops team stands ready for almost any mission. Drones can be launched at any stage of an operation, from early hasty searches to detailed mapping later in the response. The team's missions range from searching for missing persons and documenting scenes to assessing avalanche hazards and supporting Mountain Rescue, Swiftwater, and Dive teams. By scouting terrain, identifying threats, and finding safe access routes before ground teams move in, the UAS crew helps make every mission faster, safer, and more informed.
 
 When a search begins, the call to deploy drones usually comes from the Incident Commander or the Incident Management Team. "On certain mission types, qualified members may bring aircraft along just in case it's determined they could assist," Dan explains. Once activated, the Air Ops crew confirms pilots, aircraft, and objectives, then runs through pre-flight checklists to ensure safety and airspace coordination.
-
-<br>
-<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-  <div style="flex: 1; margin-right: 10px;">
-    <img src="{{ '/images/blog/deschutes4.png' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 40%;">
-  </div>
-  <div style="flex: 1; margin-left: 10px;">
-    <img src="{{ '/images/blog/deschutes1.jpg' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 30%;">
-  </div>
-</div>
-<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
-  Pre-flight inspections ensure each aircraft is ready for the conditions ahead.
-</div>
 
 <br>
 ## Flight strategies
@@ -80,8 +65,6 @@ He also sees value in standardized skill testing.
 
  "We don't currently use formal flight tests like the NIST Aerial Test Method courses," he explains, "but having a consistent way to evaluate skills would make a big difference."
 
-<!-- Image: Deschutes SAR training session -->
-
 <br>
 ## Tools and Community Support
 
@@ -93,7 +76,18 @@ Deschutes SAR receives support from the Deschutes County Sheriff's Office for mi
 
 Among the team's largest investments is their Air Operations and Incident Management Team van: a dual-purpose vehicle that supports both command and UAS operations. "The interior supports the IMT with workspace and communications, while the rear 'garage' area is outfitted for UAS operations, including charging stations, storage, a large viewing monitor, and weather protection. This dual-use approach allowed us to split the funding between teams while creating a resource that benefits the entire SAR operation."
 
-<!-- Image: Air Operations van interior or exterior -->
+<br>
+<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+  <div style="flex: 1; margin-right: 10px;">
+    <img src="{{ '/images/blog/deschutes4.png' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 40%;">
+  </div>
+  <div style="flex: 1; margin-left: 10px;">
+    <img src="{{ '/images/blog/deschutes1.jpg' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 30%;">
+  </div>
+</div>
+<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
+  Pre-flight inspections ensure each aircraft is ready for the conditions ahead.
+</div>
 
 <br>
 ## Extracting visual clues from data
@@ -105,8 +99,6 @@ For Deschutes SAR, Eagle Eyes has evolved from a post-analysis support tool to a
 Eagle Eyes is used wherever color or motion detection can make a difference - wilderness searches, avalanche paths, swiftwater operations, or evidence searches. "When possible, we run Eagle Eyes Pilot live on the controller so we can react to detections immediately," Dan says. "If that's not practical, we capture imagery first and process it later in Eagle Eyes Scan."
 
 Deschutes SAR has been involved with Eagle Eyes since the early days of the software. That early involvement also came through UAS volunteer Mark Tuttle, who worked on field testing and feature feedback. "The bottom line is that Eagle Eyes Scan and Eagle Eyes Pilot are very significant new pathways for our flight team to locate subjects in a timely rescue scenario," he says.
-
-<!-- Image: Eagle Eyes software screenshot showing detections -->
 
 <br>
 ## From flight to insight
@@ -179,8 +171,8 @@ The experience on North Sister became a reference point for what disciplined wor
 
 That search started with fixed-wing aircraft, but the lessons from it helped shape Deschutes SAR's modern UAS program. With stronger protocols, weather-ready equipment, and trained crews, the next successful outcome may come entirely from the drone team.
 
-"Our drone program already plays a crucial supporting role by guiding rescuers toward tracks, campsites, debris, or other clues that focus the search. Those contributions can be pivotal to the mission's overall success."
+As Dan noted, "Our drone program already plays a crucial supporting role by guiding rescuers toward tracks, campsites, debris, or other clues that focus the search. Those contributions can be pivotal to the mission's overall success."
 
-For Deschutes SAR, it's never been about the aircraft; it's about giving search teams every possible advantage. And with a drone program built to do exactly that, one thing is clear: the future of search begins in the sky.
+For Deschutes SAR, it's never been about the aircraft; it's about giving search teams every possible advantage. And with a drone program built for this, aerial search is fast becoming the backbone of their operations.
 
 <br>
