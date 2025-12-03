@@ -116,6 +116,10 @@ Much of the team's work happens in real time, interpreting what the camera sees 
 "I create orthomosaic imagery for reference and planning in SARTopo/CalTopo, but I avoid conducting the actual search within the stitched mosaic because merging can obscure or blur clues. Instead, I review the original images individually, often with Eagle Eyes Scan, to maintain maximum detail and accuracy. Then the targets can be marked in DroneDeploy or SARTopo for additional flights or ground-team follow-ups."
 
 <br>
+<img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="North Sister captured with WALDO camera system" style="width: 100%; margin: 20px 0;">
+<p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">Example photo of North Sister captured with a WALDO dual-camera system on a Civil Air Patrol fixed-wing aircraft. Processing the full set of 50-MP images in Eagle Eyes Scan helped identify clues that led to locating the subject.</p>
+
+<br>
 ## Looking ahead
 
 Looking ahead, Dan expects longer flights, smarter autonomy, and tighter integration between mapping and AI. "Software like Eagle Eyes will be key to making sense of the huge volume of imagery we collect," he says. "I anticipate a shift toward evaluating entire datasets to identify the most promising areas of interest. Integration with mapping tools like SARTopo could be transformative - imagine Eagle Eyes generating a map overlay that highlights areas for further investigation."
