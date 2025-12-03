@@ -133,36 +133,21 @@ He also sees collaboration between aircraft becoming a defining capability for f
 Drawing on those experiences, Dan shared a few key lessons for SAR groups starting or growing their UAS programs:
 <br><br>
 
-* **Start small**<br><br>
-  Begin with smaller-area searches and build from there. Start with a reliable, compact aircraft with thermal capabilities so you have flexibility for both day and night operations.<br><br>
+* **Start small:** Begin with smaller-area searches and build from there. Start with a reliable, compact aircraft with thermal capabilities so you have flexibility for both day and night operations.
 
+* **Plan for upgrades:** Technology moves quickly. Consider using an aircraft for only a year or two, then sell and upgrade to avoid being limited by outdated equipment.
 
-* **Plan for upgrades**<br><br>
-  Technology moves quickly. Consider using an aircraft for only a year or two, then sell and upgrade to avoid being limited by outdated equipment.<br><br>
+* **Coordinate early with Incident Command:** No matter how capable your team is, if IC/IMT does not understand or request your assistance, you will not be in a position to effectively contribute.
 
+* **Cross-train internally:** Cross-train with other teams such as Mountain Rescue, Swiftwater, and Tracking, so they understand how you can support them and will request you more often.
 
-* **Coordinate early with Incident Command**<br><br>
-  No matter how capable your team is, if IC/IMT does not understand or request your assistance, you will not be in a position to effectively contribute.<br><br>
+* **Cross-train with partner agencies:** Start working with local law enforcement and fire agencies to make them aware of your team's capabilities and how to collaborate on mutual aid incidents.
 
+* **Standardize operations:** Develop SOPs and checklists, and make their use standard in both training and live operations. This ensures safety and predictable workflows.
 
-* **Cross-train internally**<br><br>
-  Cross-train with other teams such as Mountain Rescue, Swiftwater, and Tracking, so they understand how you can support them and will request you more often.<br><br>
+* **Plan funding and align platforms:** Talk with nearby agencies about what they use. Shared platforms make training and mutual aid easier. Use grants, donations, or sponsorships to fill funding gaps.
 
-
-* **Cross-train with partner agencies**<br><br>
-  Start working with local law enforcement and fire agencies to make them aware of your team's capabilities and how to collaborate on mutual aid incidents.<br><br>
-
-
-* **Standardize operations**<br><br>
-  Develop SOPs and checklists, and make their use standard in both training and live operations. This ensures safety and predictable workflows.<br><br>
-
-
-* **Plan funding and align platforms**<br><br>
-  Talk with nearby agencies about what they use. Shared platforms make training and mutual aid easier. Use grants, donations, or sponsorships to fill funding gaps.<br><br>
-
-
-* **Coordinate with crewed aircraft**<br><br>
-  In your SOPs, define exactly how you will coordinate with crewed aircraft during a search, including procedures for grounding UAS when helicopters or fixed-wing aircraft are inbound.<br><br>
+* **Coordinate with crewed aircraft:** In your SOPs, define exactly how you will coordinate with crewed aircraft during a search, including procedures for grounding UAS when helicopters or fixed-wing aircraft are inbound.
 
 <br>
 ## A reference to live up to
