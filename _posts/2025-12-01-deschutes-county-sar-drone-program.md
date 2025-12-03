@@ -53,6 +53,19 @@ Flight altitude and coverage patterns are adjusted for each scenario. A common a
 When canopy cover or other visibility challenges exist, the team flies crosshatch patterns or multiple angles to increase the chance of detection. If the subject is believed to be mobile, they revisit the same areas multiple times to look for changes. Thermal search patterns are similar, but Dan says he often begins with higher passes at night or in good thermal conditions to quickly spot heat signatures.
 
 <br>
+<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+  <div style="flex: 1; margin-right: 10px;">
+    <img src="{{ '/images/blog/deschutes4.png' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 40%;">
+  </div>
+  <div style="flex: 1; margin-left: 10px;">
+    <img src="{{ '/images/blog/deschutes1.jpg' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 30%;">
+  </div>
+</div>
+<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
+  Pre-flight inspections ensure each aircraft is ready for the conditions ahead.
+</div>
+
+<br>
 ## Training for the real thing
 
 Mastering these techniques takes practice. Behind every flight is a long runway of training. New UAS volunteers are grouped into cohorts so they can learn together, building confidence through repetition.
@@ -75,19 +88,6 @@ Deschutes SAR receives support from the Deschutes County Sheriff's Office for mi
 "Foundation funds help us purchase training and equipment beyond what the County budget can support," Dan explains. "In the early days, we relied on grant funding to acquire our first aircraft and gear. While we no longer depend on grants for day-to-day operations, they were instrumental in getting us started."
 
 Among the team's largest investments is their Air Operations and Incident Management Team van: a dual-purpose vehicle that supports both command and UAS operations. "The interior supports the IMT with workspace and communications, while the rear 'garage' area is outfitted for UAS operations, including charging stations, storage, a large viewing monitor, and weather protection. This dual-use approach allowed us to split the funding between teams while creating a resource that benefits the entire SAR operation."
-
-<br>
-<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-  <div style="flex: 1; margin-right: 10px;">
-    <img src="{{ '/images/blog/deschutes4.png' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 40%;">
-  </div>
-  <div style="flex: 1; margin-left: 10px;">
-    <img src="{{ '/images/blog/deschutes1.jpg' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 30%;">
-  </div>
-</div>
-<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
-  Pre-flight inspections ensure each aircraft is ready for the conditions ahead.
-</div>
 
 <br>
 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
