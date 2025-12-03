@@ -90,9 +90,9 @@ Deschutes SAR receives support from the Deschutes County Sheriff's Office for mi
 Among the team's largest investments is their Air Operations and Incident Management Team van: a dual-purpose vehicle that supports both command and UAS operations. "The interior supports the IMT with workspace and communications, while the rear 'garage' area is outfitted for UAS operations, including charging stations, storage, a large viewing monitor, and weather protection. This dual-use approach allowed us to split the funding between teams while creating a resource that benefits the entire SAR operation."
 
 <br>
-<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
   <div style="flex: 1; margin-right: 10px;">
-    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 500px; object-fit: contain;">
+    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 600px; object-fit: contain;">
   </div>
   <div style="flex: 1; margin-left: 10px;">
     <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="width: 100%; height: 400px; object-fit: contain;">
