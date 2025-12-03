@@ -90,6 +90,19 @@ Among the team's largest investments is their Air Operations and Incident Manage
 </div>
 
 <br>
+<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+  <div style="flex: 1; margin-right: 10px;">
+    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 400px; object-fit: contain;">
+  </div>
+  <div style="flex: 1; margin-left: 10px;">
+    <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="width: 100%; height: 400px; object-fit: contain;">
+  </div>
+</div>
+<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
+  Left: An example frame representative of the WALDO dual-camera system used on this mission, which originally captured 50 MP imagery. Right: Eagle Eyes Scan output showing pixel-level color anomalies that identified the area of interest.
+</div>
+
+<br>
 ## Extracting visual clues from data
 
 That same van now serves as the hub for much of the team's live imagery review. "We have the ability to stream live video beyond the scene, but most of the time we review it right at the control station or inside the Air Operations van," Dan says. "The van's dark interior and large screen make it ideal for reviewing imagery with Eagle Eyes in real time."
@@ -106,19 +119,6 @@ Deschutes SAR has been involved with Eagle Eyes since the early days of the soft
 Much of the team's work happens in real time, interpreting what the camera sees as it happens. But once the aircraft return and the day's flights are complete, the focus shifts to detailed analysis. All imagery and video are uploaded to a shared Google Drive so other team members - both on-scene and remote - can review them.
 
 "I create orthomosaic imagery for reference and planning in SARTopo/CalTopo, but I avoid conducting the actual search within the stitched mosaic because merging can obscure or blur clues. Instead, I review the original images individually, often with Eagle Eyes Scan, to maintain maximum detail and accuracy. Then the targets can be marked in DroneDeploy or SARTopo for additional flights or ground-team follow-ups."
-
-<br>
-<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-  <div style="flex: 1; margin-right: 10px;">
-    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 300px; object-fit: cover;">
-  </div>
-  <div style="flex: 1; margin-left: 10px;">
-    <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="width: 100%; height: 300px; object-fit: cover;">
-  </div>
-</div>
-<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
-  Left: An example frame representative of the WALDO dual-camera system used on this mission, which originally captured 50 MP imagery. Right: Eagle Eyes Scan output showing pixel-level color anomalies that identified the area of interest.
-</div>
 
 <br>
 ## Looking ahead
