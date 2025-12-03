@@ -116,8 +116,17 @@ Much of the team's work happens in real time, interpreting what the camera sees 
 "I create orthomosaic imagery for reference and planning in SARTopo/CalTopo, but I avoid conducting the actual search within the stitched mosaic because merging can obscure or blur clues. Instead, I review the original images individually, often with Eagle Eyes Scan, to maintain maximum detail and accuracy. Then the targets can be marked in DroneDeploy or SARTopo for additional flights or ground-team follow-ups."
 
 <br>
-<img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="North Sister captured with WALDO camera system" style="width: 100%; margin: 20px 0;">
-<p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">Example photo of North Sister captured with a WALDO dual-camera system on a Civil Air Patrol fixed-wing aircraft. Processing the full set of 50-MP images in Eagle Eyes Scan helped identify clues that led to locating the subject.</p>
+<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+  <div style="flex: 1; margin-right: 10px;">
+    <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="width: 100%; height: 300px; object-fit: cover;">
+  </div>
+  <div style="flex: 1; margin-left: 10px;">
+    <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="width: 100%; height: 300px; object-fit: cover;">
+  </div>
+</div>
+<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
+  Left: An example frame representative of the WALDO dual-camera system used on this mission, which originally captured 50 MP imagery. Right: Eagle Eyes Scan output showing pixel-level color anomalies that identified the area of interest.
+</div>
 
 <br>
 ## Looking ahead
