@@ -597,35 +597,45 @@ permalink: /add_license/
                 success: function (response) {
                     console.log("License created successfully:", response);
                     try {
-                        const licenseData = JSON.parse(response);
-                        console.log("Parsed license data:", licenseData);
-                        console.log("License IDs:", Object.keys(licenseData));
-                        const licenseCount = Object.keys(licenseData).length;
-                        console.log("License count:", licenseCount);
-                        let licenseDataDisplay = `<div class="success-box"><strong>✓ License${licenseCount > 1 ? 's' : ''} Created Successfully</strong><p>${licenseCount} license${licenseCount > 1 ? 's' : ''} created.</p></div>`;
+                        const responseData = JSON.parse(response);
+                        console.log("Parsed response data:", responseData);
 
-                        for (const licenseId in licenseData) {
-                            if (licenseData.hasOwnProperty(licenseId)) {
-                                const license = licenseData[licenseId];
-                                let expiryDateStr = 'No Expiry';
+                        // Handle the new response format: {license_id, new_license, users_added}
+                        const licenseId = responseData.license_id;
+                        const license = responseData.new_license;
+                        const usersAdded = responseData.users_added || [];
 
-                                if (license.expiry_timestamp) {
-                                    expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
-                                }
+                        console.log("License ID:", licenseId);
+                        console.log("License data:", license);
+                        console.log("Users added:", usersAdded);
 
-                                const linkToViewFirestore = useLocalFirebaseEmulator
-                                    ? `http://localhost:4000/firestore/default/data/licenses/${licenseId}`
-                                    : `https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F${licenseId}`;
+                        const userCount = usersAdded.length;
+                        let licenseDataDisplay = `<div class="success-box"><strong>✓ License Created Successfully</strong><p>1 license created for ${userCount} user${userCount !== 1 ? 's' : ''}.</p></div>`;
 
-                                licenseDataDisplay += `
-                                    <div class="license-info" style="margin-top: 10px; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; background-color: #f8fff9;">
-                                        <pre style="font-size: 12px;">${JSON.stringify(license, null, 2)}</pre>
-                                        <p><strong>Expiry:</strong> ${expiryDateStr}</p>
-                                        <p><a href="${linkToViewFirestore}" target="_blank">View License in Firestore →</a></p>
-                                    </div>
-                                `;
-                            }
+                        // Display the single license
+                        let expiryDateStr = 'No Expiry';
+                        if (license.expiry_timestamp) {
+                            expiryDateStr = new Date(license.expiry_timestamp * 1000).toLocaleString();
                         }
+
+                        const linkToViewFirestore = useLocalFirebaseEmulator
+                            ? `http://localhost:4000/firestore/default/data/licenses/${licenseId}`
+                            : `https://console.firebase.google.com/u/0/project/eagleeyessearch/firestore/databases/-default-/data/~2Flicenses~2F${licenseId}`;
+
+                        licenseDataDisplay += `
+                            <div class="license-info" style="margin-top: 10px; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; background-color: #f8fff9;">
+                                <p><strong>License ID:</strong> ${licenseId}</p>
+                                <p><strong>Users:</strong> ${usersAdded.join(', ')}</p>
+                                <p><strong>Expiry:</strong> ${expiryDateStr}</p>
+                                <p><strong>Tier:</strong> ${license.tier || 'N/A'}</p>
+                                <p><strong>Number of Keys:</strong> ${license.n_tokens || 'N/A'}</p>
+                                <details style="margin-top: 10px;">
+                                    <summary style="cursor: pointer; font-weight: bold;">View Full License Details</summary>
+                                    <pre style="font-size: 11px; margin-top: 10px; overflow-x: auto;">${JSON.stringify(license, null, 2)}</pre>
+                                </details>
+                                <p style="margin-top: 10px;"><a href="${linkToViewFirestore}" target="_blank">View License in Firestore →</a></p>
+                            </div>
+                        `;
 
                         statusSpan.html(licenseDataDisplay).removeClass('error-box info-box').addClass('success-box');
                         scrollToStatus();
