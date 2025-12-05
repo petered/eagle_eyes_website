@@ -6244,13 +6244,165 @@ class DroneMap {
                     ${latStr}, ${lngStr}
                 </div>
                 <img src="${photoPoint.imageData}" style="${imageStyle}" onclick="event.stopPropagation(); window.droneMap.showPhotoFullscreen('${photoPoint.id}'); return false;" alt="Photo point thumbnail">
-                <div style="${buttonContainerStyle}">
-                    <button onclick="event.stopPropagation(); ${shareButtonAction}; return false;" style="${buttonStyle.replace('var(--btn-color)', '#007bff')}"><i class="bi ${shareButtonIcon}"></i> ${shareButtonText}</button>
-                    <button onclick="event.stopPropagation(); window.droneMap.downloadPhotoPoint('${photoPoint.id}'); return false;" style="${buttonStyle.replace('var(--btn-color)', '#6c757d')}"><i class="bi bi-download"></i> Download</button>
-                    <button onclick="event.stopPropagation(); window.droneMap.removePhotoPoint('${photoPoint.id}'); return false;" style="${buttonStyle.replace('var(--btn-color)', '#dc3545')}"><i class="bi bi-trash"></i> Remove</button>
+                <div style="display: flex; gap: 4px; flex-wrap: nowrap; justify-content: flex-start; margin-top: 8px; align-items: center;">
+                    <!-- Share button (bi-share icon, same as Share Livestream) -->
+                    <button onclick="event.stopPropagation(); window.droneMap.sharePhotoPoint('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #007bff; color: white; border: none; border-radius: 6px; padding: 4px 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 28px; height: 28px;" onmouseover="this.style.background='#0056b3'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#007bff'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="Share"><i class="bi bi-share" style="font-size: 14px;"></i></button>
+                    
+                    <!-- Copy coordinates button -->
+                    <button onclick="event.stopPropagation(); window.droneMap.copyPhotoPointCoordinates('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #17a2b8; color: white; border: none; border-radius: 6px; padding: 4px 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 28px; height: 28px;" onmouseover="this.style.background='#138496'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#17a2b8'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="Copy Coordinates"><i class="bi bi-clipboard" style="font-size: 14px;"></i></button>
+                    
+                    <!-- Download button -->
+                    <button onclick="event.stopPropagation(); window.droneMap.downloadPhotoPoint('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #6c757d; color: white; border: none; border-radius: 6px; padding: 4px 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 28px; height: 28px;" onmouseover="this.style.background='#5a6268'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#6c757d'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="Download"><i class="bi bi-download" style="font-size: 14px;"></i></button>
+                    
+                    <!-- Remove button -->
+                    <button onclick="event.stopPropagation(); window.droneMap.removePhotoPoint('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #dc3545; color: white; border: none; border-radius: 6px; padding: 4px 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 28px; height: 28px;" onmouseover="this.style.background='#c82333'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="Remove"><i class="bi bi-trash" style="font-size: 14px;"></i></button>
+                    
+                    <!-- Map button (opens map options popup) -->
+                    <button onclick="event.stopPropagation(); window.droneMap.showPhotoPointMapOptions('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #28a745; color: #28a745; border-radius: 6px; padding: 4px 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 28px; height: 28px;" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#218838'; this.style.color='#218838'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#28a745'; this.style.color='#28a745'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="Open in Maps"><i class="bi bi-map" style="font-size: 14px;"></i></button>
+                </div>
+                
+                <!-- Map options popup (hidden by default) -->
+                <div id="photoPointMapOptions-${photoPoint.id}" style="display: none; position: relative; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-top: 4px; min-width: 180px; width: 100%;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        ${this.caltopoInfo && this.caltopoInfo.map_id ? `
+                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInCaltopo('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #007bff; padding: 6px 8px; border-radius: 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f7ff'; this.style.borderColor='#0056b3'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#007bff'; this.style.transform='scale(1)';" title="View in CalTopo">
+                            <img src="${window.location.origin}/images/Caltopo_Logo.png" alt="CalTopo" style="height: 20px; width: auto; display: block;" />
+                        </button>
+                        ` : ''}
+                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInGoogleMaps('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 6px 8px; border-radius: 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)';" title="View in Google Maps">
+                            <img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 20px; width: auto; display: block;" />
+                        </button>
+                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInAppleMaps('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #000000; padding: 6px 8px; border-radius: 6px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#333333'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#000000'; this.style.transform='scale(1)';" title="View in Apple Maps">
+                            <img src="${window.location.origin}/images/livestream/apple-maps-logo.png" alt="Apple Maps" style="height: 20px; width: auto; display: block;" />
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
+    }
+
+    // Show photo point map options popup
+    showPhotoPointMapOptions(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+        
+        // Find the map options popup for this photo point
+        const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
+        if (!popupElement) return;
+        
+        // Toggle visibility
+        const isVisible = popupElement.style.display !== 'none';
+        popupElement.style.display = isVisible ? 'none' : 'block';
+        
+        // Close other map option popups
+        this.photoPoints.forEach(p => {
+            if (p.id !== photoPointId) {
+                const otherPopup = document.getElementById(`photoPointMapOptions-${p.id}`);
+                if (otherPopup) {
+                    otherPopup.style.display = 'none';
+                }
+            }
+        });
+        
+        // Close popup when clicking outside
+        if (!isVisible) {
+            const closeOnOutsideClick = (e) => {
+                if (!popupElement.contains(e.target) && !e.target.closest(`[onclick*="showPhotoPointMapOptions('${photoPointId}')"]`)) {
+                    popupElement.style.display = 'none';
+                    document.removeEventListener('click', closeOnOutsideClick);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeOnOutsideClick), 100);
+        }
+    }
+    
+    
+    // Open photo point in CalTopo
+    openPhotoPointInCaltopo(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint || !this.caltopoInfo || !this.caltopoInfo.map_id) return;
+        
+        const caltopoUrl = `https://caltopo.com/m/${this.caltopoInfo.map_id}#ll=${photoPoint.lat},${photoPoint.lng}&z=14&b=hyb`;
+        window.open(caltopoUrl, '_blank');
+        
+        // Close the map options popup
+        const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
+        if (popupElement) {
+            popupElement.style.display = 'none';
+        }
+    }
+    
+    // Open photo point in Google Maps
+    openPhotoPointInGoogleMaps(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+        
+        // Format label from photo point name
+        let googleMapsLabel = '';
+        if (photoPoint.name) {
+            googleMapsLabel = '(' + photoPoint.name.replace(/ /g, '+').replace(/[()]/g, (match) => encodeURIComponent(match)) + ')';
+        }
+        const googleMapsUrl = `https://www.google.com/maps?q=${photoPoint.lat},${photoPoint.lng}${googleMapsLabel}`;
+        window.open(googleMapsUrl, '_blank');
+        
+        // Close the map options popup
+        const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
+        if (popupElement) {
+            popupElement.style.display = 'none';
+        }
+    }
+    
+    // Open photo point in Apple Maps
+    openPhotoPointInAppleMaps(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+        
+        const appleMapsUrl = `http://maps.apple.com/?q=${photoPoint.lat},${photoPoint.lng}`;
+        window.open(appleMapsUrl, '_blank');
+        
+        // Close the map options popup
+        const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
+        if (popupElement) {
+            popupElement.style.display = 'none';
+        }
+    }
+    
+    // Copy photo point coordinates to clipboard
+    copyPhotoPointCoordinates(photoPointId) {
+        const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
+        if (!photoPoint) return;
+        
+        const coordinates = `${photoPoint.lat.toFixed(6)}, ${photoPoint.lng.toFixed(6)}`;
+        
+        navigator.clipboard.writeText(coordinates).then(() => {
+            console.log('Coordinates copied to clipboard:', coordinates);
+            // Show toast notification if available
+            if (window.viewer && typeof window.viewer.showCopyToast === 'function') {
+                window.viewer.showCopyToast();
+            }
+        }).catch((err) => {
+            console.log('Clipboard API failed, using fallback:', err);
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = coordinates;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            try {
+                document.execCommand('copy');
+                console.log('Coordinates copied using fallback method');
+                // Show toast notification if available
+                if (window.viewer && typeof window.viewer.showCopyToast === 'function') {
+                    window.viewer.showCopyToast();
+                }
+            } catch (fallbackErr) {
+                console.error('Fallback copy failed:', fallbackErr);
+                alert('Coordinates copied: ' + coordinates);
+            }
+            document.body.removeChild(textarea);
+        });
     }
 
     // Show photo point options (after creation)
