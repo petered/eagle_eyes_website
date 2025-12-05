@@ -8060,6 +8060,52 @@ class DroneMap {
     configureFeaturePopup(feature, layer) {
         const props = feature.properties || {};
         
+        // Calculate center coordinates for CalTopo link
+        let centerLat = null;
+        let centerLng = null;
+        
+        if (feature.geometry) {
+            const geom = feature.geometry;
+            if (geom.type === 'Point') {
+                centerLng = geom.coordinates[0];
+                centerLat = geom.coordinates[1];
+            } else if (geom.type === 'Polygon' || geom.type === 'MultiPolygon') {
+                // Calculate centroid from bounds
+                const bounds = layer.getBounds ? layer.getBounds() : null;
+                if (bounds) {
+                    const center = bounds.getCenter();
+                    centerLat = center.lat;
+                    centerLng = center.lng;
+                } else {
+                    // Fallback: calculate from coordinates
+                    const coords = geom.type === 'Polygon' ? geom.coordinates[0] : geom.coordinates[0][0];
+                    let sumLat = 0, sumLng = 0, count = 0;
+                    coords.forEach(coord => {
+                        sumLng += coord[0];
+                        sumLat += coord[1];
+                        count++;
+                    });
+                    if (count > 0) {
+                        centerLng = sumLng / count;
+                        centerLat = sumLat / count;
+                    }
+                }
+            } else if (geom.type === 'LineString' || geom.type === 'MultiLineString') {
+                // Calculate center from line coordinates
+                const coords = geom.type === 'LineString' ? geom.coordinates : geom.coordinates[0];
+                let sumLat = 0, sumLng = 0, count = 0;
+                coords.forEach(coord => {
+                    sumLng += coord[0];
+                    sumLat += coord[1];
+                    count++;
+                });
+                if (count > 0) {
+                    centerLng = sumLng / count;
+                    centerLat = sumLat / count;
+                }
+            }
+        }
+        
         // Always show popup if there's a title or description
         // For Caltopo features, title should be available
         if (props.title || props.description) {
@@ -8071,6 +8117,28 @@ class DroneMap {
                 if (props.title) popupContent += '<br>';
                 popupContent += props.description;
             }
+            
+            // Add map link buttons if coordinates are available
+            if (centerLat !== null && centerLng !== null) {
+                popupContent += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start;">';
+                
+                // Add CalTopo link button if CalTopo info is available
+                if (this.caltopoInfo && this.caltopoInfo.map_id) {
+                    const caltopoUrl = `https://caltopo.com/m/${this.caltopoInfo.map_id}#ll=${centerLat},${centerLng}&z=14&b=hyb`;
+                    popupContent += `<a href="${caltopoUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${caltopoUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #007bff; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f7ff'; this.style.borderColor='#0056b3'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#007bff'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in CalTopo">`;
+                    popupContent += `<img src="${window.location.origin}/images/Caltopo_Logo.png" alt="CalTopo" style="height: 24px; width: auto; display: block;" />`;
+                    popupContent += `</a>`;
+                }
+                
+                // Add Google Maps link button
+                const googleMapsUrl = `https://www.google.com/maps/@${centerLat},${centerLng},15z`;
+                popupContent += `<a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${googleMapsUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in Google Maps">`;
+                popupContent += `<img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 24px; width: auto; display: block;" />`;
+                popupContent += `</a>`;
+                
+                popupContent += '</div>';
+            }
+            
             popupContent += '</div>';
             
             layer.bindPopup(popupContent, {
@@ -8079,8 +8147,34 @@ class DroneMap {
             });
         } else {
             // Even if no title/description, show geometry type
+            let popupContent = '<div style="word-wrap: break-word; max-width: 200px;">';
             const geomType = feature.geometry?.type || 'Feature';
-            layer.bindPopup(`<div style="word-wrap: break-word; max-width: 200px;"><strong>${geomType}</strong></div>`, {
+            popupContent += `<strong>${geomType}</strong>`;
+            
+            // Add map link buttons if coordinates are available
+            if (centerLat !== null && centerLng !== null) {
+                popupContent += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start;">';
+                
+                // Add CalTopo link button if CalTopo info is available
+                if (this.caltopoInfo && this.caltopoInfo.map_id) {
+                    const caltopoUrl = `https://caltopo.com/m/${this.caltopoInfo.map_id}#ll=${centerLat},${centerLng}&z=14&b=hyb`;
+                    popupContent += `<a href="${caltopoUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${caltopoUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #007bff; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f7ff'; this.style.borderColor='#0056b3'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#007bff'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in CalTopo">`;
+                    popupContent += `<img src="${window.location.origin}/images/Caltopo_Logo.png" alt="CalTopo" style="height: 24px; width: auto; display: block;" />`;
+                    popupContent += `</a>`;
+                }
+                
+                // Add Google Maps link button
+                const googleMapsUrl = `https://www.google.com/maps/@${centerLat},${centerLng},15z`;
+                popupContent += `<a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${googleMapsUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in Google Maps">`;
+                popupContent += `<img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 24px; width: auto; display: block;" />`;
+                popupContent += `</a>`;
+                
+                popupContent += '</div>';
+            }
+            
+            popupContent += '</div>';
+            
+            layer.bindPopup(popupContent, {
                 maxWidth: 250,
                 className: 'custom-popup'
             });
