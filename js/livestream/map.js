@@ -8130,10 +8130,22 @@ class DroneMap {
                     popupContent += `</a>`;
                 }
                 
-                // Add Google Maps link button
-                const googleMapsUrl = `https://www.google.com/maps/@${centerLat},${centerLng},15z`;
+                // Add Google Maps link button with label
+                let googleMapsLabel = '';
+                const labelText = props.title || props.name || '';
+                if (labelText) {
+                    // Format label: replace spaces with +, encode other special chars, wrap in parentheses
+                    googleMapsLabel = '(' + labelText.replace(/ /g, '+').replace(/[()]/g, (match) => encodeURIComponent(match)) + ')';
+                }
+                const googleMapsUrl = `https://www.google.com/maps?q=${centerLat},${centerLng}${googleMapsLabel}`;
                 popupContent += `<a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${googleMapsUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in Google Maps">`;
                 popupContent += `<img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 24px; width: auto; display: block;" />`;
+                popupContent += `</a>`;
+                
+                // Add Apple Maps link button
+                const appleMapsUrl = `http://maps.apple.com/?q=${centerLat},${centerLng}`;
+                popupContent += `<a href="${appleMapsUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${appleMapsUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #000000; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#333333'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#000000'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in Apple Maps">`;
+                popupContent += `<img src="${window.location.origin}/images/livestream/apple-maps-logo.png" alt="Apple Maps" style="height: 24px; width: auto; display: block;" />`;
                 popupContent += `</a>`;
                 
                 popupContent += '</div>';
@@ -8163,10 +8175,22 @@ class DroneMap {
                     popupContent += `</a>`;
                 }
                 
-                // Add Google Maps link button
-                const googleMapsUrl = `https://www.google.com/maps/@${centerLat},${centerLng},15z`;
+                // Add Google Maps link button with label
+                let googleMapsLabel = '';
+                const labelText = props.title || props.name || '';
+                if (labelText) {
+                    // Format label: replace spaces with +, encode other special chars, wrap in parentheses
+                    googleMapsLabel = '(' + labelText.replace(/ /g, '+').replace(/[()]/g, (match) => encodeURIComponent(match)) + ')';
+                }
+                const googleMapsUrl = `https://www.google.com/maps?q=${centerLat},${centerLng}${googleMapsLabel}`;
                 popupContent += `<a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${googleMapsUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in Google Maps">`;
                 popupContent += `<img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 24px; width: auto; display: block;" />`;
+                popupContent += `</a>`;
+                
+                // Add Apple Maps link button
+                const appleMapsUrl = `http://maps.apple.com/?q=${centerLat},${centerLng}`;
+                popupContent += `<a href="${appleMapsUrl}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); window.open('${appleMapsUrl}', '_blank'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #000000; padding: 6px 8px; border-radius: 6px; text-decoration: none; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#333333'; this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#000000'; this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';" title="View in Apple Maps">`;
+                popupContent += `<img src="${window.location.origin}/images/livestream/apple-maps-logo.png" alt="Apple Maps" style="height: 24px; width: auto; display: block;" />`;
                 popupContent += `</a>`;
                 
                 popupContent += '</div>';
