@@ -588,11 +588,25 @@ permalink: /extend_license/
                 return;
             }
 
-            const currentExpiry = new Date(currentLicense.expiry_timestamp * 1000);
-            const newExpiry = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000);
+            // Get current value from datetime-local input (already in local time)
+            const currentDatetimeLocal = $('#new_expiry_datetime').val();
+            if (!currentDatetimeLocal) {
+                alert('No date set in picker');
+                return;
+            }
 
-            // Format for datetime-local input (YYYY-MM-DDTHH:mm)
-            const localDatetime = newExpiry.toISOString().slice(0, 16);
+            // Parse as local datetime and add days
+            const currentDate = new Date(currentDatetimeLocal);
+            const newDate = new Date(currentDate.getTime() + days * 24 * 60 * 60 * 1000);
+
+            // Format back to datetime-local format (YYYY-MM-DDTHH:mm) in local time
+            const year = newDate.getFullYear();
+            const month = String(newDate.getMonth() + 1).padStart(2, '0');
+            const day = String(newDate.getDate()).padStart(2, '0');
+            const hours = String(newDate.getHours()).padStart(2, '0');
+            const minutes = String(newDate.getMinutes()).padStart(2, '0');
+            const localDatetime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
             $('#new_expiry_datetime').val(localDatetime);
 
             // Update formatted display and highlight
