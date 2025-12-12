@@ -1,0 +1,732 @@
+---
+layout: ee_page_layout
+title: Extend Eagle Eyes License (Admin)
+permalink: /extend_license/
+---
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extend Eagle Eyes License (Admin)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="{{ '/css/form_buttons_and_boxes.css' | relative_url }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="{{ '/shared.js' | relative_url }}"></script>
+</head>
+<body>
+    <style>
+        /* Compact overall page styling */
+        body {
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 8px 0;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin: 6px 0;
+        }
+
+        h4 {
+            font-size: 13px;
+            margin: 10px 0 6px 0;
+            font-weight: bold;
+        }
+
+        /* Form container */
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 8px;
+        }
+
+        /* Form sections */
+        .form-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        /* Labels and inputs */
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        input[type="text"], input[type="password"], input[type="number"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        /* Button styling */
+        button {
+            padding: 8px 16px;
+            font-size: 13px;
+            margin: 4px 4px 4px 0;
+        }
+
+        /* Extension buttons container */
+        .extension-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .extension-buttons button {
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+
+        /* Submit button */
+        .submit-button {
+            background-color: #28a745;
+            font-size: 15px;
+            padding: 10px 20px;
+            margin-top: 15px;
+        }
+
+        .submit-button:hover {
+            background-color: #218838;
+        }
+
+        /* Read-only display fields */
+        .display-field {
+            padding: 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .display-field strong {
+            color: #333;
+        }
+
+        /* Custom days input container */
+        .custom-extension {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .custom-extension input[type="number"] {
+            flex: 0 0 150px;
+            margin-bottom: 0;
+        }
+
+        .custom-extension button {
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        /* Date comparison display */
+        .date-comparison {
+            margin: 15px 0;
+        }
+
+        .date-display-row {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+        }
+
+        .date-display-row strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .date-value {
+            font-size: 16px;
+            color: #000;
+            font-weight: 500;
+        }
+
+        /* Hide the native datetime-local input */
+        input[type="datetime-local"] {
+            display: none;
+        }
+
+        /* Formatted date display - clickable */
+        #formatted_new_expiry {
+            cursor: pointer;
+            border: 2px solid #4499cc;
+            transition: all 0.2s ease;
+        }
+
+        #formatted_new_expiry:hover {
+            background-color: #e6f2ff;
+            border-color: #3388ee;
+        }
+
+        /* Highlight animation for formatted date display */
+        #formatted_new_expiry.highlight {
+            animation: dateDisplayHighlight 0.6s ease-out;
+        }
+
+        @keyframes dateDisplayHighlight {
+            0% {
+                background-color: #d4edda;
+                border-color: #28a745;
+                transform: scale(1);
+            }
+            50% {
+                background-color: #c3e6cb;
+                border-color: #1e7e34;
+                transform: scale(1.01);
+            }
+            100% {
+                background-color: #f0f0f0;
+                border-color: #4499cc;
+                transform: scale(1);
+            }
+        }
+    </style>
+
+    <section id="signin">
+        <div class="info-box" id="using-emulator-info" style="display: none;">Using local Firebase emulator</div>
+        <h1>Extend License Expiry</h1>
+        <h3> Step 1: Sign in </h3>
+        {% include signinWidget.html %}
+    </section>
+
+    <section id="form" hidden>
+        <div class="form-container">
+            <h1>Extend License Expiry Date</h1>
+
+            <!-- License Lookup Section -->
+            <div class="form-section">
+                <h3>License Lookup</h3>
+                <label for="license_id">License ID:</label>
+                <input type="text" placeholder="Enter License ID" id="license_id" name="license_id">
+                <button onclick="loadLicense()">Load License</button>
+                <div id="loadStatus"></div>
+            </div>
+
+            <!-- License Details Display (hidden until loaded) -->
+            <div id="license-details" style="display:none;">
+                <div class="form-section">
+                    <h3>Current License Information</h3>
+                    <div class="info-box">
+                        <div class="display-field">
+                            <strong>License Name:</strong> <span id="display_license_name"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Tier:</strong> <span id="display_tier"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>License Type:</strong> <span id="display_license_type"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Status:</strong> <span id="display_license_status"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Emails:</strong> <span id="display_emails"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Domains:</strong> <span id="display_domains"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Current Expiry:</strong> <span id="display_current_expiry"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Tokens:</strong> <span id="display_tokens"></span>
+                        </div>
+                        <div class="display-field">
+                            <strong>Devices:</strong> <span id="display_devices"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extension Options Section -->
+                <div class="form-section">
+                    <h3>Extend License</h3>
+
+                    <label for="admin_password">Admin Password (required):</label>
+                    <input type="password" placeholder="Enter Admin Password" id="admin_password" name="admin_password" required>
+
+                    <div class="date-comparison">
+                        <div class="date-display-row current-date">
+                            <strong>Current Expiry Date <span id="timezone-display" style="font-weight: normal; color: #666;"></span>:</strong>
+                            <div class="date-value" id="comparison_current_expiry">-</div>
+                        </div>
+                    </div>
+
+                    <label><strong>New Expiry Date:</strong></label>
+                    <input type="datetime-local" id="new_expiry_datetime" name="new_expiry_datetime">
+                    <div id="formatted_new_expiry" style="margin-top: 8px; padding: 12px; background-color: #f0f0f0; border-radius: 4px; font-size: 16px; color: #000; font-weight: 500;" title="Click to change date">-</div>
+
+                    <h4>Quick Extensions:</h4>
+                    <div class="extension-buttons">
+                        <button onclick="addTwoWeeks()">+ 2 Weeks</button>
+                        <button onclick="addOneMonth()">+ 1 Month</button>
+                        <button onclick="addThreeMonths()">+ 3 Months</button>
+                        <button onclick="addOneYear()">+ 1 Year</button>
+                    </div>
+
+                    <h4>Custom Extension:</h4>
+                    <div class="custom-extension">
+                        <input type="number" id="custom_days" placeholder="Number of days" min="1">
+                        <button onclick="applyCustomExtension()">Apply Custom Extension</button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div style="text-align: center;">
+                    <button onclick="extendLicense()" id="extend-button" class="submit-button">Extend License</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Status Display -->
+    <div id="extensionStatus"></div>
+
+    <script>
+        var useLocalFirebaseEmulator = getIsEmulatorFromURL();
+        var hostURL = useLocalFirebaseEmulator ? 'http://127.0.0.1:5001/eagleeyessearch/us-central1' : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        console.log('useLocalFirebaseEmulator: ' + useLocalFirebaseEmulator);
+
+        // Store loaded license data
+        var currentLicense = null;
+        var shouldAutoLoadLicense = false;
+
+        // Get and display timezone
+        function updateTimezoneDisplay() {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const now = new Date();
+            const offset = -now.getTimezoneOffset();
+            const offsetHours = Math.floor(Math.abs(offset) / 60);
+            const offsetMinutes = Math.abs(offset) % 60;
+            const offsetSign = offset >= 0 ? '+' : '-';
+            const offsetString = `UTC${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+
+            $('#timezone-display').text(`(${timeZone}, ${offsetString})`);
+        }
+
+        $(document).ready(function() {
+            // Update timezone display
+            updateTimezoneDisplay();
+
+            // Add event listener for manual date changes
+            $('#new_expiry_datetime').on('change', function() {
+                updateFormattedNewExpiry();
+                highlightNewDate();
+            });
+
+            // Make formatted date display clickable to open date picker
+            $('#formatted_new_expiry').on('click', function() {
+                $('#new_expiry_datetime')[0].showPicker();
+            });
+
+            // Auto-sign in as joep@eagleeyessearch.com when running in emulator mode
+            if (useLocalFirebaseEmulator) {
+                console.log('Running in emulator mode - attempting auto-sign in as joep@eagleeyessearch.com');
+                firebase.auth().signInWithEmailAndPassword('joep@eagleeyessearch.com', 'test-password-for-emulator')
+                    .then(function(userCredential) {
+                        console.log('Auto-signed in as joep@eagleeyessearch.com for local development');
+                        $('#using-emulator-info').text('Using local Firebase emulator - Auto-signed in as joep@eagleeyessearch.com').show();
+                    })
+                    .catch(function(error) {
+                        console.error('Auto-sign in failed:', error);
+                    });
+            }
+
+            // Prefill license ID from URL parameter
+            prefillLicenseId();
+
+            // Listener for sign-in completion
+            document.addEventListener('signInComplete', function (e) {
+                var globalUser = e.detail.user;
+                console.log('SignInComplete triggered, attempting to verify admin status for:', globalUser.email);
+
+                globalUser.getIdToken(true).then(function (idToken) {
+                    var requestURL = getHostUrl() + '/is_logged_in_user_admin';
+                    console.log('Calling admin verification endpoint:', requestURL);
+
+                    $.ajax({
+                        url: requestURL,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        headers: {
+                            'Authorization': 'Bearer ' + idToken
+                        },
+                        success: function (data) {
+                            console.log('Admin verification response:', data);
+                            var isAdmin = JSON.parse(data).is_admin;
+                            if (isAdmin) {
+                                console.log('User verified as admin, showing form');
+                                $('#form').show();
+
+                                // Auto-load license if it was pre-filled from URL
+                                if (shouldAutoLoadLicense) {
+                                    console.log('Auto-loading license from URL parameter');
+                                    setTimeout(function() {
+                                        loadLicense();
+                                    }, 100); // Small delay to ensure form is visible
+                                }
+                            } else {
+                                console.log('User not verified as admin');
+                                $('#extensionStatus').html('<div class="error-box"><strong>✗ Access Denied</strong><p>You are not authorized to extend licenses. Only admin users can access this page.</p></div>');
+                                $('#form').hide();
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('Admin verification failed:', xhr.status, error);
+                            $('#extensionStatus').html(`<div class="error-box"><strong>✗ Admin Verification Failed</strong><p>Could not verify admin status.</p><p><strong>Error:</strong> ${error}</p><p><strong>Status Code:</strong> ${xhr.status}</p></div>`);
+
+                            // If in emulator mode, offer bypass option for testing
+                            if (useLocalFirebaseEmulator) {
+                                console.log('Emulator mode detected, offering admin bypass for testing');
+                                $('#extensionStatus').append('<p style="margin-top: 10px;">Since you are in emulator mode, you can <button id="bypassAdminCheck">bypass admin check</button> for testing purposes.</p>');
+                                $('#bypassAdminCheck').on('click', function() {
+                                    console.log('Admin check bypassed for emulator testing');
+                                    $('#form').show();
+                                    $('#extensionStatus').html('<div class="info-box"><strong>ℹ Admin Check Bypassed</strong><p>Running in emulator test mode.</p></div>');
+
+                                    // Auto-load license if it was pre-filled from URL
+                                    if (shouldAutoLoadLicense) {
+                                        console.log('Auto-loading license from URL parameter');
+                                        setTimeout(function() {
+                                            loadLicense();
+                                        }, 100);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }).catch(function(error) {
+                    console.error('Error getting ID token:', error);
+                    $('#extensionStatus').html(`<div class="error-box"><strong>✗ Authentication Error</strong><p>${error.message}</p></div>`);
+                });
+            });
+        });
+
+        // Prefill license ID from URL parameter
+        function prefillLicenseId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const licenseId = urlParams.get('license_id');
+
+            if (licenseId) {
+                console.log('Prefilling license ID from URL:', licenseId);
+                $('#license_id').val(licenseId);
+                shouldAutoLoadLicense = true;
+
+                // Show info message that license ID was pre-filled
+                $('#loadStatus').html('<div class="info-box">License ID pre-filled from URL. Loading license details...</div>');
+            }
+        }
+
+        // Load license details by ID
+        function loadLicense() {
+            const licenseId = $('#license_id').val().trim();
+
+            if (!licenseId) {
+                displayLoadStatus('Please enter a license ID', false);
+                return;
+            }
+
+            console.log('Loading license:', licenseId);
+            $('#loadStatus').html('<div class="info-box">Loading license...</div>');
+
+            firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+                $.ajax({
+                    url: hostURL + '/admin_get_license_info',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    data: JSON.stringify({
+                        license_id: licenseId
+                    }),
+                    success: function(response) {
+                        console.log('License loaded successfully:', response);
+                        const licenseData = typeof response === 'string' ? JSON.parse(response) : response;
+
+                        // Store license data
+                        currentLicense = licenseData;
+
+                        // Display license details
+                        $('#display_license_name').text(licenseData.license_name || 'N/A');
+                        $('#display_tier').text(licenseData.tier || 'N/A');
+                        $('#display_license_type').text(licenseData.license_type || 'N/A');
+                        $('#display_license_status').text(licenseData.license_status || 'N/A');
+                        $('#display_emails').text(licenseData.emails ? licenseData.emails.join(', ') : 'N/A');
+                        $('#display_domains').text(licenseData.domains ? licenseData.domains.join(', ') : 'N/A');
+                        $('#display_current_expiry').text(formatTimestamp(licenseData.expiry_timestamp));
+
+                        // Display token information
+                        const tokenInfo = `${licenseData.tokens_used || 0} / ${licenseData.n_tokens || 0} used (${licenseData.tokens_remaining || 0} remaining)`;
+                        $('#display_tokens').text(tokenInfo);
+
+                        // Display devices
+                        if (licenseData.devices && licenseData.devices.length > 0) {
+                            const deviceList = licenseData.devices.map(d =>
+                                `${d.email} (${d.machine_id})`
+                            ).join(', ');
+                            $('#display_devices').text(deviceList);
+                        } else {
+                            $('#display_devices').text('No devices registered');
+                        }
+
+                        // Initialize date picker with current expiry
+                        const currentExpiry = new Date(licenseData.expiry_timestamp * 1000);
+                        const localDatetime = currentExpiry.toISOString().slice(0, 16);
+                        $('#new_expiry_datetime').val(localDatetime);
+
+                        // Initialize current expiry display
+                        const formattedExpiry = formatTimestamp(licenseData.expiry_timestamp);
+                        $('#comparison_current_expiry').text(formattedExpiry);
+
+                        // Initialize formatted new expiry display
+                        updateFormattedNewExpiry();
+
+                        // Show license details section
+                        $('#license-details').show();
+                        $('#loadStatus').html('<div class="success-box"><strong>✓ License Loaded Successfully</strong></div>');
+                        scrollToElement($('#license-details'));
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Failed to load license:', xhr.responseText);
+                        let errorMessage = 'Failed to load license';
+
+                        try {
+                            const errorData = JSON.parse(xhr.responseText);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            errorMessage = xhr.responseText || errorMessage;
+                        }
+
+                        displayLoadStatus(errorMessage, false);
+                        $('#license-details').hide();
+                    }
+                });
+            }).catch(function(error) {
+                console.error('Error getting ID token:', error);
+                displayLoadStatus('Authentication error: ' + error.message, false);
+            });
+        }
+
+        // Format Unix timestamp to readable format
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp * 1000); // Convert seconds to milliseconds
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            const formattedDate = date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZoneName: 'short'
+            });
+
+            return formattedDate;
+        }
+
+        // Convert datetime-local input value to Unix timestamp (seconds)
+        function datetimeLocalToTimestamp(datetimeLocal) {
+            return Math.floor(new Date(datetimeLocal).getTime() / 1000);
+        }
+
+        // Update the formatted new expiry display
+        function updateFormattedNewExpiry() {
+            const newExpiryLocal = $('#new_expiry_datetime').val();
+            if (!newExpiryLocal) {
+                $('#formatted_new_expiry').text('-');
+                return;
+            }
+
+            const newExpiryTimestamp = datetimeLocalToTimestamp(newExpiryLocal);
+            const formattedDate = formatTimestamp(newExpiryTimestamp);
+            $('#formatted_new_expiry').text(formattedDate);
+        }
+
+        // Highlight the formatted date display with animation
+        function highlightNewDate() {
+            const formattedDisplay = $('#formatted_new_expiry');
+
+            // Remove highlight class if it exists
+            formattedDisplay.removeClass('highlight');
+
+            // Trigger reflow to restart animation
+            void formattedDisplay[0].offsetWidth;
+
+            // Add highlight class
+            formattedDisplay.addClass('highlight');
+
+            // Remove class after animation completes
+            setTimeout(function() {
+                formattedDisplay.removeClass('highlight');
+            }, 600);
+        }
+
+        // Add days to current expiry and update picker
+        function addDaysToExpiry(days) {
+            if (!currentLicense) {
+                alert('Please load a license first');
+                return;
+            }
+
+            const currentExpiry = new Date(currentLicense.expiry_timestamp * 1000);
+            const newExpiry = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000);
+
+            // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+            const localDatetime = newExpiry.toISOString().slice(0, 16);
+            $('#new_expiry_datetime').val(localDatetime);
+
+            // Update formatted display and highlight
+            updateFormattedNewExpiry();
+            highlightNewDate();
+        }
+
+        // Preset extension button handlers
+        function addTwoWeeks() { addDaysToExpiry(14); }
+        function addOneMonth() { addDaysToExpiry(30); }
+        function addThreeMonths() { addDaysToExpiry(90); }
+        function addOneYear() { addDaysToExpiry(365); }
+
+        // Custom extension handler
+        function applyCustomExtension() {
+            const days = parseInt($('#custom_days').val());
+            if (isNaN(days) || days < 1) {
+                alert('Please enter a valid number of days');
+                return;
+            }
+            addDaysToExpiry(days);
+        }
+
+        // Submit extension request
+        function extendLicense() {
+            if (!currentLicense) {
+                displayStatus('Please load a license first', false);
+                return;
+            }
+
+            const newExpiryLocal = $('#new_expiry_datetime').val();
+            if (!newExpiryLocal) {
+                displayStatus('Please select a new expiry date', false);
+                return;
+            }
+
+            const adminPassword = $('#admin_password').val();
+            if (!adminPassword) {
+                displayStatus('Please enter admin password', false);
+                return;
+            }
+
+            const newExpiryTimestamp = datetimeLocalToTimestamp(newExpiryLocal);
+
+            console.log('Extending license:', currentLicense.license_id, 'to timestamp', newExpiryTimestamp);
+            $('#extensionStatus').html('<div class="info-box">Extending license...</div>');
+            scrollToStatus();
+
+            firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+                $.ajax({
+                    url: hostURL + '/admin_extend_license',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    data: JSON.stringify({
+                        license_id: currentLicense.license_id,
+                        new_expiry_timestamp: newExpiryTimestamp,
+                        admin_password: adminPassword
+                    }),
+                    success: function(response) {
+                        console.log('License extended successfully:', response);
+                        const responseData = typeof response === 'string' ? JSON.parse(response) : response;
+
+                        // Update current license data with new expiry
+                        currentLicense.expiry_timestamp = responseData.new_expiry;
+
+                        // Display success message
+                        let successMessage = `<div class="success-box">
+                            <strong>✓ License Extended Successfully</strong>
+                            <p><strong>License ID:</strong> ${responseData.license_id}</p>
+                            <p><strong>Old Expiry:</strong> ${formatTimestamp(responseData.old_expiry)}</p>
+                            <p><strong>New Expiry:</strong> ${formatTimestamp(responseData.new_expiry)}</p>
+                            <p><strong>Extension:</strong> ${responseData.extension_days || 'N/A'} days</p>
+                            <p><strong>Tokens Updated:</strong> ${responseData.tokens_updated || 0}</p>
+                            <p><strong>Emails Sent To:</strong> ${responseData.emails_sent ? responseData.emails_sent.join(', ') : 'N/A'}</p>
+                        </div>`;
+
+                        $('#extensionStatus').html(successMessage);
+
+                        // Update display
+                        $('#display_current_expiry').text(formatTimestamp(responseData.new_expiry));
+
+                        scrollToStatus();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Failed to extend license:', xhr.responseText);
+                        let errorMessage = 'Failed to extend license';
+
+                        try {
+                            const errorData = JSON.parse(xhr.responseText);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            errorMessage = xhr.responseText || errorMessage;
+                        }
+
+                        displayStatus(errorMessage, false);
+                    }
+                });
+            }).catch(function(error) {
+                console.error('Error getting ID token:', error);
+                displayStatus('Authentication error: ' + error.message, false);
+            });
+        }
+
+        // Display load status
+        function displayLoadStatus(message, isSuccess) {
+            const boxClass = isSuccess ? 'success-box' : 'error-box';
+            const symbol = isSuccess ? '✓' : '✗';
+            $('#loadStatus').html(`<div class="${boxClass}"><strong>${symbol} ${message}</strong></div>`);
+        }
+
+        // Display success/error status
+        function displayStatus(message, isSuccess) {
+            const boxClass = isSuccess ? 'success-box' : 'error-box';
+            const symbol = isSuccess ? '✓' : '✗';
+            $('#extensionStatus').html(`<div class="${boxClass}"><strong>${symbol} ${message}</strong></div>`);
+            scrollToStatus();
+        }
+
+        // Auto-scroll to status
+        function scrollToStatus() {
+            const statusElement = document.getElementById('extensionStatus');
+            if (statusElement && statusElement.innerHTML.trim() !== '') {
+                statusElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Scroll to element
+        function scrollToElement(element) {
+            if (element && element.length > 0) {
+                element[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    </script>
+</body>
