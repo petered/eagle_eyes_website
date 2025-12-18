@@ -6219,9 +6219,9 @@ class DroneMap {
         const containerStyle = isMobile 
             ? 'min-width: 150px; max-width: 90vw; width: auto;'
             : 'min-width: 160px; max-width: 200px;';
-        const titleStyle = 'font-size: 0.75rem; display: block; margin-bottom: 3px; word-wrap: break-word; font-weight: 600;';
-        const infoStyle = 'font-size: 0.6rem; color: #6c757d; font-style: italic; margin-bottom: 4px; line-height: 1.2;';
-        const droneNameStyle = 'font-size: 0.55rem; font-weight: 500;';
+        const titleStyle = 'font-size: 0.75rem !important; display: block; margin-bottom: 3px; word-wrap: break-word; font-weight: 600 !important;';
+        const infoStyle = 'font-size: 0.6rem !important; color: #6c757d; font-style: italic; margin-bottom: 4px; line-height: 1.2;';
+        const droneNameStyle = 'font-size: 0.55rem !important; font-weight: 500 !important;';
         const imageStyle = 'width: 100%; max-width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 6px; display: block;';
         
         return `
@@ -6251,21 +6251,16 @@ class DroneMap {
                 </div>
                 
                 <!-- Map options popup (hidden by default, shown when "Open in Maps" is clicked) -->
-                <div id="photoPointMapOptions-${photoPoint.id}" style="display: none; position: relative; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-top: 4px; width: 100%; box-sizing: border-box;">
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        ${this.caltopoInfo && this.caltopoInfo.map_id ? `
-                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInCaltopo('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #007bff; padding: 6px 8px; border-radius: 4px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f7ff'; this.style.borderColor='#0056b3'; this.style.transform='scale(1.02)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#007bff'; this.style.transform='scale(1)';" title="View in CalTopo">
-                            <img src="${window.location.origin}/images/Caltopo_Logo.png" alt="CalTopo" style="height: 18px; width: auto; display: block; margin-right: 6px;" />
-                            <span style="font-size: 0.7rem;">View in CalTopo</span>
+                <div id="photoPointMapOptions-${photoPoint.id}" style="display: none !important; position: relative; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-top: 4px; width: 100%; box-sizing: border-box;">
+                    <div style="display: flex; flex-direction: row; gap: 4px; align-items: center; justify-content: space-between;">
+                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInCaltopo('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #007bff; padding: 4px 6px; border-radius: 4px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f7ff'; this.style.borderColor='#0056b3'; this.style.transform='scale(1.02)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#007bff'; this.style.transform='scale(1)';" title="View in CalTopo">
+                            <img src="${window.location.origin}/images/Caltopo_Logo.png" alt="CalTopo" style="height: 16px; width: auto; display: block;" />
                         </button>
-                        ` : ''}
-                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInGoogleMaps('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 6px 8px; border-radius: 4px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.02)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)';" title="View in Google Maps">
-                            <img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 18px; width: auto; display: block; margin-right: 6px;" />
-                            <span style="font-size: 0.7rem;">View in Google Maps</span>
+                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInGoogleMaps('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #34a853; padding: 4px 6px; border-radius: 4px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);" onmouseover="this.style.background='#f0f9f4'; this.style.borderColor='#2d8f47'; this.style.transform='scale(1.02)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#34a853'; this.style.transform='scale(1)';" title="View in Google Maps">
+                            <img src="${window.location.origin}/images/livestream/google-maps-logo.png" alt="Google Maps" style="height: 16px; width: auto; display: block;" />
                         </button>
-                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInAppleMaps('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #000000; padding: 6px 8px; border-radius: 4px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#333333'; this.style.transform='scale(1.02)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#000000'; this.style.transform='scale(1)';" title="View in Apple Maps">
-                            <img src="${window.location.origin}/images/livestream/apple-maps-logo.png" alt="Apple Maps" style="height: 18px; width: auto; display: block; margin-right: 6px;" />
-                            <span style="font-size: 0.7rem;">View in Apple Maps</span>
+                        <button onclick="event.stopPropagation(); window.droneMap.openPhotoPointInAppleMaps('${photoPoint.id}'); return false;" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 2px solid #000000; padding: 4px 6px; border-radius: 4px; cursor: pointer; pointer-events: auto; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.1);" onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#333333'; this.style.transform='scale(1.02)';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#000000'; this.style.transform='scale(1)';" title="View in Apple Maps">
+                            <img src="${window.location.origin}/images/livestream/apple-maps-logo.png" alt="Apple Maps" style="height: 16px; width: auto; display: block;" />
                         </button>
                     </div>
                 </div>
@@ -6280,18 +6275,27 @@ class DroneMap {
         
         // Find the map options popup for this photo point
         const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
-        if (!popupElement) return;
+        if (!popupElement) {
+            console.warn(`Map options popup not found for photo point ${photoPointId}`);
+            return;
+        }
         
-        // Toggle visibility
-        const isVisible = popupElement.style.display !== 'none';
-        popupElement.style.display = isVisible ? 'none' : 'block';
+        // Toggle visibility - check both 'none' and empty string
+        const currentDisplay = window.getComputedStyle(popupElement).display;
+        const isVisible = currentDisplay !== 'none' && currentDisplay !== '';
+        
+        if (isVisible) {
+            popupElement.style.setProperty('display', 'none', 'important');
+        } else {
+            popupElement.style.setProperty('display', 'block', 'important');
+        }
         
         // Close other map option popups
         this.photoPoints.forEach(p => {
             if (p.id !== photoPointId) {
                 const otherPopup = document.getElementById(`photoPointMapOptions-${p.id}`);
                 if (otherPopup) {
-                    otherPopup.style.display = 'none';
+                    otherPopup.style.setProperty('display', 'none', 'important');
                 }
             }
         });
@@ -6300,7 +6304,7 @@ class DroneMap {
         if (!isVisible) {
             const closeOnOutsideClick = (e) => {
                 if (!popupElement.contains(e.target) && !e.target.closest(`[onclick*="showPhotoPointMapOptions('${photoPointId}')"]`)) {
-                    popupElement.style.display = 'none';
+                    popupElement.style.setProperty('display', 'none', 'important');
                     document.removeEventListener('click', closeOnOutsideClick);
                 }
             };
@@ -6312,15 +6316,54 @@ class DroneMap {
     // Open photo point in CalTopo
     openPhotoPointInCaltopo(photoPointId) {
         const photoPoint = this.photoPoints.find(p => p.id === photoPointId);
-        if (!photoPoint || !this.caltopoInfo || !this.caltopoInfo.map_id) return;
+        if (!photoPoint) return;
         
-        const caltopoUrl = `https://caltopo.com/m/${this.caltopoInfo.map_id}#ll=${photoPoint.lat},${photoPoint.lng}&z=14&b=hyb`;
-        window.open(caltopoUrl, '_blank');
-        
-        // Close the map options popup
-        const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
-        if (popupElement) {
-            popupElement.style.display = 'none';
+        // Check if CalTopo map is connected
+        if (this.caltopoInfo && this.caltopoInfo.map_id) {
+            // Open in connected CalTopo map
+            const caltopoUrl = `https://caltopo.com/m/${this.caltopoInfo.map_id}#ll=${photoPoint.lat},${photoPoint.lng}&z=14&b=hyb`;
+            window.open(caltopoUrl, '_blank');
+            
+            // Close the map options popup
+            const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
+            if (popupElement) {
+                popupElement.style.setProperty('display', 'none', 'important');
+            }
+        } else {
+            // Show modal with message and option to open empty CalTopo map
+            const modal = document.getElementById('caltopoNoMapModal');
+            const emptyMapBtn = document.getElementById('caltopoEmptyMapBtn');
+            
+            if (!modal || !emptyMapBtn) {
+                console.error('CalTopo modal or button not found');
+                return;
+            }
+            
+            // Close the map options popup first
+            const popupElement = document.getElementById(`photoPointMapOptions-${photoPointId}`);
+            if (popupElement) {
+                popupElement.style.setProperty('display', 'none', 'important');
+            }
+            
+            // Clear previous event listeners
+            const newEmptyMapBtn = emptyMapBtn.cloneNode(true);
+            emptyMapBtn.parentNode.replaceChild(newEmptyMapBtn, emptyMapBtn);
+            
+            // Show modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Handle empty map button click
+            newEmptyMapBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Open CalTopo with just coordinates (no map ID) - using map.html format
+                const caltopoUrl = `https://caltopo.com/map.html#ll=${photoPoint.lat},${photoPoint.lng}&z=14&b=mbt`;
+                window.open(caltopoUrl, '_blank');
+                
+                bsModal.hide();
+            }, { once: true });
         }
     }
     
