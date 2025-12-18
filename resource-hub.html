@@ -1,0 +1,569 @@
+---
+layout: main
+title: Resource Hub
+permalink: /resource-hub/
+---
+
+<style>
+    .resource-button-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+    }
+    
+    .resource-button {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 280px;
+        flex: 0 1 auto;
+    }
+    
+    .resource-button:hover {
+        border-color: #007bff;
+        background: #f0f8ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .resource-button-icons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+    
+    .resource-button-icons img {
+        width: 40px;
+        height: auto;
+        filter: grayscale(30%);
+    }
+    
+    .resource-button-icons img[src*="android_tablet"] {
+        width: 32px;
+        height: auto;
+    }
+    
+    .resource-button-icons img[src*="laptop_icon"] {
+        width: 52px;
+        height: auto;
+    }
+    
+    .resource-button-icons span {
+        font-size: 32px;
+        transform: translateY(4px);
+        display: inline-block;
+    }
+    
+    .resource-button-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+        line-height: 1.3;
+    }
+    
+    .sample-data-section {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #e9ecef;
+    }
+    
+    .sample-data-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+        margin-bottom: 20px;
+        line-height: 1.2;
+    }
+    
+    .sample-data-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-top: 15px;
+    }
+    
+    .sample-data-card {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .sample-data-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .sample-data-thumbnail {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #e9ecef;
+        display: block;
+    }
+    
+    .sample-data-content {
+        padding: 15px;
+    }
+    
+    .sample-data-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 6px 0;
+    }
+    
+    .sample-data-card-description {
+        font-size: 14px;
+        color: #666;
+        margin: 0 0 12px 0;
+    }
+    
+    .sample-data-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .sample-data-button {
+        flex: 1 1 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        min-width: 0;
+        white-space: nowrap;
+        box-sizing: border-box;
+        width: 0;
+        height: 44px;
+        min-height: 44px;
+        max-height: 44px;
+    }
+    
+    .sample-data-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .sample-data-button img {
+        height: 20px;
+        width: auto;
+        flex-shrink: 0;
+    }
+    
+    .sample-data-button.caltopo-button {
+        border-color: #007bff;
+        background: #fff;
+        color: #007bff;
+    }
+    
+    .sample-data-button.caltopo-button:hover {
+        background: #f0f8ff;
+        border-color: #0056b3;
+        color: #0056b3;
+    }
+    
+    .sample-data-button.download-button {
+        border-color: #28a745;
+        background: #fff;
+        color: #28a745;
+    }
+    
+    .sample-data-button.download-button:hover {
+        background: #f0f9f4;
+        border-color: #218838;
+        color: #218838;
+    }
+    
+    @media (max-width: 480px) {
+        .sample-data-actions {
+            flex-direction: column;
+        }
+        
+        .sample-data-button {
+            width: 100%;
+        }
+    }
+    
+    /* Modal Styles */
+    .setup-modal, .qr-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+    }
+    
+    .setup-modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    
+    .qr-modal-content {
+        background-color: #fff;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        text-align: center;
+    }
+    
+    .qr-code-image {
+        max-width: 100%;
+        height: auto;
+        margin: 20px 0;
+        border-radius: 8px;
+    }
+    
+    .setup-modal-header {
+        margin-bottom: 25px;
+    }
+    
+    .setup-modal-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 10px 0;
+    }
+    
+    .setup-modal-subtitle {
+        font-size: 16px;
+        color: #666;
+        margin: 0;
+    }
+    
+    .setup-options {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .setup-option {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+    
+    .setup-option:hover {
+        border-color: #007bff;
+        background: #f0f8ff;
+    }
+    
+    .setup-option-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 5px 0;
+    }
+    
+    .setup-option-description {
+        font-size: 14px;
+        color: #666;
+        margin: 0;
+    }
+    
+    .modal-close {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+    }
+    
+    .modal-close:hover {
+        background: #5a6268;
+    }
+    
+    .qr-modal-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    
+    .qr-modal-buttons .modal-close {
+        flex: 1;
+        width: auto;
+        height: 44px;
+        min-height: 44px;
+        max-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .qr-modal-buttons .view-browser-button {
+        flex: 1;
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        height: 44px;
+        min-height: 44px;
+        max-height: 44px;
+        box-sizing: border-box;
+    }
+    
+    .qr-modal-buttons .view-browser-button:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    @media (max-width: 768px) {
+        .resource-button-container {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .resource-button {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .sample-data-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- Content -->
+<div class="content clearfix reveal-footer">
+    <!-- Page Header -->
+    <div class="section-block bkg-grey-ultralight" style="padding: 100px 0 10px 0;">
+        <div class="row">
+            <div class="column width-10 offset-1 center">
+                <h1 class="mb-10" style="font-size: 3.5rem; line-height: 1.1; font-weight: 700;">Resource Hub</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Section -->
+    <section class="section-block pt-20 pb-90 bkg-white">
+        <div class="row">
+            <div class="column width-10 offset-1">
+                
+                <!-- Download and Setup Buttons -->
+                <div class="resource-button-container">
+                    <!-- Download Button -->
+                    <div class="resource-button" onclick="window.location.href='{{ '/download/' | relative_url }}'">
+                        <div class="resource-button-icons">
+                            <img src="{{ '/images/djicontroller.png' | relative_url }}" alt="Drone Controller">
+                            <span>📱</span>
+                            <img src="{{ '/images/android_tablet.png' | relative_url }}" alt="Android Tablet">
+                            <img src="{{ '/images/laptop_icon.png' | relative_url }}" alt="Laptop">
+                        </div>
+                        <h3 class="resource-button-title">Download Here</h3>
+                    </div>
+                    
+                    <!-- Installation & Setup Button -->
+                    <div class="resource-button" onclick="showSetupModal()">
+                        <div class="resource-button-icons">
+                            <span style="font-size: 48px;">⚙️</span>
+                        </div>
+                        <h3 class="resource-button-title">Installation & Setup</h3>
+                    </div>
+                </div>
+                
+                <!-- Sample Data Hub Section -->
+                <div class="sample-data-section">
+                    <h2 class="sample-data-title">Eagle Eyes Open Data Hub</h2>
+                    
+                    <div class="sample-data-grid">
+                        <!-- Sample data cards will go here -->
+                        <!-- Placeholder cards for now -->
+                        <div class="sample-data-card">
+                            <img src="{{ '/images/Spit.JPG' | relative_url }}" alt="Squamish spit search" class="sample-data-thumbnail">
+                            <div class="sample-data-content">
+                                <h4 class="sample-data-card-title">Squamish Spit Search</h4>
+                                <p class="sample-data-card-description">Image set from a mapping mission</p>
+                                <div class="sample-data-actions">
+                                    <a href="#" onclick="showQRModal('squamish-spit', 'Squamish Spit Search'); return false;" class="sample-data-button caltopo-button">
+                                        <img src="{{ '/images/Caltopo_Logo.png' | relative_url }}" alt="CalTopo">
+                                        <span>CalTopo Map</span>
+                                    </a>
+                                    <a href="https://drive.google.com/file/d/1QLSpQB41kElap8pf1WB7keVKvAuphoht/view?usp=sharing" target="_blank" class="sample-data-button download-button">
+                                        <span>Download Dataset</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="sample-data-card">
+                            <img src="{{ '/images/summer_lake.JPG' | relative_url }}" alt="Summer Lake Search" class="sample-data-thumbnail">
+                            <div class="sample-data-content">
+                                <h4 class="sample-data-card-title">Summer Lake Search</h4>
+                                <p class="sample-data-card-description">Visual and Thermal Mapping Mission</p>
+                                <div class="sample-data-actions">
+                                    <a href="#" onclick="showQRModal('summer-lake', 'Summer Lake Search'); return false;" class="sample-data-button caltopo-button">
+                                        <img src="{{ '/images/Caltopo_Logo.png' | relative_url }}" alt="CalTopo">
+                                        <span>CalTopo Map</span>
+                                    </a>
+                                    <a href="https://drive.google.com/file/d/1lo6pSh6axwTfG7QhNDAylLiITlL0KQfb/view?usp=sharing" target="_blank" class="sample-data-button download-button">
+                                        <span>Download Dataset</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="sample-data-card">
+                            <div class="sample-data-thumbnail" style="background: #e9ecef; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 64px; color: #adb5bd;">📷</span>
+                            </div>
+                            <div class="sample-data-content">
+                                <h4 class="sample-data-card-title">Sample Data 3</h4>
+                                <p class="sample-data-card-description">Description will go here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </section>
+
+    {% include footer.html %}
+</div>
+
+<!-- Setup Modal -->
+<div id="setupModal" class="setup-modal">
+    <div class="setup-modal-content">
+        <div class="setup-modal-header">
+            <h2 class="setup-modal-title">Choose Setup Instructions</h2>
+            <p class="setup-modal-subtitle">Select which product you'd like setup instructions for:</p>
+        </div>
+        
+        <div class="setup-options">
+            <div class="setup-option" onclick="window.location.href='{{ '/pilot/setup/' | relative_url }}'">
+                <h3 class="setup-option-title">Eagle Eyes Pilot</h3>
+                <p class="setup-option-description">Setup instructions for the Android app</p>
+            </div>
+            
+            <div class="setup-option" onclick="window.location.href='{{ '/scan/setup/' | relative_url }}'">
+                <h3 class="setup-option-title">Eagle Eyes Scan</h3>
+                <p class="setup-option-description">Setup instructions for desktop scanning</p>
+            </div>
+        </div>
+        
+        <button class="modal-close" onclick="closeSetupModal()">Close</button>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div id="qrModal" class="qr-modal">
+    <div class="qr-modal-content">
+        <p id="qrModalSubtitle" class="setup-modal-subtitle" style="margin-bottom: 20px;">Scan this QR code to open the CalTopo map</p>
+        <img id="qrCodeImage" src="" alt="QR Code" class="qr-code-image">
+        <div class="qr-modal-buttons">
+            <a id="viewBrowserBtn" href="#" target="_blank" class="view-browser-button">View in Browser</a>
+            <button class="modal-close" onclick="closeQRModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSetupModal() {
+    document.getElementById('setupModal').style.display = 'block';
+}
+
+function closeSetupModal() {
+    document.getElementById('setupModal').style.display = 'none';
+}
+
+function showQRModal(type, searchName) {
+    const modal = document.getElementById('qrModal');
+    const qrImage = document.getElementById('qrCodeImage');
+    const subtitle = document.getElementById('qrModalSubtitle');
+    const viewBrowserBtn = document.getElementById('viewBrowserBtn');
+    
+    // Set the appropriate QR code image, subtitle, and link based on type
+    if (type === 'squamish-spit') {
+        qrImage.src = "{{ '/images/SquaishSpitCalTopoQR.png' | relative_url }}";
+        qrImage.alt = "Squamish Spit CalTopo QR Code";
+        subtitle.textContent = "Scan this QR code to open the CalTopo map for " + searchName;
+        viewBrowserBtn.href = "https://caltopo.com/m/GAT1CMT/QUDVKVTLLQ3LKVAT";
+    } else if (type === 'summer-lake') {
+        qrImage.src = "{{ '/images/SummerLakeCalTopoQR.png' | relative_url }}";
+        qrImage.alt = "Summer Lake CalTopo QR Code";
+        subtitle.textContent = "Scan this QR code to open the CalTopo map for " + searchName;
+        viewBrowserBtn.href = "https://caltopo.com/m/A9Q66UV/HH9R8H9V0SCV766U";
+    }
+    
+    modal.style.display = 'block';
+}
+
+function closeQRModal() {
+    document.getElementById('qrModal').style.display = 'none';
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+    const setupModal = document.getElementById('setupModal');
+    const qrModal = document.getElementById('qrModal');
+    
+    if (event.target == setupModal) {
+        closeSetupModal();
+    }
+    if (event.target == qrModal) {
+        closeQRModal();
+    }
+}
+</script>
+
