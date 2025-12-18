@@ -1,13 +1,13 @@
 ---
 layout: ee_page_layout
-title: Extend Eagle Eyes License (Admin)
+title: Manage Eagle Eyes License (Admin)
 permalink: /extend_license/
 ---
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extend Eagle Eyes License (Admin)</title>
+    <title>Manage Eagle Eyes License (Admin)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <link rel="stylesheet" href="{{ '/css/form_buttons_and_boxes.css' | relative_url }}">
@@ -203,14 +203,14 @@ permalink: /extend_license/
 
     <section id="signin">
         <div class="info-box" id="using-emulator-info" style="display: none;">Using local Firebase emulator</div>
-        <h1>Extend License Expiry</h1>
+        <h1>Manage License</h1>
         <h3> Step 1: Sign in </h3>
         {% include signinWidget.html %}
     </section>
 
     <section id="form" hidden>
         <div class="form-container">
-            <h1>Extend License Expiry Date</h1>
+            <h1>Manage License</h1>
 
             <!-- License Lookup Section -->
             <div class="form-section">
@@ -223,45 +223,42 @@ permalink: /extend_license/
 
             <!-- License Details Display (hidden until loaded) -->
             <div id="license-details" style="display:none;">
-                <div class="form-section">
-                    <h3>Current License Information</h3>
-                    <div class="info-box">
-                        <div class="display-field">
-                            <strong>License Name:</strong> <span id="display_license_name"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Tier:</strong> <span id="display_tier"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>License Type:</strong> <span id="display_license_type"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Status:</strong> <span id="display_license_status"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Emails:</strong> <span id="display_emails"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Domains:</strong> <span id="display_domains"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Current Expiry:</strong> <span id="display_current_expiry"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Tokens:</strong> <span id="display_tokens"></span>
-                        </div>
-                        <div class="display-field">
-                            <strong>Devices:</strong> <span id="display_devices"></span>
-                        </div>
-                    </div>
+                <!-- Compact License Info -->
+                <div style="background: #fff; padding: 10px 14px; border-radius: 4px; margin-bottom: 15px; font-size: 13px; line-height: 1.6;">
+                    <strong>Status:</strong> <span id="display_license_status"></span> &nbsp;|&nbsp;
+                    <strong>Emails:</strong> <span id="display_emails"></span> &nbsp;|&nbsp;
+                    <strong>Domains:</strong> <span id="display_domains"></span><br>
+                    <strong>Tokens:</strong> <span id="display_tokens"></span> &nbsp;|&nbsp;
+                    <strong>Devices:</strong> <span id="display_devices"></span>
                 </div>
 
                 <!-- Extension Options Section -->
                 <div class="form-section">
-                    <h3>Extend License</h3>
+                    <h3>Update License</h3>
 
                     <label for="admin_password">Admin Password (required):</label>
                     <input type="password" placeholder="Enter Admin Password" id="admin_password" name="admin_password" required>
+
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <div style="flex: 1;">
+                            <label for="edit_license_name">License Name:</label>
+                            <input type="text" id="edit_license_name" name="edit_license_name">
+                        </div>
+                        <div style="flex: 0 0 180px;">
+                            <label for="edit_license_type">License Type:</label>
+                            <select id="edit_license_type" name="edit_license_type" style="width: 100%; padding: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 13px;">
+                                <option value="trial">Trial</option>
+                                <option value="paid">Paid</option>
+                                <option value="ambassador">Ambassador</option>
+                                <option value="internal">Internal</option>
+                                <option value="public">Public</option>
+                                <option value="customer-manual-license">Customer Manual License</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Hidden tier field to preserve value -->
+                    <input type="hidden" id="edit_tier" name="edit_tier" value="SAR">
 
                     <div class="date-comparison">
                         <div class="date-display-row current-date">
@@ -291,7 +288,7 @@ permalink: /extend_license/
 
                 <!-- Submit Button -->
                 <div style="text-align: center;">
-                    <button onclick="extendLicense()" id="extend-button" class="submit-button">Extend License</button>
+                    <button onclick="extendLicense()" id="extend-button" class="submit-button">Update License</button>
                 </div>
             </div>
         </div>
@@ -465,14 +462,15 @@ permalink: /extend_license/
                         // Store license data
                         currentLicense = licenseData;
 
-                        // Display license details
-                        $('#display_license_name').text(licenseData.license_name || 'N/A');
-                        $('#display_tier').text(licenseData.tier || 'N/A');
-                        $('#display_license_type').text(licenseData.license_type || 'N/A');
+                        // Populate editable fields
+                        $('#edit_license_name').val(licenseData.license_name || '');
+                        $('#edit_tier').val(licenseData.tier || 'SAR');
+                        $('#edit_license_type').val(licenseData.license_type || 'trial');
+
+                        // Display other license details
                         $('#display_license_status').text(licenseData.license_status || 'N/A');
                         $('#display_emails').text(licenseData.emails ? licenseData.emails.join(', ') : 'N/A');
                         $('#display_domains').text(licenseData.domains ? licenseData.domains.join(', ') : 'N/A');
-                        $('#display_current_expiry').text(formatTimestamp(licenseData.expiry_timestamp));
 
                         // Display token information
                         const tokenInfo = `${licenseData.tokens_used || 0} / ${licenseData.n_tokens || 0} used (${licenseData.tokens_remaining || 0} remaining)`;
@@ -666,7 +664,10 @@ permalink: /extend_license/
                     data: JSON.stringify({
                         license_id: currentLicense.license_id,
                         new_expiry_timestamp: newExpiryTimestamp,
-                        admin_password: adminPassword
+                        admin_password: adminPassword,
+                        license_name: $('#edit_license_name').val().trim(),
+                        tier: $('#edit_tier').val(),
+                        license_type: $('#edit_license_type').val()
                     }),
                     success: function(response) {
                         console.log('License extended successfully:', response);
@@ -677,8 +678,10 @@ permalink: /extend_license/
 
                         // Display success message
                         let successMessage = `<div class="success-box">
-                            <strong>✓ License Extended Successfully</strong>
+                            <strong>✓ License Updated Successfully</strong>
                             <p><strong>License ID:</strong> ${responseData.license_id}</p>
+                            <p><strong>License Name:</strong> ${responseData.license_name || $('#edit_license_name').val()}</p>
+                            <p><strong>License Type:</strong> ${responseData.license_type || $('#edit_license_type').val()}</p>
                             <p><strong>Old Expiry:</strong> ${formatTimestamp(responseData.old_expiry)}</p>
                             <p><strong>New Expiry:</strong> ${formatTimestamp(responseData.new_expiry)}</p>
                             <p><strong>Extension:</strong> ${responseData.extension_days || 'N/A'} days</p>
@@ -687,10 +690,6 @@ permalink: /extend_license/
                         </div>`;
 
                         $('#extensionStatus').html(successMessage);
-
-                        // Update display
-                        $('#display_current_expiry').text(formatTimestamp(responseData.new_expiry));
-
                         scrollToStatus();
                     },
                     error: function(xhr, status, error) {
