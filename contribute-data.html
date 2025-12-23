@@ -1,0 +1,589 @@
+---
+layout: main
+title: Contribute Data
+permalink: /contribute-data/
+---
+
+<style>
+    .contribute-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    
+    .contribute-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    
+    .contribute-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .contribute-header p {
+        font-size: 1.1rem;
+        color: #666;
+        margin: 0;
+    }
+    
+    .upload-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+    }
+    
+    .upload-section.required {
+        border-color: #007bff;
+        background: #f0f8ff;
+    }
+    
+    .upload-section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .upload-section-title .required-badge {
+        color: #dc3545;
+        font-size: 0.9rem;
+        margin-left: 8px;
+    }
+    
+    .upload-section-description {
+        font-size: 0.95rem;
+        color: #666;
+        margin-bottom: 15px;
+    }
+    
+    .upload-button-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .upload-button {
+        padding: 12px 24px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .upload-button:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .upload-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .file-list {
+        margin-top: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        min-height: 50px;
+    }
+    
+    .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .file-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .file-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .file-name {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .file-size {
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .file-remove {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    
+    .file-remove:hover {
+        background: #c82333;
+    }
+    
+    .empty-file-list {
+        color: #999;
+        font-style: italic;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .submit-section {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+        text-align: center;
+    }
+    
+    .submit-button {
+        padding: 16px 48px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .submit-button:hover:not(:disabled) {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+    
+    .submit-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .upload-progress {
+        margin-top: 20px;
+        padding: 20px;
+        background: #e7f3ff;
+        border-radius: 6px;
+        border: 1px solid #b3d9ff;
+        display: none;
+    }
+    
+    .upload-progress.active {
+        display: block;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 24px;
+        background: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: #007bff;
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .success-message {
+        margin-top: 20px;
+        padding: 20px;
+        background: #d4edda;
+        border-radius: 6px;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        display: none;
+    }
+    
+    .success-message.active {
+        display: block;
+    }
+    
+    .error-message {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8d7da;
+        border-radius: 6px;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        display: none;
+    }
+    
+    .error-message.active {
+        display: block;
+    }
+    
+    @media (max-width: 768px) {
+        .contribute-header h1 {
+            font-size: 2rem;
+        }
+        
+        .upload-button-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .upload-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="content clearfix reveal-footer">
+    <div class="section-block bkg-grey-ultralight" style="padding: 100px 0 10px 0;">
+        <div class="row">
+            <div class="column width-10 offset-1 center">
+                <div class="contribute-container">
+                    <form id="contribute-form">
+                        <!-- Drone Image Set or Video Files -->
+                        <div class="upload-section required">
+                            <h3 class="upload-section-title">
+                                Drone image set or video files (including .SRT files if applicable)
+                                <span class="required-badge">* Required</span>
+                            </h3>
+                            <p class="upload-section-description">
+                                Upload your drone images, videos, and associated SRT files. Multiple files can be selected.
+                            </p>
+                            <div class="upload-button-wrapper">
+                                <input type="file" id="media-files" class="file-input" multiple accept="image/*,video/*,.srt" required>
+                                <button type="button" class="upload-button" onclick="document.getElementById('media-files').click()">
+                                    Choose Files
+                                </button>
+                                <span id="media-files-count" style="color: #666;"></span>
+                            </div>
+                            <div class="file-list" id="media-files-list">
+                                <div class="empty-file-list">No files selected</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Drone Flight Log -->
+                        <div class="upload-section">
+                            <h3 class="upload-section-title">
+                                Drone flight log for mission (if applicable)
+                            </h3>
+                            <p class="upload-section-description">
+                                Upload flight log files from your drone mission.
+                            </p>
+                            <div class="upload-button-wrapper">
+                                <input type="file" id="flight-log" class="file-input" multiple accept=".txt,.csv,.json,.kml,.gpx">
+                                <button type="button" class="upload-button" onclick="document.getElementById('flight-log').click()">
+                                    Choose Files
+                                </button>
+                                <span id="flight-log-count" style="color: #666;"></span>
+                            </div>
+                            <div class="file-list" id="flight-log-list">
+                                <div class="empty-file-list">No files selected</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ground Truth Geo-referenced Images -->
+                        <div class="upload-section">
+                            <h3 class="upload-section-title">
+                                Ground truth geo-referenced images (if applicable)
+                            </h3>
+                            <p class="upload-section-description">
+                                Upload geo-referenced ground truth images if available.
+                            </p>
+                            <div class="upload-button-wrapper">
+                                <input type="file" id="ground-truth" class="file-input" multiple accept="image/*,.geojson,.kml,.gpx">
+                                <button type="button" class="upload-button" onclick="document.getElementById('ground-truth').click()">
+                                    Choose Files
+                                </button>
+                                <span id="ground-truth-count" style="color: #666;"></span>
+                            </div>
+                            <div class="file-list" id="ground-truth-list">
+                                <div class="empty-file-list">No files selected</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Section -->
+                        <div class="submit-section">
+                            <button type="submit" class="submit-button" id="submit-button">
+                                Submit
+                            </button>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        <div class="upload-progress" id="upload-progress">
+                            <p><strong>Uploading files...</strong></p>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill" style="width: 0%;">0%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Success Message -->
+                        <div class="success-message" id="success-message">
+                            <strong>Success!</strong> Your files have been uploaded successfully. Thank you for contributing!
+                        </div>
+                        
+                        <!-- Error Message -->
+                        <div class="error-message" id="error-message">
+                            <strong>Error:</strong> <span id="error-text"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// File management for each upload field
+const fileFields = {
+    'media-files': {
+        input: null,
+        list: null,
+        count: null,
+        files: []
+    },
+    'flight-log': {
+        input: null,
+        list: null,
+        count: null,
+        files: []
+    },
+    'ground-truth': {
+        input: null,
+        list: null,
+        count: null,
+        files: []
+    }
+};
+
+// Initialize file fields
+Object.keys(fileFields).forEach(fieldId => {
+    const field = fileFields[fieldId];
+    field.input = document.getElementById(fieldId);
+    field.list = document.getElementById(fieldId + '-list');
+    field.count = document.getElementById(fieldId + '-count');
+    
+    field.input.addEventListener('change', function(e) {
+        handleFileSelection(fieldId, Array.from(e.target.files));
+    });
+});
+
+function handleFileSelection(fieldId, newFiles) {
+    const field = fileFields[fieldId];
+    
+    // Add new files to the list
+    newFiles.forEach(file => {
+        if (!field.files.find(f => f.name === file.name && f.size === file.size)) {
+            field.files.push(file);
+        }
+    });
+    
+    updateFileList(fieldId);
+}
+
+function removeFile(fieldId, index) {
+    const field = fileFields[fieldId];
+    field.files.splice(index, 1);
+    updateFileList(fieldId);
+    
+    // Update the input element
+    const dataTransfer = new DataTransfer();
+    field.files.forEach(file => dataTransfer.items.add(file));
+    field.input.files = dataTransfer.files;
+}
+
+function updateFileList(fieldId) {
+    const field = fileFields[fieldId];
+    
+    if (field.files.length === 0) {
+        field.list.innerHTML = '<div class="empty-file-list">No files selected</div>';
+        field.count.textContent = '';
+    } else {
+        field.list.innerHTML = field.files.map((file, index) => {
+            const size = formatFileSize(file.size);
+            return `
+                <div class="file-item">
+                    <div class="file-info">
+                        <span class="file-name">${escapeHtml(file.name)}</span>
+                        <span class="file-size">(${size})</span>
+                    </div>
+                    <button type="button" class="file-remove" onclick="removeFile('${fieldId}', ${index})">Remove</button>
+                </div>
+            `;
+        }).join('');
+        field.count.textContent = `${field.files.length} file${field.files.length !== 1 ? 's' : ''} selected`;
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Form submission
+document.getElementById('contribute-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Validate required field
+    if (fileFields['media-files'].files.length === 0) {
+        showError('Please upload at least one image or video file.');
+        return;
+    }
+    
+    const submitButton = document.getElementById('submit-button');
+    const progressDiv = document.getElementById('upload-progress');
+    const progressFill = document.getElementById('progress-fill');
+    const successMessage = document.getElementById('success-message');
+    const errorMessage = document.getElementById('error-message');
+    
+    // Hide previous messages
+    successMessage.classList.remove('active');
+    errorMessage.classList.remove('active');
+    
+    // Disable submit button
+    submitButton.disabled = true;
+    submitButton.textContent = 'Uploading...';
+    
+    // Show progress
+    progressDiv.classList.add('active');
+    progressFill.style.width = '0%';
+    progressFill.textContent = '0%';
+    
+    try {
+        // Prepare form data
+        const formData = new FormData();
+        
+        // Add all files with their categories
+        fileFields['media-files'].files.forEach(file => {
+            formData.append('media-files', file);
+        });
+        
+        fileFields['flight-log'].files.forEach(file => {
+            formData.append('flight-log', file);
+        });
+        
+        fileFields['ground-truth'].files.forEach(file => {
+            formData.append('ground-truth', file);
+        });
+        
+        // Create timestamp for folder name
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        formData.append('timestamp', timestamp);
+        
+        // Upload files
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressFill.style.width = percentComplete + '%';
+                progressFill.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                progressDiv.classList.remove('active');
+                successMessage.classList.add('active');
+                submitButton.textContent = 'Submit';
+                
+                // Reset form after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('contribute-form').reset();
+                    Object.keys(fileFields).forEach(fieldId => {
+                        fileFields[fieldId].files = [];
+                        updateFileList(fieldId);
+                    });
+                    successMessage.classList.remove('active');
+                    submitButton.disabled = false;
+                }, 3000);
+            } else {
+                let errorMessage = 'Upload failed';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    errorMessage = response.error || errorMessage;
+                } catch (e) {
+                    // If response is not JSON, use default message
+                }
+                throw new Error(errorMessage);
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            throw new Error('Network error occurred');
+        });
+        
+        // Determine the API endpoint based on environment
+        // In production, this should be your server URL
+        // For local development, use http://localhost:3000
+        const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000/api/upload-contribution'
+            : '/api/upload-contribution';
+        
+        xhr.open('POST', apiEndpoint);
+        xhr.send(formData);
+        
+    } catch (error) {
+        progressDiv.classList.remove('active');
+        showError(error.message || 'An error occurred during upload. Please try again.');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit';
+    }
+});
+
+function showError(message) {
+    const errorMessage = document.getElementById('error-message');
+    const errorText = document.getElementById('error-text');
+    errorText.textContent = message;
+    errorMessage.classList.add('active');
+    
+    // Hide error after 5 seconds
+    setTimeout(() => {
+        errorMessage.classList.remove('active');
+    }, 5000);
+}
+</script>
+
+{% include footer.html %}
+
