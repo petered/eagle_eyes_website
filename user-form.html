@@ -126,7 +126,31 @@ permalink: /user-form/
         if (typeof initFormComponent === 'function') {
             initFormComponent(); // No options, no default form type
         }
-        
+
+        // Capture URL parameters for returnURL and formType
+        const urlParams = new URLSearchParams(window.location.search);
+        window.formReturnURL = urlParams.get('returnURL') || null;
+        const urlFormType = urlParams.get('formType');
+
+        // If formType is specified in URL, auto-select it
+        if (urlFormType) {
+            setTimeout(() => {
+                const radioButton = document.querySelector(`input[name="signup_type"][value="${urlFormType}"]`);
+                if (radioButton) {
+                    radioButton.checked = true;
+                    if (typeof setFormType === 'function') {
+                        setFormType(urlFormType);
+                    }
+                    if (typeof hideSignupTypeSection === 'function') {
+                        hideSignupTypeSection();
+                    }
+                    if (typeof showFormSection === 'function') {
+                        showFormSection(urlFormType);
+                    }
+                }
+            }, 100);
+        }
+
         const signinButtonSection = document.getElementById('signinButtonSection');
         const formContainer = document.getElementById('form-container');
         const userEmail = document.getElementById('userEmailDisplay');
@@ -387,14 +411,20 @@ permalink: /user-form/
                 success: function(data) {
                     console.log("Signup Success", data);
                     submitButton.classList.remove('processing');
-                    
-                    // Show success UI and redirect to account page with emulator parameter
+
+                    // Show success UI
                     $("#form-container").hide();
                     $("#signin").hide();
-                    
-                    // After a short delay to show the success message, redirect to account page
+                    $("#post-form").html("<p style='text-align: center; padding: 20px;'>Success! Your download account has been created.<br>Redirecting...</p>").show();
+
+                    // After a short delay, redirect appropriately
                     setTimeout(() => {
-                        window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+                        if (window.formReturnURL) {
+                            console.log("Redirecting to returnURL:", window.formReturnURL);
+                            window.location.href = decodeURIComponent(window.formReturnURL);
+                        } else {
+                            window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+                        }
                     }, 2000);
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -455,10 +485,15 @@ permalink: /user-form/
                         // Store the form data for prefilling
                         window.existingUserFormData = formOrNull;
                         console.log("Retrieved existing form data:", formOrNull);
-                        
-                        // User has already filled in the form: redirect to account/.
-                        console.log("User already filled in form. Redirecting to account/");
-                        window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+
+                        // User has already filled in the form: redirect appropriately
+                        if (window.formReturnURL) {
+                            console.log("User already filled in form. Redirecting back to returnURL");
+                            window.location.href = decodeURIComponent(window.formReturnURL);
+                        } else {
+                            console.log("User already filled in form. Redirecting to account/");
+                            window.location.href = getUrlWithEmulatorParam('{{ '/account/' | relative_url }}');
+                        }
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -996,9 +1031,16 @@ permalink: /user-form/
             case 'download':
                 downloadQuestions.style.display = 'block';
                 setSectionInputsEnabled(downloadQuestions, true);
-                titleElement.innerHTML = 'Create an account to download Eagle Eyes';
-                descriptionElement.innerHTML = 'Already have an active license for yourself or your team? Complete this form to create an account and you\'ll get immediate access to the downloads section.<br><br>' +
-                    '<i>Note: An active license is required to activate Eagle Eyes on your device.</i>';
+
+                // Check if coming from Mirada
+                if (window.formReturnURL && window.formReturnURL.toLowerCase().includes('mirada')) {
+                    titleElement.innerHTML = 'Create an account to get access to Eagle Eyes Mirada';
+                    descriptionElement.innerHTML = '';
+                } else {
+                    titleElement.innerHTML = 'Create an account to download Eagle Eyes';
+                    descriptionElement.innerHTML = 'Already have an active license for yourself or your team? Complete this form to create an account and you\'ll get immediate access to the downloads section.<br><br>' +
+                        '<i>Note: An active license is required to activate Eagle Eyes on your device.</i>';
+                }
                 break;
             
             case 'purchase':
