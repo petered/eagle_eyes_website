@@ -2549,7 +2549,7 @@
         </div>
         <div class="map-control-container">
             <span class="download-text">Broadcast your drone's<br>live location for free:</span>
-            <button id="downloadBtn" onclick="window.location.href='http://localhost:4000/download/#step3&platform=mobile'">Download<br>Eagle Eyes</button>
+            <button id="downloadBtn" onclick="window.location.href='/download/#step3&platform=mobile'">Download<br>Eagle Eyes</button>
             <button id="legendBtn" onclick="toggleLegend()">Legend</button>
             <div id="baseMapControl" style="position: relative; display: inline-block; z-index: 100002;">
                 <button id="baseMapBtn" onclick="toggleBaseMapMenu()" title="Base Map Layers">☰</button>
@@ -3038,6 +3038,43 @@
                     legendBtn.textContent = 'Legend';
                 }
             }
+        }
+        
+        // Base Map Menu Toggle
+        function toggleBaseMapMenu() {
+            const baseMapMenu = document.getElementById('baseMapMenu');
+            if (baseMapMenu) {
+                if (baseMapMenu.style.display === 'none' || baseMapMenu.style.display === '') {
+                    baseMapMenu.style.display = 'block';
+                } else {
+                    baseMapMenu.style.display = 'none';
+                }
+            }
+        }
+        
+        // Handle Base Map Change
+        function handleBaseMapChange(layerName) {
+            if (!baseMaps || !map) {
+                console.error('Map or baseMaps not initialized');
+                return;
+            }
+            
+            const newLayer = baseMaps[layerName];
+            if (!newLayer) {
+                console.error('Layer not found:', layerName);
+                return;
+            }
+            
+            // Remove current base layer
+            if (currentBaseLayer) {
+                map.removeLayer(currentBaseLayer);
+            }
+            
+            // Add new base layer
+            newLayer.addTo(map);
+            currentBaseLayer = newLayer;
+            
+            console.log('Base map changed to:', layerName);
         }
         
         // ==================== MQTT Functions ====================
