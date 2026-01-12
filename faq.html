@@ -2,6 +2,7 @@
 layout: main
 title: FAQ - Eagle Eyes
 permalink: /faq/
+
 ---
 
 <!-- Content -->
@@ -1154,44 +1155,56 @@ function createDroneRow(drone, index) {
     const row = document.createElement('tr');
     row.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : 'white';
     row.setAttribute('data-drone-id', `${drone.brand}-${drone.name}`.replace(/\s+/g, '-').toLowerCase());
-    
+
     // Drone Model
     const modelCell = document.createElement('td');
     modelCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6; font-weight: 500;';
     modelCell.textContent = `${drone.brand} ${drone.name}`;
-    
+
     // Controllers
     const controllersCell = document.createElement('td');
     controllersCell.style.cssText = 'padding: 12px 10px; border: 1px solid #dee2e6;';
-    
+
+    // Controllers that don't support third-party apps
+    const noThirdPartyApps = ['RC', 'RC1', 'RC2', 'RC3'];
+
+    // Controllers that are working on partial compatibility
+    const partialCompatControllers = ['RC-Pro', 'RC-Pro 2', 'RC-Pro2'];
+
     const controllersList = [];
-    
+
     // Add internally tested controllers
     (drone.controllers_internally_tested || []).forEach(controller => {
-        controllersList.push(`${controller} (internally tested)`);
+        controllersList.push(`${controller} - ✅ compatible (tested internally)`);
     });
-    
+
     // Add user tested controllers
     (drone.controllers_user_tested || []).forEach(controller => {
-        controllersList.push(`${controller} (user tested)`);
+        controllersList.push(`${controller} - ✅ compatible (tested internally)`);
     });
-    
+
     // Add not tested controllers
     (drone.controllers_not_tested || []).forEach(controller => {
-        controllersList.push(`${controller} (not tested)`);
+        controllersList.push(`${controller} - ☑️ compatible (not tested internally)`);
     });
-    
-    // Add incompatible controllers
+
+    // Add incompatible controllers with appropriate messaging
     (drone.controllers_incompatible || []).forEach(controller => {
-        controllersList.push(`${controller} (incompatible)`);
+        if (noThirdPartyApps.includes(controller)) {
+            controllersList.push(`${controller} - ❌ incompatible (3rd party apps not supported)`);
+        } else if (partialCompatControllers.includes(controller)) {
+            controllersList.push(`${controller} - ⏳ working on partial-compatibility`);
+        } else {
+            controllersList.push(`${controller} - ❌ incompatible (3rd party apps not supported)`);
+        }
     });
-    
+
     if (drone.scanOnly) {
         controllersCell.textContent = 'Note: Eagle Eyes Scan Only 💻';
     } else {
-        controllersCell.textContent = controllersList.length > 0 ? controllersList.join(', ') : 'See notes';
+        controllersCell.innerHTML = controllersList.length > 0 ? controllersList.join('<br>') : 'See notes';
     }
-    
+
     row.appendChild(modelCell);
     row.appendChild(controllersCell);
     return row;
