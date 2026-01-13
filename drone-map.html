@@ -2666,7 +2666,7 @@
         let mqttReconnectTimeout = null;
         let mqttReconnectAttempts = 0;
         const MQTT_MAX_RECONNECT_DELAY = 30000; // Max 30 seconds between reconnect attempts
-        let mqttDroneMarkers = {}; // Store MQTT drone markers by drone_id
+        let mqttDroneMarkers = {}; // Store MQTT drone markers by public_drone_id
         let mqttDronePaths = {}; // Store polylines for drone paths
         let mqttDroneData = {}; // Store latest telemetry data for each drone
         let mqttDroneLastUpdate = {}; // Store last update timestamp for each drone
@@ -3316,8 +3316,8 @@
                     return;
                 }
 
-                if (!telemetryData.drone_id) {
-                    console.warn('Received telemetry without drone_id');
+                if (!telemetryData.public_drone_id) {
+                    console.warn('Received telemetry without public_drone_id or public_drone_id is null - ignoring data');
                     return;
                 }
 
@@ -3333,7 +3333,7 @@
          * Process incoming drone telemetry data
          */
         function processDroneTelemetry(telemetryData) {
-            const droneId = telemetryData.drone_id;
+            const droneId = telemetryData.public_drone_id;
             const droneName = telemetryData.drone_name || droneId;
 
             // Store latest telemetry data
@@ -3455,11 +3455,12 @@
             const batteryPercent = telemetryData.state?.misc?.battery_percent || 'N/A';
             const airspeed = telemetryData.state?.misc?.airspeed_mps;
             const yaw = telemetryData.state?.drone_pose?.yaw_deg;
+            const contactInfo = telemetryData.contact_info;
 
             // Format coordinates for popup
             const latFormatted = lat.toFixed(6);
             const lngFormatted = lng.toFixed(6);
-            
+
             const popupContent = `
                 <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #a0a0a0;">
                     <strong style="color: #d4a574;">${droneName}</strong><br>
@@ -3471,6 +3472,7 @@
                     ${yaw !== null && yaw !== undefined ? `<strong>Yaw:</strong> ${yaw.toFixed(1)}°<br>` : ''}
                     ${batteryPercent !== 'N/A' ? `<strong>Battery:</strong> ${batteryPercent}%<br>` : ''}
                     <strong>Speed:</strong> ${airspeed !== null && airspeed !== undefined ? `${airspeed.toFixed(1)} m/s` : 'N/A'}<br>
+                    ${contactInfo ? `<strong>Contact:</strong> ${contactInfo}<br>` : ''}
                     <strong>LAST UPDATE:</strong> ${timeSinceUpdateStr}<br>
                 </div>
             `;
