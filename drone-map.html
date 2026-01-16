@@ -2671,11 +2671,27 @@
         let mqttDroneData = {}; // Store latest telemetry data for each drone
         let mqttDroneLastUpdate = {}; // Store last update timestamp for each drone
         let mqttDroneTimeouts = {}; // Store timeout IDs for removing stale drones
-        
+
+        // Target drone tracking (from URL query parameter drone_public_id)
+        let targetDronePublicId = null; // Drone ID to zoom to from URL
+        let hasZoomedToTarget = false; // Track if we've already zoomed to target drone (only zoom once)
+
 
         // Base map layers
         let baseMaps = {};
         let currentBaseLayer = null;
+
+        /**
+         * Parse URL query parameters and extract target drone ID if present
+         */
+        function parseTargetDroneFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const droneId = urlParams.get('drone_public_id');
+            if (droneId) {
+                targetDronePublicId = droneId;
+                console.log(`Target drone ID from URL: ${targetDronePublicId}`);
+            }
+        }
 
         // Initialize map
         function initMap() {
@@ -3318,6 +3334,7 @@
 
                 if (!telemetryData.public_drone_id) {
                     console.warn('Received telemetry without public_drone_id or public_drone_id is null - ignoring data');
+                    console.log('Telemetry data:', JSON.stringify(telemetryData, null, 2));
                     return;
                 }
 
@@ -3369,7 +3386,20 @@
 
             // Update or create drone path
             updateMQTTDronePath(droneId, lat, lng);
-            
+
+            // Check if this is the target drone from URL and zoom to it (only once)
+            if (targetDronePublicId && droneId === targetDronePublicId && !hasZoomedToTarget && map) {
+                console.log(`Target drone ${droneId} found! Zooming to location: [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
+                map.setView([lat, lng], 15); // Zoom to level 15 (good for drone tracking)
+                hasZoomedToTarget = true; // Mark as zoomed so we don't zoom again
+
+                // Open the popup to highlight the drone
+                const marker = mqttDroneMarkers[droneId];
+                if (marker) {
+                    setTimeout(() => marker.openPopup(), 500); // Open popup after brief delay
+                }
+            }
+
             // Update legend visibility
             updateLegendVisibility();
 
@@ -3576,9 +3606,13 @@
         
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOMContentLoaded fired - initializing map...');
+
+            // Parse URL query parameters for target drone
+            parseTargetDroneFromURL();
+
             initMap();
             console.log('initMap() called, map variable:', typeof map !== 'undefined' ? map : 'undefined');
-            
+
             // Initialize header MQTT status indicator
             const headerStatusText = document.getElementById('mqttStatusText');
             const headerStatusDot = document.getElementById('mqttStatusDot');
