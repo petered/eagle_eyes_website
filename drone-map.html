@@ -133,11 +133,32 @@
         }
         
         .download-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
             font-size: 12px;
             color: #b0b0b0;
             white-space: nowrap;
             margin-right: 0;
             line-height: 1.2;
+        }
+        .download-text-lines {
+            display: inline-block;
+        }
+        .download-arrow {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.75em;
+            line-height: 1;
+            color: #d4a574;
+            text-shadow: 0 0 8px rgba(212, 165, 116, 0.4), 0 0 12px rgba(74, 124, 89, 0.3);
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+        }
+        .download-arrow:hover {
+            color: #5a8a6a;
+            text-shadow: 0 0 10px rgba(90, 138, 106, 0.5);
         }
         
         .map-control-container {
@@ -242,7 +263,54 @@
         .base-map-option:active {
             background: rgba(30, 30, 30, 0.9);
         }
-        
+
+        .base-map-option.base-map-toggle {
+            border-top: 1px solid rgba(74, 124, 89, 0.6);
+            margin-top: 6px;
+            padding-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: default;
+        }
+        .base-map-option.base-map-toggle:hover {
+            background: rgba(26, 26, 26, 0.95);
+            border-color: #5a8a6a;
+            color: #d4a574;
+        }
+        .base-map-option.base-map-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #4a7c59;
+            flex-shrink: 0;
+        }
+        .base-map-option.base-map-toggle label {
+            cursor: pointer;
+            flex-grow: 1;
+            margin: 0;
+        }
+
+        /* EDS-B tooltip: shown on hover and click */
+        .edsb-tooltip-popover {
+            position: fixed;
+            z-index: 100003;
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid #4a7c59;
+            color: #d4a574;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            display: none;
+            white-space: nowrap;
+        }
+        .edsb-tooltip-popover.visible {
+            display: block;
+        }
         
         .tagline-text {
             font-size: 14px;
@@ -266,7 +334,7 @@
         }
         
         /* Tagline is hidden by default - only shows on very wide screens (1600px+) */
-        /* This prevents overlap with "Broadcast your drone's live location" text */
+        /* This prevents overlap with "Share your drone's live location" text */
         
         /* Step 1: Hide subtitle when left and right sides get too close */
         @media (max-width: 1300px) {
@@ -275,7 +343,7 @@
             }
         }
         
-        /* Step 2: Hide "Broadcast your drone's live location for free" text when it overlaps */
+        /* Step 2: Hide "To share your drone's live location for free" text when it overlaps */
         @media (max-width: 1000px) {
             .download-text {
                 display: none !important;
@@ -289,16 +357,6 @@
                 display: none !important;
             }
             
-            /* Shrink north arrow on mobile but keep position */
-            .north-arrow-image {
-                width: 50px;
-                height: 50px;
-            }
-            
-            .north-arrow-label {
-                font-size: 14px;
-                top: 6px;
-            }
         }
         
         @media (max-width: 768px) {
@@ -374,14 +432,13 @@
                 display: none;
             }
             
-            .north-arrow-image {
-                width: 40px;
-                height: 40px;
+            .north-arrow-img {
+                width: 44px;
+                height: 44px;
             }
-            
-            .north-arrow-label {
-                font-size: 12px;
-                top: 5px;
+            .north-arrow-content {
+                min-width: 44px;
+                min-height: 44px;
             }
             
             #map {
@@ -458,14 +515,13 @@
                 font-size: 8px;
             }
             
-            .north-arrow-image {
-                width: 35px;
-                height: 35px;
+            .north-arrow-img {
+                width: 40px;
+                height: 40px;
             }
-            
-            .north-arrow-label {
-                font-size: 10px;
-                top: 4px;
+            .north-arrow-content {
+                min-width: 44px;
+                min-height: 44px;
             }
             
             #map {
@@ -529,18 +585,31 @@
                 padding: 4px 6px !important;
             }
             
-            .north-arrow-image {
-                width: 30px;
-                height: 30px;
+            .north-arrow-img {
+                width: 36px;
+                height: 36px;
             }
-            
-            .north-arrow-label {
-                font-size: 9px;
-                top: 3px;
+            .north-arrow-content {
+                min-width: 44px;
+                min-height: 44px;
             }
             
             #map {
                 top: 42px;
+            }
+        }
+        @media (max-width: 768px) {
+            .location-popover {
+                font-size: 11px;
+                padding: 10px 12px;
+                max-width: 200px;
+            }
+        }
+        @media (max-width: 480px) {
+            .location-popover {
+                font-size: 11px;
+                padding: 12px 14px;
+                max-width: min(200px, calc(100vw - 24px));
             }
         }
         
@@ -663,7 +732,7 @@
             border-radius: 4px;
             padding: 12px;
             font-family: 'Courier New', monospace;
-            font-size: 11px;
+            font-size: 13px;
             color: #b0b0b0;
             z-index: 1000;
             display: none;
@@ -684,6 +753,33 @@
         
         .legend-item:last-child {
             margin-bottom: 0;
+        }
+
+        .legend-subset {
+            margin-left: 28px;
+            margin-top: 4px;
+            margin-bottom: 6px;
+            font-size: 10px;
+            color: #888;
+        }
+        .legend-subset .legend-subset-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+        .legend-subset .legend-subset-row:last-child {
+            margin-bottom: 0;
+        }
+        .legend-subset .legend-subset-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-symbol.legend-drone-pulse-wrap {
+            position: relative;
         }
         
         .legend-symbol {
@@ -1092,27 +1188,53 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            -webkit-tap-highlight-color: transparent;
         }
-        
-        .north-arrow-image {
+        .north-arrow-img {
             width: 50px;
             height: 50px;
+            display: block;
             object-fit: contain;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
         }
-        
-        .north-arrow-label {
-            position: absolute;
-            top: 6px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
+        /* Location popover - themed like EDS-B, toggle for current location */
+        .location-popover {
+            position: fixed;
+            z-index: 100003;
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid #4a7c59;
+            color: #d4a574;
+            padding: 10px 14px;
             font-family: 'Courier New', monospace;
-            font-size: 14px;
-            font-weight: bold;
-            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6);
-            z-index: 10;
-            pointer-events: none;
+            font-size: 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            max-width: 260px;
+            line-height: 1.35;
+            white-space: normal;
+        }
+        .location-popover-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .location-popover-toggle input[type="checkbox"] {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            accent-color: #4a7c59;
+            cursor: pointer;
+        }
+        .location-popover-toggle label {
+            cursor: pointer;
+            user-select: none;
+        }
+        .location-popover.visible {
+            display: block !important;
         }
 
         /* Ensure Leaflet controls container stays at bottom edge */
@@ -2272,6 +2394,28 @@
             word-wrap: break-word;
         }
 
+        /* User current location popup - match site theme */
+        .leaflet-popup.user-location-popup .leaflet-popup-content-wrapper {
+            background: rgba(10, 10, 10, 0.98);
+            border: 1px solid #4a7c59;
+            color: #d4a574;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .leaflet-popup.user-location-popup .leaflet-popup-tip {
+            background: rgba(10, 10, 10, 0.98);
+        }
+
+        /* Popup OpenSky link - touch-friendly on mobile */
+        .leaflet-popup-content .popup-opensky-link {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 10px 14px;
+            min-height: 44px;
+            box-sizing: border-box;
+            line-height: 1.3;
+        }
+
         .toast.show {
             opacity: 1;
             transform: translateX(0);
@@ -2280,6 +2424,35 @@
         .toast.hide {
             opacity: 0;
             transform: translateX(100%);
+        }
+
+        /* Toast and popups - mobile */
+        @media (max-width: 768px) {
+            .toast-container {
+                top: 56px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            .toast {
+                max-width: 100%;
+                font-size: 13px;
+                padding: 14px 16px;
+            }
+        }
+        @media (max-width: 480px) {
+            .toast-container {
+                top: 52px;
+                right: 8px;
+                left: 8px;
+            }
+            .toast {
+                font-size: 12px;
+                padding: 12px 14px;
+            }
+            .leaflet-popup-content {
+                max-width: min(280px, calc(100vw - 32px));
+            }
         }
         
         /* Mobile Optimizations - Header rules removed to prevent buttons from dropping */
@@ -2361,7 +2534,7 @@
             
             .legend-item {
                 margin-bottom: 6px;
-                font-size: 10px;
+                font-size: 12px;
             }
             
             /* Radio group */
@@ -2552,6 +2725,16 @@
 <body>
     <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- EDS-B tooltip popover (hover + click) -->
+    <div id="edsbTooltipPopover" class="edsb-tooltip-popover" aria-hidden="true">Eagle Dependent Surveillance Broadcast</div>
+    <!-- Location popover: shown when north arrow is clicked; toggle to show/hide current location -->
+    <div id="locationPopover" class="location-popover" aria-hidden="true" style="display: none;">
+        <div class="location-popover-toggle">
+            <input type="checkbox" id="viewLocationToggle" autocomplete="off">
+            <label for="viewLocationToggle">View your current location on the map</label>
+        </div>
+    </div>
     
     <!-- Header -->
     <div class="tactical-header">
@@ -2559,13 +2742,13 @@
             <a href="https://www.eagleeyessearch.com/" class="logo-link" title="Eagle Eyes Search Home">
                 <img src="images/eagle-eyes-beta-logo-new.png" alt="Eagle Eyes Logo">
             </a>
-            <h1>EDS-B <span style="font-size: 0.6em; font-weight: normal; color: #888;">Public Drone Map</span></h1>
+            <h1>Public Drone Map <span id="edsbTitleTrigger" class="edsb-tooltip-trigger" style="font-size: 0.6em; font-weight: normal; color: #888; cursor: pointer;">EDS-B</span></h1>
         </div>
         <div class="header-center">
             <span id="taglineText" class="tagline-text"></span>
         </div>
         <div class="map-control-container">
-            <span class="download-text">Broadcast your drone's<br>live location for free:</span>
+            <span class="download-text"><span class="download-text-lines">To share your drone's<br>live location for free</span><span class="download-arrow" aria-hidden="true">➜</span></span>
             <button id="downloadBtn" onclick="window.location.href='/download/#step3&platform=mobile'">Download<br>Eagle Eyes</button>
             <button id="legendBtn" onclick="toggleLegend()">Legend</button>
             <div id="baseMapControl" style="position: relative; display: inline-block; z-index: 100002;">
@@ -2575,12 +2758,16 @@
                     <div class="base-map-option" onclick="handleBaseMapChange('Google Imagery'); toggleBaseMapMenu();">Google Imagery</div>
                     <div class="base-map-option" onclick="handleBaseMapChange('Esri Imagery'); toggleBaseMapMenu();">Esri Imagery</div>
                     <div class="base-map-option" onclick="handleBaseMapChange('Esri Topo'); toggleBaseMapMenu();">Esri Topo</div>
-                    <div class="base-map-option" onclick="handleBaseMapChange('Dark Theme'); toggleBaseMapMenu();">Dark Theme</div>
-                    <div class="base-map-option" onclick="handleBaseMapChange('Light Theme'); toggleBaseMapMenu();">Light Theme</div>
+                <div class="base-map-option" onclick="handleBaseMapChange('Dark Theme'); toggleBaseMapMenu();">Dark Theme</div>
+                <div class="base-map-option" onclick="handleBaseMapChange('Light Theme'); toggleBaseMapMenu();">Light Theme</div>
+                <div class="base-map-option base-map-toggle" id="toggleDetectedAircraftOption">
+                    <input type="checkbox" id="toggleDetectedAircraftCheckbox" checked title="Show or hide detected manned aircraft on the map">
+                    <label for="toggleDetectedAircraftCheckbox">Detected manned aircraft <span style="white-space: nowrap;">(ADS-B)</span></label>
+                </div>
                 </div>
             </div>
             <div class="status-indicator">
-                <span class="status-text">EDS-B Network:</span>
+                <span id="edsbNetworkTrigger" class="status-text edsb-tooltip-trigger" style="cursor: pointer;">EDS-B Network:</span>
                 <div class="status-dot" id="mqttStatusDot"></div>
                 <span class="status-text status-text-right" id="mqttStatusText">DISCONNECTED</span>
             </div>
@@ -2611,16 +2798,23 @@
             <span>Drone location</span>
         </div>
         <div class="legend-item" data-legend="mqtt-drones">
-            <div class="legend-symbol">
-                <div class="legend-dot legend-dot-pulse" style="background-color: #DC143C; border: 2px solid #DC143C;"></div>
+            <div class="legend-symbol legend-drone-pulse-wrap">
+                <div class="drone-location-pulse"></div>
+                <div class="drone-location-circle"></div>
             </div>
-            <span>Drone</span>
+            <span>Drone live location</span>
         </div>
         <div class="legend-item" data-legend="detected-aircraft" style="display: none;">
             <div class="legend-symbol">
-                <span class="aircraft-marker-plane" style="color: #eab308;">✈</span>
+                <span class="aircraft-marker-plane" style="color: #00CED1;">✈</span>
             </div>
-            <span>Detected aircraft (ADS-B)</span>
+            <span>Detected manned aircraft (ADS-B)</span>
+        </div>
+        <div class="legend-item" data-legend="user-location" style="display: none;">
+            <div class="legend-symbol">
+                <div class="legend-dot" style="background-color: #2563eb; border: 2px solid #1d4ed8;"></div>
+            </div>
+            <span>Your current location</span>
         </div>
         <div class="legend-item" data-legend="edsb-locations" style="display: none;">
             <div class="legend-symbol">
@@ -2670,6 +2864,7 @@
     <script>
         // Global map instance
         let map;
+        let userLocationMarker = null; // Blue dot for user's current location
         let markers = {}; // Store markers by ID
         let updateInterval = null;
         let dataSourceUrl = '';
@@ -2686,6 +2881,7 @@
         const MQTT_LICENSE_KEY = "letmein"; // License key for authentication
         let mqttClient = null;
         let mqttConnected = false;
+        let mqttConnecting = false; // True while connect() is in progress to avoid double init
         let mqttReconnectTimeout = null;
         let mqttReconnectAttempts = 0;
         const MQTT_MAX_RECONNECT_DELAY = 30000; // Max 30 seconds between reconnect attempts
@@ -2696,6 +2892,8 @@
         let mqttDroneTimeouts = {}; // Store timeout IDs for removing stale drones
         let mqttAircraftMarkers = {}; // key: "droneId:aircraftId" -> Leaflet marker
         const AIRCRAFT_STALE_MS = 30000; // Remove aircraft if last_update_ms older than 30 seconds
+        let showDetectedAircraft = true; // Toggle in Map layers; when false, aircraft markers are hidden
+        let hasShownConnectedToast = false; // Show "Connected to drone telemetry stream" only once per connection
 
         // Target drone tracking (from URL query parameter drone_public_id)
         let targetDronePublicId = null; // Drone ID to zoom to from URL
@@ -2858,16 +3056,109 @@
                 scaleBarInstance.addTo(map);
                 console.log('Scale bar control added to map:', scaleBarInstance);
                 
-                // Add North Arrow (top left) - using image file with white N label
+                // North Arrow (top left) - user's white transparent SVG, clickable → location popover
                 const NorthArrowControl = L.Control.extend({
-                    onAdd: function(map) {
+                    onAdd: function(m) {
                         const container = L.DomUtil.create('div', 'north-arrow-control');
-                        container.innerHTML = '<div class="north-arrow-content"><span class="north-arrow-label">N</span><img src="images/north-arrow-green.png" alt="North" class="north-arrow-image"></div>';
+                        const content = L.DomUtil.create('div', 'north-arrow-content', container);
+                        content.setAttribute('role', 'button');
+                        content.setAttribute('aria-label', 'North arrow – click to show location option');
+                        const img = document.createElement('img');
+                        img.src = 'images/north_arrow_white_transparent.svg';
+                        img.alt = 'North';
+                        img.className = 'north-arrow-img';
+                        content.appendChild(img);
                         L.DomEvent.disableClickPropagation(container);
+                        L.DomEvent.addListener(content, 'click', function(e) {
+                            L.DomEvent.stopPropagation(e);
+                            const popover = document.getElementById('locationPopover');
+                            if (!popover) return;
+                            if (popover.classList.contains('visible')) {
+                                popover.classList.remove('visible');
+                                popover.style.display = 'none';
+                                popover.setAttribute('aria-hidden', 'true');
+                                return;
+                            }
+                            const rect = content.getBoundingClientRect();
+                            popover.style.display = 'block';
+                            popover.offsetHeight; // force reflow so offsetWidth is correct
+                            const pw = popover.offsetWidth;
+                            if (rect.right + 8 + pw <= window.innerWidth) {
+                                popover.style.left = (rect.right + 8) + 'px';
+                                popover.style.right = 'auto';
+                            } else {
+                                popover.style.left = Math.max(8, rect.left - pw - 8) + 'px';
+                                popover.style.right = 'auto';
+                            }
+                            popover.style.top = rect.top + 'px';
+                            popover.classList.add('visible');
+                            popover.setAttribute('aria-hidden', 'false');
+                        });
                         return container;
                     }
                 });
                 new NorthArrowControl({ position: 'topleft' }).addTo(map);
+
+                // Location popover: toggle on = show current location (blue dot), toggle off = hide it
+                (function() {
+                    const popover = document.getElementById('locationPopover');
+                    const toggle = document.getElementById('viewLocationToggle');
+                    if (!popover || !toggle) return;
+                    function hideLocationPopover() {
+                        popover.classList.remove('visible');
+                        popover.style.display = 'none';
+                        popover.setAttribute('aria-hidden', 'true');
+                    }
+                    function showUserOnMap(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        if (userLocationMarker && map.hasLayer(userLocationMarker)) {
+                            map.removeLayer(userLocationMarker);
+                        }
+                        userLocationMarker = L.circleMarker([lat, lng], {
+                            radius: 7,
+                            fillColor: '#2563eb',
+                            color: '#1d4ed8',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(map);
+                        userLocationMarker.bindPopup('Your current location.', {
+                            className: 'user-location-popup',
+                            closeButton: true
+                        });
+                        map.setView([lat, lng], Math.max(map.getZoom(), 14));
+                        if (typeof updateLegendVisibility === 'function') updateLegendVisibility();
+                    }
+                    function onLocationError(err) {
+                        toggle.checked = false;
+                        const msg = err.code === 1 ? 'Location permission denied.' : (err.code === 2 ? 'Location unavailable.' : 'Could not get your location.');
+                        showToast(msg);
+                    }
+                    toggle.addEventListener('change', function() {
+                        if (toggle.checked) {
+                            if (!navigator.geolocation) {
+                                showToast('Geolocation is not supported by your browser.');
+                                toggle.checked = false;
+                                return;
+                            }
+                            navigator.geolocation.getCurrentPosition(showUserOnMap, onLocationError, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+                        } else {
+                            if (userLocationMarker && map.hasLayer(userLocationMarker)) {
+                                map.removeLayer(userLocationMarker);
+                                userLocationMarker = null;
+                            }
+                            if (typeof updateLegendVisibility === 'function') updateLegendVisibility();
+                        }
+                    });
+                    document.addEventListener('click', function(ev) {
+                        if (!popover.classList.contains('visible')) return;
+                        const arrow = document.querySelector('.north-arrow-content');
+                        if (arrow && arrow.contains(ev.target)) return;
+                        if (popover.contains(ev.target)) return;
+                        hideLocationPopover();
+                    });
+                })();
 
                 console.log('EDSB Map initialized');
                 
@@ -3038,10 +3329,16 @@
             if (mqttDronesItem) {
                 mqttDronesItem.style.display = 'flex';
             }
-            // Detected aircraft - show when any aircraft are on the map
+            // Detected aircraft - show when any aircraft exist and the layer is on
             const detectedAircraftItem = document.querySelector('[data-legend="detected-aircraft"]');
             if (detectedAircraftItem) {
-                detectedAircraftItem.style.display = Object.keys(mqttAircraftMarkers).length > 0 ? 'flex' : 'none';
+                detectedAircraftItem.style.display = (Object.keys(mqttAircraftMarkers).length > 0 && showDetectedAircraft) ? 'flex' : 'none';
+            }
+            // Your current location - show when the blue dot is on the map
+            const userLocationItem = document.querySelector('[data-legend="user-location"]');
+            if (userLocationItem) {
+                const showUserLoc = userLocationMarker && map && map.hasLayer(userLocationMarker);
+                userLocationItem.style.display = showUserLoc ? 'flex' : 'none';
             }
             
             // Hide all other legend items (TDOA/Acoustic features removed)
@@ -3122,6 +3419,24 @@
             
             console.log('Base map changed to:', layerName);
         }
+
+        /**
+         * Set detected manned aircraft (ADS-B) visibility from the layer checkbox. Called on checkbox change.
+         */
+        function setDetectedAircraftVisibility(visible) {
+            showDetectedAircraft = visible;
+            const checkbox = document.getElementById('toggleDetectedAircraftCheckbox');
+            if (checkbox) checkbox.checked = showDetectedAircraft;
+            if (!map) return;
+            Object.values(mqttAircraftMarkers).forEach(marker => {
+                if (showDetectedAircraft) {
+                    marker.addTo(map);
+                } else {
+                    map.removeLayer(marker);
+                }
+            });
+            updateLegendVisibility();
+        }
         
         // ==================== MQTT Functions ====================
 
@@ -3129,6 +3444,9 @@
          * Initialize and connect to MQTT broker
          */
         function initMQTT() {
+            // Avoid double connection when init is called multiple times (e.g. DOMContentLoaded + retry)
+            if (mqttConnected || mqttConnecting) return;
+
             // Check if Paho MQTT library is loaded
             if (typeof Paho === 'undefined' || !Paho.MQTT || !Paho.MQTT.Client) {
                 console.error('Paho MQTT library not loaded yet');
@@ -3181,6 +3499,7 @@
                 };
 
                 // Connect to broker
+                mqttConnecting = true;
                 mqttClient.connect(connectOptions);
 
                 console.log('MQTT connection initiated...');
@@ -3209,6 +3528,7 @@
                                 onSuccess: onMQTTConnect,
                                 onFailure: onMQTTConnectFailure
                             };
+                            mqttConnecting = true;
                             mqttClient.connect(fallbackOptions);
                         } catch (fallbackError) {
                             console.error('Fallback connection also failed:', fallbackError);
@@ -3227,6 +3547,7 @@
          */
         function onMQTTConnect() {
             console.log('Connected to MQTT broker');
+            mqttConnecting = false;
             mqttConnected = true;
 
             // Reset reconnection attempts on successful connection
@@ -3255,7 +3576,10 @@
                         qos: 1,
                         onSuccess: function() {
                             console.log('Subscribed to MQTT topic: ' + MQTT_TOPIC);
-                            showToast('Connected to drone telemetry stream');
+                            if (!hasShownConnectedToast) {
+                                hasShownConnectedToast = true;
+                                showToast('Connected to drone telemetry stream');
+                            }
                         },
                         onFailure: function(err) {
                             const msg = (err && (err.errorMessage || err.errorCode || err.message || String(err))) || 'unknown';
@@ -3274,6 +3598,7 @@
          */
         function onMQTTConnectFailure(error) {
             console.error('MQTT connection failed:', error);
+            mqttConnecting = false;
             mqttConnected = false;
 
             // Update header status indicator
@@ -3299,6 +3624,7 @@
         function onMQTTConnectionLost(responseObject) {
             console.log('MQTT connection lost');
             mqttConnected = false;
+            hasShownConnectedToast = false; // Allow toast again on next connect
 
             // Update header status indicator
             const headerStatusText = document.getElementById('mqttStatusText');
@@ -3596,12 +3922,6 @@
             }
         }
 
-        /** Warning level -> color (0=green, 1=yellow, 2=orange, 3=red, 4=danger red) */
-        function aircraftWarningColor(level) {
-            const n = level == null ? 0 : Math.min(4, Math.max(0, parseInt(level, 10)));
-            return ['#22c55e', '#eab308', '#f97316', '#ef4444', '#b91c1c'][n];
-        }
-
         /**
          * Remove a single detected aircraft marker
          */
@@ -3624,8 +3944,7 @@
 
         /**
          * Update or create marker for a detected aircraft (ADS-B)
-         * Icon: Unicode plane ✈ rotated so heading is correct (native ✈ points top-right = 45°, so rotate by heading_deg - 45).
-         * Color by warning_level; popup "Detected by [drone_name]". No lines.
+         * Standard cyan color for all aircraft (no risk-level coloring). Label: call sign if available, otherwise ICAO id.
          */
         function updateOrCreateAircraftMarker(droneId, droneName, droneLat, droneLng, aircraft, aircraftId) {
             if (!map) return;
@@ -3636,10 +3955,11 @@
             const lng = Number(aircraft.lng ?? aircraft.longitude);
             if (isNaN(lat) || isNaN(lng)) return;
             const heading = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading) : 0;
-            const color = aircraftWarningColor(aircraft.warning_level ?? aircraft.warningLevel);
+            const AIRCRAFT_CYAN = '#00CED1';
             const altM = (aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM) != null ? Number(aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM).toFixed(0) : '—';
             const headingStr = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading).toFixed(0) + '°' : '—';
-            const warnStr = (aircraft.warning_level ?? aircraft.warningLevel) != null ? String(aircraft.warning_level ?? aircraft.warningLevel) : '—';
+            const callSign = aircraft.call_sign ?? aircraft.callSign;
+            const displayLabel = (callSign && String(callSign).trim()) ? String(callSign).trim() : id;
 
             // Unicode ✈ in most fonts points right (90°); rotate so nose points at heading_deg (0=North, 90=East)
             const rotationDeg = heading - 90;
@@ -3648,11 +3968,12 @@
             if (!marker) {
                 const icon = L.divIcon({
                     className: 'aircraft-marker-wrapper',
-                    html: '<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><span class="aircraft-marker-plane" style="color:' + color + ';transform:rotate(' + rotationDeg + 'deg);">✈</span></div>',
+                    html: '<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><span class="aircraft-marker-plane" style="color:' + AIRCRAFT_CYAN + ';transform:rotate(' + rotationDeg + 'deg);">✈</span></div>',
                     iconSize: [34, 34],
                     iconAnchor: [17, 17]
                 });
-                marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+                marker = L.marker([lat, lng], { icon: icon });
+                if (showDetectedAircraft) marker.addTo(map);
                 mqttAircraftMarkers[key] = marker;
             } else {
                 marker.setLatLng([lat, lng]);
@@ -3660,20 +3981,24 @@
                 if (el) {
                     const planeEl = el.querySelector('.aircraft-marker-plane');
                     if (planeEl) {
-                        planeEl.style.color = color;
+                        planeEl.style.color = AIRCRAFT_CYAN;
                         planeEl.style.transform = 'rotate(' + rotationDeg + 'deg)';
                     }
                 }
             }
 
+            const callSignLine = (callSign && String(callSign).trim()) ? `<strong>Call sign:</strong> ${String(callSign).trim()}<br>` : '';
+            const icaoLine = `<strong>ICAO:</strong> ${id}<br>`;
+            const openSkyUrl = 'https://map.opensky-network.org/?icao=' + encodeURIComponent(id);
             const popupContent = `
                 <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #a0a0a0;">
-                    <strong style="color: ${color};">Aircraft ${id}</strong><br>
+                    <strong>Manned aircraft ${displayLabel}</strong><br>
                     <strong>Detected by:</strong> ${droneName}<br>
+                    ${callSignLine}${icaoLine}
                     <strong>Lat:</strong> ${lat.toFixed(6)} <strong>Lng:</strong> ${lng.toFixed(6)}<br>
                     <strong>Alt (MSL):</strong> ${altM} m<br>
                     <strong>Heading:</strong> ${headingStr}<br>
-                    <strong>Warning level:</strong> ${warnStr} (0–4)<br>
+                    <a href="${openSkyUrl}" target="_blank" rel="noopener noreferrer" class="popup-opensky-link" style="background:#0a0a0a;border:2px solid #555;border-radius:4px;color:#fff;text-decoration:none;font-size:12px;font-weight:bold;">View OpenSky Details</a>
                 </div>
             `;
             marker.bindPopup(popupContent);
@@ -3688,6 +4013,7 @@
                     mqttClient.disconnect();
                     console.log('Disconnected from MQTT broker');
                     mqttConnected = false;
+                    hasShownConnectedToast = false;
                 } catch (error) {
                     console.error('Error disconnecting from MQTT:', error);
                 }
@@ -3768,6 +4094,47 @@
             if (legendPanel) {
                 legendPanel.classList.remove('visible');
                 updateLegendVisibility();
+            }
+
+            // Layer checkbox: detected manned aircraft (ADS-B)
+            const detectedAircraftCheckbox = document.getElementById('toggleDetectedAircraftCheckbox');
+            if (detectedAircraftCheckbox) {
+                detectedAircraftCheckbox.addEventListener('change', function() {
+                    setDetectedAircraftVisibility(this.checked);
+                });
+            }
+
+            // EDS-B tooltip: show "Eagle Dependent Surveillance Broadcast" on hover and click
+            const edsbPopover = document.getElementById('edsbTooltipPopover');
+            const edsbTriggers = document.querySelectorAll('.edsb-tooltip-trigger');
+            if (edsbPopover && edsbTriggers.length) {
+                function positionAndShow(triggerEl) {
+                    edsbPopover.classList.add('visible');
+                    edsbPopover.setAttribute('aria-hidden', 'false');
+                    const r = triggerEl.getBoundingClientRect();
+                    const w = edsbPopover.offsetWidth;
+                    edsbPopover.style.left = Math.max(6, r.left + r.width / 2 - w / 2) + 'px';
+                    edsbPopover.style.top = (r.bottom + 6) + 'px';
+                }
+                function hide() {
+                    edsbPopover.classList.remove('visible');
+                    edsbPopover.setAttribute('aria-hidden', 'true');
+                }
+                edsbTriggers.forEach(function(trigger) {
+                    trigger.addEventListener('mouseenter', function() { positionAndShow(trigger); });
+                    trigger.addEventListener('mouseleave', hide);
+                    trigger.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        positionAndShow(trigger);
+                        var closeOnClick = function(ev) {
+                            if (ev.target.closest && ev.target.closest('.edsb-tooltip-trigger')) return;
+                            document.removeEventListener('click', closeOnClick);
+                            hide();
+                        };
+                        setTimeout(function() { document.addEventListener('click', closeOnClick); }, 0);
+                        setTimeout(hide, 4000);
+                    });
+                });
             }
             
             // Initialize MQTT connection
