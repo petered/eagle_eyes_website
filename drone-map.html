@@ -1435,7 +1435,6 @@
             background: #5a8a6a;
         }
 
-
         .player-controls {
             display: flex;
             align-items: center;
@@ -1846,6 +1845,24 @@
                 transform: scale(2.5);
                 opacity: 0;
             }
+        }
+        
+        /* Detected aircraft (ADS-B) marker: Unicode plane ✈ (native points right/90° in most fonts) */
+        .aircraft-marker-plane {
+            display: inline-block;
+            font-size: 26px;
+            line-height: 1;
+            transform-origin: 50% 50%;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+        }
+        .aircraft-marker-wrapper {
+            display: block;
+            width: 34px;
+            height: 34px;
+            margin-left: -17px;
+            margin-top: -17px;
+            pointer-events: auto;
         }
         
         .home-point-label-container {
@@ -2599,6 +2616,12 @@
             </div>
             <span>Drone</span>
         </div>
+        <div class="legend-item" data-legend="detected-aircraft" style="display: none;">
+            <div class="legend-symbol">
+                <span class="aircraft-marker-plane" style="color: #eab308;">✈</span>
+            </div>
+            <span>Detected aircraft (ADS-B)</span>
+        </div>
         <div class="legend-item" data-legend="edsb-locations" style="display: none;">
             <div class="legend-symbol">
                 <div class="legend-dot" style="background-color: #4A9B9D; border: 2px solid #3A7B7D;"></div>
@@ -2671,6 +2694,8 @@
         let mqttDroneData = {}; // Store latest telemetry data for each drone
         let mqttDroneLastUpdate = {}; // Store last update timestamp for each drone
         let mqttDroneTimeouts = {}; // Store timeout IDs for removing stale drones
+        let mqttAircraftMarkers = {}; // key: "droneId:aircraftId" -> Leaflet marker
+        const AIRCRAFT_STALE_MS = 30000; // Remove aircraft if last_update_ms older than 30 seconds
 
         // Target drone tracking (from URL query parameter drone_public_id)
         let targetDronePublicId = null; // Drone ID to zoom to from URL
@@ -3006,12 +3031,17 @@
             return `${h}:${m}:${s}`;
         }
         
-        // Update legend to show only MQTT drones (EDS-B only)
+        // Update legend to show only MQTT drones and detected aircraft (EDS-B only)
         function updateLegendVisibility() {
             // MQTT Drones - always show (main feature)
             const mqttDronesItem = document.querySelector('[data-legend="mqtt-drones"]');
             if (mqttDronesItem) {
                 mqttDronesItem.style.display = 'flex';
+            }
+            // Detected aircraft - show when any aircraft are on the map
+            const detectedAircraftItem = document.querySelector('[data-legend="detected-aircraft"]');
+            if (detectedAircraftItem) {
+                detectedAircraftItem.style.display = Object.keys(mqttAircraftMarkers).length > 0 ? 'flex' : 'none';
             }
             
             // Hide all other legend items (TDOA/Acoustic features removed)
@@ -3036,7 +3066,7 @@
             }
         }
         window.updateLegendVisibility = updateLegendVisibility;
-        
+
         // Initialize on page load
         // Legend toggle function
         function toggleLegend() {
@@ -3192,7 +3222,8 @@
         }
 
         /**
-         * Called when MQTT connection is established
+         * Called when MQTT connection is established.
+         * Defer subscribe so Paho client is fully in "connected" state (avoids AMQJS0011E Invalid state not connected).
          */
         function onMQTTConnect() {
             console.log('Connected to MQTT broker');
@@ -3216,22 +3247,26 @@
                 headerStatusDot.className = 'status-dot connected';
             }
 
-            // Subscribe to the public topic
-            try {
-                mqttClient.subscribe(MQTT_TOPIC, {
-                    qos: 1,
-                    onSuccess: function() {
-                        console.log('Subscribed to MQTT topic: ' + MQTT_TOPIC);
-                        showToast('Connected to drone telemetry stream');
-                    },
-                    onFailure: function(error) {
-                        console.error('Failed to subscribe to topic:', error);
-                        showToast('Failed to subscribe to telemetry topic');
-                    }
-                });
-            } catch (error) {
-                console.error('Error subscribing to topic:', error);
-            }
+            // Subscribe after a short delay so client is fully connected (Paho can fire onSuccess before state is "connected")
+            setTimeout(function doSubscribe() {
+                if (!mqttClient || !mqttConnected) return;
+                try {
+                    mqttClient.subscribe(MQTT_TOPIC, {
+                        qos: 1,
+                        onSuccess: function() {
+                            console.log('Subscribed to MQTT topic: ' + MQTT_TOPIC);
+                            showToast('Connected to drone telemetry stream');
+                        },
+                        onFailure: function(err) {
+                            const msg = (err && (err.errorMessage || err.errorCode || err.message || String(err))) || 'unknown';
+                            console.error('Failed to subscribe to topic:', msg, err);
+                            showToast('Failed to subscribe to telemetry topic');
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error subscribing to topic:', error.message || error, error);
+                }
+            }, 400);
         }
 
         /**
@@ -3326,19 +3361,14 @@
                 const payload = message.payloadString;
                 const telemetryData = JSON.parse(payload);
 
-                // Validate telemetry data
                 if (!telemetryData.type || telemetryData.type !== 'drone_telemetry') {
-                    console.warn('Received non-telemetry message:', telemetryData.type);
                     return;
                 }
 
                 if (!telemetryData.public_drone_id) {
-                    console.warn('Received telemetry without public_drone_id or public_drone_id is null - ignoring data');
-                    console.log('Telemetry data:', JSON.stringify(telemetryData, null, 2));
                     return;
                 }
 
-                // Process the telemetry data
                 processDroneTelemetry(telemetryData);
 
             } catch (error) {
@@ -3387,6 +3417,33 @@
             // Update or create drone path
             updateMQTTDronePath(droneId, lat, lng);
 
+            // Process detected_aircraft (ADS-B): show aircraft on map, lines to drone, remove stale
+            // Accept top-level or state.detected_aircraft; snake_case and camelCase
+            let rawAircraft = telemetryData.detected_aircraft ?? telemetryData.detectedAircraft ?? telemetryData.state?.detected_aircraft ?? telemetryData.state?.detectedAircraft;
+            if (!Array.isArray(rawAircraft)) rawAircraft = [];
+            const detectedAircraft = rawAircraft;
+            const currentAircraftIds = new Set(detectedAircraft.map(a => (a && (a.id ?? a.icao ?? a.aircraft_id)) || null).filter(Boolean));
+            const now = Date.now();
+            // Remove aircraft for this drone that are no longer in the list
+            Object.keys(mqttAircraftMarkers).forEach(key => {
+                if (key.startsWith(droneId + ':')) {
+                    const aircraftId = key.slice(droneId.length + 1);
+                    if (!currentAircraftIds.has(aircraftId)) {
+                        removeAircraftMarkerAndLine(key);
+                    }
+                }
+            });
+            detectedAircraft.forEach(aircraft => {
+                const id = aircraft && (aircraft.id ?? aircraft.icao ?? aircraft.aircraft_id);
+                if (!id) return;
+                const lastUpdate = aircraft.last_update_ms != null ? aircraft.last_update_ms : now;
+                if (now - lastUpdate > AIRCRAFT_STALE_MS) {
+                    removeAircraftMarkerAndLine(droneId + ':' + id);
+                    return;
+                }
+                updateOrCreateAircraftMarker(droneId, droneName, lat, lng, aircraft, id);
+            });
+
             // Check if this is the target drone from URL and zoom to it (only once)
             if (targetDronePublicId && droneId === targetDronePublicId && !hasZoomedToTarget && map) {
                 console.log(`Target drone ${droneId} found! Zooming to location: [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
@@ -3402,14 +3459,13 @@
 
             // Update legend visibility
             updateLegendVisibility();
-
-            console.log(`Updated drone ${droneName} at [${lat.toFixed(6)}, ${lng.toFixed(6)}], alt: ${altitude.toFixed(1)}m`);
         }
         
         /**
          * Remove an MQTT drone from the map
          */
         function removeMQTTDrone(droneId) {
+            removeAircraftForDrone(droneId);
             const marker = mqttDroneMarkers[droneId];
             const path = mqttDronePaths[droneId];
             
@@ -3435,8 +3491,6 @@
             
             // Update legend visibility
             updateLegendVisibility();
-            
-            console.log(`Removed stale drone: ${droneId}`);
         }
 
         /**
@@ -3542,6 +3596,89 @@
             }
         }
 
+        /** Warning level -> color (0=green, 1=yellow, 2=orange, 3=red, 4=danger red) */
+        function aircraftWarningColor(level) {
+            const n = level == null ? 0 : Math.min(4, Math.max(0, parseInt(level, 10)));
+            return ['#22c55e', '#eab308', '#f97316', '#ef4444', '#b91c1c'][n];
+        }
+
+        /**
+         * Remove a single detected aircraft marker
+         */
+        function removeAircraftMarkerAndLine(key) {
+            const marker = mqttAircraftMarkers[key];
+            if (marker) {
+                map.removeLayer(marker);
+                delete mqttAircraftMarkers[key];
+            }
+        }
+
+        /**
+         * Remove all detected aircraft markers and lines for a given drone
+         */
+        function removeAircraftForDrone(droneId) {
+            Object.keys(mqttAircraftMarkers).forEach(key => {
+                if (key.startsWith(droneId + ':')) removeAircraftMarkerAndLine(key);
+            });
+        }
+
+        /**
+         * Update or create marker for a detected aircraft (ADS-B)
+         * Icon: Unicode plane ✈ rotated so heading is correct (native ✈ points top-right = 45°, so rotate by heading_deg - 45).
+         * Color by warning_level; popup "Detected by [drone_name]". No lines.
+         */
+        function updateOrCreateAircraftMarker(droneId, droneName, droneLat, droneLng, aircraft, aircraftId) {
+            if (!map) return;
+            const id = aircraftId != null ? aircraftId : (aircraft && (aircraft.id ?? aircraft.icao ?? aircraft.aircraft_id));
+            if (!id) return;
+            const key = droneId + ':' + id;
+            const lat = Number(aircraft.lat ?? aircraft.latitude);
+            const lng = Number(aircraft.lng ?? aircraft.longitude);
+            if (isNaN(lat) || isNaN(lng)) return;
+            const heading = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading) : 0;
+            const color = aircraftWarningColor(aircraft.warning_level ?? aircraft.warningLevel);
+            const altM = (aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM) != null ? Number(aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM).toFixed(0) : '—';
+            const headingStr = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading).toFixed(0) + '°' : '—';
+            const warnStr = (aircraft.warning_level ?? aircraft.warningLevel) != null ? String(aircraft.warning_level ?? aircraft.warningLevel) : '—';
+
+            // Unicode ✈ in most fonts points right (90°); rotate so nose points at heading_deg (0=North, 90=East)
+            const rotationDeg = heading - 90;
+
+            let marker = mqttAircraftMarkers[key];
+            if (!marker) {
+                const icon = L.divIcon({
+                    className: 'aircraft-marker-wrapper',
+                    html: '<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><span class="aircraft-marker-plane" style="color:' + color + ';transform:rotate(' + rotationDeg + 'deg);">✈</span></div>',
+                    iconSize: [34, 34],
+                    iconAnchor: [17, 17]
+                });
+                marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+                mqttAircraftMarkers[key] = marker;
+            } else {
+                marker.setLatLng([lat, lng]);
+                const el = marker._icon;
+                if (el) {
+                    const planeEl = el.querySelector('.aircraft-marker-plane');
+                    if (planeEl) {
+                        planeEl.style.color = color;
+                        planeEl.style.transform = 'rotate(' + rotationDeg + 'deg)';
+                    }
+                }
+            }
+
+            const popupContent = `
+                <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #a0a0a0;">
+                    <strong style="color: ${color};">Aircraft ${id}</strong><br>
+                    <strong>Detected by:</strong> ${droneName}<br>
+                    <strong>Lat:</strong> ${lat.toFixed(6)} <strong>Lng:</strong> ${lng.toFixed(6)}<br>
+                    <strong>Alt (MSL):</strong> ${altM} m<br>
+                    <strong>Heading:</strong> ${headingStr}<br>
+                    <strong>Warning level:</strong> ${warnStr} (0–4)<br>
+                </div>
+            `;
+            marker.bindPopup(popupContent);
+        }
+
         /**
          * Disconnect from MQTT broker
          */
@@ -3568,6 +3705,10 @@
          * Clear all MQTT drone markers and paths
          */
         function clearMQTTDrones() {
+            // Remove all aircraft markers first
+            Object.keys(mqttAircraftMarkers).forEach(key => removeAircraftMarkerAndLine(key));
+            mqttAircraftMarkers = {};
+
             // Remove all markers
             Object.values(mqttDroneMarkers).forEach(marker => {
                 if (marker.labelMarker) {
@@ -3591,8 +3732,6 @@
 
             // Update legend visibility
             updateLegendVisibility();
-
-            console.log('Cleared all MQTT drone markers and paths');
         }
         
         // Update download button pulse based on data availability (EDS-B only)

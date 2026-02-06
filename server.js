@@ -10,10 +10,13 @@ const app = express();
 // Load environment variables
 require('dotenv').config();
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
+// Initialize OpenAI client (only if API key is available)
+let openai;
+if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+    });
+}
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -24,6 +27,10 @@ const upload = multer({
 // Middleware
 app.use(express.json());
 app.use(cors()); // Enable CORS for local development
+
+// Serve static files: project root first (so edits to drone-map.html etc. show immediately), then _site
+app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, '_site')));
 
 // Initialize Google Drive API
 let drive;
