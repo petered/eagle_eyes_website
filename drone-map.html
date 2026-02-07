@@ -1237,6 +1237,59 @@
             display: block !important;
         }
 
+        /* Fullscreen button: bottom-right, themed, touch-friendly */
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 14px;
+            right: 14px;
+            z-index: 100002;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid #4a7c59;
+            border-radius: 4px;
+            color: #d4a574;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .fullscreen-btn:hover {
+            background: rgba(26, 26, 26, 0.95);
+            border-color: #5a8a6a;
+            color: #e8c89c;
+        }
+        .fullscreen-btn .fullscreen-btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fullscreen-btn .fullscreen-btn-icon svg {
+            flex-shrink: 0;
+        }
+        @media (max-width: 768px) {
+            .fullscreen-btn {
+                bottom: 12px;
+                right: 12px;
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                min-height: 48px;
+            }
+        }
+        @media (max-width: 480px) {
+            .fullscreen-btn {
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+
         /* Ensure Leaflet controls container stays at bottom edge */
         .leaflet-bottom {
             position: absolute !important;
@@ -2776,6 +2829,12 @@
 
     <!-- Map Container -->
     <div id="map"></div>
+
+    <!-- Fullscreen toggle: bottom-right, always visible -->
+    <button type="button" id="fullscreenBtn" class="fullscreen-btn" aria-label="Enter full screen" title="Full screen">
+        <span class="fullscreen-btn-icon fullscreen-enter-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></span>
+        <span class="fullscreen-btn-icon fullscreen-exit-icon" aria-hidden="true" style="display:none;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M0 8 L0 0 L8 0"/><path d="M24 8 L24 0 L16 0"/><path d="M24 16 L24 24 L16 24"/><path d="M0 16 L0 24 L8 24"/></svg></span>
+    </button>
     
     <!-- Legend Panel -->
     <div class="legend-panel" id="legendPanel">
@@ -4139,6 +4198,56 @@
             
             // Initialize MQTT connection
             initMQTT();
+
+            // Fullscreen toggle: bottom-right button
+            (function() {
+                const btn = document.getElementById('fullscreenBtn');
+                const enterIcon = btn ? btn.querySelector('.fullscreen-enter-icon') : null;
+                const exitIcon = btn ? btn.querySelector('.fullscreen-exit-icon') : null;
+                if (!btn || !enterIcon || !exitIcon) return;
+                function isFullscreen() {
+                    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+                }
+                function setButtonState(fullscreen) {
+                    if (fullscreen) {
+                        enterIcon.style.display = 'none';
+                        exitIcon.style.display = 'flex';
+                        btn.setAttribute('aria-label', 'Exit full screen');
+                        btn.setAttribute('title', 'Exit full screen');
+                    } else {
+                        enterIcon.style.display = 'flex';
+                        exitIcon.style.display = 'none';
+                        btn.setAttribute('aria-label', 'Enter full screen');
+                        btn.setAttribute('title', 'Full screen');
+                    }
+                }
+                function enterFullscreen() {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen();
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+                    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+                }
+                function exitFullscreen() {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                    else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                    else if (document.msExitFullscreen) document.msExitFullscreen();
+                }
+                btn.addEventListener('click', function() {
+                    if (isFullscreen()) exitFullscreen();
+                    else enterFullscreen();
+                });
+                function onFullscreenChange() {
+                    const fs = isFullscreen();
+                    setButtonState(fs);
+                    if (!fs && typeof map !== 'undefined' && map) {
+                        setTimeout(function() { map.invalidateSize(); }, 100);
+                    }
+                }
+                document.addEventListener('fullscreenchange', onFullscreenChange);
+                document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+            })();
             
             // Initialize download button pulse state
             updateDownloadButtonPulse();
