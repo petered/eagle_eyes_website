@@ -2256,6 +2256,64 @@ permalink: /livestream/
       body, #videoContainer, .placeholder {
         cursor: default !important;
       }
+
+      /* Consent overlay styles */
+      .consent-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .consent-popup {
+        background-color: #1a1f2e;
+        border: 1px solid #465373;
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      .consent-popup p {
+        color: #e0e0e0;
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .consent-btn {
+        padding: 12px 28px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+      }
+      .consent-btn.accept {
+        background-color: #4a6fa5;
+        color: white;
+      }
+      .consent-btn.accept:hover {
+        background-color: #5a82be;
+      }
+      .consent-privacy-link {
+        display: block;
+        margin-top: 16px;
+        color: #8899aa;
+        font-size: 0.8rem;
+        text-decoration: none;
+        text-align: center;
+      }
+      .consent-privacy-link:hover {
+        color: #aabbcc;
+        text-decoration: underline;
+      }
     </style>
 
     <!-- Eruda Mobile Console for debugging -->
@@ -2263,6 +2321,15 @@ permalink: /livestream/
     <script>eruda.init();</script> -->
   </head>
   <body>
+    <!-- Analytics consent overlay -->
+    <div id="consent-overlay" class="consent-overlay" style="display: none;">
+      <div class="consent-popup">
+        <p>To view livestreams, we collect anonymous usage data.</p>
+        <button class="consent-btn accept" id="consent-accept">Accept & Continue</button>
+        <a href="/privacy/" target="_blank" class="consent-privacy-link">View Privacy Policy</a>
+      </div>
+    </div>
+
     <!-- Hidden elements required by client.js -->
     <input type="hidden" id="roomIdInput" />
     <input type="hidden" id="roomIdInputMobile" />
@@ -4902,7 +4969,43 @@ permalink: /livestream/
     <script>
       // Analytics endpoint
       const ANALYTICS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFPVazjGWDLPtTWqqiFgwQ_skRwmJDt6rWZCAmZaEg8-OS17ZY1zwcCHDUZjlFt_A/exec';
-      
+
+      // Consent management
+      const CONSENT_KEY = 'eagle_eyes_analytics_consent';
+      const COOKIE_CONSENT_KEY = 'eagle_eyes_cookie_consent';
+
+      function hasAnalyticsConsent() {
+        // Check site-wide cookie consent first
+        const siteConsent = localStorage.getItem(COOKIE_CONSENT_KEY);
+        if (siteConsent === 'accepted') {
+          return true;
+        }
+        // Also check livestream-specific consent
+        return localStorage.getItem(CONSENT_KEY) === 'accepted';
+      }
+
+      function showConsentOverlay() {
+        const overlay = document.getElementById('consent-overlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+
+          const acceptBtn = document.getElementById('consent-accept');
+          if (acceptBtn) {
+            acceptBtn.onclick = function() {
+              localStorage.setItem(CONSENT_KEY, 'accepted');
+              overlay.style.display = 'none';
+            };
+          }
+        }
+      }
+
+      // Show consent overlay on page load if not already consented
+      document.addEventListener('DOMContentLoaded', function() {
+        if (!hasAnalyticsConsent()) {
+          showConsentOverlay();
+        }
+      });
+
       // Publisher constants (set these based on your needs)
       const PUBLISHER_COUNTRY = ''; // Set publisher country if known
       const PUBLISHER_REGION = '';  // Set publisher region if known
@@ -5240,7 +5343,7 @@ permalink: /livestream/
           timestamp_iso: timestampIso,
           timestamp_pacific: timestampPacific,
           event_type: payload.event_type || '',
-          livestream_id: idToCheck, // Send livestream_id so Google Script can compute livestream_type from length
+          livestream_type: livestreamType, // Computed locally from ID length (8=unique, 10=permalink) - ID not sent for privacy
           viewer_id: getViewerId(),
           viewer_name: payload.viewer_name !== undefined ? payload.viewer_name : viewerName,
           viewer_email: payload.viewer_email !== undefined ? payload.viewer_email : viewerEmail,
@@ -5272,11 +5375,17 @@ permalink: /livestream/
         console.log('[Analytics] Payload has livestream_type field:', 'livestream_type' in fullPayload);
         console.log('[Analytics] livestream_type value:', fullPayload.livestream_type);
         
+        // Only send analytics if user has consented
+        if (!hasAnalyticsConsent()) {
+          console.log('[Analytics] Skipping - user has not consented');
+          return;
+        }
+
         // Send POST request (ignore response, use no-cors)
         const payloadJson = JSON.stringify(fullPayload);
         console.log('[Analytics] Sending to endpoint:', ANALYTICS_ENDPOINT);
         console.log('[Analytics] Request body:', payloadJson);
-        
+
         fetch(ANALYTICS_ENDPOINT, {
           method: 'POST',
           mode: 'no-cors',

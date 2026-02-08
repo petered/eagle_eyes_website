@@ -1,0 +1,205 @@
+<!-- Cookie Consent Banner -->
+<style>
+  .cookie-banner {
+    position: fixed;
+    bottom: 105px;
+    right: 10px;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    z-index: 10000;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+  .cookie-banner-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .cookie-banner-text {
+    color: #333;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .cookie-banner-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .cookie-btn {
+    padding: 8px 18px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: block;
+    margin: 0 auto;
+  }
+  .cookie-btn.accept {
+    background: linear-gradient(135deg, #1e90ff 0%, #0066cc 100%);
+    color: white;
+  }
+  .cookie-btn.accept:hover {
+    background: linear-gradient(135deg, #2196f3 0%, #0077dd 100%);
+  }
+  .cookie-essential-link {
+    color: #888;
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    display: block;
+    text-align: center;
+  }
+  .cookie-essential-link:hover {
+    color: #555;
+    text-decoration: underline;
+  }
+  .cookie-privacy-link {
+    display: block;
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .cookie-privacy-link:hover {
+    color: #333;
+    text-decoration: underline;
+  }
+  .cookie-confirm-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .cookie-btn.decline {
+    background-color: #f0f0f0;
+    color: #555;
+    border: 1px solid #ddd;
+  }
+  .cookie-btn.decline:hover {
+    background-color: #e8e8e8;
+  }
+  @media (max-width: 768px) {
+    .cookie-banner {
+      right: 10px;
+      bottom: 85px;
+    }
+    .cookie-banner-text {
+      white-space: normal;
+    }
+  }
+</style>
+
+<div id="cookie-banner" class="cookie-banner">
+  <div class="cookie-banner-content" id="cookie-content-initial">
+    <div class="cookie-banner-text">
+      We use cookies to improve your experience.
+    </div>
+    <div class="cookie-banner-buttons">
+      <button class="cookie-btn accept" id="cookie-accept">Accept</button>
+      <button class="cookie-essential-link" id="cookie-essential">Essential Only</button>
+    </div>
+    <a href="/privacy/" target="_blank" class="cookie-privacy-link">View Privacy Policy</a>
+  </div>
+  <div class="cookie-banner-content" id="cookie-content-confirm" style="display: none;">
+    <div class="cookie-banner-text">
+      Are you sure? Analytics help us prioritize features.
+    </div>
+    <div class="cookie-confirm-buttons">
+      <button class="cookie-btn accept" id="cookie-confirm-accept">Accept</button>
+      <button class="cookie-btn decline" id="cookie-confirm-decline">Decline</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const COOKIE_CONSENT_KEY = 'eagle_eyes_cookie_consent';
+
+  function getCookieConsent() {
+    return localStorage.getItem(COOKIE_CONSENT_KEY);
+  }
+
+  function setCookieConsent(value) {
+    localStorage.setItem(COOKIE_CONSENT_KEY, value);
+  }
+
+  function hideBanner() {
+    const banner = document.getElementById('cookie-banner');
+    if (banner) {
+      banner.style.display = 'none';
+    }
+  }
+
+  function showBanner() {
+    const banner = document.getElementById('cookie-banner');
+    if (banner) {
+      banner.style.display = 'block';
+    }
+  }
+
+  function showConfirmation() {
+    document.getElementById('cookie-content-initial').style.display = 'none';
+    document.getElementById('cookie-content-confirm').style.display = 'flex';
+  }
+
+  function initCookieBanner() {
+    const consent = getCookieConsent();
+    if (!consent) {
+      showBanner();
+    }
+
+    // Initial accept button
+    const acceptBtn = document.getElementById('cookie-accept');
+    if (acceptBtn) {
+      acceptBtn.onclick = function() {
+        setCookieConsent('accepted');
+        hideBanner();
+      };
+    }
+
+    // Essential only link - shows confirmation
+    const essentialBtn = document.getElementById('cookie-essential');
+    if (essentialBtn) {
+      essentialBtn.onclick = function() {
+        showConfirmation();
+      };
+    }
+
+    // Confirmation accept button
+    const confirmAcceptBtn = document.getElementById('cookie-confirm-accept');
+    if (confirmAcceptBtn) {
+      confirmAcceptBtn.onclick = function() {
+        setCookieConsent('accepted');
+        hideBanner();
+      };
+    }
+
+    // Confirmation decline button
+    const confirmDeclineBtn = document.getElementById('cookie-confirm-decline');
+    if (confirmDeclineBtn) {
+      confirmDeclineBtn.onclick = function() {
+        setCookieConsent('essential');
+        hideBanner();
+      };
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCookieBanner);
+  } else {
+    initCookieBanner();
+  }
+})();
+</script>

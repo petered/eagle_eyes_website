@@ -1214,6 +1214,85 @@ permalink: /download/
             justify-content: center;
         }
     }
+
+    /* Consent Popup Styles */
+    .consent-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .consent-popup {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .consent-popup p {
+        color: #333;
+        font-size: 15px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+
+    .consent-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .consent-btn {
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: background 0.2s;
+    }
+
+    .consent-btn.accept {
+        background: #007bff;
+        color: white;
+    }
+
+    .consent-btn.accept:hover {
+        background: #0056b3;
+    }
+
+    .consent-btn.cancel {
+        background: #e9ecef;
+        color: #333;
+    }
+
+    .consent-btn.cancel:hover {
+        background: #dee2e6;
+    }
+
+    .consent-privacy-link {
+        display: block;
+        color: #666;
+        font-size: 13px;
+        text-decoration: none;
+        margin-top: 16px;
+        text-align: center;
+    }
+
+    .consent-privacy-link:hover {
+        text-decoration: underline;
+    }
 </style>
 
 <div class="wizard-container">
@@ -2740,7 +2819,7 @@ permalink: /download/
                 <div class="version-name">${release.version}</div>
                 <div class="version-date">Release date: ${formatDate(release.release_date)}</div>
                 <div class="version-badge ${badgeClass}">${versionType}</div>
-                <a href="${downloadUrl}" class="download-button" onclick="trackDownload('${releaseId}').catch(err => console.error('Download tracking error:', err)); return true;">
+                <a href="${downloadUrl}" class="download-button" onclick="return handleDownloadClick(event, '${downloadUrl}', '${releaseId}');">
                     Download
                 </a>
             </div>
@@ -3311,6 +3390,9 @@ permalink: /download/
         const timestampIso = new Date().toISOString();
         const timestampPacific = toPacificTime(timestampIso);
         
+        // Get version number from release data
+        const version = releaseData ? (releaseData.version || '') : '';
+
         // Build payload
         const payload = {
             timestamp_iso: timestampIso,
@@ -3318,13 +3400,13 @@ permalink: /download/
             download_type: 'download',
             product_name: productName,
             version_type: versionType,
+            version: version,
             session_id: getDownloadSessionId(),
             user_country: geoData.country || '',
             user_region: geoData.region || '',
             region_lat: geoData.lat !== null && geoData.lat !== undefined ? geoData.lat : null,
             region_lng: geoData.lng !== null && geoData.lng !== undefined ? geoData.lng : null,
             user_device: parseUserDevice(),
-            user_agent: navigator.userAgent,
             user_name: freeButtonData.user_name,
             user_email: freeButtonData.user_email,
             came_from_free_button: freeButtonData.came_from_free_button
@@ -3581,4 +3663,80 @@ permalink: /download/
             if (statusText) statusText.textContent = 'Click to watch';
         }
     }
+
+    // ============================================
+    // Consent Management
+    // ============================================
+    const CONSENT_KEY = 'eagle_eyes_analytics_consent';
+    const COOKIE_CONSENT_KEY = 'eagle_eyes_cookie_consent';
+
+    function hasAnalyticsConsent() {
+        // Check site-wide cookie consent first
+        const siteConsent = localStorage.getItem(COOKIE_CONSENT_KEY);
+        if (siteConsent === 'accepted') {
+            return true;
+        }
+        // Also check download-specific consent
+        return localStorage.getItem(CONSENT_KEY) === 'accepted';
+    }
+
+    function setAnalyticsConsent() {
+        localStorage.setItem(CONSENT_KEY, 'accepted');
+    }
+
+    function showConsentPopup(downloadUrl, releaseId) {
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'consent-overlay';
+        overlay.id = 'consent-overlay';
+        overlay.innerHTML = `
+            <div class="consent-popup">
+                <p>To download, we collect anonymous usage data.</p>
+                <div class="consent-buttons">
+                    <button class="consent-btn accept" id="consent-accept">Accept & Download</button>
+                    <button class="consent-btn cancel" id="consent-cancel">Cancel</button>
+                </div>
+                <a href="/privacy/" target="_blank" class="consent-privacy-link">View Privacy Policy</a>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Handle accept
+        document.getElementById('consent-accept').addEventListener('click', function() {
+            setAnalyticsConsent();
+            overlay.remove();
+            // Trigger download and tracking
+            trackDownload(releaseId).catch(err => console.error('Download tracking error:', err));
+            window.location.href = downloadUrl;
+        });
+
+        // Handle cancel
+        document.getElementById('consent-cancel').addEventListener('click', function() {
+            overlay.remove();
+        });
+
+        // Close on overlay click (outside popup)
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+    }
+
+    // Override download button behavior
+    function handleDownloadClick(event, downloadUrl, releaseId) {
+        if (hasAnalyticsConsent()) {
+            // Already consented - proceed with download and tracking
+            trackDownload(releaseId).catch(err => console.error('Download tracking error:', err));
+            return true; // Allow default link behavior
+        } else {
+            // Need consent first
+            event.preventDefault();
+            showConsentPopup(downloadUrl, releaseId);
+            return false;
+        }
+    }
+
+    // Make function globally available
+    window.handleDownloadClick = handleDownloadClick;
 </script>

@@ -188,6 +188,78 @@ permalink: /next-step/
             gap: 5px;
         }
     }
+
+    /* Consent overlay styles */
+    .consent-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .consent-popup {
+        background-color: #1a1f2e;
+        border: 1px solid #465373;
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .consent-popup p {
+        color: #e0e0e0;
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    .consent-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .consent-btn {
+        padding: 12px 28px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .consent-btn.accept {
+        background-color: #4a6fa5;
+        color: white;
+    }
+    .consent-btn.accept:hover {
+        background-color: #5a82be;
+    }
+    .consent-btn.cancel {
+        background-color: transparent;
+        color: #aabbcc;
+        border: 1px solid #556677;
+    }
+    .consent-btn.cancel:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .consent-privacy-link {
+        display: block;
+        margin-top: 16px;
+        color: #8899aa;
+        font-size: 0.8rem;
+        text-decoration: none;
+        text-align: center;
+    }
+    .consent-privacy-link:hover {
+        color: #aabbcc;
+        text-decoration: underline;
+    }
 </style>
 
 <div class="download-container">
@@ -228,7 +300,7 @@ permalink: /next-step/
         <div class="fallback-container" id="fallbackContainer">
             <h4>Manual Download</h4>
             <p>If the automatic download doesn't work, use the direct link below:</p>
-            <a href="#" id="fallbackLink" class="fallback-link" target="_blank">
+            <a href="#" id="fallbackLink" class="fallback-link" onclick="return handleFallbackClick(event);">
                 Direct Download Link
             </a>
         </div>
@@ -253,7 +325,58 @@ permalink: /next-step/
     let downloadController = null;
     let startTime = null;
     let urlParams = null;
-    
+
+    // Consent management
+    const CONSENT_KEY = 'eagle_eyes_analytics_consent';
+    const COOKIE_CONSENT_KEY = 'eagle_eyes_cookie_consent';
+
+    function hasAnalyticsConsent() {
+        // Check site-wide cookie consent first
+        const siteConsent = localStorage.getItem(COOKIE_CONSENT_KEY);
+        if (siteConsent === 'accepted') {
+            return true;
+        }
+        // Also check download-specific consent
+        return localStorage.getItem(CONSENT_KEY) === 'accepted';
+    }
+
+    function setAnalyticsConsent() {
+        localStorage.setItem(CONSENT_KEY, 'accepted');
+    }
+
+    function showConsentPopup(callback) {
+        const overlay = document.createElement('div');
+        overlay.className = 'consent-overlay';
+        overlay.id = 'consent-overlay';
+        overlay.innerHTML = `
+            <div class="consent-popup">
+                <p>To download, we collect anonymous usage data.</p>
+                <div class="consent-buttons">
+                    <button class="consent-btn accept" id="consent-accept">Accept & Download</button>
+                    <button class="consent-btn cancel" id="consent-cancel">Cancel</button>
+                </div>
+                <a href="/privacy/" target="_blank" class="consent-privacy-link">View Privacy Policy</a>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        document.getElementById('consent-accept').addEventListener('click', function() {
+            setAnalyticsConsent();
+            overlay.remove();
+            callback();
+        });
+
+        document.getElementById('consent-cancel').addEventListener('click', function() {
+            overlay.remove();
+        });
+
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+    }
+
     $(document).ready(function() {
         // Parse URL parameters
         urlParams = new URLSearchParams(window.location.search);
@@ -338,11 +461,34 @@ permalink: /next-step/
         $('#fallbackLink').attr('href', downloadUrl);
         $('#fallbackContainer').show();
     }
-    
+
+    function handleFallbackClick(event) {
+        if (hasAnalyticsConsent()) {
+            return true; // Allow default link behavior
+        }
+        event.preventDefault();
+        const downloadUrl = urlParams.get('download_link');
+        showConsentPopup(function() {
+            window.open(downloadUrl, '_blank');
+        });
+        return false;
+    }
+
     async function startDownload() {
+        // Check consent first
+        if (!hasAnalyticsConsent()) {
+            showConsentPopup(function() {
+                actualStartDownload();
+            });
+            return;
+        }
+        actualStartDownload();
+    }
+
+    async function actualStartDownload() {
         const downloadUrl = urlParams.get('download_link');
         const fileSizeMB = parseInt(urlParams.get('file_size_mb'));
-        
+
         try {
             // Show progress container
             $('#progressContainer').show();
