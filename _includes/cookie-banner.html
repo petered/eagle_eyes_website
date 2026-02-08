@@ -77,19 +77,6 @@
     color: #333;
     text-decoration: underline;
   }
-  .cookie-confirm-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  .cookie-btn.decline {
-    background-color: #f0f0f0;
-    color: #555;
-    border: 1px solid #ddd;
-  }
-  .cookie-btn.decline:hover {
-    background-color: #e8e8e8;
-  }
   @media (max-width: 768px) {
     .cookie-banner {
       right: 10px;
@@ -102,7 +89,7 @@
 </style>
 
 <div id="cookie-banner" class="cookie-banner">
-  <div class="cookie-banner-content" id="cookie-content-initial">
+  <div class="cookie-banner-content">
     <div class="cookie-banner-text">
       We use cookies to improve your experience.
     </div>
@@ -111,15 +98,6 @@
       <button class="cookie-essential-link" id="cookie-essential">Essential Only</button>
     </div>
     <a href="/privacy/" target="_blank" class="cookie-privacy-link">View Privacy Policy</a>
-  </div>
-  <div class="cookie-banner-content" id="cookie-content-confirm" style="display: none;">
-    <div class="cookie-banner-text">
-      Are you sure? Analytics help us prioritize features.
-    </div>
-    <div class="cookie-confirm-buttons">
-      <button class="cookie-btn accept" id="cookie-confirm-accept">Accept</button>
-      <button class="cookie-btn decline" id="cookie-confirm-decline">Decline</button>
-    </div>
   </div>
 </div>
 
@@ -149,18 +127,13 @@
     }
   }
 
-  function showConfirmation() {
-    document.getElementById('cookie-content-initial').style.display = 'none';
-    document.getElementById('cookie-content-confirm').style.display = 'flex';
-  }
-
   function initCookieBanner() {
     const consent = getCookieConsent();
     if (!consent) {
       showBanner();
     }
 
-    // Initial accept button
+    // Accept button
     const acceptBtn = document.getElementById('cookie-accept');
     if (acceptBtn) {
       acceptBtn.onclick = function() {
@@ -169,27 +142,10 @@
       };
     }
 
-    // Essential only link - shows confirmation
+    // Essential only - immediately saves choice (no confirmation step)
     const essentialBtn = document.getElementById('cookie-essential');
     if (essentialBtn) {
       essentialBtn.onclick = function() {
-        showConfirmation();
-      };
-    }
-
-    // Confirmation accept button
-    const confirmAcceptBtn = document.getElementById('cookie-confirm-accept');
-    if (confirmAcceptBtn) {
-      confirmAcceptBtn.onclick = function() {
-        setCookieConsent('accepted');
-        hideBanner();
-      };
-    }
-
-    // Confirmation decline button
-    const confirmDeclineBtn = document.getElementById('cookie-confirm-decline');
-    if (confirmDeclineBtn) {
-      confirmDeclineBtn.onclick = function() {
         setCookieConsent('essential');
         hideBanner();
       };
