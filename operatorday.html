@@ -176,7 +176,7 @@ permalink: /operatorday/
     .od-qty-input {
         width: 80px;
         height: 40px;
-        border: 1px solid #ddd;
+        border: none;
         border-radius: 0;
         text-align: center;
         font-size: 16px;
@@ -192,7 +192,7 @@ permalink: /operatorday/
     }
 
     .od-qty-label {
-        font-size: 16px;
+        font-size: 1.5rem;
         color: #666;
         margin-top: 8px;
         margin-bottom: 1rem;
@@ -279,10 +279,16 @@ permalink: /operatorday/
         border: 1px solid transparent;
     }
 
-    /* Sign-in widget area */
+    /* Sign-in widget overlay */
     .od-signin-widget {
-        margin: 2rem 0;
-        text-align: center;
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        overflow-y: auto;
     }
 
     /* Message area */
@@ -411,12 +417,9 @@ permalink: /operatorday/
     </div>
 
     <!-- Description -->
-    <div class="od-description">
-        <p>We're hosting a one-day, in-person Operator Day for Eagle Eyes customers and field operators.</p>
-        <p>Choose either April 24 or April 25. You'll run hands-on SAR scenarios with an experienced instructor, learn a repeatable workflow you can bring back to your team, and meet the Eagle Eyes crew (plus other operators in the field).</p>
-        <p><strong>Seats are limited—first come, first served.</strong></p>
-        <p>Bonus: each participant receives one additional Eagle Eyes license.</p>
-    </div>
+    <p class="od-description">
+        We're hosting a one-day, in-person Operator Day for Eagle Eyes customers and field operators. Choose either April 24 or April 25. You'll run hands-on SAR scenarios with an experienced instructor, learn a repeatable workflow you can bring back to your team, and meet the Eagle Eyes crew (plus other operators in the field). Bonus: each participant receives one additional Eagle Eyes license.
+    </p>
 
     <!-- Message area -->
     <div id="od-message" class="od-message"></div>
@@ -484,7 +487,7 @@ permalink: /operatorday/
     </div>
 
     <!-- Sign-in widget -->
-    <div class="od-signin-widget" id="od-signin-area" style="display:none;">
+    <div class="od-signin-widget" id="od-signin-area">
         {% include signinwidget-main.html %}
     </div>
 
@@ -525,6 +528,11 @@ permalink: /operatorday/
 </div>
 
 <script>
+// Close sign-in overlay (called by close button in signinwidget-main)
+function toggleSignIn() {
+    document.getElementById('od-signin-area').style.display = 'none';
+}
+
 (function() {
     var hostURL = getHostUrl();
     var availability = {};       // { "2026-04-24": { seats_remaining, capacity_total, seats_sold }, ... }
@@ -799,15 +807,21 @@ permalink: /operatorday/
         onAuthStateChange(user);
     });
 
-    // Handle "Sign in to register" click -- scroll to & show sign-in widget
+    // Handle "Sign in to register" click -- show sign-in overlay
     document.querySelectorAll('.od-signin-cta a, .od-signin-cta').forEach(function(el) {
         el.style.cursor = 'pointer';
         el.addEventListener('click', function(e) {
             e.preventDefault();
             var signinArea = document.getElementById('od-signin-area');
             signinArea.style.display = 'block';
-            signinArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+    });
+
+    // Close overlay when clicking backdrop (outside the sign-in box)
+    document.getElementById('od-signin-area').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('signin-container')) {
+            this.style.display = 'none';
+        }
     });
 
     // ---- Sign out ----
