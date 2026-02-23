@@ -1,0 +1,747 @@
+---
+layout: main
+permalink: /operatorday/
+---
+
+<style>
+    .od-container {
+        width: 80%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    .od-hero {
+        text-align: center;
+        margin-top: 14rem;
+        margin-bottom: 2rem;
+    }
+
+    .od-hero img {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
+    }
+
+    .od-hero h1 {
+        font-weight: 300;
+        font-size: 2.8rem;
+        color: #333;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .od-description {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 2.5rem;
+        color: #555;
+        font-size: 1.5rem;
+        line-height: 1.7;
+    }
+
+    .od-section {
+        margin-bottom: 2.5rem;
+    }
+
+    .od-section h2 {
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1rem;
+    }
+
+    .od-section ul {
+        list-style: disc;
+        padding-left: 1.5rem;
+        color: #555;
+        font-size: 1.3rem;
+        line-height: 1.8;
+    }
+
+    .od-section ul li {
+        margin-bottom: 0.5rem;
+    }
+
+    .od-section p {
+        color: #555;
+        font-size: 1.3rem;
+        line-height: 1.7;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Date cards */
+    .od-date-cards {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .od-date-card {
+        flex: 1;
+        max-width: 380px;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        transition: box-shadow 0.3s ease;
+        text-align: center;
+    }
+
+    .od-date-card:hover {
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .od-date-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+        border-bottom: 3px solid #dee2e6;
+        padding: 1.5rem;
+    }
+
+    .od-date-card-header h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .od-seats-remaining {
+        font-size: 1.1rem;
+        color: #555;
+        margin: 0;
+    }
+
+    .od-seats-remaining.sold-out {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .od-date-card-body {
+        padding: 1.5rem;
+    }
+
+    .od-qty-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        margin-bottom: 1rem;
+    }
+
+    .od-qty-btn {
+        width: 35px;
+        height: 40px;
+        border: 1px solid #ddd;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 900;
+        color: #333;
+    }
+
+    .od-qty-btn:first-child {
+        border-radius: 4px 0 0 4px;
+    }
+
+    .od-qty-btn:last-child {
+        border-radius: 0 4px 4px 0;
+    }
+
+    .od-qty-btn:hover {
+        background: #f0f0f0;
+    }
+
+    .od-qty-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .od-qty-input {
+        width: 50px;
+        height: 40px;
+        border: 1px solid #ddd;
+        border-left: none;
+        border-right: none;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 600;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+    }
+
+    .od-qty-input::-webkit-outer-spin-button,
+    .od-qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .od-qty-label {
+        font-size: 0.9rem;
+        color: #888;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .od-register-btn {
+        display: block;
+        width: 100%;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        background-color: #000;
+        color: #fff;
+        border: 1px solid #000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .od-register-btn:hover {
+        background-color: #1e90ff;
+        border-color: transparent;
+    }
+
+    .od-register-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #999;
+        border-color: #999;
+        box-shadow: none;
+    }
+
+    .od-register-btn:disabled:hover {
+        background-color: #999;
+        border-color: #999;
+    }
+
+    .od-register-btn .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: od-spin 0.6s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+
+    @keyframes od-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Auth gate CTA */
+    .od-auth-gate {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .od-signin-cta {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 0.5rem;
+    }
+
+    .od-signin-cta a {
+        color: #1e90ff;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    /* Sign-in widget area */
+    .od-signin-widget {
+        margin: 2rem 0;
+        text-align: center;
+    }
+
+    /* Message area */
+    .od-message {
+        display: none;
+        margin: 1rem 0;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        text-align: center;
+    }
+
+    .od-message.error {
+        background: #fff3f3;
+        color: #dc3545;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
+
+    .od-message.info {
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #90caf9;
+        display: block;
+    }
+
+    /* Notes */
+    .od-notes {
+        text-align: center;
+        margin: 2rem 0;
+        font-size: 1.2rem;
+        color: #555;
+        line-height: 1.6;
+    }
+
+    .od-notes a {
+        color: #1e90ff;
+        text-decoration: none;
+    }
+
+    .od-notes a:hover {
+        text-decoration: underline;
+    }
+
+    /* Loading skeleton */
+    .od-seats-loading {
+        display: inline-block;
+        width: 100px;
+        height: 1.1rem;
+        background: linear-gradient(90deg, #eee 25%, #ddd 50%, #eee 75%);
+        background-size: 200% 100%;
+        animation: od-shimmer 1.5s infinite;
+        border-radius: 4px;
+    }
+
+    @keyframes od-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    @media (max-width: 768px) {
+        .od-container {
+            width: 90%;
+        }
+
+        .od-hero {
+            margin-top: 10rem;
+        }
+
+        .od-hero h1 {
+            font-size: 2.2rem;
+        }
+
+        .od-description {
+            font-size: 1.3rem;
+        }
+
+        .od-date-cards {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .od-date-card {
+            max-width: none;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .od-hero h1 {
+            font-size: 1.8rem;
+        }
+
+        .od-description {
+            font-size: 1.2rem;
+        }
+
+        .od-section h2 {
+            font-size: 1.4rem;
+        }
+
+        .od-section ul, .od-section p {
+            font-size: 1.15rem;
+        }
+    }
+</style>
+
+<div class="od-container">
+
+    <!-- Hero -->
+    <div class="od-hero">
+        <img src="{{ '/images/training-logo.svg' | relative_url }}" alt="Eagle Eyes Training">
+        <h1>Eagle Eyes Operator Day</h1>
+    </div>
+
+    <!-- Description -->
+    <p class="od-description">
+        We're organizing a one-day, in-person Eagle Eyes operator day in Las Vegas (April 2026) for customers and field operators. You'll get hands-on SAR scenario practice, a repeatable workflow to take back to your team, and complimentary Operator Day admission with your license purchase.
+    </p>
+
+    <!-- Agenda -->
+    <div class="od-section">
+        <h2>Agenda</h2>
+        <ul>
+            <li>Configure Eagle Eyes Pilot and connect to CalTopo</li>
+            <li>Scenario-based exercises; applying Eagle Eyes Pilot in realistic search workflows</li>
+            <li>Store, organize, and share drone footage with your team</li>
+            <li>Operational playbook: team roles, SOPs, and checklists</li>
+            <li>New and upcoming features: mission planning, livestreaming, augmented reality, Eagle Eyes Mirada</li>
+            <li>Plenty of hands-on field time</li>
+        </ul>
+    </div>
+
+    <!-- Requirements -->
+    <div class="od-section">
+        <h2>Requirements</h2>
+        <ul>
+            <li>Bring your own drone/controller. If attending as a team, at least one drone per team. Must be compatible with Eagle Eyes Pilot.</li>
+            <li>Each attendee must be an active drone operator, authorized under their org's rules and the FAA framework.</li>
+        </ul>
+    </div>
+
+    <!-- Logistics -->
+    <div class="od-section">
+        <h2>Logistics</h2>
+        <ul>
+            <li>Duration: 1 day (~8 hours)</li>
+            <li>Price: $400 USD per attendee (purchases a 1-device annual Eagle Eyes license; complimentary Operator Day admission and lunch included with license purchase)</li>
+            <li>Multiple licenses bundled into one team license with multiple devices</li>
+            <li>Not included: travel and lodging</li>
+            <li>License processing: up to 10 business days</li>
+        </ul>
+    </div>
+
+    <!-- Message area -->
+    <div id="od-message" class="od-message"></div>
+
+    <!-- Date Cards -->
+    <div class="od-date-cards">
+
+        <!-- Friday April 24 -->
+        <div class="od-date-card" data-date="2026-04-24">
+            <div class="od-date-card-header">
+                <h3>Friday, April 24, 2026</h3>
+                <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
+            </div>
+            <div class="od-date-card-body od-auth-gate">
+                <p class="od-signin-cta">Sign in to register</p>
+            </div>
+            <div class="od-date-card-body od-controls" style="display:none;">
+                <div class="od-qty-group">
+                    <button type="button" class="od-qty-btn od-qty-dec">&#8722;</button>
+                    <input type="number" class="od-qty-input" value="1" min="1" max="3" readonly>
+                    <button type="button" class="od-qty-btn od-qty-inc">+</button>
+                </div>
+                <span class="od-qty-label">attendee(s)</span>
+                <button type="button" class="od-register-btn">Register</button>
+            </div>
+        </div>
+
+        <!-- Saturday April 25 -->
+        <div class="od-date-card" data-date="2026-04-25">
+            <div class="od-date-card-header">
+                <h3>Saturday, April 25, 2026</h3>
+                <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
+            </div>
+            <div class="od-date-card-body od-auth-gate">
+                <p class="od-signin-cta">Sign in to register</p>
+            </div>
+            <div class="od-date-card-body od-controls" style="display:none;">
+                <div class="od-qty-group">
+                    <button type="button" class="od-qty-btn od-qty-dec">&#8722;</button>
+                    <input type="number" class="od-qty-input" value="1" min="1" max="3" readonly>
+                    <button type="button" class="od-qty-btn od-qty-inc">+</button>
+                </div>
+                <span class="od-qty-label">attendee(s)</span>
+                <button type="button" class="od-register-btn">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="od-notes">
+        <p>Maximum 3 attendees per registration. Need more seats? Contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a></p>
+        <p style="margin-top: 1rem;">Questions? <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a></p>
+    </div>
+
+    <!-- Sign-in widget -->
+    <div class="od-signin-widget" id="od-signin-area" style="display:none;">
+        {% include signinWidget.html %}
+    </div>
+
+</div>
+
+<script>
+(function() {
+    var hostURL = getHostUrl();
+    var availability = {};       // { "2026-04-24": { seats_remaining, capacity_total, seats_sold }, ... }
+    var pollInterval = 30000;    // 30s default
+    var pollTimer = null;
+    var errorBackoff = 10000;    // start at 10s on error
+    var isSignedIn = false;
+
+    // ---- Availability polling ----
+
+    function fetchAvailability() {
+        $.ajax({
+            url: hostURL + '/api/operator-day/availability',
+            method: 'GET',
+            success: function(data) {
+                var parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                availability = parsed;
+                errorBackoff = 10000; // reset backoff on success
+                updateCards();
+                schedulePoll(pollInterval);
+            },
+            error: function() {
+                schedulePoll(errorBackoff);
+                errorBackoff = Math.min(errorBackoff * 2, 60000); // cap at 60s
+            }
+        });
+    }
+
+    function schedulePoll(delay) {
+        clearTimeout(pollTimer);
+        pollTimer = setTimeout(function() {
+            if (document.visibilityState !== 'hidden') {
+                fetchAvailability();
+            }
+        }, delay);
+    }
+
+    // Pause/resume polling on tab visibility
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            fetchAvailability();
+        }
+    });
+
+    // ---- UI updates ----
+
+    function updateCards() {
+        document.querySelectorAll('.od-date-card').forEach(function(card) {
+            var date = card.getAttribute('data-date');
+            var info = availability[date];
+            var seatsEl = card.querySelector('.od-seats-remaining');
+            var qtyInput = card.querySelector('.od-qty-input');
+            var registerBtn = card.querySelector('.od-register-btn');
+            var decBtn = card.querySelector('.od-qty-dec');
+            var incBtn = card.querySelector('.od-qty-inc');
+
+            if (!info) {
+                seatsEl.innerHTML = '<span class="od-seats-loading"></span>';
+                return;
+            }
+
+            var remaining = info.seats_remaining;
+
+            if (remaining <= 0) {
+                seatsEl.textContent = 'Sold out';
+                seatsEl.classList.add('sold-out');
+                if (qtyInput) {
+                    qtyInput.value = 0;
+                    qtyInput.disabled = true;
+                }
+                if (registerBtn) {
+                    registerBtn.disabled = true;
+                    registerBtn.textContent = 'Sold out';
+                }
+                if (decBtn) decBtn.disabled = true;
+                if (incBtn) incBtn.disabled = true;
+            } else {
+                seatsEl.textContent = remaining + ' seat' + (remaining !== 1 ? 's' : '') + ' remaining';
+                seatsEl.classList.remove('sold-out');
+
+                if (qtyInput) {
+                    var maxQty = Math.min(3, remaining);
+                    qtyInput.max = maxQty;
+                    // Auto-adjust if current selection exceeds remaining
+                    if (parseInt(qtyInput.value) > maxQty) {
+                        qtyInput.value = maxQty;
+                    }
+                    if (parseInt(qtyInput.value) < 1) {
+                        qtyInput.value = 1;
+                    }
+                    qtyInput.disabled = false;
+                    updateQtyButtons(card);
+                }
+                if (registerBtn && registerBtn.textContent === 'Sold out') {
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = 'Register';
+                }
+            }
+        });
+    }
+
+    function updateQtyButtons(card) {
+        var qtyInput = card.querySelector('.od-qty-input');
+        var decBtn = card.querySelector('.od-qty-dec');
+        var incBtn = card.querySelector('.od-qty-inc');
+        if (!qtyInput) return;
+
+        var val = parseInt(qtyInput.value);
+        var max = parseInt(qtyInput.max);
+        decBtn.disabled = val <= 1;
+        incBtn.disabled = val >= max;
+    }
+
+    // ---- Quantity controls ----
+
+    document.querySelectorAll('.od-date-card').forEach(function(card) {
+        var decBtn = card.querySelector('.od-qty-dec');
+        var incBtn = card.querySelector('.od-qty-inc');
+        var qtyInput = card.querySelector('.od-qty-input');
+
+        if (decBtn) {
+            decBtn.addEventListener('click', function() {
+                var val = parseInt(qtyInput.value);
+                if (val > 1) {
+                    qtyInput.value = val - 1;
+                    updateQtyButtons(card);
+                }
+            });
+        }
+
+        if (incBtn) {
+            incBtn.addEventListener('click', function() {
+                var val = parseInt(qtyInput.value);
+                var max = parseInt(qtyInput.max) || 3;
+                if (val < max) {
+                    qtyInput.value = val + 1;
+                    updateQtyButtons(card);
+                }
+            });
+        }
+    });
+
+    // ---- Register click ----
+
+    document.querySelectorAll('.od-register-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var card = btn.closest('.od-date-card');
+            var date = card.getAttribute('data-date');
+            var qtyInput = card.querySelector('.od-qty-input');
+            var qty = parseInt(qtyInput.value);
+            var info = availability[date];
+
+            // Validate
+            if (qty < 1 || qty > 3) {
+                showMessage('Please select 1 to 3 attendees.', 'error');
+                return;
+            }
+            if (info && qty > info.seats_remaining) {
+                showMessage('Looks like seats just changed \u2014 refreshing availability...', 'info');
+                fetchAvailability();
+                return;
+            }
+
+            // Disable button + show spinner
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Preparing checkout...';
+
+            var user = firebase.auth().currentUser;
+            if (!user) {
+                btn.disabled = false;
+                btn.textContent = 'Register';
+                showMessage('Please sign in to register.', 'error');
+                return;
+            }
+
+            user.getIdToken(true).then(function(idToken) {
+                $.ajax({
+                    url: hostURL + '/api/operator-day/checkout',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'Authorization': 'Bearer ' + idToken },
+                    data: JSON.stringify({ date: date, qty: qty }),
+                    success: function(data) {
+                        var parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                        if (parsed.url) {
+                            window.location.href = parsed.url;
+                        } else {
+                            // Fallback: show the URL as a link
+                            btn.disabled = false;
+                            btn.textContent = 'Register';
+                            showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
+                        }
+                    },
+                    error: function(jqXHR) {
+                        btn.disabled = false;
+                        btn.textContent = 'Register';
+                        if (jqXHR.status === 409 || jqXHR.status === 400) {
+                            showMessage('Looks like seats just changed \u2014 refreshing availability...', 'info');
+                        } else {
+                            showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
+                        }
+                        fetchAvailability();
+                    }
+                });
+            }).catch(function() {
+                btn.disabled = false;
+                btn.textContent = 'Register';
+                showMessage('Authentication error. Please try signing in again.', 'error');
+            });
+        });
+    });
+
+    // ---- Messages ----
+
+    function showMessage(text, type) {
+        var el = document.getElementById('od-message');
+        el.innerHTML = text;
+        el.className = 'od-message ' + (type || 'info');
+        // Auto-hide after 8s
+        setTimeout(function() {
+            el.className = 'od-message';
+            el.innerHTML = '';
+        }, 8000);
+    }
+
+    // ---- Auth gate ----
+
+    function onAuthStateChange(user) {
+        isSignedIn = !!user;
+        document.querySelectorAll('.od-date-card').forEach(function(card) {
+            var authGate = card.querySelector('.od-auth-gate');
+            var controls = card.querySelector('.od-controls');
+            if (user) {
+                authGate.style.display = 'none';
+                controls.style.display = 'block';
+            } else {
+                authGate.style.display = 'block';
+                controls.style.display = 'none';
+            }
+        });
+        // Hide sign-in widget area after signing in
+        var signinArea = document.getElementById('od-signin-area');
+        if (user) {
+            signinArea.style.display = 'none';
+        }
+        updateCards();
+    }
+
+    // Listen for Firebase auth state
+    document.addEventListener('signInComplete', function(e) {
+        onAuthStateChange(e.detail.user);
+    });
+
+    // Also check on page load via Firebase onAuthStateChanged
+    firebase.auth().onAuthStateChanged(function(user) {
+        onAuthStateChange(user);
+    });
+
+    // Handle "Sign in to register" click -- scroll to & show sign-in widget
+    document.querySelectorAll('.od-signin-cta a, .od-signin-cta').forEach(function(el) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            var signinArea = document.getElementById('od-signin-area');
+            signinArea.style.display = 'block';
+            signinArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    });
+
+    // ---- Init ----
+    fetchAvailability();
+})();
+</script>
+
+{% include footer.html %}
