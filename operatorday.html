@@ -36,6 +36,13 @@ permalink: /operatorday/
         margin: 0;
     }
 
+    .od-subtitle {
+        font-size: 1.4rem;
+        color: #666;
+        margin: 0.5rem 0 0;
+        font-weight: 300;
+    }
+
     .od-description {
         text-align: center;
         max-width: 800px;
@@ -43,6 +50,14 @@ permalink: /operatorday/
         color: #555;
         font-size: 1.6rem;
         line-height: 1.7;
+    }
+
+    .od-description p {
+        margin: 0 0 0.8rem;
+    }
+
+    .od-description p:last-child {
+        margin-bottom: 0;
     }
 
     .od-section {
@@ -109,14 +124,14 @@ permalink: /operatorday/
     }
 
     .od-date-card-header h3 {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 600;
         color: #333;
         margin: 0 0 0.5rem 0;
     }
 
     .od-seats-remaining {
-        font-size: 1.1rem;
+        font-size: 1.5rem;
         color: #555;
         margin: 0;
     }
@@ -141,20 +156,12 @@ permalink: /operatorday/
     .od-qty-btn {
         width: 35px;
         height: 40px;
-        border: 1px solid #ddd;
+        border: none;
         background: transparent;
         cursor: pointer;
         font-size: 18px;
         font-weight: 900;
         color: #333;
-    }
-
-    .od-qty-btn:first-child {
-        border-radius: 4px 0 0 4px;
-    }
-
-    .od-qty-btn:last-child {
-        border-radius: 0 4px 4px 0;
     }
 
     .od-qty-btn:hover {
@@ -167,11 +174,10 @@ permalink: /operatorday/
     }
 
     .od-qty-input {
-        width: 50px;
+        width: 80px;
         height: 40px;
-        border: 1px solid #ddd;
-        border-left: none;
-        border-right: none;
+        border: none;
+        border-radius: 0;
         text-align: center;
         font-size: 16px;
         font-weight: 600;
@@ -186,10 +192,12 @@ permalink: /operatorday/
     }
 
     .od-qty-label {
-        font-size: 0.9rem;
-        color: #888;
+        font-size: 1.5rem;
+        color: #666;
+        margin-top: 8px;
         margin-bottom: 1rem;
         display: block;
+        text-align: center;
     }
 
     .od-register-btn {
@@ -271,10 +279,16 @@ permalink: /operatorday/
         border: 1px solid transparent;
     }
 
-    /* Sign-in widget area */
+    /* Sign-in widget overlay */
     .od-signin-widget {
-        margin: 2rem 0;
-        text-align: center;
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        overflow-y: auto;
     }
 
     /* Message area */
@@ -399,12 +413,83 @@ permalink: /operatorday/
     <div class="od-hero">
         <img src="{{ '/images/operatorday-hero.png' | relative_url }}" alt="Eagle Eyes Operator Day">
         <h1>Eagle Eyes Operator Day</h1>
+        <p class="od-subtitle">Las Vegas &bull; April 24 or April 25, 2026</p>
     </div>
 
     <!-- Description -->
     <p class="od-description">
-        We're organizing a one-day, in-person Eagle Eyes operator day in Las Vegas (April 2026) for customers and field operators. You'll get hands-on SAR scenario practice, a repeatable workflow to take back to your team, and complimentary Operator Day admission with your license purchase.
+        We're hosting a one-day, in-person Operator Day for Eagle Eyes customers and field operators. Choose either April 24 or April 25. You'll run hands-on SAR scenarios with an experienced instructor, learn a repeatable workflow you can bring back to your team, and meet the Eagle Eyes crew (plus other operators in the field). Bonus: each participant receives one additional Eagle Eyes license.
     </p>
+
+    <!-- Message area -->
+    <div id="od-message" class="od-message"></div>
+
+    <!-- User info (shown when signed in) -->
+    <div id="od-user-info" style="display: none; text-align: center; margin-bottom: 1.5rem;">
+        <div id="od-user-email" style="color: #666; font-size: 16px;"></div>
+        <div id="od-account-status" style="color: #666; font-size: 16px;">Account status: <span style="font-weight: 500; color: #4CAF50;">verified</span></div>
+        <div style="margin-top: 8px;">
+            <a href="#" id="od-sign-out" style="color: #666; font-size: 14px;">Sign Out</a>
+        </div>
+    </div>
+
+    <!-- Date Cards -->
+    <div class="od-date-cards">
+
+        <!-- Friday April 24 -->
+        <div class="od-date-card" data-date="2026-04-24">
+            <div class="od-date-card-header">
+                <h3>Friday, April 24, 2026</h3>
+                <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
+            </div>
+            <div class="od-date-card-body od-auth-gate">
+                <p class="od-signin-cta">Sign in to register</p>
+            </div>
+            <div class="od-date-card-body od-controls" style="display:none;">
+                <div class="od-qty-group">
+                    <button type="button" class="od-qty-btn od-qty-dec">&#8722;</button>
+                    <input type="number" class="od-qty-input" value="1" min="1" max="3" readonly>
+                    <button type="button" class="od-qty-btn od-qty-inc">+</button>
+                </div>
+                <div style="text-align: center; margin-top: 8px;">
+                    <span class="od-qty-label">attendee(s)</span>
+                </div>
+                <button type="button" class="od-register-btn">Register</button>
+            </div>
+        </div>
+
+        <!-- Saturday April 25 -->
+        <div class="od-date-card" data-date="2026-04-25">
+            <div class="od-date-card-header">
+                <h3>Saturday, April 25, 2026</h3>
+                <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
+            </div>
+            <div class="od-date-card-body od-auth-gate">
+                <p class="od-signin-cta">Sign in to register</p>
+            </div>
+            <div class="od-date-card-body od-controls" style="display:none;">
+                <div class="od-qty-group">
+                    <button type="button" class="od-qty-btn od-qty-dec">&#8722;</button>
+                    <input type="number" class="od-qty-input" value="1" min="1" max="3" readonly>
+                    <button type="button" class="od-qty-btn od-qty-inc">+</button>
+                </div>
+                <div style="text-align: center; margin-top: 8px;">
+                    <span class="od-qty-label">attendee(s)</span>
+                </div>
+                <button type="button" class="od-register-btn">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="od-notes">
+        <p>Maximum 3 attendees per registration. Sold out or need more seats? Reach out to <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we'll do our best to accommodate you.</p>
+    </div>
+
+    <!-- Sign-in widget -->
+    <div class="od-signin-widget" id="od-signin-area">
+        {% include signinwidget-main.html %}
+    </div>
 
     <!-- Agenda -->
     <div class="od-section">
@@ -440,67 +525,14 @@ permalink: /operatorday/
         </ul>
     </div>
 
-    <!-- Message area -->
-    <div id="od-message" class="od-message"></div>
-
-    <!-- Date Cards -->
-    <div class="od-date-cards">
-
-        <!-- Friday April 24 -->
-        <div class="od-date-card" data-date="2026-04-24">
-            <div class="od-date-card-header">
-                <h3>Friday, April 24, 2026</h3>
-                <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
-            </div>
-            <div class="od-date-card-body od-auth-gate">
-                <p class="od-signin-cta">Sign in to register</p>
-            </div>
-            <div class="od-date-card-body od-controls" style="display:none;">
-                <div class="od-qty-group">
-                    <button type="button" class="od-qty-btn od-qty-dec">&#8722;</button>
-                    <input type="number" class="od-qty-input" value="1" min="1" max="3" readonly>
-                    <button type="button" class="od-qty-btn od-qty-inc">+</button>
-                </div>
-                <span class="od-qty-label">attendee(s)</span>
-                <button type="button" class="od-register-btn">Register</button>
-            </div>
-        </div>
-
-        <!-- Saturday April 25 -->
-        <div class="od-date-card" data-date="2026-04-25">
-            <div class="od-date-card-header">
-                <h3>Saturday, April 25, 2026</h3>
-                <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
-            </div>
-            <div class="od-date-card-body od-auth-gate">
-                <p class="od-signin-cta">Sign in to register</p>
-            </div>
-            <div class="od-date-card-body od-controls" style="display:none;">
-                <div class="od-qty-group">
-                    <button type="button" class="od-qty-btn od-qty-dec">&#8722;</button>
-                    <input type="number" class="od-qty-input" value="1" min="1" max="3" readonly>
-                    <button type="button" class="od-qty-btn od-qty-inc">+</button>
-                </div>
-                <span class="od-qty-label">attendee(s)</span>
-                <button type="button" class="od-register-btn">Register</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notes -->
-    <div class="od-notes">
-        <p>Maximum 3 attendees per registration. Sold out or need more seats? We'll do our best to accommodate you.</p>
-        <p style="margin-top: 1rem;">Questions? Reach out to <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a></p>
-    </div>
-
-    <!-- Sign-in widget -->
-    <div class="od-signin-widget" id="od-signin-area" style="display:none;">
-        {% include signinWidget.html %}
-    </div>
-
 </div>
 
 <script>
+// Close sign-in overlay (called by close button in signinwidget-main)
+function toggleSignIn() {
+    document.getElementById('od-signin-area').style.display = 'none';
+}
+
 (function() {
     var hostURL = getHostUrl();
     var availability = {};       // { "2026-04-24": { seats_remaining, capacity_total, seats_sold }, ... }
@@ -517,7 +549,9 @@ permalink: /operatorday/
             method: 'GET',
             success: function(data) {
                 var parsed = typeof data === 'string' ? JSON.parse(data) : data;
-                availability = parsed;
+                var byDate = {};
+                parsed.forEach(function(item) { byDate[item.date] = item; });
+                availability = byDate;
                 errorBackoff = 10000; // reset backoff on success
                 updateCards();
                 schedulePoll(pollInterval);
@@ -730,6 +764,10 @@ permalink: /operatorday/
 
     function onAuthStateChange(user) {
         isSignedIn = !!user;
+        var userInfo = document.getElementById('od-user-info');
+        var userEmail = document.getElementById('od-user-email');
+        var accountStatus = document.getElementById('od-account-status');
+
         document.querySelectorAll('.od-date-card').forEach(function(card) {
             var authGate = card.querySelector('.od-auth-gate');
             var controls = card.querySelector('.od-controls');
@@ -741,10 +779,20 @@ permalink: /operatorday/
                 controls.style.display = 'none';
             }
         });
-        // Hide sign-in widget area after signing in
+        // Show/hide user info and sign-in widget
         var signinArea = document.getElementById('od-signin-area');
         if (user) {
             signinArea.style.display = 'none';
+            userEmail.textContent = 'Logged in as: ' + user.email;
+            if (user.emailVerified) {
+                accountStatus.style.display = 'block';
+            } else {
+                accountStatus.style.display = 'none';
+            }
+            userInfo.style.display = 'block';
+        } else {
+            userInfo.style.display = 'none';
+            userEmail.textContent = '';
         }
         updateCards();
     }
@@ -759,14 +807,30 @@ permalink: /operatorday/
         onAuthStateChange(user);
     });
 
-    // Handle "Sign in to register" click -- scroll to & show sign-in widget
+    // Handle "Sign in to register" click -- show sign-in overlay
     document.querySelectorAll('.od-signin-cta a, .od-signin-cta').forEach(function(el) {
         el.style.cursor = 'pointer';
         el.addEventListener('click', function(e) {
             e.preventDefault();
             var signinArea = document.getElementById('od-signin-area');
             signinArea.style.display = 'block';
-            signinArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    });
+
+    // Close overlay when clicking backdrop (outside the sign-in box)
+    document.getElementById('od-signin-area').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('signin-container')) {
+            this.style.display = 'none';
+        }
+    });
+
+    // ---- Sign out ----
+    document.getElementById('od-sign-out').addEventListener('click', function(e) {
+        e.preventDefault();
+        firebase.auth().signOut().then(function() {
+            window.location.reload();
+        }).catch(function(error) {
+            console.error('Error signing out:', error);
         });
     });
 
