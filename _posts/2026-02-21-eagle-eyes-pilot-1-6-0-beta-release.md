@@ -48,7 +48,7 @@ published: true
 
 <br>
 <br>
-We're pleased to announce the release of Eagle Eyes Pilot 1.6.0-beta.
+<h2 style="text-align: center;">We're pleased to announce the release of Eagle Eyes Pilot 1.6.0-beta.</h2>
 
 <div style="max-width: 95%; margin: 20px auto;">
 <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden;">
