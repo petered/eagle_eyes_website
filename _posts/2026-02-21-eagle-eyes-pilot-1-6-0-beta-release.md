@@ -58,7 +58,7 @@ We're pleased to announce the release of Eagle Eyes Pilot 1.6.0-beta.
 </div>
 
 <div class="download-button-container">
-    <a href="https://www.eagleeyessearch.com/download/" target="_blank" class="download-button">Get Eagle Eyes Pilot 1.6.0 Beta</a>
+    <a href="https://www.eagleeyessearch.com/download/pilot/" target="_blank" class="download-button">Get Eagle Eyes Pilot 1.6.0 Beta</a>
     <div style="text-align: center; margin-top: 2px;">
         <a href="https://www.eagleeyessearch.com/blog/eagle-eyes-pilot-1-5-0-beta-livestreaming#setup-video" style="font-size: 14px; color: #007bff; text-decoration: none; font-weight: bold;">(See Eagle Eyes Pilot setup video here)</a>
     </div>
@@ -103,7 +103,7 @@ From the piloting view you can go to the menu, settings, button customization - 
 - **Share your realtime drone location over the internet** to other Eagle Eyes Pilot users connected to your CalTopo map. You can turn on "Use CalTopo Map for MQTT" in settings. This is an experimental feature and we may change the way it is implemented in the future, so we have kept it hidden for now. It will be officially released in 1.7. In the meantime, you are welcome to try it and we would like to hear if it is useful to you.
 
 <div class="download-button-container">
-    <a href="https://www.eagleeyessearch.com/download/" target="_blank" class="download-button">Get Eagle Eyes Pilot 1.6.0 Beta</a>
+    <a href="https://www.eagleeyessearch.com/download/pilot/" target="_blank" class="download-button">Get Eagle Eyes Pilot 1.6.0 Beta</a>
 </div>
 
 ## What's Next
