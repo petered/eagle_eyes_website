@@ -489,7 +489,7 @@ permalink: /operatorday/
     <div class="od-date-cards">
 
         <!-- Friday April 24 -->
-        <div class="od-date-card" data-date="2026-04-24">
+        <div class="od-date-card" data-training-id="1">
             <div class="od-date-card-header">
                 <h3>Friday, April 24, 2026</h3>
                 <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
@@ -511,7 +511,7 @@ permalink: /operatorday/
         </div>
 
         <!-- Saturday April 25 -->
-        <div class="od-date-card" data-date="2026-04-25">
+        <div class="od-date-card" data-training-id="2">
             <div class="od-date-card-header">
                 <h3>Saturday, April 25, 2026</h3>
                 <p class="od-seats-remaining"><span class="od-seats-loading"></span></p>
@@ -598,7 +598,7 @@ function toggleSignIn() {
 (function() {
     var MAX_QTY_PER_ORDER = 10;  // max tickets per order (set to Infinity to uncap)
     var hostURL = getHostUrl();
-    var availability = {};       // { "2026-04-24": { seats_remaining, capacity_total, seats_sold }, ... }
+    var availability = {};       // { "1": { seats_remaining, ... }, "2": { ... } }
     var pollInterval = 30000;    // 30s default
     var pollTimer = null;
     var errorBackoff = 10000;    // start at 10s on error
@@ -608,13 +608,13 @@ function toggleSignIn() {
 
     function fetchAvailability() {
         $.ajax({
-            url: hostURL + '/operatorday_availability',
+            url: hostURL + '/training_availability?training_ids=1,2',
             method: 'GET',
             success: function(data) {
                 var parsed = typeof data === 'string' ? JSON.parse(data) : data;
-                var byDate = {};
-                parsed.forEach(function(item) { byDate[item.date] = item; });
-                availability = byDate;
+                var byId = {};
+                parsed.forEach(function(item) { byId[String(item.training_id)] = item; });
+                availability = byId;
                 errorBackoff = 10000; // reset backoff on success
                 updateCards();
                 schedulePoll(pollInterval);
@@ -646,8 +646,8 @@ function toggleSignIn() {
 
     function updateCards() {
         document.querySelectorAll('.od-date-card').forEach(function(card) {
-            var date = card.getAttribute('data-date');
-            var info = availability[date];
+            var trainingId = card.getAttribute('data-training-id');
+            var info = availability[trainingId];
             var seatsEl = card.querySelector('.od-seats-remaining');
             var qtyInput = card.querySelector('.od-qty-input');
             var registerBtn = card.querySelector('.od-register-btn');
@@ -656,6 +656,16 @@ function toggleSignIn() {
 
             if (!info) {
                 seatsEl.innerHTML = '<span class="od-seats-loading"></span>';
+                return;
+            }
+
+            if (info.status && info.status !== 'Open') {
+                seatsEl.textContent = 'Registration closed';
+                seatsEl.classList.add('sold-out');
+                if (qtyInput) { qtyInput.value = 0; qtyInput.disabled = true; }
+                if (registerBtn) { registerBtn.disabled = true; registerBtn.textContent = 'Registration closed'; }
+                if (decBtn) decBtn.disabled = true;
+                if (incBtn) incBtn.disabled = true;
                 return;
             }
 
@@ -745,10 +755,10 @@ function toggleSignIn() {
     document.querySelectorAll('.od-register-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var card = btn.closest('.od-date-card');
-            var date = card.getAttribute('data-date');
+            var trainingId = card.getAttribute('data-training-id');
             var qtyInput = card.querySelector('.od-qty-input');
             var qty = parseInt(qtyInput.value);
-            var info = availability[date];
+            var info = availability[trainingId];
 
             // Validate
             if (qty < 1 || qty > 3) {
@@ -779,7 +789,7 @@ function toggleSignIn() {
                     method: 'POST',
                     contentType: 'application/json',
                     headers: { 'Authorization': 'Bearer ' + idToken },
-                    data: JSON.stringify({ training_key: 'operator_day', date: date, qty: qty }),
+                    data: JSON.stringify({ training_id: parseInt(trainingId), qty: qty, cancel_path: '/operatorday/' }),
                     success: function(data) {
                         var parsed = typeof data === 'string' ? JSON.parse(data) : data;
                         if (parsed.url) {
@@ -794,12 +804,26 @@ function toggleSignIn() {
                     error: function(jqXHR) {
                         btn.disabled = false;
                         btn.textContent = 'Register & Pay';
-                        if (jqXHR.status === 409 || jqXHR.status === 400) {
-                            showMessage('Looks like seats just changed \u2014 refreshing availability...', 'info');
+                        if (jqXHR.status === 409) {
+                            var resp = {};
+                            try { resp = JSON.parse(jqXHR.responseText); } catch(e) {}
+                            var seatsMsg = typeof resp.seats_remaining === 'number'
+                                ? resp.seats_remaining + ' seat' + (resp.seats_remaining !== 1 ? 's' : '') + ' remaining'
+                                : 'no seats remaining';
+                            showMessage('Not enough seats — ' + seatsMsg + '. Refreshing availability...', 'info');
+                            fetchAvailability();
+                        } else if (jqXHR.status === 403) {
+                            showMessage('Registration is closed.', 'error');
+                            document.querySelectorAll('.od-register-btn').forEach(function(b) {
+                                b.disabled = true;
+                                b.textContent = 'Registration closed';
+                            });
+                        } else if (jqXHR.status === 401) {
+                            showMessage('Please sign in to register.', 'error');
+                            document.getElementById('od-signin-area').style.display = 'block';
                         } else {
                             showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
                         }
-                        fetchAvailability();
                     }
                 });
             }).catch(function() {
