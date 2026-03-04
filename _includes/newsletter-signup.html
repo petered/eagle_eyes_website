@@ -1,4 +1,18 @@
 <style>
+    @keyframes main-newsletter-spinner {
+        to { transform: rotate(360deg); }
+    }
+    .main-newsletter-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fff;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: main-newsletter-spinner 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
     .subscribe-input {
         flex: 1;
         font-size: 14px;
@@ -80,7 +94,7 @@
                 <!-- Honeypot field (hidden from users) -->
                 <input type="text" name="honeypot" value="" style="display: none;">
                 
-                {% include button-black.html button_type='submit' button_text='Subscribe' button_style="width: auto; max-width: 160px; font-size: 14px; padding: 10px 20px; margin: 0; height: 44px; box-sizing: border-box; transform: translateY(-7px);" %}
+                {% include button-black.html button_id='main-newsletter-btn' button_type='submit' button_text='Subscribe' button_style="width: auto; max-width: 160px; font-size: 14px; padding: 10px 20px; margin: 0; height: 44px; box-sizing: border-box; transform: translateY(-7px);" %}
             </form>
         </div>
     </div>
@@ -89,12 +103,17 @@
 <script>
     function submitMainNewsletter(event) {
       event.preventDefault();
-      
+
       // Gather form data
       const form = document.getElementById('main-newsletter-signup');
       const email = form.email.value.trim();
       const honeypot = form.honeypot.value.trim();
-      
+      const btn = document.getElementById('main-newsletter-btn');
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = '<span class="main-newsletter-spinner"></span>Subscribing...';
+
       // Create the data payload
       const data = { email, honeypot };
       var fetch_url = getHostUrl();
@@ -117,11 +136,15 @@
       .then(result => {
         console.log("Newsletter signup response:", result);
         // Replace the form with a thank you message
-        document.getElementById('main-newsletter-container').innerHTML = 
+        document.getElementById('main-newsletter-container').innerHTML =
           "<p style='color:#000; text-align:center;'>Thank you for subscribing!</p>";
       })
       .catch(error => {
         console.error("Error during newsletter signup:", error);
+        btn.disabled = false;
+        btn.innerHTML = 'Subscribe';
+        document.getElementById('main-newsletter-container').insertAdjacentHTML('beforeend',
+          "<p style='color:#cc0000; text-align:center; margin-top:8px;'>Something went wrong. Please try again.</p>");
       });
     }
 </script>

@@ -67,12 +67,28 @@
             <div class="column width-4">
                 <div class="widget">
                     <h3 class="widget-title mb-30">Subscribe to our newsletter</h3>
-                    <div id="newsletter-container" style="max-width:320px; margin:0 auto;">
-                        <form id="newsletter-signup" onsubmit="submitNewsletter(event)">
+                    <style>
+                      @keyframes footer-spinner {
+                        to { transform: rotate(360deg); }
+                      }
+                      .footer-spinner {
+                        display: inline-block;
+                        width: 14px;
+                        height: 14px;
+                        border: 2px solid #fff;
+                        border-right-color: transparent;
+                        border-radius: 50%;
+                        animation: footer-spinner 0.8s linear infinite;
+                        vertical-align: middle;
+                        margin-right: 6px;
+                      }
+                    </style>
+                    <div id="footer-newsletter-container" style="max-width:320px; margin:0 auto;">
+                        <form id="footer-newsletter-signup" onsubmit="submitFooterNewsletter(event)">
                           <input type="email" name="email" placeholder="Your email" required style="width:100%; padding:8px; margin-bottom:10px;">
                           <!-- Honeypot field (hidden from users) -->
                           <input type="text" name="honeypot" value="" style="display:none;">
-                          <button type="submit" style="width:100%; padding:8px; background-color: transparent; color: #fff; border: 1px solid #fff;"
+                          <button type="submit" id="footer-newsletter-btn" style="width:100%; padding:8px; background-color: transparent; color: #fff; border: 1px solid #fff;"
                             onmouseover="this.style.backgroundColor='#1e90ff';"
                             onmouseout="this.style.backgroundColor='transparent';">
                             Register
@@ -115,14 +131,22 @@
 
 <script>
 
-    function submitNewsletter(event) {
+    function submitFooterNewsletter(event) {
       event.preventDefault();
-      
+
       // Gather form data
-      const form = document.getElementById('newsletter-signup');
+      const form = document.getElementById('footer-newsletter-signup');
       const email = form.email.value.trim();
       const honeypot = form.honeypot.value.trim();
-      
+      const btn = document.getElementById('footer-newsletter-btn');
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = '<span class="footer-spinner"></span>Subscribing...';
+      btn.style.backgroundColor = '#1e90ff';
+      btn.onmouseover = null;
+      btn.onmouseout = null;
+
       // Create the data payload
       const data = { email, honeypot };
       var fetch_url = getHostUrl();
@@ -145,11 +169,18 @@
       .then(result => {
         console.log("Newsletter signup response:", result);
         // Replace the form with a thank you message
-        document.getElementById('newsletter-container').innerHTML = 
+        document.getElementById('footer-newsletter-container').innerHTML =
           "<p style='color:#fff; text-align:left;'>Thank you for subscribing!</p>";
       })
       .catch(error => {
         console.error("Error during newsletter signup:", error);
+        btn.disabled = false;
+        btn.innerHTML = 'Register';
+        btn.style.backgroundColor = 'transparent';
+        btn.onmouseover = function() { this.style.backgroundColor = '#1e90ff'; };
+        btn.onmouseout = function() { this.style.backgroundColor = 'transparent'; };
+        document.getElementById('footer-newsletter-container').insertAdjacentHTML('beforeend',
+          "<p style='color:#ff6b6b; text-align:left; margin-top:8px;'>Something went wrong. Please try again.</p>");
       });
     }
 
