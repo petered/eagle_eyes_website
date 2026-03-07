@@ -68,6 +68,13 @@ permalink: /srt-converter/
                     </ol>
                     <p style="color: #888; font-size: 0.9em; margin-top: 10px; margin-bottom: 0;">
                         All processing happens locally in your browser — no files are uploaded to any server.
+                        <button onclick="document.getElementById('tech-info-popup').style.display='flex'" style="
+                            display: inline-flex; align-items: center; justify-content: center;
+                            width: 24px; height: 24px; border-radius: 4px;
+                            background-color: #314268; color: #fff; border: none;
+                            font-size: 15px; font-weight: 700; font-style: italic; font-family: Georgia, 'Times New Roman', serif;
+                            cursor: pointer; margin-left: 6px; vertical-align: middle; line-height: 1;
+                        " title="How does this work?">i</button>
                     </p>
                 </div>
 
@@ -77,37 +84,71 @@ permalink: /srt-converter/
                     <p style="margin: 0;">🎞️ <a href="https://www.eagleeyessearch.com/faq/#m4-series-srt" style="color: #1e90ff;">How do I get geolocation data from DJI Matrice 4 series video files?</a></p>
                 </div>
 
+                <!-- Malcolm credit -->
+                <p style="color: #999; font-size: 0.85em; text-align: center; margin-top: 30px; margin-bottom: 0;">
+                    <em>Thanks to Malcolm for support with this tool.</em>
+                </p>
+
             </div>
         </div>
     </section>
 </div>
 
+<!-- Tech info popup -->
+<div id="tech-info-popup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff; border-radius:12px; padding:30px 35px; max-width:560px; width:90%; box-shadow:0 8px 30px rgba(0,0,0,0.2); position:relative;">
+        <button onclick="document.getElementById('tech-info-popup').style.display='none'" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:1.4em; cursor:pointer; color:#888; line-height:1;">&times;</button>
+        <h3 style="margin:0 0 16px 0; color:#333;">How does this tool work?</h3>
+        <p style="color:#555; line-height:1.6; margin-bottom:12px;">
+            When you record video with a DJI Matrice 4 series drone, the GPS coordinates, altitude, camera settings, and other flight data are stored inside the video file itself as a hidden subtitle track — rather than in a separate <code>.SRT</code> file like older DJI drones.
+        </p>
+        <p style="color:#555; line-height:1.6; margin-bottom:12px;">
+            This tool reads the structure of your <code>.MP4</code> file to locate that hidden subtitle track, extracts the telemetry entries, and converts them into a standard <code>.SRT</code> file format that Eagle Eyes Scan can understand.
+        </p>
+        <p style="color:#555; line-height:1.6; margin-bottom:12px;">
+            Only a small portion of the file is actually read — the tool skips over the video data and goes straight to the metadata, so it works quickly even with very large files.
+        </p>
+        <p style="color:#888; font-size:0.9em; line-height:1.5; margin-bottom:0;">
+            Everything runs entirely in your web browser using JavaScript. Your video files never leave your computer — nothing is uploaded anywhere.
+        </p>
+    </div>
+</div>
+
 <script>
 // ============================================================================
-// MP4 SUBTITLE EXTRACTOR (ported from Python — pure client-side JS)
+// MP4 SUBTITLE EXTRACTOR — streaming version for large files
+// Uses File.slice() to avoid loading entire file into memory
 // ============================================================================
 
-function readBoxHeader(view, offset, fileSize) {
-    if (offset + 8 > fileSize) return null;
+function readSlice(file, offset, length) {
+    return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() { resolve(reader.result); };
+        reader.onerror = function() { reject(new Error("Failed to read file slice")); };
+        reader.readAsArrayBuffer(file.slice(offset, offset + length));
+    });
+}
+
+function readBoxHeaderFromView(view, offset, bufferSize) {
+    if (offset + 8 > bufferSize) return null;
     var size = view.getUint32(offset);
-    var typeBytes = new Uint8Array(view.buffer, offset + 4, 4);
+    var typeBytes = new Uint8Array(view.buffer, view.byteOffset + offset + 4, 4);
     var boxType = String.fromCharCode.apply(null, typeBytes);
     var dataStart = offset + 8;
     if (size === 1) {
-        // 64-bit extended size
-        if (offset + 16 > fileSize) return null;
+        if (offset + 16 > bufferSize) return null;
         size = Number(view.getBigUint64(offset + 8));
         dataStart = offset + 16;
     } else if (size === 0) {
-        size = fileSize - offset;
+        size = bufferSize - offset;
     }
     return { type: boxType, size: size, dataStart: dataStart, boxStart: offset };
 }
 
-function findBox(view, start, end, target, fileSize) {
+function findBoxInView(view, start, end, target) {
     var pos = start;
     while (pos < end) {
-        var box = readBoxHeader(view, pos, fileSize);
+        var box = readBoxHeaderFromView(view, pos, end);
         if (!box) break;
         var boxEnd = box.boxStart + box.size;
         if (box.type === target) {
@@ -119,7 +160,6 @@ function findBox(view, start, end, target, fileSize) {
 }
 
 function parseStts(view, start) {
-    // skip version+flags (4 bytes)
     var entryCount = view.getUint32(start + 4);
     var entries = [];
     var pos = start + 8;
@@ -180,9 +220,9 @@ function parseStco(view, start, isCo64) {
 function parseMdhd(view, start) {
     var version = view.getUint8(start);
     if (version === 0) {
-        return view.getUint32(start + 12); // timescale at offset 12
+        return view.getUint32(start + 12);
     } else {
-        return view.getUint32(start + 20); // timescale at offset 20 for 64-bit
+        return view.getUint32(start + 20);
     }
 }
 
@@ -226,28 +266,61 @@ function pad(n, width) {
     return s;
 }
 
-function extractSrtFromArrayBuffer(buffer) {
-    var view = new DataView(buffer);
-    var fileSize = buffer.byteLength;
+// Find the moov box by scanning top-level box headers.
+// Reads only small header chunks instead of the entire file.
+async function findMoovBox(file) {
+    var fileSize = file.size;
+    var pos = 0;
+    while (pos < fileSize) {
+        var headerSize = Math.min(16, fileSize - pos);
+        var headerBuf = await readSlice(file, pos, headerSize);
+        var hv = new DataView(headerBuf);
+        if (headerBuf.byteLength < 8) return null;
+        var size = hv.getUint32(0);
+        var typeBytes = new Uint8Array(headerBuf, 4, 4);
+        var boxType = String.fromCharCode.apply(null, typeBytes);
+        var dataStart = 8;
+        if (size === 1) {
+            if (headerBuf.byteLength < 16) return null;
+            size = Number(hv.getBigUint64(8));
+            dataStart = 16;
+        } else if (size === 0) {
+            size = fileSize - pos;
+        }
+        if (size < 8) return null; // invalid box
+        if (boxType === "moov") {
+            return { offset: pos, dataStartRel: dataStart, size: size };
+        }
+        pos += size;
+    }
+    return null;
+}
 
-    // Find moov box
-    var moov = findBox(view, 0, fileSize, "moov", fileSize);
-    if (!moov) return null;
+// Main extraction: reads only moov + subtitle sample data
+async function extractSrtFromFile(file) {
+    var fileSize = file.size;
 
-    // Find subtitle trak
+    // Step 1: Find and read the moov box
+    var moovInfo = await findMoovBox(file);
+    if (!moovInfo) return null;
+
+    var moovBuf = await readSlice(file, moovInfo.offset, moovInfo.size);
+    var moovView = new DataView(moovBuf);
+    var moovEnd = moovInfo.size;
+
+    // Step 2: Find subtitle trak within moov
     var subtitleTrak = null;
-    var pos = moov.dataStart;
-    while (pos < moov.boxEnd) {
-        var box = readBoxHeader(view, pos, fileSize);
+    var pos = moovInfo.dataStartRel;
+    while (pos < moovEnd) {
+        var box = readBoxHeaderFromView(moovView, pos, moovEnd);
         if (!box) break;
         var trakEnd = box.boxStart + box.size;
         if (box.type === "trak") {
-            var mdia = findBox(view, box.dataStart, trakEnd, "mdia", fileSize);
+            var mdia = findBoxInView(moovView, box.dataStart, trakEnd, "mdia");
             if (mdia) {
-                var hdlr = findBox(view, mdia.dataStart, mdia.boxEnd, "hdlr", fileSize);
+                var hdlr = findBoxInView(moovView, mdia.dataStart, mdia.boxEnd, "hdlr");
                 if (hdlr) {
-                    // handler_type at dataStart + 4(version+flags) + 4(pre_defined)
-                    var htBytes = new Uint8Array(buffer, hdlr.dataStart + 8, 4);
+                    var htBytes = new Uint8Array(moovBuf, hdlr.dataStart + 8, 4);
                     var handlerType = String.fromCharCode.apply(null, htBytes);
                     if (handlerType === "sbtl" || handlerType === "text" || handlerType === "subt") {
                         subtitleTrak = { dataStart: box.dataStart, trakEnd: trakEnd, mdiaStart: mdia.dataStart, mdiaEnd: mdia.boxEnd };
@@ -261,30 +334,29 @@ function extractSrtFromArrayBuffer(buffer) {
 
     if (!subtitleTrak) return null;
 
-    // Get timescale from mdhd
-    var mdhd = findBox(view, subtitleTrak.mdiaStart, subtitleTrak.mdiaEnd, "mdhd", fileSize);
+    // Step 3: Get timescale from mdhd
+    var mdhd = findBoxInView(moovView, subtitleTrak.mdiaStart, subtitleTrak.mdiaEnd, "mdhd");
     var timescale = 30000;
     if (mdhd) {
-        timescale = parseMdhd(view, mdhd.dataStart);
+        timescale = parseMdhd(moovView, mdhd.dataStart);
     }
 
-    // Find minf -> stbl
-    var minf = findBox(view, subtitleTrak.mdiaStart, subtitleTrak.mdiaEnd, "minf", fileSize);
+    // Step 4: Find minf -> stbl and parse sample tables
+    var minf = findBoxInView(moovView, subtitleTrak.mdiaStart, subtitleTrak.mdiaEnd, "minf");
     if (!minf) return null;
-    var stbl = findBox(view, minf.dataStart, minf.boxEnd, "stbl", fileSize);
+    var stbl = findBoxInView(moovView, minf.dataStart, minf.boxEnd, "stbl");
     if (!stbl) return null;
 
-    // Parse stbl children
     var sttsEntries = null, stszSizes = null, stscEntries = null, stcoOffsets = null;
     pos = stbl.dataStart;
     while (pos < stbl.boxEnd) {
-        var box = readBoxHeader(view, pos, fileSize);
+        var box = readBoxHeaderFromView(moovView, pos, stbl.boxEnd);
         if (!box) break;
         var boxDataEnd = box.boxStart + box.size;
-        if (box.type === "stts") sttsEntries = parseStts(view, box.dataStart);
-        else if (box.type === "stsz") stszSizes = parseStsz(view, box.dataStart);
-        else if (box.type === "stsc") stscEntries = parseStsc(view, box.dataStart);
-        else if (box.type === "stco" || box.type === "co64") stcoOffsets = parseStco(view, box.dataStart, box.type === "co64");
+        if (box.type === "stts") sttsEntries = parseStts(moovView, box.dataStart);
+        else if (box.type === "stsz") stszSizes = parseStsz(moovView, box.dataStart);
+        else if (box.type === "stsc") stscEntries = parseStsc(moovView, box.dataStart);
+        else if (box.type === "stco" || box.type === "co64") stcoOffsets = parseStco(moovView, box.dataStart, box.type === "co64");
         pos = boxDataEnd;
     }
 
@@ -302,30 +374,45 @@ function extractSrtFromArrayBuffer(buffer) {
         }
     }
 
-    // Read subtitle samples and build SRT
-    var srtLines = [];
+    // Step 5: Read subtitle samples in batches using File.slice()
+    // Group nearby samples into contiguous reads to minimize I/O
     var numSamples = Math.min(sampleOffsets.length, stszSizes.length, timestampsMs.length);
+    var srtLines = [];
     var entryNum = 0;
-
     var decoder = new TextDecoder("utf-8");
+    var BATCH_SIZE = 512; // samples per batch read
 
-    for (var i = 0; i < numSamples; i++) {
-        if (stszSizes[i] === 0) continue;
-        var raw = new Uint8Array(buffer, sampleOffsets[i], stszSizes[i]);
-        if (raw.length < 2) continue;
-        var textLen = (raw[0] << 8) | raw[1]; // big-endian uint16
-        var textBytes = raw.slice(2, 2 + textLen);
-        var text = decoder.decode(textBytes).trim();
-        if (!text) continue;
+    for (var batchStart = 0; batchStart < numSamples; batchStart += BATCH_SIZE) {
+        var batchEnd = Math.min(batchStart + BATCH_SIZE, numSamples);
 
-        entryNum++;
-        var startMs = timestampsMs[i];
-        var endMs = (i + 1 < timestampsMs.length) ? timestampsMs[i + 1] : startMs + 33;
+        // Find the byte range spanning this batch
+        var rangeStart = sampleOffsets[batchStart];
+        var lastIdx = batchEnd - 1;
+        var rangeEnd = sampleOffsets[lastIdx] + stszSizes[lastIdx];
 
-        srtLines.push(String(entryNum));
-        srtLines.push(formatSrtTime(startMs) + " --> " + formatSrtTime(endMs));
-        srtLines.push(text);
-        srtLines.push("");
+        var batchBuf = await readSlice(file, rangeStart, rangeEnd - rangeStart);
+        var batchBytes = new Uint8Array(batchBuf);
+
+        for (var i = batchStart; i < batchEnd; i++) {
+            if (stszSizes[i] === 0) continue;
+            var localOffset = sampleOffsets[i] - rangeStart;
+            if (localOffset < 0 || localOffset + stszSizes[i] > batchBytes.length) continue;
+            var raw = batchBytes.subarray(localOffset, localOffset + stszSizes[i]);
+            if (raw.length < 2) continue;
+            var textLen = (raw[0] << 8) | raw[1];
+            if (2 + textLen > raw.length) continue;
+            var text = decoder.decode(raw.subarray(2, 2 + textLen)).trim();
+            if (!text) continue;
+
+            entryNum++;
+            var startMs = timestampsMs[i];
+            var endMs = (i + 1 < timestampsMs.length) ? timestampsMs[i + 1] : startMs + 33;
+
+            srtLines.push(String(entryNum));
+            srtLines.push(formatSrtTime(startMs) + " --> " + formatSrtTime(endMs));
+            srtLines.push(text);
+            srtLines.push("");
+        }
     }
 
     return srtLines.length > 0 ? srtLines.join("\n") : null;
@@ -547,7 +634,7 @@ function processFiles(files) {
     var successCount = 0;
     var skipCount = 0;
 
-    function processNext(index) {
+    async function processNext(index) {
         if (index >= total) {
             progressDiv.style.display = "none";
             summaryDiv.style.display = "block";
@@ -560,76 +647,58 @@ function processFiles(files) {
         progressText.textContent = "Processing " + (index + 1) + " of " + total + ": " + file.name + "...";
         progressBar.style.width = Math.round((index / total) * 100) + "%";
 
-        var reader = new FileReader();
-        reader.onload = async function(e) {
-            var buffer = e.target.result;
-            var resultItem = document.createElement("div");
-            resultItem.style.padding = "10px 15px";
-            resultItem.style.marginBottom = "8px";
-            resultItem.style.borderRadius = "6px";
-            resultItem.style.fontSize = "0.95em";
+        var resultItem = document.createElement("div");
+        resultItem.style.padding = "10px 15px";
+        resultItem.style.marginBottom = "8px";
+        resultItem.style.borderRadius = "6px";
+        resultItem.style.fontSize = "0.95em";
 
-            try {
-                var rawSrt = extractSrtFromArrayBuffer(buffer);
-                if (rawSrt === null) {
-                    resultItem.style.backgroundColor = "#fff3cd";
-                    resultItem.style.color = "#856404";
-                    resultItem.innerHTML = "⚠️ <strong>" + escapeHtml(file.name) + "</strong> — No subtitle track found. This file may not contain embedded telemetry.";
-                    skipCount++;
-                } else {
-                    // Convert if bracket format
-                    var converted = rawSrt;
-                    if (rawSrt.indexOf("[iso:") !== -1 || rawSrt.indexOf("[latitude:") !== -1) {
-                        converted = convertSrtContent(rawSrt);
-                    }
-
-                    var entryCount = (converted.match(/^\d+$/gm) || []).length;
-                    var srtName = file.name.replace(/\.mp4$/i, "") + ".SRT";
-                    var blob = new Blob([converted], { type: "text/plain;charset=utf-8" });
-
-                    // Save file — use file picker if available, otherwise fallback
-                    var saveResult = await saveFile(blob, srtName);
-                    await showSavePopup(saveResult.savedName, file.name, saveResult.method);
-
-                    resultItem.style.backgroundColor = "#d4edda";
-                    resultItem.style.color = "#155724";
-                    resultItem.innerHTML = "✅ <strong>" + escapeHtml(file.name) + "</strong> → " + escapeHtml(saveResult.savedName) + " (" + entryCount + " entries)";
-                    successCount++;
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    resultItem.style.backgroundColor = "#e2e3e5";
-                    resultItem.style.color = "#383d41";
-                    resultItem.innerHTML = "⏭️ <strong>" + escapeHtml(file.name) + "</strong> — Save cancelled, skipped.";
-                } else {
-                    resultItem.style.backgroundColor = "#f8d7da";
-                    resultItem.style.color = "#721c24";
-                    resultItem.innerHTML = "❌ <strong>" + escapeHtml(file.name) + "</strong> — Error: " + escapeHtml(err.message);
-                }
+        try {
+            var rawSrt = await extractSrtFromFile(file);
+            if (rawSrt === null) {
+                resultItem.style.backgroundColor = "#fff3cd";
+                resultItem.style.color = "#856404";
+                resultItem.innerHTML = "⚠️ <strong>" + escapeHtml(file.name) + "</strong> — No subtitle track found. This file may not contain embedded telemetry.";
                 skipCount++;
+            } else {
+                // Convert if bracket format
+                var converted = rawSrt;
+                if (rawSrt.indexOf("[iso:") !== -1 || rawSrt.indexOf("[latitude:") !== -1) {
+                    converted = convertSrtContent(rawSrt);
+                }
+
+                var entryCount = (converted.match(/^\d+$/gm) || []).length;
+                var srtName = file.name.replace(/\.mp4$/i, "") + ".SRT";
+                var blob = new Blob([converted], { type: "text/plain;charset=utf-8" });
+
+                // Save file — use file picker if available, otherwise fallback
+                var saveResult = await saveFile(blob, srtName);
+                await showSavePopup(saveResult.savedName, file.name, saveResult.method);
+
+                resultItem.style.backgroundColor = "#d4edda";
+                resultItem.style.color = "#155724";
+                resultItem.innerHTML = "✅ <strong>" + escapeHtml(file.name) + "</strong> → " + escapeHtml(saveResult.savedName) + " (" + entryCount + " entries)";
+                successCount++;
             }
-
-            resultsList.appendChild(resultItem);
-            processed++;
-            progressBar.style.width = Math.round((processed / total) * 100) + "%";
-
-            // Small delay between files to keep UI responsive
-            setTimeout(function() { processNext(index + 1); }, 50);
-        };
-        reader.onerror = function() {
-            var resultItem = document.createElement("div");
-            resultItem.style.padding = "10px 15px";
-            resultItem.style.marginBottom = "8px";
-            resultItem.style.borderRadius = "6px";
-            resultItem.style.backgroundColor = "#f8d7da";
-            resultItem.style.color = "#721c24";
-            resultItem.innerHTML = "❌ <strong>" + escapeHtml(file.name) + "</strong> — Failed to read file.";
-            resultsList.appendChild(resultItem);
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                resultItem.style.backgroundColor = "#e2e3e5";
+                resultItem.style.color = "#383d41";
+                resultItem.innerHTML = "⏭️ <strong>" + escapeHtml(file.name) + "</strong> — Save cancelled, skipped.";
+            } else {
+                resultItem.style.backgroundColor = "#f8d7da";
+                resultItem.style.color = "#721c24";
+                resultItem.innerHTML = "❌ <strong>" + escapeHtml(file.name) + "</strong> — Error: " + escapeHtml(err.message);
+            }
             skipCount++;
-            processed++;
-            setTimeout(function() { processNext(index + 1); }, 50);
-        };
-        reader.readAsArrayBuffer(file);
+        }
+
+        resultsList.appendChild(resultItem);
+        processed++;
+        progressBar.style.width = Math.round((processed / total) * 100) + "%";
+
+        // Small delay between files to keep UI responsive
+        setTimeout(function() { processNext(index + 1); }, 50);
     }
 
     processNext(0);
