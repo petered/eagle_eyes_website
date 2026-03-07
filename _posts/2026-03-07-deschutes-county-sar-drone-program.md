@@ -2,7 +2,7 @@
 layout: post
 title: "From Peaks to Pixels"
 subtitle: "How Deschutes County SAR built a drone program and added Eagle Eyes to their toolkit to find missing persons in Oregon's toughest terrain"
-image: "images/blog/deschutes2.jpg"
+image: "images/blog/Deschutes2.jpg"
 date: 2025-12-01 09:00:00 -0800
 author: Joep Maas
 permalink: /blog/deschutes-county-sar-drone-program
@@ -31,7 +31,7 @@ Flying in these conditions is a mix of science, skill, and patience. Winter miss
 "Particularly challenging flights are when operating below the launch point of the aircraft in deep canyons," Dan explains. "That can affect aircraft visibility, radio link stability, and flight safety. Winds and turbulence, especially around ridgelines or within narrow canyons, add to the complexity."
 
 <br>
-<img src="{{ '/images/blog/deschutes3.jpg' | relative_url }}" alt="North Sister peak" style="width: 100%; height: 400px; object-fit: cover; margin: 20px 0;">
+<img src="{{ '/images/blog/Deschutes3.jpg' | relative_url }}" alt="North Sister peak" style="width: 100%; height: 400px; object-fit: cover; margin: 20px 0;">
 <p style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">North Sister, a 10,090-ft (3,075-m) peak nearly 5 miles (8 km) wide. The jagged summit, dark volcanic rock, and lingering snowfields are all characteristic of the mountain's profile.</p>
 
 <br>
@@ -58,7 +58,7 @@ When canopy cover or other visibility challenges exist, the team flies crosshatc
     <img src="{{ '/images/blog/deschutes4.png' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 40%;">
   </div>
   <div style="flex: 1; margin-left: 10px;">
-    <img src="{{ '/images/blog/deschutes1.jpg' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 30%;">
+    <img src="{{ '/images/blog/Deschutes1.jpg' | relative_url }}" alt="Pre-flight inspection" style="width: 100%; height: 300px; object-fit: cover; object-position: center 30%;">
   </div>
 </div>
 <div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
