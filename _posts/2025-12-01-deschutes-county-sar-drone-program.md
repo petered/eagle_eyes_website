@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "From Peaks to Pixels"
-subtitle: "How Deschutes County SAR built a drone program for Oregon's toughest terrain"
+subtitle: "How Deschutes County SAR built a drone program and added Eagle Eyes to their toolkit to find missing persons in Oregon's toughest terrain"
 image: "images/blog/deschutes2.jpg"
 date: 2025-12-01 09:00:00 -0800
 author: Joep Maas
@@ -90,12 +90,11 @@ Deschutes SAR receives support from the Deschutes County Sheriff's Office for mi
 Among the team's largest investments is their Air Operations and Incident Management Team van: a dual-purpose vehicle that supports both command and UAS operations. "The interior supports the IMT with workspace and communications, while the rear 'garage' area is outfitted for UAS operations, including charging stations, storage, a large viewing monitor, and weather protection. This dual-use approach allowed us to split the funding between teams while creating a resource that benefits the entire SAR operation."
 
 <br>
-<div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 10px;">
+<div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
   <img src="{{ '/images/blog/deschutes5.jpg' | relative_url }}" alt="WALDO camera system imagery" style="height: 400px; width: auto; object-fit: contain;">
-  <img src="{{ '/images/blog/deschutes6.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="height: 400px; width: auto; object-fit: contain;">
 </div>
 <div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
-  Left: An example frame representative of the WALDO dual-camera system used on this mission, which originally captured 50 MP imagery. Right: Eagle Eyes Scan output showing pixel-level color anomalies that identified the area of interest.
+  An example frame representative of the WALDO dual-camera system used on this mission, which originally captured 50 MP imagery.
 </div>
 
 <br>
@@ -108,6 +107,13 @@ For Deschutes SAR, Eagle Eyes has evolved from a post-analysis support tool to a
 Eagle Eyes is used wherever color or motion detection can make a difference - wilderness searches, avalanche paths, swiftwater operations, or evidence searches. "When possible, we run Eagle Eyes Pilot live on the controller so we can react to detections immediately," Dan says. "If that's not practical, we capture imagery first and process it later in Eagle Eyes Scan."
 
 Deschutes SAR has been involved with Eagle Eyes since the early days of the software. That early involvement also came through UAS volunteer Mark Tuttle, who worked on field testing and feature feedback. "The bottom line is that Eagle Eyes Scan and Eagle Eyes Pilot are very significant new pathways for our flight team to locate subjects in a timely rescue scenario," he says.
+
+<div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
+  <img src="{{ '/images/blog/EagleEyesSearch_find.jpg' | relative_url }}" alt="Eagle Eyes Scan detection output" style="height: 400px; width: auto; object-fit: contain; border: none; box-shadow: none;">
+</div>
+<div style="text-align: center; font-style: italic; color: #666; margin-bottom: 30px;">
+  Eagle Eyes Scan output highlighting pixel-level green and blue anomalies in 50-MP imagery, flagging objects of interest that helped guide the search to the subject's location.
+</div>
 
 <br>
 ## From flight to insight
