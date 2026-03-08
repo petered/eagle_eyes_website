@@ -1,9 +1,10 @@
 ---
 layout: post
 title: "From Peaks to Pixels"
-subtitle: "How Deschutes County SAR built a drone program and added Eagle Eyes to their toolkit to find missing persons in Oregon's toughest terrain"
+subtitle: "How Deschutes County Search and Rescue built a drone program and uses Eagle Eyes to find missing persons in Oregon's toughest terrain"
 image: "images/blog/Deschutes2.jpg"
-date: 2025-12-01 09:00:00 -0800
+thumbnail: "images/blog/Deschutes1.jpg"
+date: 2026-03-07 09:00:00 -0800
 author: Joep Maas
 permalink: /blog/deschutes-county-sar-drone-program
 categories: interview sar-teams drone-operations case-study
