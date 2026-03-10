@@ -355,6 +355,20 @@ permalink: /setup/
         border-radius: 12px;
     }
 
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid #e9ecef;
+        border-top-color: #4a90d9;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .setup-container {
@@ -413,8 +427,8 @@ permalink: /setup/
     <div id="setupConfigList" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
-                <h2 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0;">Configurations</h2>
-                <span class="config-card-detail" id="configListLicenseLabel" style="display: none;">License: <strong id="configListLicenseId"></strong></span>
+                <h2 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0;">Existing configurations</h2>
+                <span class="config-card-detail" id="configListSubtitle"></span>
             </div>
             <button class="setup-btn setup-btn-primary" onclick="createNewConfiguration()">+ New Configuration</button>
         </div>
@@ -625,21 +639,24 @@ async function loadConfigurations() {
     currentLicenseId = licenseInput || null;
     clearStatus('setupLicenseStatus');
 
-    // Show/hide license label in config list header
-    var licenseLabel = document.getElementById('configListLicenseLabel');
+    // Update subtitle in config list header
+    var subtitleEl = document.getElementById('configListSubtitle');
+    var parts = [];
+    var user = firebase.auth().currentUser;
     if (currentLicenseId) {
-        document.getElementById('configListLicenseId').textContent = currentLicenseId;
-        licenseLabel.style.display = '';
-    } else {
-        licenseLabel.style.display = 'none';
+        parts.push('Related to license <strong>' + escapeHtml(currentLicenseId) + '</strong>');
     }
+    if (user && user.email) {
+        parts.push('Related to user <strong>' + escapeHtml(user.email) + '</strong>');
+    }
+    subtitleEl.innerHTML = parts.join(' and/or ');
 
     // Show the config list section
     document.getElementById('setupConfigList').style.display = '';
 
     var listEl = document.getElementById('configListItems');
     var statusEl = document.getElementById('configListStatus');
-    listEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: #888;">Loading configurations...</div>';
+    listEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: #888;"><div class="spinner" style="margin: 0 auto 1rem;"></div>Loading configurations...</div>';
     statusEl.className = 'setup-status';
     statusEl.textContent = '';
 
