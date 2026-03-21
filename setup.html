@@ -1,6 +1,6 @@
 ---
 layout: main
-title: Controller Setup - Eagle Eyes
+title: Controller Configurations - Eagle Eyes
 permalink: /setup/
 ---
 
@@ -52,36 +52,6 @@ permalink: /setup/
         margin: 0;
     }
 
-    /* License lookup section */
-    .setup-license-section {
-        background: white;
-        border: 2px solid #e9ecef;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-    }
-
-    .setup-license-section h2 {
-        font-size: 1.6rem;
-        font-weight: 600;
-        color: #333;
-        margin: 0 0 1rem;
-        padding-left: 0.75rem;
-        border-left: 3px solid #1e90ff;
-    }
-
-    .setup-license-row {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-end;
-    }
-
-    .setup-license-row .setup-field {
-        flex: 1;
-        margin-bottom: 0;
-    }
-
     /* Form fields */
     .setup-field {
         margin-bottom: 1.5rem;
@@ -89,14 +59,14 @@ permalink: /setup/
 
     .setup-field label {
         display: block;
-        font-size: 1.4rem;
+        font-size: 1.6rem;
         font-weight: 500;
         color: #333;
         margin-bottom: 0.4rem;
     }
 
     .setup-field .field-hint {
-        font-size: 1.2rem;
+        font-size: 1.4rem;
         color: #888;
         margin-bottom: 0.4rem;
     }
@@ -109,7 +79,7 @@ permalink: /setup/
         padding: 10px 12px;
         border: 1px solid #ddd;
         border-radius: 6px;
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         font-family: inherit;
         transition: border-color 0.2s;
         box-sizing: border-box;
@@ -142,7 +112,7 @@ permalink: /setup/
     }
 
     .setup-section h2 {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 600;
         color: #333;
         margin: 0 0 1.5rem;
@@ -167,7 +137,7 @@ permalink: /setup/
         border-radius: 8px;
         padding: 1.2rem 1.5rem;
         margin-bottom: 1.5rem;
-        font-size: 1.3rem;
+        font-size: 1.5rem;
         color: #555;
     }
 
@@ -339,8 +309,8 @@ permalink: /setup/
         margin: 0 0 0.3rem;
     }
 
-    .config-card-info .config-card-detail {
-        font-size: 1.3rem;
+    .config-card-detail {
+        font-size: 1.5rem;
         color: #888;
         display: block;
     }
@@ -411,6 +381,11 @@ permalink: /setup/
         <a href="#" id="setupSignOutButton">Sign out</a>
     </div>
 
+    <div id="test-user-banner" style="display: none; background-color: #4CAF50; color: white; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 1rem;">
+        <strong>Development Mode</strong>
+        <button id="test-user-login" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 10px;">Sign in as Test User</button>
+    </div>
+
     <!-- Sign-in prompt (shown when not authenticated) -->
     <div id="setupSigninSection" class="setup-signin-section" style="display: block;">
         <p style="margin-bottom: 20px;">Sign in to configure your drone controller.</p>
@@ -419,35 +394,35 @@ permalink: /setup/
 
     <!-- Page header -->
     <div class="setup-header" id="setupHeader" style="display: none;">
-        <h1>Controller Setup</h1>
-        <p>Configure your drone controller from your computer.</p>
+        <h1>Controller Configurations</h1>
+        <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
     </div>
 
-    <!-- Configuration list (shown after auth) -->
+    <!-- Controller settings list (shown after auth) -->
     <div id="setupConfigList" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
-                <h2 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0;">Existing configurations</h2>
                 <span class="config-card-detail" id="configListSubtitle"></span>
+                <span class="config-card-detail" id="setupLicenseLink"><strong>No license ID set.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></span>
             </div>
-            <button class="setup-btn setup-btn-primary" onclick="createNewConfiguration()">+ New Configuration</button>
+            <button class="setup-btn setup-btn-primary" onclick="createNewConfiguration()">+ New</button>
         </div>
         <div id="configListItems"></div>
         <div class="setup-status" id="configListStatus"></div>
     </div>
 
-    <!-- License ID filter (shown below config list when no license is set) -->
-    <div class="setup-license-section" id="setupLicenseSection" style="display: none;">
-        <h2>Find configurations based on license id</h2>
-        <div class="setup-license-row">
-            <div class="setup-field">
-                <label for="setupLicenseInput">License ID</label>
-                <div class="field-hint">Enter a license ID to filter configurations, or to create/edit configs for a specific license.</div>
-                <input type="text" id="setupLicenseInput" placeholder="e.g. ABC123">
+    <!-- License ID dialog -->
+    <div id="licenseDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1002; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);">
+            <h3 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Enter License ID</h3>
+            <p style="font-size: 1.3rem; color: #888; margin: 0 0 1.2rem;">Enter a license ID to find or create configurations.</p>
+            <input type="text" id="setupLicenseInput" placeholder="e.g. ABC123" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1.5rem; box-sizing: border-box; margin-bottom: 1rem;">
+            <div class="setup-status" id="setupLicenseStatus"></div>
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="setup-btn setup-btn-secondary" onclick="closeLicenseDialog()">Cancel</button>
+                <button class="setup-btn setup-btn-primary" onclick="submitLicenseDialog()">Load</button>
             </div>
-            <button class="setup-btn setup-btn-primary" id="setupLoadBtn" onclick="loadConfigurations()" style="height: 42px; white-space: nowrap;">Load</button>
         </div>
-        <div class="setup-status" id="setupLicenseStatus"></div>
     </div>
 
     <!-- Configuration form (hidden until editing/creating) -->
@@ -462,7 +437,7 @@ permalink: /setup/
                 <div id="setupFormLicenseDisplay" style="font-size: 1.5rem; font-weight: 600; color: #333; padding: 10px 0;"></div>
             </div>
             <div class="setup-field">
-                <label for="setupName">Configuration Name <span style="color: #dc3545;">*</span></label>
+                <label for="setupName">Name <span style="color: #dc3545;">*</span></label>
                 <input type="text" id="setupName" placeholder="e.g. My Team Config" required>
             </div>
             <div class="setup-field">
@@ -470,6 +445,18 @@ permalink: /setup/
                 <select id="setupUnits">
                     <option value="IMPERIAL">U.S. customary (Standard) / Imperial</option>
                     <option value="METRIC">Metric</option>
+                </select>
+            </div>
+            <div class="setup-field">
+                <label for="setupCoordsys">Coordinate System</label>
+                <select id="setupCoordsys">
+                    <option value="DD">Decimal Degrees (DD) — e.g. 38.8977, -77.0365</option>
+                    <option value="DDM">Degrees Decimal Minutes (DDM) — e.g. 38°53.862'N 77°02.190'W</option>
+                    <option value="DMS">Degrees Minutes Seconds (DMS) — e.g. 38°53'51.7"N 77°02'11.4"W</option>
+                    <option value="UTM">UTM — e.g. 18S 323394 4306842</option>
+                    <option value="MGRS">MGRS — e.g. 18SUJ2339406842</option>
+                    <option value="OSGRID">OS Grid — e.g. TQ 30163 80057</option>
+                    <option value="USNG">USNG — e.g. 18S UJ 23394 06842</option>
                 </select>
             </div>
         </div>
@@ -489,6 +476,10 @@ permalink: /setup/
                 </ol>
             </div>
             <div class="setup-field-grid">
+                <div class="setup-field full-width">
+                    <label for="ctKey">Credential Secret</label>
+                    <input type="text" id="ctKey" placeholder="Base64-encoded secret key">
+                </div>
                 <div class="setup-field">
                     <label for="ctAccountId">Account ID</label>
                     <input type="text" id="ctAccountId" placeholder="e.g. G0NGJU">
@@ -496,10 +487,6 @@ permalink: /setup/
                 <div class="setup-field">
                     <label for="ctCredentialId">Credential ID</label>
                     <input type="text" id="ctCredentialId" placeholder="e.g. P0NM6A5800ST">
-                </div>
-                <div class="setup-field full-width">
-                    <label for="ctKey">Credential Secret</label>
-                    <input type="text" id="ctKey" placeholder="Base64-encoded secret key">
                 </div>
             </div>
             <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()" style="margin-top: 0.5rem;">Verify &amp; Connect</button>
@@ -534,8 +521,8 @@ permalink: /setup/
 
         <!-- Actions -->
         <div class="setup-actions">
-            <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Configuration</button>
-            <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete Configuration</button>
+            <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save</button>
+            <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
         </div>
 
         <div class="setup-status" id="setupFormStatus"></div>
@@ -651,6 +638,14 @@ async function loadConfigurations() {
     }
     subtitleEl.innerHTML = parts.join(' and/or ');
 
+    // Update license link state
+    var licenseLinkEl = document.getElementById('setupLicenseLink');
+    if (currentLicenseId) {
+        licenseLinkEl.innerHTML = 'License: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Change</a>';
+    } else {
+        licenseLinkEl.innerHTML = '<strong>No license ID set.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a>';
+    }
+
     // Show the config list section
     document.getElementById('setupConfigList').style.display = '';
 
@@ -678,7 +673,7 @@ async function loadConfigurations() {
 function renderConfigList(configs) {
     var listEl = document.getElementById('configListItems');
     if (!configs || configs.length === 0) {
-        listEl.innerHTML = '<div class="config-card-empty">No configurations yet. Click "+ New Configuration" to create one.</div>';
+        listEl.innerHTML = '<div class="config-card-empty">No configurations found. Click "+ New" to create one.</div>';
         return;
     }
     var html = '';
@@ -689,6 +684,7 @@ function renderConfigList(configs) {
         var details = [];
         details.push('License: ' + escapeHtml(licenseStr));
         details.push('Units: ' + (config.units === 'METRIC' ? 'Metric' : 'U.S. customary (Standard) / Imperial'));
+        if (config.coordsys) details.push('Coord System: ' + escapeHtml(config.coordsys));
 
         if (config.caltopo_service_account_json) {
             try {
@@ -711,7 +707,7 @@ function renderConfigList(configs) {
 
         html += '<div class="config-card" onclick="editConfiguration(' + index + ')">';
         html += '<div class="config-card-info">';
-        html += '<h3>' + escapeHtml(config.name || 'Unnamed Configuration') + '</h3>';
+        html += '<h3>' + escapeHtml(config.name || 'Unnamed') + '</h3>';
         details.forEach(function(d) {
             html += '<span class="config-card-detail">' + d + '</span>';
         });
@@ -744,10 +740,49 @@ function editConfiguration(index) {
     showConfigForm();
 }
 
+var licenseDialogCallback = null;
+
+function showLicenseDialog(callback) {
+    licenseDialogCallback = callback || null;
+    var dialog = document.getElementById('licenseDialog');
+    dialog.style.display = 'flex';
+    clearStatus('setupLicenseStatus');
+    document.getElementById('setupLicenseInput').focus();
+}
+
+function closeLicenseDialog() {
+    document.getElementById('licenseDialog').style.display = 'none';
+    licenseDialogCallback = null;
+}
+
+function submitLicenseDialog() {
+    var val = document.getElementById('setupLicenseInput').value.trim();
+    if (!val) {
+        showStatus('setupLicenseStatus', 'Please enter a license ID.', 'error');
+        return;
+    }
+    currentLicenseId = val;
+    document.getElementById('licenseDialog').style.display = 'none';
+    // Update the link text to show current license
+    document.getElementById('setupLicenseLink').innerHTML = 'License: <strong>' + escapeHtml(val) + '</strong>. <a href=\"#\" onclick=\"showLicenseDialog(); return false;\" style=\"color: #1e90ff;\">Change</a>';
+    if (licenseDialogCallback) {
+        licenseDialogCallback();
+        licenseDialogCallback = null;
+    } else {
+        loadConfigurations();
+    }
+}
+
 function createNewConfiguration() {
     if (!currentLicenseId) {
-        showStatus('setupLicenseStatus', 'Please enter a license ID first.', 'error');
-        document.getElementById('setupLicenseInput').focus();
+        showLicenseDialog(function() {
+            // After license is set, proceed to create
+            currentConfigurationId = null;
+            clearForm();
+            document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
+            document.getElementById('setupDeleteBtn').style.display = 'none';
+            showConfigForm();
+        });
         return;
     }
     currentConfigurationId = null;
@@ -759,7 +794,6 @@ function createNewConfiguration() {
 
 function showConfigList() {
     document.getElementById('setupForm').style.display = 'none';
-    document.getElementById('setupLicenseSection').style.display = '';
     clearStatus('setupFormStatus');
     loadConfigurations();
 }
@@ -924,6 +958,7 @@ function buildCaltopoMapJson() {
 function populateForm(config) {
     document.getElementById('setupName').value = config.name || '';
     document.getElementById('setupUnits').value = config.units || 'IMPERIAL';
+    document.getElementById('setupCoordsys').value = config.coordsys || 'DD';
 
     // CalTopo service account
     if (config.caltopo_service_account_json) {
@@ -975,6 +1010,7 @@ function clearForm() {
     document.getElementById('setupFormLicenseDisplay').textContent = '';
     document.getElementById('setupName').value = '';
     document.getElementById('setupUnits').value = 'IMPERIAL';
+    document.getElementById('setupCoordsys').value = 'DD';
     document.getElementById('ctAccountId').value = '';
     document.getElementById('ctCredentialId').value = '';
     document.getElementById('ctKey').value = '';
@@ -1001,7 +1037,7 @@ async function saveConfiguration() {
     }
     var name = document.getElementById('setupName').value.trim();
     if (!name) {
-        showStatus('setupFormStatus', 'Configuration name is required.', 'error');
+        showStatus('setupFormStatus', 'Name is required.', 'error');
         return;
     }
 
@@ -1014,7 +1050,8 @@ async function saveConfiguration() {
         license_id: currentLicenseId,
         license_ids: [currentLicenseId],
         name: name,
-        units: document.getElementById('setupUnits').value
+        units: document.getElementById('setupUnits').value,
+        coordsys: document.getElementById('setupCoordsys').value
     };
 
     var serviceAccountJson = buildCaltopoServiceAccountJson();
@@ -1049,10 +1086,10 @@ async function saveConfiguration() {
         showConfigList();
     } catch (err) {
         console.error('Error saving configuration:', err);
-        showStatus('setupFormStatus', 'Error saving configuration: ' + err.message, 'error');
+        showStatus('setupFormStatus', 'Error saving: ' + err.message, 'error');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Configuration';
+        saveBtn.textContent = 'Save';
     }
 }
 
@@ -1076,10 +1113,10 @@ async function deleteConfiguration() {
         showConfigList();
     } catch (err) {
         console.error('Error deleting configuration:', err);
-        showStatus('setupFormStatus', 'Error deleting configuration: ' + err.message, 'error');
+        showStatus('setupFormStatus', 'Error deleting: ' + err.message, 'error');
     } finally {
         deleteBtn.disabled = false;
-        deleteBtn.textContent = 'Delete Configuration';
+        deleteBtn.textContent = 'Delete';
     }
 }
 
@@ -1088,7 +1125,6 @@ async function deleteConfiguration() {
     var signinOverlay = document.getElementById('signin-overlay');
     var signinSection = document.getElementById('setupSigninSection');
     var headerEl = document.getElementById('setupHeader');
-    var licenseSection = document.getElementById('setupLicenseSection');
     var configList = document.getElementById('setupConfigList');
     var userInfo = document.getElementById('setupUserInfo');
     var userEmail = document.getElementById('setupUserEmail');
@@ -1100,7 +1136,7 @@ async function deleteConfiguration() {
 
     // Enter key handler for license input
     document.getElementById('setupLicenseInput').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); loadConfigurations(); }
+        if (e.key === 'Enter') { e.preventDefault(); submitLicenseDialog(); }
     });
 
     firebase.auth().onAuthStateChanged(function(user) {
@@ -1108,7 +1144,6 @@ async function deleteConfiguration() {
             signinOverlay.style.display = 'none';
             signinSection.style.display = 'none';
             headerEl.style.display = '';
-            licenseSection.style.display = '';
             userInfo.style.display = 'flex';
             userEmail.textContent = 'Logged in as: ' + user.email;
 
@@ -1116,13 +1151,14 @@ async function deleteConfiguration() {
             var urlParams = new URLSearchParams(window.location.search);
             var urlLicenseId = urlParams.get('license_id');
             if (urlLicenseId) {
+                currentLicenseId = urlLicenseId;
                 document.getElementById('setupLicenseInput').value = urlLicenseId;
+                document.getElementById('setupLicenseLink').textContent = 'License: ' + urlLicenseId + ' (change)';
             }
             loadConfigurations();
         } else {
             signinSection.style.display = 'block';
             headerEl.style.display = 'none';
-            licenseSection.style.display = 'none';
             configList.style.display = 'none';
             userInfo.style.display = 'none';
             userEmail.textContent = '';
@@ -1138,6 +1174,32 @@ async function deleteConfiguration() {
             console.error('Error signing out:', error);
         });
     });
+
+    // Emulator test user support
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('is_emulator') === 'true') {
+        var banner = document.getElementById('test-user-banner');
+        if (banner) banner.style.display = 'block';
+
+        var testUserBtn = document.getElementById('test-user-login');
+        if (testUserBtn) {
+            testUserBtn.addEventListener('click', function() {
+                var testEmail = 'test@example.com';
+                var testPassword = 'password123';
+                firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                    .then(function() { console.log('Test user signed in'); })
+                    .catch(function(error) {
+                        if (error.code === 'auth/user-not-found') {
+                            firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                .then(function() { console.log('Test user created and signed in'); })
+                                .catch(function(e) { console.error('Error creating test user:', e); });
+                        } else {
+                            console.error('Error signing in test user:', error);
+                        }
+                    });
+            });
+        }
+    }
 
     document.addEventListener('signInComplete', function(e) {
         signinOverlay.style.display = 'none';
