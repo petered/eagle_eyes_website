@@ -237,6 +237,9 @@
             padding: 10px;
             z-index: 999999 !important;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         .base-map-option {
@@ -290,6 +293,94 @@
             cursor: pointer;
             flex-grow: 1;
             margin: 0;
+        }
+        @media (max-width: 768px) {
+            .base-map-option.base-map-toggle {
+                padding: 10px 12px;
+                min-height: 44px;
+            }
+            .base-map-option.base-map-toggle input[type="checkbox"] {
+                width: 22px;
+                height: 22px;
+            }
+        }
+
+        /* Share map view button at top of layer menu */
+        .share-map-btn {
+            background: rgba(74, 124, 89, 0.2);
+            border: 1px solid #4a7c59;
+            color: #d4a574;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 6px;
+            transition: background 0.2s;
+        }
+        .share-map-btn:hover {
+            background: rgba(74, 124, 89, 0.4);
+        }
+        .share-map-btn.copied {
+            background: rgba(74, 124, 89, 0.5);
+            color: #a0e8b0;
+        }
+
+        /* FAA sub-layer list: indented toggles that appear below the parent */
+        .faa-sublayer-list {
+            padding-left: 12px;
+            border-left: 2px solid rgba(74, 124, 89, 0.4);
+            margin-left: 14px;
+        }
+        .faa-sublayer-list .faa-sublayer {
+            border-top: none;
+            margin-top: 0;
+            padding: 4px 10px;
+            font-size: 11px;
+            min-height: 28px;
+        }
+        .faa-sublayer-list .faa-sublayer label {
+            font-size: 11px;
+            color: #999;
+        }
+        .faa-sublayer-list .faa-sublayer:hover label {
+            color: #d4a574;
+        }
+        .faa-sublayer-list .faa-sublayer input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+        }
+        @media (max-width: 768px) {
+            .faa-sublayer-list {
+                padding-left: 8px;
+                margin-left: 10px;
+            }
+            .faa-sublayer-list .faa-sublayer {
+                padding: 8px 10px;
+                min-height: 40px;
+            }
+            .faa-sublayer-list .faa-sublayer input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+            }
+            .faa-sublayer-list .faa-sublayer label {
+                font-size: 12px;
+            }
+        }
+        @media (max-width: 480px) {
+            .faa-sublayer-list {
+                padding-left: 6px;
+                margin-left: 8px;
+            }
+            .faa-sublayer-list .faa-sublayer {
+                padding: 8px 8px;
+                min-height: 44px;
+            }
+            .faa-sublayer-list .faa-sublayer label {
+                font-size: 11px;
+            }
         }
 
         /* EDS-B tooltip: shown on hover and click */
@@ -1287,6 +1378,155 @@
             .fullscreen-btn {
                 bottom: 10px;
                 right: 10px;
+            }
+        }
+
+        /* Search container: wraps button + expandable input */
+        .search-container {
+            position: fixed;
+            bottom: 66px;
+            right: 14px;
+            z-index: 100002;
+            display: flex;
+            flex-direction: row-reverse;
+            align-items: center;
+            height: 44px;
+        }
+        .search-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid #4a7c59;
+            border-radius: 4px;
+            color: #d4a574;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .search-btn:hover {
+            background: rgba(26, 26, 26, 0.95);
+            border-color: #5a8a6a;
+            color: #e8c89c;
+        }
+        .search-btn svg {
+            flex-shrink: 0;
+        }
+        .search-input {
+            width: 0;
+            opacity: 0;
+            height: 42px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: #d4a574;
+            font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: width 0.3s ease, opacity 0.25s ease, padding 0.3s ease;
+            box-sizing: border-box;
+        }
+        .search-container.expanded .search-btn {
+            border-radius: 0 4px 4px 0;
+        }
+        .search-container.expanded .search-input {
+            width: 280px;
+            opacity: 1;
+            padding: 0 10px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid #4a7c59;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+        }
+        .search-input::placeholder {
+            color: #666;
+            font-style: italic;
+        }
+        .search-status {
+            position: absolute;
+            bottom: 50px;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid #4a7c59;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+            display: none;
+        }
+        .search-status.error { color: #ff6b6b; }
+        .search-status.info { color: #d4a574; }
+        .search-status.visible { display: block; }
+        .search-suggestions {
+            position: absolute;
+            bottom: 50px;
+            right: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.97);
+            border: 1px solid #4a7c59;
+            border-radius: 4px;
+            max-height: 220px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: none;
+            z-index: 100003;
+        }
+        .search-suggestion-item {
+            padding: 8px 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #b0b0b0;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(74, 124, 89, 0.2);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .search-suggestion-item:last-child { border-bottom: none; }
+        .search-suggestion-item:hover,
+        .search-suggestion-item.active {
+            background: rgba(74, 124, 89, 0.25);
+            color: #d4a574;
+        }
+        @media (max-width: 768px) {
+            .search-suggestion-item {
+                padding: 12px 10px;
+                font-size: 12px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+        }
+        @media (max-width: 768px) {
+            .search-container {
+                bottom: 68px;
+                right: 12px;
+                height: 48px;
+            }
+            .search-btn {
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                min-height: 48px;
+            }
+            .search-input { height: 46px; }
+        }
+        @media (max-width: 480px) {
+            .search-container {
+                bottom: 62px;
+                right: 10px;
+            }
+            .search-container.expanded .search-input {
+                width: calc(100vw - 80px);
             }
         }
 
@@ -2807,6 +3047,7 @@
             <div id="baseMapControl" style="position: relative; display: inline-block; z-index: 100002;">
                 <button id="baseMapBtn" onclick="toggleBaseMapMenu()" title="Base Map Layers">☰</button>
                 <div id="baseMapMenu" class="base-map-menu" style="display: none; position: absolute; top: calc(100% + 5px); right: 0; z-index: 999999;">
+                    <div class="share-map-btn" onclick="shareMapView()" title="Copy a link to this map view">&#x1f517; Share Map View</div>
                     <div class="base-map-option" onclick="handleBaseMapChange('Google Hybrid'); toggleBaseMapMenu();">Google Hybrid</div>
                     <div class="base-map-option" onclick="handleBaseMapChange('Google Imagery'); toggleBaseMapMenu();">Google Imagery</div>
                     <div class="base-map-option" onclick="handleBaseMapChange('Esri Imagery'); toggleBaseMapMenu();">Esri Imagery</div>
@@ -2816,6 +3057,40 @@
                 <div class="base-map-option base-map-toggle" id="toggleDetectedAircraftOption">
                     <input type="checkbox" id="toggleDetectedAircraftCheckbox" checked title="Show or hide detected manned aircraft on the map">
                     <label for="toggleDetectedAircraftCheckbox">Detected manned aircraft <span style="white-space: nowrap;">(ADS-B)</span></label>
+                </div>
+                <div class="base-map-option base-map-toggle" id="toggleFaaAirspaceOption">
+                    <input type="checkbox" id="toggleFaaAirspaceCheckbox" title="Show or hide FAA UAS airspace layers" onchange="setFaaAirspaceVisibility(this.checked)">
+                    <label for="toggleFaaAirspaceCheckbox">FAA drone airspace</label>
+                </div>
+                <div id="faaSubLayerList" class="faa-sublayer-list" style="display:none;">
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubLaanc" checked onchange="setFaaSubLayerVisibility('laanc', this.checked)">
+                        <label for="faaSubLaanc">LAANC ceiling grid</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubClassAirspace" checked onchange="setFaaSubLayerVisibility('classAirspace', this.checked)">
+                        <label for="faaSubClassAirspace">Controlled airspace (B/C/D/E)</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubSua" checked onchange="setFaaSubLayerVisibility('sua', this.checked)">
+                        <label for="faaSubSua">Special use airspace (MOA/R/P)</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubTfr" checked onchange="setFaaSubLayerVisibility('tfr', this.checked)">
+                        <label for="faaSubTfr">National defense TFR areas</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubNsufr" checked onchange="setFaaSubLayerVisibility('nsufr', this.checked)">
+                        <label for="faaSubNsufr">National security UAS restrictions</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubAirports" checked onchange="setFaaSubLayerVisibility('airports', this.checked)">
+                        <label for="faaSubAirports">Airports</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle faa-sublayer">
+                        <input type="checkbox" id="faaSubRecSites" checked onchange="setFaaSubLayerVisibility('recSites', this.checked)">
+                        <label for="faaSubRecSites">Recreational flyer fixed sites</label>
+                    </div>
                 </div>
                 </div>
             </div>
@@ -2829,6 +3104,16 @@
 
     <!-- Map Container -->
     <div id="map"></div>
+
+    <!-- Search: expandable input + button, bottom-right above fullscreen -->
+    <div id="searchContainer" class="search-container">
+        <button type="button" id="searchBtn" class="search-btn" aria-label="Search" title="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <input type="text" id="searchInput" class="search-input" placeholder="Coords or place name..." autocomplete="off" spellcheck="false" />
+        <div id="searchSuggestions" class="search-suggestions"></div>
+        <div id="searchStatus" class="search-status"></div>
+    </div>
 
     <!-- Fullscreen toggle: bottom-right, always visible -->
     <button type="button" id="fullscreenBtn" class="fullscreen-btn" aria-label="Enter full screen" title="Full screen">
@@ -2916,6 +3201,8 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Esri Leaflet (for FAA ArcGIS FeatureServer layers) -->
+    <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
 
     <!-- Paho MQTT JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
@@ -2952,6 +3239,10 @@
         let mqttAircraftMarkers = {}; // key: "droneId:aircraftId" -> Leaflet marker
         const AIRCRAFT_STALE_MS = 30000; // Remove aircraft if last_update_ms older than 30 seconds
         let showDetectedAircraft = true; // Toggle in Map layers; when false, aircraft markers are hidden
+        let showFaaAirspace = false; // Toggle in Map layers; FAA UAS Facility Map airspace overlay (off by default)
+        let faaAirspaceLayer = null; // Esri FeatureLayer instance
+        // FAA sub-layers (created in initMap, toggled independently)
+        let faaSubLayers = {}; // key -> { layer, visible, name }
         let hasShownConnectedToast = false; // Show "Connected to drone telemetry stream" only once per connection
 
         // Target drone tracking (from URL query parameter drone_public_id)
@@ -3059,6 +3350,173 @@
                 cartoDark.addTo(map);
                 currentBaseLayer = cartoDark;
 
+                // ---- FAA Airspace Sub-Layers (all start OFF, toggled via parent checkbox) ----
+                var FAA_BASE = 'https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services';
+                var faaPopup = function(title, lines) {
+                    return '<div style="font-family:monospace;font-size:12px;color:#222;"><b>' + title + '</b><br>' + lines.join('<br>') + '</div>';
+                };
+
+                // 1. LAANC ceiling grid
+                faaAirspaceLayer = L.esri.featureLayer({
+                    url: FAA_BASE + '/FAA_UAS_FacilityMap_Data/FeatureServer/0',
+                    style: function(feature) {
+                        var c = feature.properties.CEILING;
+                        var color = c === 0 ? '#ff0000' : c <= 100 ? '#ff4400' : c <= 200 ? '#ff8800' : c <= 300 ? '#ffcc00' : '#00cc44';
+                        var op = c === 0 ? 0.35 : c <= 100 ? 0.25 : c <= 200 ? 0.2 : c <= 300 ? 0.15 : 0.12;
+                        return { color: color, weight: 0.5, fillColor: color, fillOpacity: op };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        var p = feature.properties;
+                        layer.bindPopup(faaPopup('LAANC Ceiling Grid', [
+                            'Ceiling: <b>' + p.CEILING + ' ft AGL</b>',
+                            'Airport: ' + (p.APT1_NAME || 'N/A'),
+                            'ICAO: ' + (p.APT1_ICAO || 'N/A'),
+                            'LAANC: ' + (p.APT1_LAANC === 1 ? 'Yes' : 'No')
+                        ]));
+                    },
+                    minZoom: 8
+                });
+                faaSubLayers.laanc = { layer: faaAirspaceLayer, visible: true, checkboxId: 'faaSubLaanc' };
+
+                // 2. Controlled airspace (Class B, C, D, E)
+                var classColors = { B: '#1e90ff', C: '#9370db', D: '#4169e1', E: '#6495ed' };
+                faaSubLayers.classAirspace = {
+                    layer: L.esri.featureLayer({
+                        url: FAA_BASE + '/Class_Airspace/FeatureServer/0',
+                        where: "CLASS IN ('B','C','D','E')",
+                        style: function(feature) {
+                            var cls = feature.properties.CLASS;
+                            var c = classColors[cls] || '#6495ed';
+                            return { color: c, weight: 1.5, fillColor: c, fillOpacity: 0.1, dashArray: cls === 'E' ? '5,5' : null };
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var p = feature.properties;
+                            layer.bindPopup(faaPopup('Class ' + p.CLASS + ' Airspace', [
+                                'Name: ' + (p.NAME || p.IDENT || 'N/A'),
+                                'Upper: ' + (p.UPPER_VAL || '') + ' ' + (p.UPPER_UOM || ''),
+                                'Lower: ' + (p.LOWER_VAL || '') + ' ' + (p.LOWER_UOM || '')
+                            ]));
+                        },
+                        minZoom: 6
+                    }),
+                    visible: true, checkboxId: 'faaSubClassAirspace'
+                };
+
+                // 3. Special Use Airspace (MOA, Restricted, Prohibited, Warning, Alert)
+                var suaColors = { MOA: '#ff8c00', R: '#ff4444', P: '#cc0000', W: '#ff6600', A: '#ffaa00', D: '#dd5500' };
+                faaSubLayers.sua = {
+                    layer: L.esri.featureLayer({
+                        url: FAA_BASE + '/Special_Use_Airspace/FeatureServer/0',
+                        style: function(feature) {
+                            var t = feature.properties.TYPE_CODE;
+                            var c = suaColors[t] || '#ff8c00';
+                            return { color: c, weight: 1.5, fillColor: c, fillOpacity: 0.12, dashArray: '4,4' };
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var p = feature.properties;
+                            var typeNames = { MOA: 'Military Operations Area', R: 'Restricted', P: 'Prohibited', W: 'Warning', A: 'Alert', D: 'Danger' };
+                            layer.bindPopup(faaPopup('Special Use Airspace', [
+                                'Name: ' + (p.NAME || 'N/A'),
+                                'Type: ' + (typeNames[p.TYPE_CODE] || p.TYPE_CODE),
+                                'Upper: ' + (p.UPPER_VAL || '') + ' ' + (p.UPPER_UOM || ''),
+                                'Lower: ' + (p.LOWER_VAL || '') + ' ' + (p.LOWER_UOM || '')
+                            ]));
+                        },
+                        minZoom: 6
+                    }),
+                    visible: true, checkboxId: 'faaSubSua'
+                };
+
+                // 4. National Defense TFR Areas
+                faaSubLayers.tfr = {
+                    layer: L.esri.featureLayer({
+                        url: FAA_BASE + '/National_Defense_Airspace_TFR_Areas/FeatureServer/0',
+                        style: function() {
+                            return { color: '#ff0066', weight: 2, fillColor: '#ff0066', fillOpacity: 0.2, dashArray: '6,3' };
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var p = feature.properties;
+                            layer.bindPopup(faaPopup('National Defense TFR', [
+                                'Name: ' + (p.NAME || 'N/A'),
+                                'Type: ' + (p.LOCAL_TYPE || p.TYPE_CODE || 'N/A'),
+                                'City: ' + (p.CITY || 'N/A')
+                            ]));
+                        },
+                        minZoom: 5
+                    }),
+                    visible: true, checkboxId: 'faaSubTfr'
+                };
+
+                // 5. National Security UAS Flight Restrictions
+                faaSubLayers.nsufr = {
+                    layer: L.esri.featureLayer({
+                        url: FAA_BASE + '/Part_Time_National_Security_UAS_Flight_Restrictions_Primary/FeatureServer/0',
+                        style: function() {
+                            return { color: '#cc00cc', weight: 2, fillColor: '#cc00cc', fillOpacity: 0.18 };
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var p = feature.properties;
+                            layer.bindPopup(faaPopup('National Security UAS Restriction', [
+                                'Base: ' + (p.Base || 'N/A'),
+                                'Branch: ' + (p.Branch || 'N/A'),
+                                'Reason: ' + (p.Reason || 'N/A'),
+                                'State: ' + (p.State || 'N/A')
+                            ]));
+                        },
+                        minZoom: 5
+                    }),
+                    visible: true, checkboxId: 'faaSubNsufr'
+                };
+
+                // 6. US Airports (point layer)
+                faaSubLayers.airports = {
+                    layer: L.esri.featureLayer({
+                        url: FAA_BASE + '/US_Airport/FeatureServer/0',
+                        pointToLayer: function(geojson, latlng) {
+                            return L.circleMarker(latlng, {
+                                radius: 4,
+                                color: '#00bfff',
+                                fillColor: '#00bfff',
+                                fillOpacity: 0.7,
+                                weight: 1
+                            });
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var p = feature.properties;
+                            layer.bindPopup(faaPopup('Airport', [
+                                'Name: ' + (p.NAME || 'N/A'),
+                                'ICAO: ' + (p.ICAO_ID || 'N/A'),
+                                'Ident: ' + (p.IDENT || 'N/A'),
+                                'City: ' + (p.SERVCITY || 'N/A'),
+                                'Elev: ' + (p.ELEVATION || 'N/A') + ' ft'
+                            ]));
+                        },
+                        minZoom: 8
+                    }),
+                    visible: true, checkboxId: 'faaSubAirports'
+                };
+
+                // 7. Recreational Flyer Fixed Sites
+                faaSubLayers.recSites = {
+                    layer: L.esri.featureLayer({
+                        url: FAA_BASE + '/Recreational_Flyer_Fixed_Sites/FeatureServer/0',
+                        style: function() {
+                            return { color: '#32cd32', weight: 1.5, fillColor: '#32cd32', fillOpacity: 0.15 };
+                        },
+                        onEachFeature: function(feature, layer) {
+                            var p = feature.properties;
+                            layer.bindPopup(faaPopup('Recreational Flyer Site', [
+                                'Name: ' + (p.SITE_NAME || 'N/A'),
+                                'Ceiling: ' + (p.CEILING || 'N/A') + ' ft',
+                                'City: ' + (p.CITY || '') + ' ' + (p.STATE || '')
+                            ]));
+                        },
+                        minZoom: 7
+                    }),
+                    visible: true, checkboxId: 'faaSubRecSites'
+                };
+                // All FAA sub-layers start OFF — added to map only when parent toggle is checked
+
                 // Close base map menu when clicking outside
                 document.addEventListener('click', function(event) {
                     const baseMapBtn = document.getElementById('baseMapBtn');
@@ -3159,10 +3617,15 @@
                 new NorthArrowControl({ position: 'topleft' }).addTo(map);
 
                 // Location popover: toggle on = show current location (blue dot), toggle off = hide it
+                // Preference is saved to localStorage so it persists across page loads.
                 (function() {
                     const popover = document.getElementById('locationPopover');
                     const toggle = document.getElementById('viewLocationToggle');
                     if (!popover || !toggle) return;
+                    const LOC_PREF_KEY = 'edsb_show_user_location';
+                    var isFirstLoad = true; // Controls whether we center on location
+                    var hasShareHash = window.location.hash && window.location.hash.startsWith('#v=');
+
                     function hideLocationPopover() {
                         popover.classList.remove('visible');
                         popover.style.display = 'none';
@@ -3186,30 +3649,53 @@
                             className: 'user-location-popup',
                             closeButton: true
                         });
-                        map.setView([lat, lng], Math.max(map.getZoom(), 14));
+                        // Center map on user location — but not if this is
+                        // an auto-restore during a shared view (share hash takes priority)
+                        if (!(isFirstLoad && hasShareHash)) {
+                            map.setView([lat, lng], Math.max(map.getZoom(), 14));
+                        }
                         if (typeof updateLegendVisibility === 'function') updateLegendVisibility();
+                        isFirstLoad = false;
                     }
                     function onLocationError(err) {
                         toggle.checked = false;
+                        try { localStorage.removeItem(LOC_PREF_KEY); } catch(e) {}
                         const msg = err.code === 1 ? 'Location permission denied.' : (err.code === 2 ? 'Location unavailable.' : 'Could not get your location.');
                         showToast(msg);
+                        isFirstLoad = false;
+                    }
+                    function enableLocation() {
+                        if (!navigator.geolocation) {
+                            showToast('Geolocation is not supported by your browser.');
+                            toggle.checked = false;
+                            return;
+                        }
+                        toggle.checked = true;
+                        try { localStorage.setItem(LOC_PREF_KEY, '1'); } catch(e) {}
+                        navigator.geolocation.getCurrentPosition(showUserOnMap, onLocationError, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+                    }
+                    function disableLocation() {
+                        toggle.checked = false;
+                        try { localStorage.removeItem(LOC_PREF_KEY); } catch(e) {}
+                        if (userLocationMarker && map.hasLayer(userLocationMarker)) {
+                            map.removeLayer(userLocationMarker);
+                            userLocationMarker = null;
+                        }
+                        if (typeof updateLegendVisibility === 'function') updateLegendVisibility();
                     }
                     toggle.addEventListener('change', function() {
                         if (toggle.checked) {
-                            if (!navigator.geolocation) {
-                                showToast('Geolocation is not supported by your browser.');
-                                toggle.checked = false;
-                                return;
-                            }
-                            navigator.geolocation.getCurrentPosition(showUserOnMap, onLocationError, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+                            enableLocation();
                         } else {
-                            if (userLocationMarker && map.hasLayer(userLocationMarker)) {
-                                map.removeLayer(userLocationMarker);
-                                userLocationMarker = null;
-                            }
-                            if (typeof updateLegendVisibility === 'function') updateLegendVisibility();
+                            disableLocation();
                         }
                     });
+                    // Restore saved preference on load
+                    try {
+                        if (localStorage.getItem(LOC_PREF_KEY) === '1') {
+                            enableLocation();
+                        }
+                    } catch(e) {}
                     document.addEventListener('click', function(ev) {
                         if (!popover.classList.contains('visible')) return;
                         const arrow = document.querySelector('.north-arrow-content');
@@ -3497,6 +3983,160 @@
             updateLegendVisibility();
         }
         
+        /**
+         * Set FAA UAS airspace parent toggle — shows/hides ALL sub-layers and the sub-toggle list.
+         */
+        function setFaaAirspaceVisibility(visible) {
+            showFaaAirspace = visible;
+            const checkbox = document.getElementById('toggleFaaAirspaceCheckbox');
+            if (checkbox) checkbox.checked = showFaaAirspace;
+            // Show/hide sub-layer list
+            const subList = document.getElementById('faaSubLayerList');
+            if (subList) subList.style.display = showFaaAirspace ? 'block' : 'none';
+            if (!map) return;
+            // Add or remove each sub-layer based on its own toggle
+            Object.keys(faaSubLayers).forEach(function(key) {
+                var sub = faaSubLayers[key];
+                if (!sub || !sub.layer) return;
+                if (showFaaAirspace && sub.visible) {
+                    sub.layer.addTo(map);
+                } else {
+                    map.removeLayer(sub.layer);
+                }
+            });
+        }
+
+        /**
+         * Toggle an individual FAA sub-layer on/off (only has effect when parent is on).
+         */
+        function setFaaSubLayerVisibility(key, visible) {
+            var sub = faaSubLayers[key];
+            if (!sub) return;
+            sub.visible = visible;
+            var cb = document.getElementById(sub.checkboxId);
+            if (cb) cb.checked = visible;
+            if (!map) return;
+            if (showFaaAirspace && visible) {
+                sub.layer.addTo(map);
+            } else {
+                map.removeLayer(sub.layer);
+            }
+        }
+
+        // ==================== Share Map View ====================
+        // Compact URL hash format: #v=lat,lng,z,base,adsb,faaBitmask
+        // Base map codes: d=Dark, gh=Google Hybrid, gi=Google Imagery, ei=Esri Imagery, et=Esri Topo, l=Light
+        // FAA bitmask: 7 bits for sub-layers (laanc,classAirspace,sua,tfr,nsufr,airports,recSites)
+        // Only written to URL when user clicks Share; parsed on page load.
+
+        var baseMapCodes = {
+            'Dark Theme': 'd', 'Google Hybrid': 'gh', 'Google Imagery': 'gi',
+            'Esri Imagery': 'ei', 'Esri Topo': 'et', 'Light Theme': 'l'
+        };
+        var baseMapFromCode = {};
+        Object.keys(baseMapCodes).forEach(function(k) { baseMapFromCode[baseMapCodes[k]] = k; });
+        var faaSubKeys = ['laanc','classAirspace','sua','tfr','nsufr','airports','recSites'];
+
+        function shareMapView() {
+            if (!map) return;
+            var c = map.getCenter();
+            var z = map.getZoom();
+            // Find current base map code
+            var bcode = 'd';
+            Object.keys(baseMaps).forEach(function(name) {
+                if (map.hasLayer(baseMaps[name])) bcode = baseMapCodes[name] || 'd';
+            });
+            // ADS-B: 1 or 0
+            var adsb = showDetectedAircraft ? '1' : '0';
+            // FAA parent + sub-layer bitmask
+            var faaFlag = showFaaAirspace ? '1' : '0';
+            var bits = 0;
+            faaSubKeys.forEach(function(key, i) {
+                if (faaSubLayers[key] && faaSubLayers[key].visible) bits |= (1 << i);
+            });
+            // Build hash: lat,lng rounded to 5 decimals, zoom as int
+            var hash = '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + z + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36);
+            // Update URL without reload
+            history.replaceState(null, '', window.location.pathname + window.location.search + hash);
+            // Copy to clipboard
+            var url = window.location.href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    shareMapViewFeedback();
+                }, function() {
+                    shareMapViewFallback(url);
+                });
+            } else {
+                shareMapViewFallback(url);
+            }
+        }
+        function shareMapViewFallback(url) {
+            var ta = document.createElement('textarea');
+            ta.value = url;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            shareMapViewFeedback();
+        }
+        function shareMapViewFeedback() {
+            var btn = document.querySelector('.share-map-btn');
+            if (btn) {
+                btn.textContent = '\u2705 Link copied!';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.innerHTML = '&#x1f517; Share Map View';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }
+            showToast('Map view link copied to clipboard');
+        }
+
+        /**
+         * Restore map state from URL hash on page load. Called after initMap().
+         */
+        function restoreMapFromHash() {
+            var hash = window.location.hash;
+            if (!hash || !hash.startsWith('#v=')) return false;
+            try {
+                var parts = hash.substring(3).split(',');
+                if (parts.length < 7) return false;
+                var lat = parseFloat(parts[0]);
+                var lng = parseFloat(parts[1]);
+                var z = parseInt(parts[2], 10);
+                var bcode = parts[3];
+                var adsb = parts[4] === '1';
+                var faaOn = parts[5] === '1';
+                var bits = parseInt(parts[6], 36);
+                if (isNaN(lat) || isNaN(lng) || isNaN(z)) return false;
+                // Set view
+                map.setView([lat, lng], z);
+                // Set base map
+                var baseName = baseMapFromCode[bcode];
+                if (baseName && baseMaps[baseName]) {
+                    handleBaseMapChange(baseName);
+                }
+                // ADS-B
+                setDetectedAircraftVisibility(adsb);
+                // FAA layers
+                faaSubKeys.forEach(function(key, i) {
+                    var on = !!(bits & (1 << i));
+                    if (faaSubLayers[key]) {
+                        faaSubLayers[key].visible = on;
+                        var cb = document.getElementById(faaSubLayers[key].checkboxId);
+                        if (cb) cb.checked = on;
+                    }
+                });
+                setFaaAirspaceVisibility(faaOn);
+                return true;
+            } catch(e) {
+                console.warn('Could not restore map from hash:', e);
+                return false;
+            }
+        }
+
         // ==================== MQTT Functions ====================
 
         /**
@@ -4141,6 +4781,8 @@
             parseTargetDroneFromURL();
 
             initMap();
+            // Restore shared map view from URL hash (center, zoom, layers)
+            restoreMapFromHash();
             console.log('initMap() called, map variable:', typeof map !== 'undefined' ? map : 'undefined');
 
             // Initialize header MQTT status indicator
@@ -4299,12 +4941,400 @@
         // Close modal on escape key (stub)
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
+                // Collapse search bar first if open
+                if (searchExpanded) {
+                    collapseSearch();
+                    return;
+                }
                 const modal = document.getElementById('flightProfileModal');
                 if (modal && modal.style.display !== 'none') {
                     closeFlightProfileViewer();
                 }
             }
         });
+
+        // ==================== Location Search ====================
+        (function setupLocationSearch() {
+            const container = document.getElementById('searchContainer');
+            const btn = document.getElementById('searchBtn');
+            const input = document.getElementById('searchInput');
+            const statusEl = document.getElementById('searchStatus');
+            const suggestionsEl = document.getElementById('searchSuggestions');
+            let searchMarker = null;
+            let statusTimeout = null;
+            let suggestDebounce = null;
+            let activeSuggestion = -1; // keyboard nav index
+            let suggestions = []; // current suggestion list
+
+            // Expose expanded state for Escape key handler above
+            window.searchExpanded = false;
+
+            function showStatus(msg, type) {
+                if (!statusEl) return;
+                clearTimeout(statusTimeout);
+                statusEl.textContent = msg;
+                statusEl.className = 'search-status visible ' + (type || 'info');
+                statusTimeout = setTimeout(function() {
+                    statusEl.className = 'search-status';
+                }, 4000);
+            }
+
+            function clearStatus() {
+                if (!statusEl) return;
+                clearTimeout(statusTimeout);
+                statusEl.className = 'search-status';
+            }
+
+            // --- Suggestions dropdown ---
+            function showSuggestions(items) {
+                suggestions = items;
+                activeSuggestion = -1;
+                if (!suggestionsEl || items.length === 0) { hideSuggestions(); return; }
+                suggestionsEl.innerHTML = '';
+                items.forEach(function(item, idx) {
+                    var div = document.createElement('div');
+                    div.className = 'search-suggestion-item';
+                    div.textContent = item.display_name;
+                    div.addEventListener('mousedown', function(e) {
+                        e.preventDefault(); // prevent input blur
+                        selectSuggestion(idx);
+                    });
+                    suggestionsEl.appendChild(div);
+                });
+                suggestionsEl.style.display = 'block';
+            }
+            function hideSuggestions() {
+                if (!suggestionsEl) return;
+                suggestionsEl.style.display = 'none';
+                suggestionsEl.innerHTML = '';
+                suggestions = [];
+                activeSuggestion = -1;
+            }
+            function selectSuggestion(idx) {
+                if (idx < 0 || idx >= suggestions.length) return;
+                var item = suggestions[idx];
+                var lat = parseFloat(item.lat);
+                var lng = parseFloat(item.lon);
+                hideSuggestions();
+                goToLocation(lat, lng, 14, item.display_name);
+                var short = item.display_name.length > 50 ? item.display_name.substring(0, 50) + '...' : item.display_name;
+                showStatus(short, 'info');
+                collapseSearch();
+            }
+            function highlightSuggestion(idx) {
+                if (!suggestionsEl) return;
+                var items = suggestionsEl.querySelectorAll('.search-suggestion-item');
+                items.forEach(function(el, i) {
+                    el.classList.toggle('active', i === idx);
+                });
+                if (idx >= 0 && idx < items.length) {
+                    items[idx].scrollIntoView({ block: 'nearest' });
+                }
+            }
+            async function fetchSuggestions(query) {
+                if (!query || query.length < 3) { hideSuggestions(); return; }
+                // Don't fetch suggestions if it looks like coordinates
+                if (parseCoordinates(query)) { hideSuggestions(); return; }
+                try {
+                    var url = 'https://nominatim.openstreetmap.org/search?' +
+                        new URLSearchParams({ q: query, format: 'json', limit: '5', addressdetails: '1' });
+                    var resp = await fetch(url, {
+                        headers: { 'User-Agent': 'EagleEyesDroneMap/1.0' }
+                    });
+                    var data = await resp.json();
+                    if (data && data.length > 0) {
+                        showSuggestions(data);
+                    } else {
+                        hideSuggestions();
+                    }
+                } catch(e) {
+                    hideSuggestions();
+                }
+            }
+            function onSearchInput() {
+                clearTimeout(suggestDebounce);
+                var val = input.value.trim();
+                if (val.length < 3) { hideSuggestions(); return; }
+                suggestDebounce = setTimeout(function() {
+                    fetchSuggestions(val);
+                }, 350); // 350ms debounce to respect Nominatim rate limits
+            }
+
+            // --- Coordinate parser ---
+            function parseCoordinates(raw) {
+                if (!raw || !raw.trim()) return null;
+                var s = raw.trim();
+
+                // Normalize unicode symbols
+                s = s.replace(/\u00B0/g, '°').replace(/[\u2032\u02B9]/g, "'").replace(/[\u2033\u02BA]/g, '"');
+
+                // Try DMS / DDM with degree symbols: 48°51'24.5"N 2°17'30.1"E
+                var dmsRe = /([NSEW])?\s*(\d+)\s*[°]\s*(\d+)\s*[′']\s*(?:(\d+(?:\.\d+)?)\s*[″"]?\s*)?([NSEW])?/gi;
+                var dmsMatches = [];
+                var m;
+                while ((m = dmsRe.exec(s)) !== null) {
+                    dmsMatches.push(m);
+                }
+                if (dmsMatches.length === 2) {
+                    var coords = dmsMatches.map(function(match) {
+                        var hem = (match[1] || match[5] || '').toUpperCase();
+                        var deg = parseFloat(match[2]);
+                        var min = parseFloat(match[3]) || 0;
+                        var sec = parseFloat(match[4]) || 0;
+                        var dd = deg + min / 60 + sec / 3600;
+                        if (hem === 'S' || hem === 'W') dd = -dd;
+                        return { val: dd, hem: hem };
+                    });
+                    return resolveLatLng(coords[0], coords[1]);
+                }
+
+                // Try DMS with spaces only: 48 51 24.5 N 2 17 30.1 E
+                var spaceDmsRe = /([NSEW])?\s*(-?\d+)\s+(\d+)\s+(\d+(?:\.\d+)?)\s*([NSEW])?/gi;
+                var spaceDmsMatches = [];
+                while ((m = spaceDmsRe.exec(s)) !== null) {
+                    spaceDmsMatches.push(m);
+                }
+                if (spaceDmsMatches.length === 2) {
+                    var coords2 = spaceDmsMatches.map(function(match) {
+                        var hem = (match[1] || match[5] || '').toUpperCase();
+                        var deg = parseFloat(match[2]);
+                        var min = parseFloat(match[3]) || 0;
+                        var sec = parseFloat(match[4]) || 0;
+                        var dd = Math.abs(deg) + min / 60 + sec / 3600;
+                        if (hem === 'S' || hem === 'W' || deg < 0) dd = -dd;
+                        return { val: dd, hem: hem };
+                    });
+                    return resolveLatLng(coords2[0], coords2[1]);
+                }
+
+                // Try DDM without seconds: 48°51.408'N 2°17.502'E
+                var ddmRe = /([NSEW])?\s*(\d+)\s*[°]\s*(\d+(?:\.\d+)?)\s*[′']?\s*([NSEW])?/gi;
+                var ddmMatches = [];
+                while ((m = ddmRe.exec(s)) !== null) {
+                    ddmMatches.push(m);
+                }
+                if (ddmMatches.length === 2) {
+                    var coords3 = ddmMatches.map(function(match) {
+                        var hem = (match[1] || match[4] || '').toUpperCase();
+                        var deg = parseFloat(match[2]);
+                        var min = parseFloat(match[3]) || 0;
+                        var dd = deg + min / 60;
+                        if (hem === 'S' || hem === 'W') dd = -dd;
+                        return { val: dd, hem: hem };
+                    });
+                    return resolveLatLng(coords3[0], coords3[1]);
+                }
+
+                // Try decimal degrees with optional hemisphere: -33.8688, 151.2093  or  33.8688S 151.2093E
+                var parts = s.split(/[,;\t]+|\s+/).filter(Boolean);
+                // Merge number + hemisphere letter if separate tokens: ["33.8688", "S", "151.2093", "E"] -> ["33.8688S", "151.2093E"]
+                var merged = [];
+                for (var i = 0; i < parts.length; i++) {
+                    if (/^[NSEW]$/i.test(parts[i]) && merged.length > 0) {
+                        merged[merged.length - 1] += parts[i];
+                    } else {
+                        merged.push(parts[i]);
+                    }
+                }
+                if (merged.length === 2) {
+                    var decRe = /^(-?\d+(?:\.\d+)?)\s*([NSEW])?$/i;
+                    var m1 = merged[0].match(decRe);
+                    var m2 = merged[1].match(decRe);
+                    if (m1 && m2) {
+                        var v1 = parseFloat(m1[1]);
+                        var h1 = (m1[2] || '').toUpperCase();
+                        if (h1 === 'S' || h1 === 'W') v1 = -Math.abs(v1);
+                        var v2 = parseFloat(m2[1]);
+                        var h2 = (m2[2] || '').toUpperCase();
+                        if (h2 === 'S' || h2 === 'W') v2 = -Math.abs(v2);
+                        return resolveLatLng({ val: v1, hem: h1 }, { val: v2, hem: h2 });
+                    }
+                }
+
+                return null;
+            }
+
+            // Determine which value is lat and which is lng
+            function resolveLatLng(a, b) {
+                var lat, lng;
+                var aIsLat = (a.hem === 'N' || a.hem === 'S');
+                var aIsLng = (a.hem === 'E' || a.hem === 'W');
+                var bIsLat = (b.hem === 'N' || b.hem === 'S');
+                var bIsLng = (b.hem === 'E' || b.hem === 'W');
+
+                if (aIsLat && bIsLng) {
+                    lat = a.val; lng = b.val;
+                } else if (aIsLng && bIsLat) {
+                    lat = b.val; lng = a.val;
+                } else {
+                    // No hemisphere clues — assume lat, lng order
+                    lat = a.val; lng = b.val;
+                    // Smart swap: if first > 90 but second <= 90, they are probably swapped
+                    if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+                        var tmp = lat; lat = lng; lng = tmp;
+                    }
+                }
+                if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+                return { lat: lat, lng: lng };
+            }
+
+            // --- Geocoding via Nominatim ---
+            async function geocodePlace(query) {
+                var url = 'https://nominatim.openstreetmap.org/search?' +
+                    new URLSearchParams({ q: query, format: 'json', limit: '1' });
+                var resp = await fetch(url, {
+                    headers: { 'User-Agent': 'EagleEyesDroneMap/1.0' }
+                });
+                var data = await resp.json();
+                if (!data || data.length === 0) return null;
+                return {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon),
+                    name: data[0].display_name
+                };
+            }
+
+            // --- Go to location on the map ---
+            function goToLocation(lat, lng, zoom, label) {
+                if (!map) return;
+                // Remove previous search marker
+                if (searchMarker) {
+                    map.removeLayer(searchMarker);
+                    searchMarker = null;
+                }
+                map.setView([lat, lng], zoom || 15);
+                // Drop a marker
+                searchMarker = L.circleMarker([lat, lng], {
+                    radius: 10,
+                    color: '#d4a574',
+                    fillColor: '#d4a574',
+                    fillOpacity: 0.5,
+                    weight: 2
+                }).addTo(map);
+                var popupText = label || (lat.toFixed(6) + ', ' + lng.toFixed(6));
+                searchMarker.bindPopup(
+                    '<div style="font-family:monospace;font-size:12px;color:#222;">' +
+                    '<b>Search Result</b><br>' + popupText + '</div>'
+                ).openPopup();
+                // Auto-remove after 30 seconds
+                setTimeout(function() {
+                    if (searchMarker) {
+                        map.removeLayer(searchMarker);
+                        searchMarker = null;
+                    }
+                }, 30000);
+            }
+
+            // --- Perform search ---
+            async function performSearch(value) {
+                var trimmed = (value || '').trim();
+                if (!trimmed) return;
+
+                // Try coordinate parse first (no network needed)
+                var coords = parseCoordinates(trimmed);
+                if (coords) {
+                    goToLocation(coords.lat, coords.lng, 15);
+                    showStatus(coords.lat.toFixed(5) + ', ' + coords.lng.toFixed(5), 'info');
+                    collapseSearch();
+                    return;
+                }
+
+                // Fall back to geocoding
+                showStatus('Searching...', 'info');
+                try {
+                    var result = await geocodePlace(trimmed);
+                    if (result) {
+                        goToLocation(result.lat, result.lng, 14, result.name);
+                        // Show short version of the name
+                        var short = result.name.length > 50 ? result.name.substring(0, 50) + '...' : result.name;
+                        showStatus(short, 'info');
+                        collapseSearch();
+                    } else {
+                        showStatus('Location not found', 'error');
+                    }
+                } catch (e) {
+                    showStatus('Search failed', 'error');
+                }
+            }
+
+            // --- UI expand / collapse ---
+            window.collapseSearch = function() {
+                if (!container) return;
+                container.classList.remove('expanded');
+                if (input) input.value = '';
+                clearStatus();
+                hideSuggestions();
+                window.searchExpanded = false;
+            };
+
+            if (btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (window.searchExpanded) {
+                        hideSuggestions();
+                        performSearch(input.value);
+                    } else {
+                        container.classList.add('expanded');
+                        input.focus();
+                        window.searchExpanded = true;
+                    }
+                });
+            }
+
+            if (input) {
+                // Live suggestions as user types
+                input.addEventListener('input', onSearchInput);
+
+                input.addEventListener('keydown', function(e) {
+                    // Arrow key navigation through suggestions
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (suggestions.length > 0) {
+                            activeSuggestion = Math.min(activeSuggestion + 1, suggestions.length - 1);
+                            highlightSuggestion(activeSuggestion);
+                        }
+                        return;
+                    }
+                    if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (suggestions.length > 0) {
+                            activeSuggestion = Math.max(activeSuggestion - 1, 0);
+                            highlightSuggestion(activeSuggestion);
+                        }
+                        return;
+                    }
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (activeSuggestion >= 0 && activeSuggestion < suggestions.length) {
+                            selectSuggestion(activeSuggestion);
+                        } else {
+                            hideSuggestions();
+                            performSearch(input.value);
+                        }
+                        return;
+                    }
+                    if (e.key === 'Escape') {
+                        if (suggestions.length > 0) {
+                            hideSuggestions();
+                            e.stopPropagation();
+                        }
+                    }
+                });
+                // Prevent map interactions while typing
+                input.addEventListener('click', function(e) { e.stopPropagation(); });
+                // Hide suggestions on blur (with delay so click on suggestion registers)
+                input.addEventListener('blur', function() {
+                    setTimeout(hideSuggestions, 200);
+                });
+            }
+
+            // Collapse on outside click
+            document.addEventListener('click', function(e) {
+                if (window.searchExpanded && container && !container.contains(e.target)) {
+                    collapseSearch();
+                }
+            });
+        })();
     </script>
 </body>
 </html>
