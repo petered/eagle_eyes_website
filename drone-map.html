@@ -306,6 +306,41 @@
         }
 
         /* Share map view button at top of layer menu */
+        /* Long-press coordinate popup */
+        .coord-popup-content {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #222;
+            line-height: 1.6;
+        }
+        .coord-popup-content .coord-text {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .coord-popup-content .coord-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .coord-popup-content .coord-btn {
+            flex: 1;
+            padding: 6px 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            border: 1px solid #4a7c59;
+            border-radius: 3px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            background: #f0f0f0;
+            color: #222;
+            transition: background 0.15s;
+        }
+        .coord-popup-content .coord-btn:hover {
+            background: #d4edda;
+        }
+
         .share-map-btn {
             background: rgba(74, 124, 89, 0.2);
             border: 1px solid #4a7c59;
@@ -351,6 +386,15 @@
         .faa-sublayer-list .faa-sublayer input[type="checkbox"] {
             width: 14px;
             height: 14px;
+        }
+        .faa-sublayer-list .faa-toggle-all {
+            border-bottom: 1px solid rgba(74, 124, 89, 0.4);
+            padding-bottom: 6px;
+            margin-bottom: 2px;
+        }
+        .faa-sublayer-list .faa-toggle-all label {
+            color: #d4a574;
+            font-weight: 600;
         }
         @media (max-width: 768px) {
             .faa-sublayer-list {
@@ -3063,6 +3107,10 @@
                     <label for="toggleFaaAirspaceCheckbox">FAA drone airspace</label>
                 </div>
                 <div id="faaSubLayerList" class="faa-sublayer-list" style="display:none;">
+                    <div class="base-map-option base-map-toggle faa-sublayer faa-toggle-all">
+                        <input type="checkbox" id="faaSubToggleAll" checked onchange="toggleAllFaaSubLayers(this.checked)">
+                        <label for="faaSubToggleAll">Toggle all</label>
+                    </div>
                     <div class="base-map-option base-map-toggle faa-sublayer">
                         <input type="checkbox" id="faaSubLaanc" checked onchange="setFaaSubLayerVisibility('laanc', this.checked)">
                         <label for="faaSubLaanc">LAANC ceiling grid</label>
@@ -3356,6 +3404,21 @@
                     return '<div style="font-family:monospace;font-size:12px;color:#222;"><b>' + title + '</b><br>' + lines.join('<br>') + '</div>';
                 };
 
+                // Format FAA altitude values, handling sentinel -9998 and desc codes
+                var faaAlt = function(desc, val, uom) {
+                    var v = parseFloat(val);
+                    if (isNaN(v) || v <= -9998) {
+                        // Sentinel value — interpret based on desc code
+                        if (desc === 'AA') return 'Up to Class A (FL180)';
+                        if (desc === 'ANI') return 'Unlimited';
+                        return 'Unlimited';
+                    }
+                    var unit = uom || '';
+                    if (unit === 'FL') return 'FL' + v;
+                    if (unit === 'FT') return v + ' ft';
+                    return v + (unit ? ' ' + unit : '');
+                };
+
                 // 1. LAANC ceiling grid
                 faaAirspaceLayer = L.esri.featureLayer({
                     url: FAA_BASE + '/FAA_UAS_FacilityMap_Data/FeatureServer/0',
@@ -3393,8 +3456,8 @@
                             var p = feature.properties;
                             layer.bindPopup(faaPopup('Class ' + p.CLASS + ' Airspace', [
                                 'Name: ' + (p.NAME || p.IDENT || 'N/A'),
-                                'Upper: ' + (p.UPPER_VAL || '') + ' ' + (p.UPPER_UOM || ''),
-                                'Lower: ' + (p.LOWER_VAL || '') + ' ' + (p.LOWER_UOM || '')
+                                'Ceiling: ' + faaAlt(p.UPPER_DESC, p.UPPER_VAL, p.UPPER_UOM),
+                                'Floor: ' + faaAlt(p.LOWER_DESC, p.LOWER_VAL, p.LOWER_UOM)
                             ]));
                         },
                         minZoom: 6
@@ -3418,8 +3481,8 @@
                             layer.bindPopup(faaPopup('Special Use Airspace', [
                                 'Name: ' + (p.NAME || 'N/A'),
                                 'Type: ' + (typeNames[p.TYPE_CODE] || p.TYPE_CODE),
-                                'Upper: ' + (p.UPPER_VAL || '') + ' ' + (p.UPPER_UOM || ''),
-                                'Lower: ' + (p.LOWER_VAL || '') + ' ' + (p.LOWER_UOM || '')
+                                'Ceiling: ' + faaAlt(p.UPPER_DESC, p.UPPER_VAL, p.UPPER_UOM),
+                                'Floor: ' + faaAlt(p.LOWER_DESC, p.LOWER_VAL, p.LOWER_UOM)
                             ]));
                         },
                         minZoom: 6
@@ -3526,6 +3589,88 @@
                     }
                 });
                 
+                // Long-press on map: show coordinate popup with copy + Google Maps link
+                (function() {
+                    var longPressTimer = null;
+                    var longPressLatLng = null;
+                    var LONG_PRESS_MS = 600;
+
+                    function onPressStart(e) {
+                        // Get latlng from mouse or touch event
+                        var latlng = e.latlng;
+                        if (!latlng) return;
+                        longPressLatLng = latlng;
+                        clearTimeout(longPressTimer);
+                        longPressTimer = setTimeout(function() {
+                            showCoordPopup(longPressLatLng);
+                        }, LONG_PRESS_MS);
+                    }
+                    function onPressEnd() {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                    function onMove() {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+
+                    // Mouse events
+                    map.on('mousedown', onPressStart);
+                    map.on('mouseup', onPressEnd);
+                    map.on('mousemove', onMove);
+                    // Touch events (Leaflet fires these as well)
+                    map.on('touchstart', function(e) {
+                        if (e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length === 1) {
+                            var touch = e.originalEvent.touches[0];
+                            var latlng = map.containerPointToLatLng(L.point(touch.clientX - map.getContainer().getBoundingClientRect().left, touch.clientY - map.getContainer().getBoundingClientRect().top));
+                            onPressStart({ latlng: latlng });
+                        }
+                    });
+                    map.getContainer().addEventListener('touchend', onPressEnd);
+                    map.getContainer().addEventListener('touchmove', onMove);
+                    // Cancel on drag/zoom
+                    map.on('dragstart zoomstart', onPressEnd);
+
+                    function showCoordPopup(latlng) {
+                        var lat = latlng.lat;
+                        var lng = latlng.lng;
+                        var latStr = lat.toFixed(6);
+                        var lngStr = lng.toFixed(6);
+                        var coordStr = latStr + ', ' + lngStr;
+                        var gmapsUrl = 'https://www.google.com/maps?q=' + latStr + ',' + lngStr;
+                        var content =
+                            '<div class="coord-popup-content">' +
+                            '<div class="coord-text">' + coordStr + '</div>' +
+                            '<div class="coord-actions">' +
+                            '<div class="coord-btn" onclick="copyCoordToClipboard(\'' + coordStr + '\', this)" title="Copy coordinates">Copy</div>' +
+                            '<a class="coord-btn" href="' + gmapsUrl + '" target="_blank" rel="noopener" title="Open in Google Maps">Google Maps</a>' +
+                            '</div></div>';
+                        L.popup({ closeButton: true, className: 'coord-popup', maxWidth: 240 })
+                            .setLatLng(latlng)
+                            .setContent(content)
+                            .openOn(map);
+                    }
+                })();
+
+                // Copy coordinates helper (called from popup onclick)
+                window.copyCoordToClipboard = function(text, btnEl) {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            if (btnEl) { btnEl.textContent = 'Copied!'; setTimeout(function() { btnEl.textContent = 'Copy'; }, 1500); }
+                        });
+                    } else {
+                        var ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        if (btnEl) { btnEl.textContent = 'Copied!'; setTimeout(function() { btnEl.textContent = 'Copy'; }, 1500); }
+                    }
+                };
+
                 // Add Scale Bar (bottom left)
                 const ScaleBarControl = L.Control.extend({
                     onAdd: function(map) {
@@ -3985,7 +4130,28 @@
         
         /**
          * Set FAA UAS airspace parent toggle — shows/hides ALL sub-layers and the sub-toggle list.
+         * Turning the parent ON enables all sub-layers (clean reset).
          */
+        var FAA_SUB_PREF_KEY = 'edsb_faa_sublayers';
+
+        function saveFaaSubPrefs() {
+            try {
+                var prefs = {};
+                Object.keys(faaSubLayers).forEach(function(key) {
+                    prefs[key] = faaSubLayers[key].visible;
+                });
+                localStorage.setItem(FAA_SUB_PREF_KEY, JSON.stringify(prefs));
+            } catch(e) {}
+        }
+
+        function loadFaaSubPrefs() {
+            try {
+                var raw = localStorage.getItem(FAA_SUB_PREF_KEY);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch(e) { return null; }
+        }
+
         function setFaaAirspaceVisibility(visible) {
             showFaaAirspace = visible;
             const checkbox = document.getElementById('toggleFaaAirspaceCheckbox');
@@ -3994,16 +4160,33 @@
             const subList = document.getElementById('faaSubLayerList');
             if (subList) subList.style.display = showFaaAirspace ? 'block' : 'none';
             if (!map) return;
-            // Add or remove each sub-layer based on its own toggle
-            Object.keys(faaSubLayers).forEach(function(key) {
-                var sub = faaSubLayers[key];
-                if (!sub || !sub.layer) return;
-                if (showFaaAirspace && sub.visible) {
-                    sub.layer.addTo(map);
-                } else {
+            if (showFaaAirspace) {
+                // Turning ON: restore saved sub-layer preferences
+                var prefs = loadFaaSubPrefs();
+                Object.keys(faaSubLayers).forEach(function(key) {
+                    var sub = faaSubLayers[key];
+                    if (!sub || !sub.layer) return;
+                    // Use saved pref if available, otherwise keep current visible state
+                    if (prefs && prefs.hasOwnProperty(key)) {
+                        sub.visible = prefs[key];
+                    }
+                    var cb = document.getElementById(sub.checkboxId);
+                    if (cb) cb.checked = sub.visible;
+                    if (sub.visible) {
+                        sub.layer.addTo(map);
+                    } else {
+                        map.removeLayer(sub.layer);
+                    }
+                });
+                syncToggleAllCheckbox();
+            } else {
+                // Turning OFF: remove all from map (visible flags stay as-is)
+                Object.keys(faaSubLayers).forEach(function(key) {
+                    var sub = faaSubLayers[key];
+                    if (!sub || !sub.layer) return;
                     map.removeLayer(sub.layer);
-                }
-            });
+                });
+            }
         }
 
         /**
@@ -4021,6 +4204,43 @@
             } else {
                 map.removeLayer(sub.layer);
             }
+            syncToggleAllCheckbox();
+            saveFaaSubPrefs();
+        }
+
+        /**
+         * Toggle all FAA sub-layers on or off at once.
+         */
+        function toggleAllFaaSubLayers(on) {
+            Object.keys(faaSubLayers).forEach(function(key) {
+                var sub = faaSubLayers[key];
+                if (!sub) return;
+                sub.visible = on;
+                var cb = document.getElementById(sub.checkboxId);
+                if (cb) cb.checked = on;
+                if (map) {
+                    if (showFaaAirspace && on) {
+                        sub.layer.addTo(map);
+                    } else {
+                        map.removeLayer(sub.layer);
+                    }
+                }
+            });
+            var ta = document.getElementById('faaSubToggleAll');
+            if (ta) ta.checked = on;
+            saveFaaSubPrefs();
+        }
+
+        /**
+         * Keep the "Toggle all" checkbox in sync: checked if all sub-layers are on,
+         * unchecked if any are off.
+         */
+        function syncToggleAllCheckbox() {
+            var allOn = Object.keys(faaSubLayers).every(function(key) {
+                return faaSubLayers[key].visible;
+            });
+            var ta = document.getElementById('faaSubToggleAll');
+            if (ta) ta.checked = allOn;
         }
 
         // ==================== Share Map View ====================
@@ -4120,7 +4340,8 @@
                 }
                 // ADS-B
                 setDetectedAircraftVisibility(adsb);
-                // FAA layers
+                // FAA layers — set sub-layer states first, then show parent
+                // (bypass setFaaAirspaceVisibility which resets all sub-layers to ON)
                 faaSubKeys.forEach(function(key, i) {
                     var on = !!(bits & (1 << i));
                     if (faaSubLayers[key]) {
@@ -4129,7 +4350,18 @@
                         if (cb) cb.checked = on;
                     }
                 });
-                setFaaAirspaceVisibility(faaOn);
+                showFaaAirspace = faaOn;
+                var faaCheckbox = document.getElementById('toggleFaaAirspaceCheckbox');
+                if (faaCheckbox) faaCheckbox.checked = faaOn;
+                var subList = document.getElementById('faaSubLayerList');
+                if (subList) subList.style.display = faaOn ? 'block' : 'none';
+                if (faaOn && map) {
+                    faaSubKeys.forEach(function(key) {
+                        var sub = faaSubLayers[key];
+                        if (sub && sub.layer && sub.visible) sub.layer.addTo(map);
+                    });
+                }
+                syncToggleAllCheckbox();
                 return true;
             } catch(e) {
                 console.warn('Could not restore map from hash:', e);
