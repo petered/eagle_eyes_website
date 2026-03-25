@@ -2779,7 +2779,16 @@ permalink: /download/
             return;
         }
         
-        releases.forEach(release => {
+        // Deduplicate releases by version + platform
+        const seen = new Set();
+        const uniqueReleases = releases.filter(release => {
+            const key = `${release.version}_${release.platform}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        uniqueReleases.forEach(release => {
             const versionCard = createVersionCard(release);
             container.appendChild(versionCard);
         });
