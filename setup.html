@@ -130,11 +130,23 @@ permalink: /setup/
         color: #888;
     }
 
+    /* Hide the main navbar on this page */
+    header.header { display: none !important; }
+
+    .page-logo {
+        text-align: center;
+        padding: 24px 0 8px;
+    }
+    .page-logo img {
+        height: 32px;
+        width: auto;
+    }
+
     .setup-container {
         width: 80%;
         max-width: 900px;
         margin: 0 auto;
-        padding: 14rem 1rem 4rem;
+        padding: 2rem 1rem 4rem;
     }
 
     .setup-user-info {
@@ -497,6 +509,10 @@ permalink: /setup/
     </div>
 </div>
 
+<div class="page-logo">
+    <a href="{{ '/' | relative_url }}"><img src="{{ '/images/eagle_eyes_flat_logo_2.png' | relative_url }}" alt="Eagle Eyes"></a>
+</div>
+
 <!-- Main content -->
 <div class="setup-container">
 
@@ -534,6 +550,11 @@ permalink: /setup/
     <div class="setup-header" id="setupHeader" style="display: none;">
         <h1>Controller Configurations</h1>
         <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
+    </div>
+
+    <!-- Activation success banner (shown when redirected after activation) -->
+    <div id="activationSuccessBanner" style="display: none; background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center; font-size: 1.4rem;">
+        <span id="activationSuccessText"></span>
     </div>
 
     <!-- Intro screen (shown when arriving from activation) -->
@@ -712,6 +733,7 @@ var urlClientAppVersion = urlSetupParams.get('client_app_version') || '';
 var urlIntegrationType = urlSetupParams.get('integration_type') || '';
 var urlSessionId = urlSetupParams.get('session_id') || '';
 var cameFromActivation = !!urlSetupParams.get('license_id');
+var activationSuccess = urlSetupParams.get('activation_success') || ''; // 'new' or 'resync'
 var introShown = false;
 
 var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
@@ -1413,6 +1435,17 @@ async function deleteConfiguration() {
                 document.getElementById('wizardStepper').style.display = 'flex';
                 introShown = true;
                 headerEl.style.display = 'none';
+
+                // Show activation success banner if redirected after activation
+                if (activationSuccess) {
+                    var banner = document.getElementById('activationSuccessBanner');
+                    var text = activationSuccess === 'resync'
+                        ? 'Re-sync completed successfully! Your device has been re-synchronized.'
+                        : 'Activation completed successfully! Your device is now activated.';
+                    document.getElementById('activationSuccessText').textContent = text;
+                    banner.style.display = 'block';
+                }
+
                 showIntroScreen(null); // null = loading state
                 loadConfigurationsForIntro();
             } else {

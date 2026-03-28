@@ -8,10 +8,22 @@ permalink: /activate/
 <script src="{{ '/shared.js' | relative_url }}"></script>
 
 <style>
+    /* Hide the main navbar on this page */
+    header.header { display: none !important; }
+
+    .page-logo {
+        text-align: center;
+        padding: 24px 0 8px;
+    }
+    .page-logo img {
+        height: 32px;
+        width: auto;
+    }
+
     .activation-container {
         max-width: 600px;
         margin: 0 auto;
-        padding: 100px 20px 20px 20px;
+        padding: 16px 20px 20px 20px;
         text-align: center;
     }
 
@@ -475,40 +487,6 @@ permalink: /activate/
         box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
     }
 
-    /* Setup transition */
-    .setup-transition {
-        background: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-        padding: 24px;
-        border-radius: 8px;
-        margin: 16px 0;
-        text-align: center;
-    }
-    .setup-transition h3 {
-        margin: 0 0 8px;
-        font-size: 18px;
-    }
-    .setup-transition p {
-        margin: 0 0 16px;
-        font-size: 14px;
-    }
-    .setup-transition .skip-link {
-        display: block;
-        margin-top: 10px;
-        font-size: 13px;
-        color: #155724;
-        opacity: 0.7;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-    .setup-transition .countdown {
-        font-size: 12px;
-        color: #155724;
-        opacity: 0.6;
-        margin-top: 6px;
-    }
-
     #license-selection-section {
         margin-top: 16px;
     }
@@ -520,7 +498,7 @@ permalink: /activate/
 
     @media (max-width: 768px) {
         .activation-container {
-            padding: 90px 15px 15px 15px;
+            padding: 12px 15px 15px 15px;
         }
 
         .activation-form {
@@ -546,6 +524,10 @@ permalink: /activate/
         }
     }
 </style>
+
+<div class="page-logo">
+    <a href="{{ '/' | relative_url }}"><img src="{{ '/images/eagle_eyes_flat_logo_2.png' | relative_url }}" alt="Eagle Eyes"></a>
+</div>
 
 <div class="activation-container">
     <!-- Wizard Stepper (hidden until activation flow starts) -->
@@ -1289,8 +1271,6 @@ permalink: /activate/
         });
     }
 
-    let setupRedirectTimer = null;
-
     function handleActivationSuccess(response, hasExistingKey, deviceName) {
         try {
             let result;
@@ -1312,71 +1292,19 @@ permalink: /activate/
 
             $('#activationLoading').hide();
 
-            // Build setup URL
+            // Redirect to setup page with success indicator
             const setupParams = new URLSearchParams({ license_id: selectedLicense });
             if (globalSessionId) setupParams.set('session_id', globalSessionId);
             if (clientAppVersion) setupParams.set('client_app_version', clientAppVersion);
             if (urlIntegrationType) setupParams.set('integration_type', urlIntegrationType);
+            setupParams.set('activation_success', hasExistingKey ? 'resync' : 'new');
             const setupUrl = '{{ "/setup/" | relative_url }}?' + setupParams.toString();
-
-            let resultHtml;
-            if (setupUrl) {
-                // Transition-focused success with auto-redirect
-                resultHtml = `
-                    <div class="setup-transition">
-                        <h3>${hasExistingKey ? 'Re-sync complete!' : 'Activation complete!'}</h3>
-                        <p>Continue to configure your controller settings.</p>
-                        <button class="activate-button" onclick="window.location.href='${setupUrl}'">
-                            Continue to Setup
-                        </button>
-                        <a class="skip-link" href="{{ '/account/' | relative_url }}">Skip — go to account page</a>
-                        <div class="countdown" id="redirectCountdown">Redirecting in <span id="countdownSeconds">5</span>s... <a href="#" onclick="cancelRedirect(); return false;">cancel</a></div>
-                    </div>
-                `;
-
-                // Start auto-redirect countdown
-                setTimeout(() => {
-                    let seconds = 5;
-                    setupRedirectTimer = setInterval(() => {
-                        seconds--;
-                        const el = $('#countdownSeconds');
-                        if (el.length) el.text(seconds);
-                        if (seconds <= 0) {
-                            clearInterval(setupRedirectTimer);
-                            window.location.href = setupUrl;
-                        }
-                    }, 1000);
-                }, 100);
-            } else {
-                resultHtml = `
-                    <div class="success-message">
-                        <h3>${hasExistingKey ? 'Re-sync Completed!' : 'Activation Completed!'}</h3>
-                        <p>${hasExistingKey ? 'Your device has been re-synchronized.' : 'Your device is now activated.'}</p>
-                        <p><strong>Next step:</strong> Go back to your device and verify that the activation is successful.</p>
-                        <button class="${hasExistingKey ? 'btn-reactivate-license' : 'activate-button'}" onclick="window.location.href='{{ '/account/' | relative_url }}'">
-                            Go to Account Page
-                        </button>
-                    </div>
-                `;
-            }
-
-            $('#activationResult').html(resultHtml).show();
-            setTimeout(() => {
-                $('#activationResult')[0].scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+            window.location.href = setupUrl;
 
         } catch (parseError) {
             console.error('Error parsing activation response:', parseError);
             showActivationError('Invalid response from server. Please try again.', hasExistingKey);
         }
-    }
-
-    function cancelRedirect() {
-        if (setupRedirectTimer) {
-            clearInterval(setupRedirectTimer);
-            setupRedirectTimer = null;
-        }
-        $('#redirectCountdown').text('Auto-redirect cancelled.');
     }
 
     function handleActivationError(xhr, status, error, hasExistingKey) {
