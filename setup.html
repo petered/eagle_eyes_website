@@ -152,13 +152,28 @@ permalink: /setup/
         background: #000;
     }
     .camera-preview {
-        max-width: 300px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1010;
+        width: 90%;
+        max-width: 360px;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    .camera-overlay-bg {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1009;
     }
     .camera-preview video {
         width: 100%;
-        max-height: 120px;
+        max-height: 200px;
         object-fit: cover;
         display: block;
+        border-radius: 12px 12px 0 0;
     }
     .camera-preview canvas {
         display: none;
@@ -168,7 +183,8 @@ permalink: /setup/
         gap: 0.75rem;
         justify-content: center;
         padding: 0.75rem;
-        background: rgba(0,0,0,0.6);
+        background: #222;
+        border-radius: 0 0 12px 12px;
     }
     .camera-controls button {
         padding: 8px 18px;
@@ -178,10 +194,6 @@ permalink: /setup/
         cursor: pointer;
         border: none;
     }
-    .camera-controls .capture-btn {
-        background: #1e90ff;
-        color: white;
-    }
     .camera-controls .cancel-btn {
         background: #6c757d;
         color: white;
@@ -190,7 +202,8 @@ permalink: /setup/
         text-align: center;
         padding: 0.5rem;
         font-size: 1.3rem;
-        color: #888;
+        color: #ccc;
+        background: #222;
     }
 
     /* Hide the main navbar and overlay nav on this page */
@@ -592,21 +605,21 @@ permalink: /setup/
     <a href="{{ '/' | relative_url }}"><img src="{{ '/images/eagle_eyes_flat_logo_2.png' | relative_url }}" alt="Eagle Eyes"></a>
 </div>
 
+<!-- Wizard Stepper (shown when arriving from activation) -->
+<div class="wizard-stepper" id="wizardStepper" style="display: none;">
+    <div class="wizard-step completed">
+        <div class="wizard-step-number">&#10003;</div>
+        <div class="wizard-step-label">Activate</div>
+    </div>
+    <div class="wizard-step-connector completed"></div>
+    <div class="wizard-step active">
+        <div class="wizard-step-number">2</div>
+        <div class="wizard-step-label">Configure</div>
+    </div>
+</div>
+
 <!-- Main content -->
 <div class="setup-container">
-
-    <!-- Wizard Stepper (shown when arriving from activation) -->
-    <div class="wizard-stepper" id="wizardStepper" style="display: none;">
-        <div class="wizard-step completed">
-            <div class="wizard-step-number">&#10003;</div>
-            <div class="wizard-step-label">Activate</div>
-        </div>
-        <div class="wizard-step-connector completed"></div>
-        <div class="wizard-step active">
-            <div class="wizard-step-number">2</div>
-            <div class="wizard-step-label">Configure</div>
-        </div>
-    </div>
 
     <!-- User info bar -->
     <div class="setup-user-info" id="setupUserInfo">
@@ -734,7 +747,6 @@ permalink: /setup/
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
-                <button class="setup-btn setup-btn-link" onclick="skipStep()">Skip</button>
             </div>
         </div>
 
@@ -763,9 +775,9 @@ permalink: /setup/
                     <li>Click <strong>"Create a Service Account"</strong></li>
                     <li>Choose a title and permission level, then click <strong>Create</strong></li>
                 </ol>
-                <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-secondary" onclick="showCtSubStep(0)">Back</button>
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(2)">Done — I have the credentials</button>
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(2)" style="width: 100%;">Credential secret is visible on my screen</button>
+                    <a href="#" onclick="showCtSubStep(0); return false;" style="display: inline-block; margin-top: 0.75rem; font-size: 1.3rem; color: #1e90ff; text-decoration: none;">Back</a>
                 </div>
             </div>
 
@@ -774,12 +786,12 @@ permalink: /setup/
                 <h2 class="form-step-question">Step 2: Enter the Credential Secret</h2>
                 <p class="form-step-hint">Copy the secret from CalTopo and paste it here. It's only shown once!</p>
                 <div class="setup-field">
-                    <input type="text" id="ctKey" placeholder="Paste credential secret here">
-                    <div class="camera-capture-container" id="cameraCaptureContainer" style="display: none; margin-top: 0.5rem;">
-                        <button type="button" class="camera-capture-btn" onclick="startCameraCapture()">
+                    <div class="camera-capture-container" id="cameraCaptureContainer" style="display: none; margin-bottom: 0.75rem;">
+                        <button type="button" class="camera-capture-btn" onclick="startCameraCapture()" style="background: #28a745; color: white; border-color: #28a745; width: 100%; justify-content: center;">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                            Scan from screen with camera
+                            Scan Credential Secret with camera
                         </button>
+                        <div id="cameraOverlayBg" class="camera-overlay-bg" style="display: none;" onclick="stopCameraCapture()"></div>
                         <div id="cameraPreview" class="camera-preview" style="display: none;">
                             <video id="cameraVideo" autoplay playsinline></video>
                             <canvas id="cameraCanvas"></canvas>
@@ -789,6 +801,7 @@ permalink: /setup/
                             <div class="camera-status" id="cameraStatus"></div>
                         </div>
                     </div>
+                    <input type="text" id="ctKey" placeholder="Paste credential secret here">
                 </div>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-secondary" onclick="showCtSubStep(1)">Back</button>
@@ -1301,11 +1314,13 @@ function showCtSubStep(n) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
     }
-    // Show camera button only on mobile for the secret step
+    // Show camera button only on mobile for the secret step, update placeholder
     if (n === 2) {
         var isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
         var cameraContainer = document.getElementById('cameraCaptureContainer');
         if (cameraContainer) cameraContainer.style.display = isMobile ? 'block' : 'none';
+        var ctKeyInput = document.getElementById('ctKey');
+        if (ctKeyInput) ctKeyInput.placeholder = isMobile ? 'Or type the credential secret here' : 'Paste credential secret here';
     }
 }
 
@@ -1738,14 +1753,27 @@ var cameraStream = null;
 var cameraScanActive = false;
 var tesseractLoaded = false;
 
-// CalTopo secrets are base64-encoded 32-byte keys = exactly 44 chars
+// CalTopo secrets are base64-encoded 32-byte keys = exactly 44 chars ending with =
+// Must contain a mix of upper, lower, and digits to avoid false positives from OCR noise
 var SECRET_PATTERN = /[A-Za-z0-9+\/]{43}=/;
+
+// Validate that a matched string looks like a real base64 secret (not OCR noise)
+// Real secrets have a mix of uppercase, lowercase, and digits
+function isValidBase64Secret(s) {
+    var hasUpper = /[A-Z]/.test(s);
+    var hasLower = /[a-z]/.test(s);
+    var hasDigit = /[0-9]/.test(s);
+    // Must have at least 2 of 3 character types
+    return (hasUpper + hasLower + hasDigit) >= 2;
+}
 
 function startCameraCapture() {
     var preview = document.getElementById('cameraPreview');
+    var overlay = document.getElementById('cameraOverlayBg');
     var video = document.getElementById('cameraVideo');
     var status = document.getElementById('cameraStatus');
 
+    overlay.style.display = 'block';
     preview.style.display = 'block';
     status.textContent = 'Starting camera...';
 
@@ -1818,7 +1846,7 @@ function autoScanLoop() {
             var cleaned = text.replace(/\s+/g, '');
             var match = cleaned.match(SECRET_PATTERN);
 
-            if (match) {
+            if (match && isValidBase64Secret(match[0])) {
                 document.getElementById('ctKey').value = match[0];
                 status.textContent = 'Secret detected!';
                 cameraScanActive = false;
@@ -1847,6 +1875,7 @@ function stopCameraCapture() {
     var video = document.getElementById('cameraVideo');
     video.srcObject = null;
     document.getElementById('cameraPreview').style.display = 'none';
+    document.getElementById('cameraOverlayBg').style.display = 'none';
     document.getElementById('cameraStatus').textContent = '';
 }
 </script>
