@@ -1,6 +1,6 @@
 ---
 layout: main
-title: Controller Configurations - Eagle Eyes
+title: Controller Settings - Eagle Eyes
 permalink: /setup/
 ---
 
@@ -146,9 +146,12 @@ permalink: /setup/
         overflow: hidden;
         background: #000;
     }
+    .camera-preview {
+        max-width: 300px;
+    }
     .camera-preview video {
         width: 100%;
-        max-height: 150px;
+        max-height: 120px;
         object-fit: cover;
         display: block;
     }
@@ -604,14 +607,14 @@ permalink: /setup/
     </div>
 
     <!-- Sign-in prompt (shown when not authenticated) -->
-    <div id="setupSigninSection" class="setup-signin-section" style="display: block;">
-        <p style="margin-bottom: 20px;">Sign in to configure your drone controller.</p>
+    <div id="setupSigninSection" class="setup-signin-section" style="display: none;">
+        <p style="margin-bottom: 20px;">Sign in to manage your controller settings.</p>
         <button class="setup-signin-btn" onclick="toggleSignIn()">Sign In or Create Account</button>
     </div>
 
     <!-- Page header -->
     <div class="setup-header" id="setupHeader" style="display: none;">
-        <h1>Controller Configurations</h1>
+        <h1>Controller Settings</h1>
         <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
     </div>
 
@@ -653,7 +656,7 @@ permalink: /setup/
     <div id="licenseDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1002; justify-content: center; align-items: center;">
         <div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);">
             <h3 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Enter License ID</h3>
-            <p style="font-size: 1.3rem; color: #888; margin: 0 0 1.2rem;">Enter a license ID to find or create configurations.</p>
+            <p style="font-size: 1.3rem; color: #888; margin: 0 0 1.2rem;">Enter a license ID to find or create controller settings.</p>
             <input type="text" id="setupLicenseInput" placeholder="e.g. ABC123" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1.5rem; box-sizing: border-box; margin-bottom: 1rem;">
             <div class="setup-status" id="setupLicenseStatus"></div>
             <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
@@ -665,7 +668,7 @@ permalink: /setup/
 
     <!-- Configuration form (hidden until editing/creating) -->
     <div class="setup-form" id="setupForm">
-        <a href="#" id="backToListLink" onclick="showConfigList(); return false;" style="display: inline-block; margin-bottom: 1rem; font-size: 1.4rem; color: #1e90ff; text-decoration: none;">&larr; Back to configurations</a>
+        <a href="#" id="backToListLink" onclick="showConfigList(); return false;" style="display: inline-block; margin-bottom: 1rem; font-size: 1.4rem; color: #1e90ff; text-decoration: none;">&larr; Back to controller settings</a>
 
         <!-- License ID (always visible) -->
         <div id="licenseIdField" style="font-size: 1.3rem; color: #888; margin-bottom: 1rem;">
@@ -682,13 +685,14 @@ permalink: /setup/
 
         <!-- Step 1: Name -->
         <div class="form-step" id="formStep1">
-            <h2 class="form-step-question">What would you like to call this configuration?</h2>
-            <p class="form-step-hint">This name helps your team identify this setup — e.g. "SAR Team Alpha" or "Training Config"</p>
+            <h2 class="form-step-question">What would you like to call these controller settings?</h2>
+            <p class="form-step-hint">This name helps your team identify this setup — e.g. "SAR Team Alpha" or "Training Settings"</p>
             <div class="setup-field">
                 <input type="text" id="setupName" placeholder="e.g. SAR Team Alpha" required>
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+                <button class="setup-btn setup-btn-link" onclick="skipStep()">Skip</button>
             </div>
         </div>
 
@@ -717,6 +721,7 @@ permalink: /setup/
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+                <button class="setup-btn setup-btn-link" onclick="skipStep()">Skip</button>
             </div>
         </div>
 
@@ -798,7 +803,7 @@ permalink: /setup/
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
-                <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Configuration</button>
+                <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Settings</button>
                 <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
             </div>
         </div>
@@ -924,13 +929,13 @@ function showIntroScreen(configs) {
     if (configs === null) {
         // Loading state — show intro with spinner
         titleEl.textContent = 'Set up your controller';
-        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as a controller configuration. When new team members activate a device on this license, their controller will be set up automatically.';
-        existingEl.innerHTML = '<div style="text-align: center; padding: 1rem; color: #888;"><div class="spinner" style="margin: 0 auto 0.75rem;"></div>Loading configurations...</div>';
+        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as controller settings. When new team members activate a device on this license, their controller will be set up automatically.';
+        existingEl.innerHTML = '<div style="text-align: center; padding: 1rem; color: #888;"><div class="spinner" style="margin: 0 auto 0.75rem;"></div>Loading controller settings...</div>';
         setupBtn.style.display = 'none';
         skipBtn.style.display = 'none';
     } else if (configs && configs.length > 0) {
-        titleEl.textContent = 'Controller configurations available';
-        messageEl.textContent = 'Your team already has controller configurations. Select one to apply it to the device that was just activated, or create a new one.';
+        titleEl.textContent = 'Controller settings available';
+        messageEl.textContent = 'Your team already has controller settings. Select one to apply it to the device that was just activated, or create a new one.';
         setupBtn.textContent = 'Create New';
         setupBtn.style.display = '';
         skipBtn.style.display = '';
@@ -951,8 +956,8 @@ function showIntroScreen(configs) {
         existingEl.innerHTML = html;
     } else {
         titleEl.textContent = 'Set up your controller';
-        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as a controller configuration. When new team members activate a device on this license, their controller will be set up automatically.';
-        setupBtn.textContent = 'Set Up Controller';
+        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as controller settings. When new team members activate a device on this license, their controller will be set up automatically.';
+        setupBtn.textContent = 'Create New Settings';
         setupBtn.style.display = '';
         skipBtn.style.display = '';
         existingEl.innerHTML = '';
@@ -1020,7 +1025,7 @@ async function loadConfigurations() {
 
     var listEl = document.getElementById('configListItems');
     var statusEl = document.getElementById('configListStatus');
-    listEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: #888;"><div class="spinner" style="margin: 0 auto 1rem;"></div>Loading configurations...</div>';
+    listEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: #888;"><div class="spinner" style="margin: 0 auto 1rem;"></div>Loading controller settings...</div>';
     statusEl.className = 'setup-status';
     statusEl.textContent = '';
 
@@ -1032,9 +1037,9 @@ async function loadConfigurations() {
         cachedConfigurations = configs;
         renderConfigList(configs);
     } catch (err) {
-        console.error('Error loading configurations:', err);
+        console.error('Error loading controller settings:', err);
         listEl.innerHTML = '';
-        statusEl.textContent = 'Error loading configurations: ' + err.message;
+        statusEl.textContent = 'Error loading controller settings: ' + err.message;
         statusEl.className = 'setup-status error';
     }
 }
@@ -1042,7 +1047,7 @@ async function loadConfigurations() {
 function renderConfigList(configs) {
     var listEl = document.getElementById('configListItems');
     if (!configs || configs.length === 0) {
-        listEl.innerHTML = '<div class="config-card-empty">No configurations found. Click "+ New" to create one.</div>';
+        listEl.innerHTML = '<div class="config-card-empty">No controller settings found. Click "+ New" to create one.</div>';
         return;
     }
     var html = '';
@@ -1139,13 +1144,26 @@ function submitLicenseDialog() {
     }
 }
 
+function getDefaultName() {
+    var baseName = 'Default controller settings';
+    if (!cachedConfigurations || cachedConfigurations.length === 0) return baseName;
+    // Check for existing names with this base
+    var existingNames = cachedConfigurations.map(function(c) { return c.label || ''; });
+    if (existingNames.indexOf(baseName) === -1) return baseName;
+    for (var i = 2; i <= 20; i++) {
+        var candidate = baseName + ' ' + i;
+        if (existingNames.indexOf(candidate) === -1) return candidate;
+    }
+    return baseName + ' ' + (cachedConfigurations.length + 1);
+}
+
 function createNewConfiguration() {
     if (!currentLicenseId) {
         showLicenseDialog(function() {
-            // After license is set, proceed to create
             currentConfigurationId = null;
             clearForm();
             document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
+            document.getElementById('setupName').value = getDefaultName();
             document.getElementById('setupDeleteBtn').style.display = 'none';
             showConfigForm();
         });
@@ -1154,6 +1172,7 @@ function createNewConfiguration() {
     currentConfigurationId = null;
     clearForm();
     document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
+    document.getElementById('setupName').value = getDefaultName();
     document.getElementById('setupDeleteBtn').style.display = 'none';
     showConfigForm();
 }
@@ -1219,7 +1238,16 @@ function prevStep() {
 }
 
 function skipStep() {
-    nextStep();
+    // If skipping step 1 with no name, use default
+    if (currentFormStep === 1) {
+        var name = document.getElementById('setupName').value.trim();
+        if (!name) {
+            document.getElementById('setupName').value = getDefaultName();
+        }
+    }
+    if (currentFormStep < totalFormSteps) {
+        showFormStep(currentFormStep + 1);
+    }
 }
 
 // Build CalTopo service account JSON from form fields + verified data
@@ -1505,7 +1533,7 @@ async function saveConfiguration() {
         showStatus('setupFormStatus', 'Error saving: ' + err.message, 'error');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save';
+        saveBtn.textContent = 'Save Settings';
     }
 }
 
