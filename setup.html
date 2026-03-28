@@ -398,12 +398,28 @@ permalink: /setup/
         <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
     </div>
 
+    <!-- Intro screen (shown when arriving from activation) -->
+    <div id="setupIntro" style="display: none;">
+        <div style="background: #f0f7ff; border: 1px solid #c4ddf7; border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+            <h2 id="introTitle" style="font-size: 1.8rem; font-weight: 600; color: #333; margin: 0 0 1rem;">Set up your controller</h2>
+            <p id="introMessage" style="font-size: 1.4rem; color: #555; line-height: 1.6; margin: 0 0 1.5rem;">
+                Save your CalTopo credentials, default map, units, and procedures as a controller configuration.
+                When new team members activate a device on this license, their controller will be set up automatically.
+            </p>
+            <div id="introExistingConfigs"></div>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+                <button class="setup-btn setup-btn-primary" id="introSetupBtn" onclick="introSetupController()">Set Up Controller</button>
+                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Controller settings list (shown after auth) -->
     <div id="setupConfigList" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
                 <span class="config-card-detail" id="configListSubtitle"></span>
-                <span class="config-card-detail" id="setupLicenseLink"><strong>No license ID set.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></span>
+                <span class="config-card-detail" id="setupLicenseLink"><strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></span>
             </div>
             <button class="setup-btn setup-btn-primary" onclick="createNewConfiguration()">+ New</button>
         </div>
@@ -537,6 +553,14 @@ var currentLicenseId = null;
 var caltopoVerifiedData = null; // Stores fetched CalTopo metadata after verification
 var cachedConfigurations = []; // Cached list of user configurations
 
+// URL parameters from app
+var urlSetupParams = new URLSearchParams(window.location.search);
+var urlClientAppVersion = urlSetupParams.get('client_app_version') || '';
+var urlIntegrationType = urlSetupParams.get('integration_type') || '';
+var urlSessionId = urlSetupParams.get('session_id') || '';
+var cameFromActivation = !!urlSetupParams.get('license_id');
+var introShown = false;
+
 var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
 
 // Toggle sign-in overlay
@@ -619,6 +643,60 @@ document.getElementById('ctMapDropdown').addEventListener('change', function() {
     }
 });
 
+// --- Intro screen (shown when arriving from activation) ---
+
+function showIntroScreen(configs) {
+    document.getElementById('setupConfigList').style.display = 'none';
+    document.getElementById('setupForm').style.display = 'none';
+    var introEl = document.getElementById('setupIntro');
+    introEl.style.display = '';
+
+    var titleEl = document.getElementById('introTitle');
+    var messageEl = document.getElementById('introMessage');
+    var existingEl = document.getElementById('introExistingConfigs');
+    var setupBtn = document.getElementById('introSetupBtn');
+
+    if (configs && configs.length > 0) {
+        titleEl.textContent = 'Controller configurations available';
+        messageEl.textContent = 'Your team already has controller configurations. Select one to apply it to the device that was just activated, or create a new one.';
+        setupBtn.textContent = 'Create New';
+
+        var html = '';
+        configs.forEach(function(config, index) {
+            var cfg = config.config || {};
+            html += '<div class="config-card" onclick="introSelectConfig(' + index + ')" style="cursor: pointer;">';
+            html += '<div class="config-card-info">';
+            html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
+            if (cfg.service_account && cfg.service_account.teamName) {
+                html += '<span class="config-card-detail">CalTopo Team: ' + escapeHtml(cfg.service_account.teamName) + '</span>';
+            }
+            html += '</div>';
+            html += '<span style="color: #1e90ff; font-size: 1.3rem;">Select &rarr;</span>';
+            html += '</div>';
+        });
+        existingEl.innerHTML = html;
+    } else {
+        titleEl.textContent = 'Set up your controller';
+        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as a controller configuration. When new team members activate a device on this license, their controller will be set up automatically.';
+        setupBtn.textContent = 'Set Up Controller';
+        existingEl.innerHTML = '';
+    }
+}
+
+function introSetupController() {
+    document.getElementById('setupIntro').style.display = 'none';
+    createNewConfiguration();
+}
+
+function introSelectConfig(index) {
+    document.getElementById('setupIntro').style.display = 'none';
+    editConfiguration(index);
+}
+
+function introSkip() {
+    window.location.href = '{{ "/account/" | relative_url }}';
+}
+
 // --- Configuration list ---
 
 async function loadConfigurations() {
@@ -643,7 +721,7 @@ async function loadConfigurations() {
     if (currentLicenseId) {
         licenseLinkEl.innerHTML = 'License: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Change</a>';
     } else {
-        licenseLinkEl.innerHTML = '<strong>No license ID set.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a>';
+        licenseLinkEl.innerHTML = '<strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a>';
     }
 
     // Show the config list section
@@ -661,7 +739,14 @@ async function loadConfigurations() {
         var result = await apiCall('get_configuration', body);
         var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
         cachedConfigurations = configs;
-        renderConfigList(configs);
+
+        // If arriving from activation, show intro screen first
+        if (cameFromActivation && !introShown) {
+            introShown = true;
+            showIntroScreen(configs);
+        } else {
+            renderConfigList(configs);
+        }
     } catch (err) {
         console.error('Error loading configurations:', err);
         listEl.innerHTML = '';
@@ -678,36 +763,33 @@ function renderConfigList(configs) {
     }
     var html = '';
     configs.forEach(function(config, index) {
-        var licenses = config.license_ids || (config.license_id ? [config.license_id] : []);
+        var cfg = config.config || {};
+        var licenses = config.licenses || [];
         var licenseStr = licenses.join(', ') || 'No license';
 
         var details = [];
         details.push('License: ' + escapeHtml(licenseStr));
-        details.push('Units: ' + (config.units === 'METRIC' ? 'Metric' : 'U.S. customary (Standard) / Imperial'));
-        if (config.coordsys) details.push('Coord System: ' + escapeHtml(config.coordsys));
+        details.push('Units: ' + (cfg.units === 'METRIC' ? 'Metric' : 'U.S. customary (Standard) / Imperial'));
+        if (cfg.coordsys) details.push('Coord System: ' + escapeHtml(cfg.coordsys));
 
-        if (config.caltopo_service_account_json) {
-            try {
-                var sa = JSON.parse(config.caltopo_service_account_json);
-                if (sa.teamName) details.push('CalTopo Team: ' + escapeHtml(sa.teamName));
-            } catch (e) {}
+        if (cfg.service_account) {
+            var sa = cfg.service_account;
+            if (sa.teamName) details.push('CalTopo Team: ' + escapeHtml(sa.teamName));
         }
 
-        if (config.default_caltopo_map_json) {
-            try {
-                var map = JSON.parse(config.default_caltopo_map_json);
-                if (map.mapName) details.push('Default Map: ' + escapeHtml(map.mapName));
-                else if (map.mapId) details.push('Default Map: ' + escapeHtml(map.mapId));
-            } catch (e) {}
+        if (cfg.default_map) {
+            var map = cfg.default_map;
+            if (map.mapName) details.push('Default Map: ' + escapeHtml(map.mapName));
+            else if (map.mapId) details.push('Default Map: ' + escapeHtml(map.mapId));
         }
 
-        if (config.procedures_text || config.procedures_link) {
+        if (cfg.procedures_text || cfg.procedures_link) {
             details.push('Procedures: Yes');
         }
 
         html += '<div class="config-card" onclick="editConfiguration(' + index + ')">';
         html += '<div class="config-card-info">';
-        html += '<h3>' + escapeHtml(config.name || 'Unnamed') + '</h3>';
+        html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
         details.forEach(function(d) {
             html += '<span class="config-card-detail">' + d + '</span>';
         });
@@ -730,7 +812,7 @@ function editConfiguration(index) {
     currentConfigurationId = config.configuration_id;
     // Use currentLicenseId if set, otherwise derive from the config
     if (!currentLicenseId) {
-        var licenses = config.license_ids || (config.license_id ? [config.license_id] : []);
+        var licenses = config.licenses || [];
         currentLicenseId = licenses[0] || null;
     }
     clearForm();
@@ -956,53 +1038,46 @@ function buildCaltopoMapJson() {
 
 // Populate form from existing configuration
 function populateForm(config) {
-    document.getElementById('setupName').value = config.name || '';
-    document.getElementById('setupUnits').value = config.units || 'IMPERIAL';
-    document.getElementById('setupCoordsys').value = config.coordsys || 'DD';
+    var cfg = config.config || {};
+    document.getElementById('setupName').value = config.label || '';
+    document.getElementById('setupUnits').value = cfg.units || 'IMPERIAL';
+    document.getElementById('setupCoordsys').value = cfg.coordsys || 'DD';
 
     // CalTopo service account
-    if (config.caltopo_service_account_json) {
-        try {
-            var sa = JSON.parse(config.caltopo_service_account_json);
-            document.getElementById('ctAccountId').value = sa.accountId || '';
-            document.getElementById('ctCredentialId').value = sa.credentialId || '';
-            document.getElementById('ctKey').value = sa.key || '';
-            // Store metadata from saved config so it's included on save
-            caltopoVerifiedData = {
-                title: sa.title || '',
-                permission: sa.permission || '',
-                lastUsed: sa.lastUsed || null,
-                teamAccountId: sa.teamAccountId || '',
-                teamName: sa.teamName || '',
-                maps: sa.maps || []
-            };
-            // Show stored metadata in the verify result area
-            showCaltopoVerifySuccess(caltopoVerifiedData);
-            if (caltopoVerifiedData.maps.length > 0) {
-                populateMapDropdown(caltopoVerifiedData.maps);
-            }
-        } catch (e) {
-            console.error('Error parsing caltopo_service_account_json:', e);
+    if (cfg.service_account) {
+        var sa = cfg.service_account;
+        document.getElementById('ctAccountId').value = sa.accountId || '';
+        document.getElementById('ctCredentialId').value = sa.credentialId || '';
+        document.getElementById('ctKey').value = sa.key || '';
+        // Store metadata from saved config so it's included on save
+        caltopoVerifiedData = {
+            title: sa.title || '',
+            permission: sa.permission || '',
+            lastUsed: sa.lastUsed || null,
+            teamAccountId: sa.teamAccountId || '',
+            teamName: sa.teamName || '',
+            maps: sa.maps || []
+        };
+        // Show stored metadata in the verify result area
+        showCaltopoVerifySuccess(caltopoVerifiedData);
+        if (caltopoVerifiedData.maps.length > 0) {
+            populateMapDropdown(caltopoVerifiedData.maps);
         }
     }
 
     // CalTopo map
-    if (config.default_caltopo_map_json) {
-        try {
-            var map = JSON.parse(config.default_caltopo_map_json);
-            if (map.mapId) {
-                document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
-                var preview = document.getElementById('setupMapIdPreview');
-                preview.textContent = 'Detected map ID: ' + map.mapId;
-                preview.className = 'setup-status info';
-            }
-        } catch (e) {
-            console.error('Error parsing default_caltopo_map_json:', e);
+    if (cfg.default_map) {
+        var map = cfg.default_map;
+        if (map.mapId) {
+            document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
+            var preview = document.getElementById('setupMapIdPreview');
+            preview.textContent = 'Detected map ID: ' + map.mapId;
+            preview.className = 'setup-status info';
         }
     }
 
-    document.getElementById('setupProceduresText').value = config.procedures_text || '';
-    document.getElementById('setupProceduresLink').value = config.procedures_link || '';
+    document.getElementById('setupProceduresText').value = cfg.procedures_text || '';
+    document.getElementById('setupProceduresLink').value = cfg.procedures_link || '';
 }
 
 // Clear form
@@ -1048,29 +1123,33 @@ async function saveConfiguration() {
 
     var body = {
         license_id: currentLicenseId,
-        license_ids: [currentLicenseId],
-        name: name,
-        units: document.getElementById('setupUnits').value,
-        coordsys: document.getElementById('setupCoordsys').value
+        licenses: [currentLicenseId],
+        label: name,
+        integration_type: urlIntegrationType || 'caltopo',
+        config: {
+            units: document.getElementById('setupUnits').value,
+            coordsys: document.getElementById('setupCoordsys').value
+        }
     };
+    if (urlClientAppVersion) body.client_app_version = urlClientAppVersion;
 
     var serviceAccountJson = buildCaltopoServiceAccountJson();
-    if (serviceAccountJson) body.caltopo_service_account_json = serviceAccountJson;
+    if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
 
     var mapJson = buildCaltopoMapJson();
-    if (mapJson) body.default_caltopo_map_json = mapJson;
+    if (mapJson) body.config.default_map = JSON.parse(mapJson);
 
     var proceduresText = document.getElementById('setupProceduresText').value.trim();
-    if (proceduresText) body.procedures_text = proceduresText;
+    if (proceduresText) body.config.procedures_text = proceduresText;
 
     var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
-    if (proceduresLink) body.procedures_link = proceduresLink;
+    if (proceduresLink) body.config.procedures_link = proceduresLink;
 
     if (currentConfigurationId) {
         body.configuration_id = currentConfigurationId;
     } else if (cachedConfigurations && cachedConfigurations.length > 0) {
         var existing = cachedConfigurations.find(function(c) {
-            var ids = c.license_ids || (c.license_id ? [c.license_id] : []);
+            var ids = c.licenses || [];
             return ids.indexOf(currentLicenseId) !== -1;
         });
         if (existing && existing.configuration_id) {
@@ -1147,7 +1226,7 @@ async function deleteConfiguration() {
             userInfo.style.display = 'flex';
             userEmail.textContent = 'Logged in as: ' + user.email;
 
-            // Check for license_id URL parameter
+            // Check for URL parameters
             var urlParams = new URLSearchParams(window.location.search);
             var urlLicenseId = urlParams.get('license_id');
             if (urlLicenseId) {

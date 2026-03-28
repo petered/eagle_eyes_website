@@ -828,9 +828,15 @@ permalink: /activate/
     
     // Global variable to store URL activation code
     let urlActivationCode = null;
-    
+
     // Global variable to store session ID for backend requests
     let globalSessionId = null;
+
+    // URL parameters passed from the app
+    const urlParamsGlobal = new URLSearchParams(window.location.search);
+    const enableSetup = urlParamsGlobal.get('enable_setup') === 'true';
+    const clientAppVersion = urlParamsGlobal.get('client_app_version') || '';
+    const urlIntegrationType = urlParamsGlobal.get('integration_type') || '';
     
     function getUrlActivationCode() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1711,6 +1717,21 @@ permalink: /activate/
             
             $('#activationLoading').hide();
             
+            // Build setup URL if setup is enabled
+            let setupButtonHtml = '';
+            if (enableSetup) {
+                const setupParams = new URLSearchParams({ license_id: selectedLicense });
+                if (globalSessionId) setupParams.set('session_id', globalSessionId);
+                if (clientAppVersion) setupParams.set('client_app_version', clientAppVersion);
+                if (urlIntegrationType) setupParams.set('integration_type', urlIntegrationType);
+                const setupUrl = '{{ "/setup/" | relative_url }}?' + setupParams.toString();
+                setupButtonHtml = `
+                    <button class="activate-button" onclick="window.location.href='${setupUrl}'" style="margin-top: 10px;">
+                        Configure Settings
+                    </button>
+                `;
+            }
+
             let successHtml;
             if (hasExistingKey) {
                 successHtml = `
@@ -1721,6 +1742,7 @@ permalink: /activate/
                         <button class="btn-reactivate-license" onclick="window.location.href='{{ '/account/' | relative_url }}'">
                             Go to Account Page
                         </button>
+                        ${setupButtonHtml}
                     </div>
                 `;
             } else {
@@ -1732,6 +1754,7 @@ permalink: /activate/
                         <button class="activate-button" onclick="window.location.href='{{ '/account/' | relative_url }}'">
                             Go to Account Page
                         </button>
+                        ${setupButtonHtml}
                     </div>
                 `;
             }
