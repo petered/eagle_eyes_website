@@ -5,6 +5,131 @@ permalink: /setup/
 ---
 
 <style>
+    /* Wizard Stepper */
+    .wizard-stepper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+    .wizard-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .wizard-step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        border: 2px solid #dee2e6;
+        color: #adb5bd;
+        background: white;
+    }
+    .wizard-step-label {
+        font-size: 13px;
+        color: #adb5bd;
+        font-weight: 500;
+    }
+    .wizard-step.active .wizard-step-number {
+        border-color: #1e90ff;
+        background: #1e90ff;
+        color: white;
+    }
+    .wizard-step.active .wizard-step-label {
+        color: #1e90ff;
+    }
+    .wizard-step.completed .wizard-step-number {
+        border-color: #28a745;
+        background: #28a745;
+        color: white;
+    }
+    .wizard-step.completed .wizard-step-label {
+        color: #28a745;
+    }
+    .wizard-step-connector {
+        width: 40px;
+        height: 2px;
+        background: #dee2e6;
+        margin: 0 8px;
+    }
+    .wizard-step-connector.completed {
+        background: #28a745;
+    }
+
+    /* Camera capture */
+    .camera-capture-container {
+        margin-top: 0.5rem;
+    }
+    .camera-capture-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font-size: 1.3rem;
+        color: #555;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .camera-capture-btn:hover {
+        background: #e9ecef;
+        border-color: #adb5bd;
+    }
+    .camera-capture-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+    .camera-preview {
+        position: relative;
+        margin-top: 0.75rem;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+    }
+    .camera-preview video {
+        width: 100%;
+        display: block;
+    }
+    .camera-preview canvas {
+        display: none;
+    }
+    .camera-controls {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        padding: 0.75rem;
+        background: rgba(0,0,0,0.6);
+    }
+    .camera-controls button {
+        padding: 8px 18px;
+        border-radius: 6px;
+        font-size: 1.3rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+    }
+    .camera-controls .capture-btn {
+        background: #1e90ff;
+        color: white;
+    }
+    .camera-controls .cancel-btn {
+        background: #6c757d;
+        color: white;
+    }
+    .camera-status {
+        text-align: center;
+        padding: 0.5rem;
+        font-size: 1.3rem;
+        color: #888;
+    }
+
     .setup-container {
         width: 80%;
         max-width: 900px;
@@ -375,6 +500,19 @@ permalink: /setup/
 <!-- Main content -->
 <div class="setup-container">
 
+    <!-- Wizard Stepper (shown when arriving from activation) -->
+    <div class="wizard-stepper" id="wizardStepper" style="display: none;">
+        <div class="wizard-step completed">
+            <div class="wizard-step-number">&#10003;</div>
+            <div class="wizard-step-label">Activate</div>
+        </div>
+        <div class="wizard-step-connector completed"></div>
+        <div class="wizard-step active">
+            <div class="wizard-step-number">2</div>
+            <div class="wizard-step-label">Configure</div>
+        </div>
+    </div>
+
     <!-- User info bar -->
     <div class="setup-user-info" id="setupUserInfo">
         <span id="setupUserEmail"></span>
@@ -495,6 +633,21 @@ permalink: /setup/
                 <div class="setup-field full-width">
                     <label for="ctKey">Credential Secret</label>
                     <input type="text" id="ctKey" placeholder="Base64-encoded secret key">
+                    <div class="camera-capture-container">
+                        <button type="button" class="camera-capture-btn" onclick="startCameraCapture()">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            Scan secret with camera
+                        </button>
+                        <div id="cameraPreview" class="camera-preview" style="display: none;">
+                            <video id="cameraVideo" autoplay playsinline></video>
+                            <canvas id="cameraCanvas"></canvas>
+                            <div class="camera-controls">
+                                <button type="button" class="capture-btn" onclick="captureAndRecognize()">Capture</button>
+                                <button type="button" class="cancel-btn" onclick="stopCameraCapture()">Cancel</button>
+                            </div>
+                            <div class="camera-status" id="cameraStatus"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="setup-field">
                     <label for="ctAccountId">Account ID</label>
@@ -648,6 +801,7 @@ document.getElementById('ctMapDropdown').addEventListener('change', function() {
 function showIntroScreen(configs) {
     document.getElementById('setupConfigList').style.display = 'none';
     document.getElementById('setupForm').style.display = 'none';
+    document.getElementById('setupHeader').style.display = 'none';
     var introEl = document.getElementById('setupIntro');
     introEl.style.display = '';
 
@@ -655,11 +809,21 @@ function showIntroScreen(configs) {
     var messageEl = document.getElementById('introMessage');
     var existingEl = document.getElementById('introExistingConfigs');
     var setupBtn = document.getElementById('introSetupBtn');
+    var skipBtn = document.getElementById('introSkipBtn');
 
-    if (configs && configs.length > 0) {
+    if (configs === null) {
+        // Loading state — show intro with spinner
+        titleEl.textContent = 'Set up your controller';
+        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as a controller configuration. When new team members activate a device on this license, their controller will be set up automatically.';
+        existingEl.innerHTML = '<div style="text-align: center; padding: 1rem; color: #888;"><div class="spinner" style="margin: 0 auto 0.75rem;"></div>Loading configurations...</div>';
+        setupBtn.style.display = 'none';
+        skipBtn.style.display = 'none';
+    } else if (configs && configs.length > 0) {
         titleEl.textContent = 'Controller configurations available';
         messageEl.textContent = 'Your team already has controller configurations. Select one to apply it to the device that was just activated, or create a new one.';
         setupBtn.textContent = 'Create New';
+        setupBtn.style.display = '';
+        skipBtn.style.display = '';
 
         var html = '';
         configs.forEach(function(config, index) {
@@ -679,6 +843,8 @@ function showIntroScreen(configs) {
         titleEl.textContent = 'Set up your controller';
         messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as a controller configuration. When new team members activate a device on this license, their controller will be set up automatically.';
         setupBtn.textContent = 'Set Up Controller';
+        setupBtn.style.display = '';
+        skipBtn.style.display = '';
         existingEl.innerHTML = '';
     }
 }
@@ -698,6 +864,21 @@ function introSkip() {
 }
 
 // --- Configuration list ---
+
+// Load configs specifically for the intro screen (no flash of config list)
+async function loadConfigurationsForIntro() {
+    var body = currentLicenseId ? { license_id: currentLicenseId } : {};
+    try {
+        var result = await apiCall('get_configuration', body);
+        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
+        cachedConfigurations = configs;
+        showIntroScreen(configs);
+    } catch (err) {
+        console.error('Error loading configurations for intro:', err);
+        // Show intro with no configs on error
+        showIntroScreen([]);
+    }
+}
 
 async function loadConfigurations() {
     var licenseInput = document.getElementById('setupLicenseInput').value.trim();
@@ -739,14 +920,7 @@ async function loadConfigurations() {
         var result = await apiCall('get_configuration', body);
         var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
         cachedConfigurations = configs;
-
-        // If arriving from activation, show intro screen first
-        if (cameFromActivation && !introShown) {
-            introShown = true;
-            showIntroScreen(configs);
-        } else {
-            renderConfigList(configs);
-        }
+        renderConfigList(configs);
     } catch (err) {
         console.error('Error loading configurations:', err);
         listEl.innerHTML = '';
@@ -1222,7 +1396,6 @@ async function deleteConfiguration() {
         if (user) {
             signinOverlay.style.display = 'none';
             signinSection.style.display = 'none';
-            headerEl.style.display = '';
             userInfo.style.display = 'flex';
             userEmail.textContent = 'Logged in as: ' + user.email;
 
@@ -1234,7 +1407,18 @@ async function deleteConfiguration() {
                 document.getElementById('setupLicenseInput').value = urlLicenseId;
                 document.getElementById('setupLicenseLink').textContent = 'License: ' + urlLicenseId + ' (change)';
             }
-            loadConfigurations();
+
+            if (cameFromActivation && !introShown) {
+                // Show stepper and intro immediately (no flash of config list)
+                document.getElementById('wizardStepper').style.display = 'flex';
+                introShown = true;
+                headerEl.style.display = 'none';
+                showIntroScreen(null); // null = loading state
+                loadConfigurationsForIntro();
+            } else {
+                headerEl.style.display = '';
+                loadConfigurations();
+            }
         } else {
             signinSection.style.display = 'block';
             headerEl.style.display = 'none';
@@ -1285,4 +1469,110 @@ async function deleteConfiguration() {
         document.body.style.overflow = 'auto';
     });
 })();
+
+// --- Camera capture for CalTopo credential secret ---
+var cameraStream = null;
+
+function startCameraCapture() {
+    var preview = document.getElementById('cameraPreview');
+    var video = document.getElementById('cameraVideo');
+    var status = document.getElementById('cameraStatus');
+
+    preview.style.display = 'block';
+    status.textContent = 'Starting camera...';
+
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    }).then(function(stream) {
+        cameraStream = stream;
+        video.srcObject = stream;
+        status.textContent = 'Point camera at the credential secret on your screen, then tap Capture.';
+    }).catch(function(err) {
+        console.error('Camera error:', err);
+        status.textContent = 'Could not access camera: ' + err.message;
+    });
+}
+
+function stopCameraCapture() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(function(track) { track.stop(); });
+        cameraStream = null;
+    }
+    var video = document.getElementById('cameraVideo');
+    video.srcObject = null;
+    document.getElementById('cameraPreview').style.display = 'none';
+    document.getElementById('cameraStatus').textContent = '';
+}
+
+function captureAndRecognize() {
+    var video = document.getElementById('cameraVideo');
+    var canvas = document.getElementById('cameraCanvas');
+    var status = document.getElementById('cameraStatus');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    status.textContent = 'Recognizing text...';
+
+    // Convert canvas to blob and use Tesseract.js for OCR
+    canvas.toBlob(function(blob) {
+        // Load Tesseract.js dynamically if not already loaded
+        if (typeof Tesseract === 'undefined') {
+            var script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+            script.onload = function() {
+                runOCR(blob, status);
+            };
+            script.onerror = function() {
+                status.textContent = 'Failed to load OCR library. Please enter the secret manually.';
+            };
+            document.head.appendChild(script);
+        } else {
+            runOCR(blob, status);
+        }
+    }, 'image/png');
+}
+
+function runOCR(imageBlob, statusEl) {
+    var imageUrl = URL.createObjectURL(imageBlob);
+
+    Tesseract.recognize(imageUrl, 'eng', {
+        logger: function(m) {
+            if (m.status === 'recognizing text') {
+                statusEl.textContent = 'Recognizing... ' + Math.round((m.progress || 0) * 100) + '%';
+            }
+        }
+    }).then(function(result) {
+        URL.revokeObjectURL(imageUrl);
+        var text = result.data.text.trim();
+
+        // The credential secret is a base64 string ending with =
+        // Look for base64-like patterns in the recognized text
+        var base64Pattern = /[A-Za-z0-9+\/]{20,}={0,2}/g;
+        var matches = text.match(base64Pattern);
+
+        if (matches && matches.length > 0) {
+            // Use the longest match (most likely the secret)
+            var secret = matches.sort(function(a, b) { return b.length - a.length; })[0];
+            document.getElementById('ctKey').value = secret;
+            statusEl.textContent = 'Secret captured!';
+            setTimeout(function() { stopCameraCapture(); }, 1000);
+        } else {
+            // Try the raw text with whitespace removed as a fallback
+            var cleaned = text.replace(/\s+/g, '').replace(/[^A-Za-z0-9+\/=]/g, '');
+            if (cleaned.length >= 20) {
+                document.getElementById('ctKey').value = cleaned;
+                statusEl.textContent = 'Secret captured (cleaned). Please verify it is correct.';
+                setTimeout(function() { stopCameraCapture(); }, 1500);
+            } else {
+                statusEl.textContent = 'Could not detect a credential secret. Try again or enter manually.';
+            }
+        }
+    }).catch(function(err) {
+        console.error('OCR error:', err);
+        statusEl.textContent = 'Recognition failed: ' + err.message;
+    });
+}
 </script>
