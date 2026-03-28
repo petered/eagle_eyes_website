@@ -62,6 +62,58 @@ permalink: /setup/
         background: #28a745;
     }
 
+    /* Form step wizard */
+    .form-step-indicator {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+    .step-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #dee2e6;
+        transition: background 0.3s;
+    }
+    .step-dot.active {
+        background: #1e90ff;
+    }
+    .step-dot.completed {
+        background: #28a745;
+    }
+
+    .form-step-question {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.5rem;
+    }
+    .form-step-hint {
+        font-size: 1.4rem;
+        color: #888;
+        margin: 0 0 1.5rem;
+        line-height: 1.5;
+    }
+    .form-step-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 1.5rem;
+    }
+    .setup-btn-link {
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 1.4rem;
+        cursor: pointer;
+        text-decoration: underline;
+        padding: 0.5rem;
+    }
+    .setup-btn-link:hover {
+        color: #555;
+    }
+
     /* Camera capture */
     .camera-capture-container {
         margin-top: 0.5rem;
@@ -96,6 +148,8 @@ permalink: /setup/
     }
     .camera-preview video {
         width: 100%;
+        max-height: 150px;
+        object-fit: cover;
         display: block;
     }
     .camera-preview canvas {
@@ -611,19 +665,36 @@ permalink: /setup/
 
     <!-- Configuration form (hidden until editing/creating) -->
     <div class="setup-form" id="setupForm">
-        <a href="#" id="backToListLink" onclick="showConfigList(); return false;" style="display: inline-block; margin-bottom: 1.5rem; font-size: 1.4rem; color: #1e90ff; text-decoration: none;">&larr; Back to configurations</a>
+        <a href="#" id="backToListLink" onclick="showConfigList(); return false;" style="display: inline-block; margin-bottom: 1rem; font-size: 1.4rem; color: #1e90ff; text-decoration: none;">&larr; Back to configurations</a>
 
-        <!-- General -->
-        <div class="setup-section">
-            <h2>General</h2>
-            <div class="setup-field" id="licenseIdField">
-                <label>License ID</label>
-                <div id="setupFormLicenseDisplay" style="font-size: 1.5rem; font-weight: 600; color: #333; padding: 10px 0;"></div>
-            </div>
+        <!-- License ID (always visible) -->
+        <div id="licenseIdField" style="font-size: 1.3rem; color: #888; margin-bottom: 1rem;">
+            License: <strong id="setupFormLicenseDisplay" style="color: #333;"></strong>
+        </div>
+
+        <!-- Step indicator -->
+        <div class="form-step-indicator" id="formStepIndicator">
+            <span class="step-dot active" data-step="1"></span>
+            <span class="step-dot" data-step="2"></span>
+            <span class="step-dot" data-step="3"></span>
+            <span class="step-dot" data-step="4"></span>
+        </div>
+
+        <!-- Step 1: Name -->
+        <div class="form-step" id="formStep1">
+            <h2 class="form-step-question">What would you like to call this configuration?</h2>
+            <p class="form-step-hint">This name helps your team identify this setup — e.g. "SAR Team Alpha" or "Training Config"</p>
             <div class="setup-field">
-                <label for="setupName">Name <span style="color: #dc3545;">*</span></label>
-                <input type="text" id="setupName" placeholder="e.g. My Team Config" required>
+                <input type="text" id="setupName" placeholder="e.g. SAR Team Alpha" required>
             </div>
+            <div class="form-step-actions">
+                <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Units & Coordinate System -->
+        <div class="form-step" id="formStep2" style="display: none;">
+            <h2 class="form-step-question">What units and coordinate system does your team use?</h2>
             <div class="setup-field">
                 <label for="setupUnits">Units</label>
                 <select id="setupUnits">
@@ -643,11 +714,16 @@ permalink: /setup/
                     <option value="USNG">USNG — e.g. 18S UJ 23394 06842</option>
                 </select>
             </div>
+            <div class="form-step-actions">
+                <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
+                <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+            </div>
         </div>
 
-        <!-- CalTopo Service Account -->
-        <div class="setup-section">
-            <h2>CalTopo Service Account</h2>
+        <!-- Step 3: CalTopo Service Account -->
+        <div class="form-step" id="formStep3" style="display: none;">
+            <h2 class="form-step-question">Connect your CalTopo service account</h2>
+            <p class="form-step-hint">This lets Eagle Eyes access your team's maps automatically.</p>
             <div class="caltopo-instructions">
                 <strong>How to create a service account:</strong>
                 <ol>
@@ -663,7 +739,7 @@ permalink: /setup/
                 <div class="setup-field full-width">
                     <label for="ctKey">Credential Secret</label>
                     <input type="text" id="ctKey" placeholder="Base64-encoded secret key">
-                    <div class="camera-capture-container">
+                    <div class="camera-capture-container" id="cameraCaptureContainer" style="display: none;">
                         <button type="button" class="camera-capture-btn" onclick="startCameraCapture()">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                             Scan secret with camera
@@ -672,7 +748,6 @@ permalink: /setup/
                             <video id="cameraVideo" autoplay playsinline></video>
                             <canvas id="cameraCanvas"></canvas>
                             <div class="camera-controls">
-                                <button type="button" class="capture-btn" onclick="captureAndRecognize()">Capture</button>
                                 <button type="button" class="cancel-btn" onclick="stopCameraCapture()">Cancel</button>
                             </div>
                             <div class="camera-status" id="cameraStatus"></div>
@@ -702,12 +777,17 @@ permalink: /setup/
                 <input type="text" id="setupCaltopoMapUrl" placeholder="https://caltopo.com/m/...">
             </div>
             <div class="setup-status info" id="setupMapIdPreview" style="display: none;"></div>
+            <div class="form-step-actions" style="margin-top: 1.5rem;">
+                <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
+                <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+                <button class="setup-btn setup-btn-link" onclick="skipStep()" id="skipCaltopoBtn">Skip</button>
+            </div>
         </div>
 
-
-        <!-- Procedures -->
-        <div class="setup-section">
-            <h2>Procedures</h2>
+        <!-- Step 4: Procedures -->
+        <div class="form-step" id="formStep4" style="display: none;">
+            <h2 class="form-step-question">Add team procedures (optional)</h2>
+            <p class="form-step-hint">Share standard operating procedures with your team.</p>
             <div class="setup-field">
                 <label for="setupProceduresText">Procedures Text</label>
                 <textarea id="setupProceduresText" placeholder="Enter procedures text..."></textarea>
@@ -716,12 +796,11 @@ permalink: /setup/
                 <label for="setupProceduresLink">Procedures Link</label>
                 <input type="url" id="setupProceduresLink" placeholder="https://...">
             </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="setup-actions">
-            <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save</button>
-            <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
+            <div class="form-step-actions">
+                <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
+                <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Configuration</button>
+                <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
+            </div>
         </div>
 
         <div class="setup-status" id="setupFormStatus"></div>
@@ -1085,9 +1164,62 @@ function showConfigList() {
     loadConfigurations();
 }
 
+var currentFormStep = 1;
+var totalFormSteps = 4;
+
 function showConfigForm() {
     document.getElementById('setupConfigList').style.display = 'none';
+    document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('setupForm').style.display = 'block';
+    showFormStep(1);
+
+    // Show camera button only on mobile
+    var isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    var cameraContainer = document.getElementById('cameraCaptureContainer');
+    if (cameraContainer) {
+        cameraContainer.style.display = isMobile ? 'block' : 'none';
+    }
+}
+
+function showFormStep(step) {
+    currentFormStep = step;
+    for (var i = 1; i <= totalFormSteps; i++) {
+        var el = document.getElementById('formStep' + i);
+        if (el) el.style.display = (i === step) ? 'block' : 'none';
+    }
+    // Update step dots
+    var dots = document.querySelectorAll('.step-dot');
+    dots.forEach(function(dot) {
+        var dotStep = parseInt(dot.getAttribute('data-step'));
+        dot.className = 'step-dot';
+        if (dotStep < step) dot.className += ' completed';
+        if (dotStep === step) dot.className += ' active';
+    });
+}
+
+function nextStep() {
+    // Validate current step
+    if (currentFormStep === 1) {
+        var name = document.getElementById('setupName').value.trim();
+        if (!name) {
+            showStatus('setupFormStatus', 'Please enter a name for this configuration.', 'error');
+            return;
+        }
+        clearStatus('setupFormStatus');
+    }
+    if (currentFormStep < totalFormSteps) {
+        showFormStep(currentFormStep + 1);
+    }
+}
+
+function prevStep() {
+    if (currentFormStep > 1) {
+        showFormStep(currentFormStep - 1);
+    }
+}
+
+function skipStep() {
+    nextStep();
 }
 
 // Build CalTopo service account JSON from form fields + verified data
@@ -1512,8 +1644,13 @@ async function deleteConfiguration() {
     });
 })();
 
-// --- Camera capture for CalTopo credential secret ---
+// --- Camera capture for CalTopo credential secret (auto-scan) ---
 var cameraStream = null;
+var cameraScanActive = false;
+var tesseractLoaded = false;
+
+// CalTopo secrets are base64-encoded 32-byte keys = exactly 44 chars
+var SECRET_PATTERN = /[A-Za-z0-9+\/]{43}=/;
 
 function startCameraCapture() {
     var preview = document.getElementById('cameraPreview');
@@ -1528,14 +1665,92 @@ function startCameraCapture() {
     }).then(function(stream) {
         cameraStream = stream;
         video.srcObject = stream;
-        status.textContent = 'Point camera at the credential secret on your screen, then tap Capture.';
+        status.textContent = 'Point camera at the credential secret on your screen...';
+        cameraScanActive = true;
+        loadTesseractThenScan();
     }).catch(function(err) {
         console.error('Camera error:', err);
         status.textContent = 'Could not access camera: ' + err.message;
     });
 }
 
+function loadTesseractThenScan() {
+    if (typeof Tesseract !== 'undefined') {
+        tesseractLoaded = true;
+        autoScanLoop();
+    } else {
+        var status = document.getElementById('cameraStatus');
+        status.textContent = 'Loading scanner...';
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.onload = function() {
+            tesseractLoaded = true;
+            if (cameraScanActive) {
+                document.getElementById('cameraStatus').textContent = 'Scanning...';
+                autoScanLoop();
+            }
+        };
+        script.onerror = function() {
+            document.getElementById('cameraStatus').textContent = 'Failed to load scanner. Enter the secret manually.';
+        };
+        document.head.appendChild(script);
+    }
+}
+
+function autoScanLoop() {
+    if (!cameraScanActive || !cameraStream) return;
+
+    var video = document.getElementById('cameraVideo');
+    var canvas = document.getElementById('cameraCanvas');
+    var status = document.getElementById('cameraStatus');
+
+    if (video.readyState < 2) {
+        setTimeout(autoScanLoop, 500);
+        return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    status.textContent = 'Scanning...';
+
+    canvas.toBlob(function(blob) {
+        if (!cameraScanActive) return;
+        var imageUrl = URL.createObjectURL(blob);
+
+        Tesseract.recognize(imageUrl, 'eng').then(function(result) {
+            URL.revokeObjectURL(imageUrl);
+            if (!cameraScanActive) return;
+
+            var text = result.data.text || '';
+            // Remove whitespace and look for the exact 44-char base64 pattern
+            var cleaned = text.replace(/\s+/g, '');
+            var match = cleaned.match(SECRET_PATTERN);
+
+            if (match) {
+                document.getElementById('ctKey').value = match[0];
+                status.textContent = 'Secret detected!';
+                cameraScanActive = false;
+                setTimeout(function() { stopCameraCapture(); }, 1000);
+            } else {
+                // No match yet — scan again
+                if (cameraScanActive) {
+                    setTimeout(autoScanLoop, 500);
+                }
+            }
+        }).catch(function(err) {
+            console.error('OCR scan error:', err);
+            if (cameraScanActive) {
+                setTimeout(autoScanLoop, 1000);
+            }
+        });
+    }, 'image/png');
+}
+
 function stopCameraCapture() {
+    cameraScanActive = false;
     if (cameraStream) {
         cameraStream.getTracks().forEach(function(track) { track.stop(); });
         cameraStream = null;
@@ -1544,77 +1759,5 @@ function stopCameraCapture() {
     video.srcObject = null;
     document.getElementById('cameraPreview').style.display = 'none';
     document.getElementById('cameraStatus').textContent = '';
-}
-
-function captureAndRecognize() {
-    var video = document.getElementById('cameraVideo');
-    var canvas = document.getElementById('cameraCanvas');
-    var status = document.getElementById('cameraStatus');
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-
-    status.textContent = 'Recognizing text...';
-
-    // Convert canvas to blob and use Tesseract.js for OCR
-    canvas.toBlob(function(blob) {
-        // Load Tesseract.js dynamically if not already loaded
-        if (typeof Tesseract === 'undefined') {
-            var script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-            script.onload = function() {
-                runOCR(blob, status);
-            };
-            script.onerror = function() {
-                status.textContent = 'Failed to load OCR library. Please enter the secret manually.';
-            };
-            document.head.appendChild(script);
-        } else {
-            runOCR(blob, status);
-        }
-    }, 'image/png');
-}
-
-function runOCR(imageBlob, statusEl) {
-    var imageUrl = URL.createObjectURL(imageBlob);
-
-    Tesseract.recognize(imageUrl, 'eng', {
-        logger: function(m) {
-            if (m.status === 'recognizing text') {
-                statusEl.textContent = 'Recognizing... ' + Math.round((m.progress || 0) * 100) + '%';
-            }
-        }
-    }).then(function(result) {
-        URL.revokeObjectURL(imageUrl);
-        var text = result.data.text.trim();
-
-        // The credential secret is a base64 string ending with =
-        // Look for base64-like patterns in the recognized text
-        var base64Pattern = /[A-Za-z0-9+\/]{20,}={0,2}/g;
-        var matches = text.match(base64Pattern);
-
-        if (matches && matches.length > 0) {
-            // Use the longest match (most likely the secret)
-            var secret = matches.sort(function(a, b) { return b.length - a.length; })[0];
-            document.getElementById('ctKey').value = secret;
-            statusEl.textContent = 'Secret captured!';
-            setTimeout(function() { stopCameraCapture(); }, 1000);
-        } else {
-            // Try the raw text with whitespace removed as a fallback
-            var cleaned = text.replace(/\s+/g, '').replace(/[^A-Za-z0-9+\/=]/g, '');
-            if (cleaned.length >= 20) {
-                document.getElementById('ctKey').value = cleaned;
-                statusEl.textContent = 'Secret captured (cleaned). Please verify it is correct.';
-                setTimeout(function() { stopCameraCapture(); }, 1500);
-            } else {
-                statusEl.textContent = 'Could not detect a credential secret. Try again or enter manually.';
-            }
-        }
-    }).catch(function(err) {
-        console.error('OCR error:', err);
-        statusEl.textContent = 'Recognition failed: ' + err.message;
-    });
 }
 </script>
