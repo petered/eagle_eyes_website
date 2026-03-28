@@ -1,6 +1,6 @@
 ---
 layout: main
-title: Set up Eagle Eyes Pilot on this device
+title: Set up Eagle Eyes Pilot
 permalink: /activate/
 ---
 
@@ -685,7 +685,7 @@ permalink: /activate/
     <!-- Main Activation Content -->
     <div id="activation-content" style="display: none;">
         <div class="activation-form">
-            <h1 class="activation-title">Set up Eagle Eyes Pilot on this device</h1>
+            <h1 class="activation-title">Set up Eagle Eyes Pilot</h1>
             
             <div class="code-input-container">
                 <input type="text" 
@@ -828,9 +828,15 @@ permalink: /activate/
     
     // Global variable to store URL activation code
     let urlActivationCode = null;
-    
+
     // Global variable to store session ID for backend requests
     let globalSessionId = null;
+
+    // URL parameters passed from the app
+    const urlParamsGlobal = new URLSearchParams(window.location.search);
+    const enableSetup = urlParamsGlobal.get('enable_setup') === 'true';
+    const clientAppVersion = urlParamsGlobal.get('client_app_version') || '';
+    const urlIntegrationType = urlParamsGlobal.get('integration_type') || '';
     
     function getUrlActivationCode() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -906,11 +912,28 @@ permalink: /activate/
         // Show emulator banner if in emulator mode
         if (useLocalFirebaseEmulator) {
             const emulatorBanner = $(`
-                <div style="background-color: #ff9800; color: black; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 20px;">
-                    🧪 Emulator Mode: Using local Firebase emulator database
+                <div style="background-color: #4CAF50; color: white; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 20px;">
+                    <strong>Development Mode</strong>
+                    <button id="test-user-login" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 10px;">Sign in as Test User</button>
                 </div>
             `);
             $('.activation-container').prepend(emulatorBanner);
+
+            $('#test-user-login').on('click', function() {
+                var testEmail = 'test@example.com';
+                var testPassword = 'password123';
+                firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                    .then(function() { console.log('Test user signed in'); })
+                    .catch(function(error) {
+                        if (error.code === 'auth/user-not-found') {
+                            firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                .then(function() { console.log('Test user created and signed in'); })
+                                .catch(function(e) { console.error('Error creating test user:', e); });
+                        } else {
+                            console.error('Error signing in test user:', error);
+                        }
+                    });
+            });
         }
         
         // Check authentication state
@@ -1004,7 +1027,7 @@ permalink: /activate/
             $('#activation-content').show();
             
             // Update title for manual activation
-            $('#activation-content .activation-title').text('Set up Eagle Eyes Pilot on this device');
+            $('#activation-content .activation-title').text('Set up Eagle Eyes Pilot');
             
             // Focus on input field when showing activation content
             setTimeout(() => {
@@ -1694,6 +1717,21 @@ permalink: /activate/
             
             $('#activationLoading').hide();
             
+            // Build setup URL if setup is enabled
+            let setupButtonHtml = '';
+            if (enableSetup) {
+                const setupParams = new URLSearchParams({ license_id: selectedLicense });
+                if (globalSessionId) setupParams.set('session_id', globalSessionId);
+                if (clientAppVersion) setupParams.set('client_app_version', clientAppVersion);
+                if (urlIntegrationType) setupParams.set('integration_type', urlIntegrationType);
+                const setupUrl = '{{ "/setup/" | relative_url }}?' + setupParams.toString();
+                setupButtonHtml = `
+                    <button class="activate-button" onclick="window.location.href='${setupUrl}'" style="margin-top: 10px;">
+                        Configure Settings
+                    </button>
+                `;
+            }
+
             let successHtml;
             if (hasExistingKey) {
                 successHtml = `
@@ -1704,6 +1742,7 @@ permalink: /activate/
                         <button class="btn-reactivate-license" onclick="window.location.href='{{ '/account/' | relative_url }}'">
                             Go to Account Page
                         </button>
+                        ${setupButtonHtml}
                     </div>
                 `;
             } else {
@@ -1715,6 +1754,7 @@ permalink: /activate/
                         <button class="activate-button" onclick="window.location.href='{{ '/account/' | relative_url }}'">
                             Go to Account Page
                         </button>
+                        ${setupButtonHtml}
                     </div>
                 `;
             }

@@ -1,0 +1,1288 @@
+---
+layout: main
+title: Controller Configurations - Eagle Eyes
+permalink: /setup/
+---
+
+<style>
+    .setup-container {
+        width: 80%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 14rem 1rem 4rem;
+    }
+
+    .setup-user-info {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1rem;
+        font-size: 14px;
+        color: #555;
+    }
+
+    .setup-user-info a {
+        color: #999;
+        text-decoration: none;
+    }
+
+    .setup-user-info a:hover {
+        color: #333;
+        text-decoration: underline;
+    }
+
+    .setup-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .setup-header h1 {
+        font-size: 2.4rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.5rem;
+    }
+
+    .setup-header p {
+        font-size: 1.5rem;
+        color: #555;
+        margin: 0;
+    }
+
+    /* Form fields */
+    .setup-field {
+        margin-bottom: 1.5rem;
+    }
+
+    .setup-field label {
+        display: block;
+        font-size: 1.6rem;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 0.4rem;
+    }
+
+    .setup-field .field-hint {
+        font-size: 1.4rem;
+        color: #888;
+        margin-bottom: 0.4rem;
+    }
+
+    .setup-field input[type="text"],
+    .setup-field input[type="url"],
+    .setup-field textarea,
+    .setup-field select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1.6rem;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .setup-field input:focus,
+    .setup-field textarea:focus,
+    .setup-field select:focus {
+        outline: none;
+        border-color: #1e90ff;
+    }
+
+    .setup-field textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    /* Form sections */
+    .setup-form {
+        display: none;
+    }
+
+    .setup-section {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .setup-section h2 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 1.5rem;
+        padding-left: 0.75rem;
+        border-left: 3px solid #1e90ff;
+    }
+
+    /* Two-column grid for CalTopo fields */
+    .setup-field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 1.5rem;
+    }
+
+    .setup-field-grid .setup-field.full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* CalTopo instructions */
+    .caltopo-instructions {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        color: #555;
+    }
+
+    .caltopo-instructions ol {
+        margin: 0.5rem 0 0 1.2rem;
+        padding: 0;
+        line-height: 1.8;
+    }
+
+    .caltopo-instructions strong {
+        color: #333;
+    }
+
+    /* CalTopo verify result box */
+    .caltopo-verify-result {
+        display: none;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-top: 1rem;
+        font-size: 1.3rem;
+    }
+
+    .caltopo-verify-result.success {
+        display: block;
+        background: #e6f4ea;
+        border: 1px solid #a8dab5;
+        color: #1e8e3e;
+    }
+
+    .caltopo-verify-result.error {
+        display: block;
+        background: #fce8e6;
+        border: 1px solid #f5c6cb;
+        color: #d93025;
+    }
+
+    .caltopo-verify-result .detail-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.3rem;
+    }
+
+    .caltopo-verify-result .detail-label {
+        font-weight: 600;
+        min-width: 100px;
+    }
+
+    /* Buttons */
+    .setup-btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .setup-btn-primary {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .setup-btn-primary:hover {
+        background-color: #1873cc;
+    }
+
+    .setup-btn-primary:disabled {
+        background-color: #a0c4e8;
+        cursor: not-allowed;
+    }
+
+    .setup-btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .setup-btn-danger:hover {
+        background-color: #c82333;
+    }
+
+    .setup-btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .setup-btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    .setup-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    /* Status messages */
+    .setup-status {
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-size: 1.4rem;
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .setup-status.success {
+        display: block;
+        background-color: #e6f4ea;
+        color: #1e8e3e;
+    }
+
+    .setup-status.error {
+        display: block;
+        background-color: #fce8e6;
+        color: #d93025;
+    }
+
+    .setup-status.info {
+        display: block;
+        background-color: #e8f0fe;
+        color: #1a73e8;
+    }
+
+    /* Sign-in section */
+    .setup-signin-section {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .setup-signin-btn {
+        background-color: #1e90ff;
+        color: white;
+        padding: 12px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .setup-signin-btn:hover {
+        background-color: #1873cc;
+    }
+
+    /* Config list cards */
+    .config-card {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .config-card:hover {
+        border-color: #1e90ff;
+    }
+
+    .config-card-info h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.3rem;
+    }
+
+    .config-card-detail {
+        font-size: 1.5rem;
+        color: #888;
+        display: block;
+    }
+
+    .config-card-empty {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #888;
+        font-size: 1.4rem;
+        background: white;
+        border: 2px dashed #e9ecef;
+        border-radius: 12px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid #e9ecef;
+        border-top-color: #4a90d9;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .setup-container {
+            width: 92%;
+            padding-top: 10rem;
+        }
+
+        .setup-license-row {
+            flex-direction: column;
+        }
+
+        .setup-field-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .setup-actions {
+            flex-direction: column;
+        }
+
+        .setup-btn {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+
+<!-- Sign-in overlay -->
+<div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+    <div style="position: relative; width: 100%; height: 100%;">
+        {% include signinwidget-main.html %}
+    </div>
+</div>
+
+<!-- Main content -->
+<div class="setup-container">
+
+    <!-- User info bar -->
+    <div class="setup-user-info" id="setupUserInfo">
+        <span id="setupUserEmail"></span>
+        <a href="#" id="setupSignOutButton">Sign out</a>
+    </div>
+
+    <div id="test-user-banner" style="display: none; background-color: #4CAF50; color: white; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 1rem;">
+        <strong>Development Mode</strong>
+        <button id="test-user-login" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 10px;">Sign in as Test User</button>
+    </div>
+
+    <!-- Sign-in prompt (shown when not authenticated) -->
+    <div id="setupSigninSection" class="setup-signin-section" style="display: block;">
+        <p style="margin-bottom: 20px;">Sign in to configure your drone controller.</p>
+        <button class="setup-signin-btn" onclick="toggleSignIn()">Sign In or Create Account</button>
+    </div>
+
+    <!-- Page header -->
+    <div class="setup-header" id="setupHeader" style="display: none;">
+        <h1>Controller Configurations</h1>
+        <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
+    </div>
+
+    <!-- Intro screen (shown when arriving from activation) -->
+    <div id="setupIntro" style="display: none;">
+        <div style="background: #f0f7ff; border: 1px solid #c4ddf7; border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+            <h2 id="introTitle" style="font-size: 1.8rem; font-weight: 600; color: #333; margin: 0 0 1rem;">Set up your controller</h2>
+            <p id="introMessage" style="font-size: 1.4rem; color: #555; line-height: 1.6; margin: 0 0 1.5rem;">
+                Save your CalTopo credentials, default map, units, and procedures as a controller configuration.
+                When new team members activate a device on this license, their controller will be set up automatically.
+            </p>
+            <div id="introExistingConfigs"></div>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+                <button class="setup-btn setup-btn-primary" id="introSetupBtn" onclick="introSetupController()">Set Up Controller</button>
+                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controller settings list (shown after auth) -->
+    <div id="setupConfigList" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <span class="config-card-detail" id="configListSubtitle"></span>
+                <span class="config-card-detail" id="setupLicenseLink"><strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></span>
+            </div>
+            <button class="setup-btn setup-btn-primary" onclick="createNewConfiguration()">+ New</button>
+        </div>
+        <div id="configListItems"></div>
+        <div class="setup-status" id="configListStatus"></div>
+    </div>
+
+    <!-- License ID dialog -->
+    <div id="licenseDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1002; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 12px; padding: 2rem; width: 90%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);">
+            <h3 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Enter License ID</h3>
+            <p style="font-size: 1.3rem; color: #888; margin: 0 0 1.2rem;">Enter a license ID to find or create configurations.</p>
+            <input type="text" id="setupLicenseInput" placeholder="e.g. ABC123" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1.5rem; box-sizing: border-box; margin-bottom: 1rem;">
+            <div class="setup-status" id="setupLicenseStatus"></div>
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="setup-btn setup-btn-secondary" onclick="closeLicenseDialog()">Cancel</button>
+                <button class="setup-btn setup-btn-primary" onclick="submitLicenseDialog()">Load</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration form (hidden until editing/creating) -->
+    <div class="setup-form" id="setupForm">
+        <a href="#" id="backToListLink" onclick="showConfigList(); return false;" style="display: inline-block; margin-bottom: 1.5rem; font-size: 1.4rem; color: #1e90ff; text-decoration: none;">&larr; Back to configurations</a>
+
+        <!-- General -->
+        <div class="setup-section">
+            <h2>General</h2>
+            <div class="setup-field" id="licenseIdField">
+                <label>License ID</label>
+                <div id="setupFormLicenseDisplay" style="font-size: 1.5rem; font-weight: 600; color: #333; padding: 10px 0;"></div>
+            </div>
+            <div class="setup-field">
+                <label for="setupName">Name <span style="color: #dc3545;">*</span></label>
+                <input type="text" id="setupName" placeholder="e.g. My Team Config" required>
+            </div>
+            <div class="setup-field">
+                <label for="setupUnits">Units</label>
+                <select id="setupUnits">
+                    <option value="IMPERIAL">U.S. customary (Standard) / Imperial</option>
+                    <option value="METRIC">Metric</option>
+                </select>
+            </div>
+            <div class="setup-field">
+                <label for="setupCoordsys">Coordinate System</label>
+                <select id="setupCoordsys">
+                    <option value="DD">Decimal Degrees (DD) — e.g. 38.8977, -77.0365</option>
+                    <option value="DDM">Degrees Decimal Minutes (DDM) — e.g. 38°53.862'N 77°02.190'W</option>
+                    <option value="DMS">Degrees Minutes Seconds (DMS) — e.g. 38°53'51.7"N 77°02'11.4"W</option>
+                    <option value="UTM">UTM — e.g. 18S 323394 4306842</option>
+                    <option value="MGRS">MGRS — e.g. 18SUJ2339406842</option>
+                    <option value="OSGRID">OS Grid — e.g. TQ 30163 80057</option>
+                    <option value="USNG">USNG — e.g. 18S UJ 23394 06842</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- CalTopo Service Account -->
+        <div class="setup-section">
+            <h2>CalTopo Service Account</h2>
+            <div class="caltopo-instructions">
+                <strong>How to create a service account:</strong>
+                <ol>
+                    <li>Open CalTopo, click your username, click "Administer" next to your team name</li>
+                    <li>Navigate to the "Details" tab</li>
+                    <li>Click "Create a Service Account" near the bottom</li>
+                    <li>Choose a title and permission level, click Create</li>
+                    <li><strong>Immediately copy</strong> the Account ID, Credential ID, and Credential Secret &mdash; the secret is only shown once!</li>
+                    <li>Paste them into the fields below and click "Verify &amp; Connect"</li>
+                </ol>
+            </div>
+            <div class="setup-field-grid">
+                <div class="setup-field full-width">
+                    <label for="ctKey">Credential Secret</label>
+                    <input type="text" id="ctKey" placeholder="Base64-encoded secret key">
+                </div>
+                <div class="setup-field">
+                    <label for="ctAccountId">Account ID</label>
+                    <input type="text" id="ctAccountId" placeholder="e.g. G0NGJU">
+                </div>
+                <div class="setup-field">
+                    <label for="ctCredentialId">Credential ID</label>
+                    <input type="text" id="ctCredentialId" placeholder="e.g. P0NM6A5800ST">
+                </div>
+            </div>
+            <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()" style="margin-top: 0.5rem;">Verify &amp; Connect</button>
+            <div class="caltopo-verify-result" id="ctVerifyResult"></div>
+            <div class="setup-field" id="ctMapDropdownField" style="display: none; margin-top: 1rem;">
+                <label for="ctMapDropdown">Default CalTopo Map</label>
+                <div class="field-hint">Select a map from your CalTopo account, or enter a URL manually below.</div>
+                <select id="ctMapDropdown">
+                    <option value="">None &mdash; don't set a default map</option>
+                </select>
+            </div>
+            <div class="setup-field" id="ctManualMapField" style="margin-top: 1rem;">
+                <label for="setupCaltopoMapUrl">Or enter a map URL manually</label>
+                <input type="text" id="setupCaltopoMapUrl" placeholder="https://caltopo.com/m/...">
+            </div>
+            <div class="setup-status info" id="setupMapIdPreview" style="display: none;"></div>
+        </div>
+
+
+        <!-- Procedures -->
+        <div class="setup-section">
+            <h2>Procedures</h2>
+            <div class="setup-field">
+                <label for="setupProceduresText">Procedures Text</label>
+                <textarea id="setupProceduresText" placeholder="Enter procedures text..."></textarea>
+            </div>
+            <div class="setup-field">
+                <label for="setupProceduresLink">Procedures Link</label>
+                <input type="url" id="setupProceduresLink" placeholder="https://...">
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="setup-actions">
+            <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save</button>
+            <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
+        </div>
+
+        <div class="setup-status" id="setupFormStatus"></div>
+    </div>
+
+</div>
+
+<script>
+// State
+var currentConfigurationId = null;
+var currentLicenseId = null;
+var caltopoVerifiedData = null; // Stores fetched CalTopo metadata after verification
+var cachedConfigurations = []; // Cached list of user configurations
+
+// URL parameters from app
+var urlSetupParams = new URLSearchParams(window.location.search);
+var urlClientAppVersion = urlSetupParams.get('client_app_version') || '';
+var urlIntegrationType = urlSetupParams.get('integration_type') || '';
+var urlSessionId = urlSetupParams.get('session_id') || '';
+var cameFromActivation = !!urlSetupParams.get('license_id');
+var introShown = false;
+
+var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
+
+// Toggle sign-in overlay
+function toggleSignIn() {
+    var overlay = document.getElementById('signin-overlay');
+    overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+    document.body.style.overflow = overlay.style.display === 'block' ? 'hidden' : 'auto';
+}
+
+// Status helpers
+function showStatus(elementId, message, type) {
+    var el = document.getElementById(elementId);
+    el.textContent = message;
+    el.className = 'setup-status ' + type;
+}
+
+function clearStatus(elementId) {
+    var el = document.getElementById(elementId);
+    el.textContent = '';
+    el.className = 'setup-status';
+}
+
+// Get Firebase ID token
+async function getIdToken() {
+    var user = firebase.auth().currentUser;
+    if (!user) throw new Error('Not authenticated');
+    return user.getIdToken();
+}
+
+// API call helper
+async function apiCall(endpoint, body) {
+    var token = await getIdToken();
+    var response = await fetch(API_BASE + endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+        var text = await response.text();
+        throw new Error(text || 'API error: ' + response.status);
+    }
+    return response.json();
+}
+
+// Extract mapId from CalTopo URL
+function extractMapId(url) {
+    if (!url) return null;
+    var match = url.match(/caltopo\.com\/m\/([A-Za-z0-9]+)/);
+    return match ? match[1] : null;
+}
+
+// Update map ID preview when URL changes; reset dropdown when typing manually
+document.getElementById('setupCaltopoMapUrl').addEventListener('input', function() {
+    var mapId = extractMapId(this.value);
+    var preview = document.getElementById('setupMapIdPreview');
+    if (mapId) {
+        preview.textContent = 'Detected map ID: ' + mapId;
+        preview.className = 'setup-status info';
+    } else if (this.value.trim()) {
+        preview.textContent = 'Could not extract map ID from URL.';
+        preview.className = 'setup-status error';
+    } else {
+        preview.className = 'setup-status';
+    }
+    // Reset dropdown when user types a URL
+    if (this.value.trim()) {
+        document.getElementById('ctMapDropdown').selectedIndex = 0;
+    }
+});
+
+// Reset manual URL when user selects from dropdown
+document.getElementById('ctMapDropdown').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('setupCaltopoMapUrl').value = '';
+        var preview = document.getElementById('setupMapIdPreview');
+        preview.className = 'setup-status';
+    }
+});
+
+// --- Intro screen (shown when arriving from activation) ---
+
+function showIntroScreen(configs) {
+    document.getElementById('setupConfigList').style.display = 'none';
+    document.getElementById('setupForm').style.display = 'none';
+    var introEl = document.getElementById('setupIntro');
+    introEl.style.display = '';
+
+    var titleEl = document.getElementById('introTitle');
+    var messageEl = document.getElementById('introMessage');
+    var existingEl = document.getElementById('introExistingConfigs');
+    var setupBtn = document.getElementById('introSetupBtn');
+
+    if (configs && configs.length > 0) {
+        titleEl.textContent = 'Controller configurations available';
+        messageEl.textContent = 'Your team already has controller configurations. Select one to apply it to the device that was just activated, or create a new one.';
+        setupBtn.textContent = 'Create New';
+
+        var html = '';
+        configs.forEach(function(config, index) {
+            var cfg = config.config || {};
+            html += '<div class="config-card" onclick="introSelectConfig(' + index + ')" style="cursor: pointer;">';
+            html += '<div class="config-card-info">';
+            html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
+            if (cfg.service_account && cfg.service_account.teamName) {
+                html += '<span class="config-card-detail">CalTopo Team: ' + escapeHtml(cfg.service_account.teamName) + '</span>';
+            }
+            html += '</div>';
+            html += '<span style="color: #1e90ff; font-size: 1.3rem;">Select &rarr;</span>';
+            html += '</div>';
+        });
+        existingEl.innerHTML = html;
+    } else {
+        titleEl.textContent = 'Set up your controller';
+        messageEl.textContent = 'Save your CalTopo credentials, default map, units, and procedures as a controller configuration. When new team members activate a device on this license, their controller will be set up automatically.';
+        setupBtn.textContent = 'Set Up Controller';
+        existingEl.innerHTML = '';
+    }
+}
+
+function introSetupController() {
+    document.getElementById('setupIntro').style.display = 'none';
+    createNewConfiguration();
+}
+
+function introSelectConfig(index) {
+    document.getElementById('setupIntro').style.display = 'none';
+    editConfiguration(index);
+}
+
+function introSkip() {
+    window.location.href = '{{ "/account/" | relative_url }}';
+}
+
+// --- Configuration list ---
+
+async function loadConfigurations() {
+    var licenseInput = document.getElementById('setupLicenseInput').value.trim();
+    currentLicenseId = licenseInput || null;
+    clearStatus('setupLicenseStatus');
+
+    // Update subtitle in config list header
+    var subtitleEl = document.getElementById('configListSubtitle');
+    var parts = [];
+    var user = firebase.auth().currentUser;
+    if (currentLicenseId) {
+        parts.push('Related to license <strong>' + escapeHtml(currentLicenseId) + '</strong>');
+    }
+    if (user && user.email) {
+        parts.push('Related to user <strong>' + escapeHtml(user.email) + '</strong>');
+    }
+    subtitleEl.innerHTML = parts.join(' and/or ');
+
+    // Update license link state
+    var licenseLinkEl = document.getElementById('setupLicenseLink');
+    if (currentLicenseId) {
+        licenseLinkEl.innerHTML = 'License: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Change</a>';
+    } else {
+        licenseLinkEl.innerHTML = '<strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a>';
+    }
+
+    // Show the config list section
+    document.getElementById('setupConfigList').style.display = '';
+
+    var listEl = document.getElementById('configListItems');
+    var statusEl = document.getElementById('configListStatus');
+    listEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: #888;"><div class="spinner" style="margin: 0 auto 1rem;"></div>Loading configurations...</div>';
+    statusEl.className = 'setup-status';
+    statusEl.textContent = '';
+
+    var body = currentLicenseId ? { license_id: currentLicenseId } : {};
+
+    try {
+        var result = await apiCall('get_configuration', body);
+        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
+        cachedConfigurations = configs;
+
+        // If arriving from activation, show intro screen first
+        if (cameFromActivation && !introShown) {
+            introShown = true;
+            showIntroScreen(configs);
+        } else {
+            renderConfigList(configs);
+        }
+    } catch (err) {
+        console.error('Error loading configurations:', err);
+        listEl.innerHTML = '';
+        statusEl.textContent = 'Error loading configurations: ' + err.message;
+        statusEl.className = 'setup-status error';
+    }
+}
+
+function renderConfigList(configs) {
+    var listEl = document.getElementById('configListItems');
+    if (!configs || configs.length === 0) {
+        listEl.innerHTML = '<div class="config-card-empty">No configurations found. Click "+ New" to create one.</div>';
+        return;
+    }
+    var html = '';
+    configs.forEach(function(config, index) {
+        var cfg = config.config || {};
+        var licenses = config.licenses || [];
+        var licenseStr = licenses.join(', ') || 'No license';
+
+        var details = [];
+        details.push('License: ' + escapeHtml(licenseStr));
+        details.push('Units: ' + (cfg.units === 'METRIC' ? 'Metric' : 'U.S. customary (Standard) / Imperial'));
+        if (cfg.coordsys) details.push('Coord System: ' + escapeHtml(cfg.coordsys));
+
+        if (cfg.service_account) {
+            var sa = cfg.service_account;
+            if (sa.teamName) details.push('CalTopo Team: ' + escapeHtml(sa.teamName));
+        }
+
+        if (cfg.default_map) {
+            var map = cfg.default_map;
+            if (map.mapName) details.push('Default Map: ' + escapeHtml(map.mapName));
+            else if (map.mapId) details.push('Default Map: ' + escapeHtml(map.mapId));
+        }
+
+        if (cfg.procedures_text || cfg.procedures_link) {
+            details.push('Procedures: Yes');
+        }
+
+        html += '<div class="config-card" onclick="editConfiguration(' + index + ')">';
+        html += '<div class="config-card-info">';
+        html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
+        details.forEach(function(d) {
+            html += '<span class="config-card-detail">' + d + '</span>';
+        });
+        html += '</div>';
+        html += '<span style="color: #1e90ff; font-size: 1.3rem;">Edit &rarr;</span>';
+        html += '</div>';
+    });
+    listEl.innerHTML = html;
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function editConfiguration(index) {
+    var config = cachedConfigurations[index];
+    if (!config) return;
+    currentConfigurationId = config.configuration_id;
+    // Use currentLicenseId if set, otherwise derive from the config
+    if (!currentLicenseId) {
+        var licenses = config.licenses || [];
+        currentLicenseId = licenses[0] || null;
+    }
+    clearForm();
+    populateForm(config);
+    document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId || '';
+    document.getElementById('setupDeleteBtn').style.display = '';
+    showConfigForm();
+}
+
+var licenseDialogCallback = null;
+
+function showLicenseDialog(callback) {
+    licenseDialogCallback = callback || null;
+    var dialog = document.getElementById('licenseDialog');
+    dialog.style.display = 'flex';
+    clearStatus('setupLicenseStatus');
+    document.getElementById('setupLicenseInput').focus();
+}
+
+function closeLicenseDialog() {
+    document.getElementById('licenseDialog').style.display = 'none';
+    licenseDialogCallback = null;
+}
+
+function submitLicenseDialog() {
+    var val = document.getElementById('setupLicenseInput').value.trim();
+    if (!val) {
+        showStatus('setupLicenseStatus', 'Please enter a license ID.', 'error');
+        return;
+    }
+    currentLicenseId = val;
+    document.getElementById('licenseDialog').style.display = 'none';
+    // Update the link text to show current license
+    document.getElementById('setupLicenseLink').innerHTML = 'License: <strong>' + escapeHtml(val) + '</strong>. <a href=\"#\" onclick=\"showLicenseDialog(); return false;\" style=\"color: #1e90ff;\">Change</a>';
+    if (licenseDialogCallback) {
+        licenseDialogCallback();
+        licenseDialogCallback = null;
+    } else {
+        loadConfigurations();
+    }
+}
+
+function createNewConfiguration() {
+    if (!currentLicenseId) {
+        showLicenseDialog(function() {
+            // After license is set, proceed to create
+            currentConfigurationId = null;
+            clearForm();
+            document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
+            document.getElementById('setupDeleteBtn').style.display = 'none';
+            showConfigForm();
+        });
+        return;
+    }
+    currentConfigurationId = null;
+    clearForm();
+    document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
+    document.getElementById('setupDeleteBtn').style.display = 'none';
+    showConfigForm();
+}
+
+function showConfigList() {
+    document.getElementById('setupForm').style.display = 'none';
+    clearStatus('setupFormStatus');
+    loadConfigurations();
+}
+
+function showConfigForm() {
+    document.getElementById('setupConfigList').style.display = 'none';
+    document.getElementById('setupForm').style.display = 'block';
+}
+
+// Build CalTopo service account JSON from form fields + verified data
+function buildCaltopoServiceAccountJson() {
+    var accountId = document.getElementById('ctAccountId').value.trim();
+    var credentialId = document.getElementById('ctCredentialId').value.trim();
+    var key = document.getElementById('ctKey').value.trim();
+    // If no key fields are filled, return empty string
+    if (!accountId && !credentialId && !key) return '';
+    var obj = {
+        accountId: accountId,
+        credentialId: credentialId,
+        key: key,
+        title: (caltopoVerifiedData && caltopoVerifiedData.title) || '',
+        permission: (caltopoVerifiedData && caltopoVerifiedData.permission) || '',
+        lastUsed: (caltopoVerifiedData && caltopoVerifiedData.lastUsed) || null,
+        teamAccountId: (caltopoVerifiedData && caltopoVerifiedData.teamAccountId) || '',
+        teamName: (caltopoVerifiedData && caltopoVerifiedData.teamName) || ''
+    };
+    return JSON.stringify(obj);
+}
+
+// Verify CalTopo service account credentials via backend
+async function verifyCaltopoServiceAccount() {
+    var accountId = document.getElementById('ctAccountId').value.trim();
+    var credentialId = document.getElementById('ctCredentialId').value.trim();
+    var key = document.getElementById('ctKey').value.trim();
+    var resultEl = document.getElementById('ctVerifyResult');
+    var btn = document.getElementById('ctVerifyBtn');
+
+    if (!accountId || !credentialId || !key) {
+        resultEl.className = 'caltopo-verify-result error';
+        resultEl.textContent = 'Please fill in all three fields: Account ID, Credential ID, and Credential Secret.';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    resultEl.className = 'caltopo-verify-result';
+    resultEl.style.display = 'none';
+
+    try {
+        var result = await apiCall('verify_caltopo_service_account', {
+            license_id: currentLicenseId,
+            account_id: accountId,
+            credential_id: credentialId,
+            credential_secret: key
+        });
+
+        if (result.success) {
+            caltopoVerifiedData = {
+                title: result.title || '',
+                permission: result.permission || '',
+                lastUsed: result.last_used || null,
+                teamAccountId: result.team_account_id || '',
+                teamName: result.team_name || '',
+                maps: result.maps || []
+            };
+            showCaltopoVerifySuccess(caltopoVerifiedData);
+            populateMapDropdown(caltopoVerifiedData.maps);
+        } else {
+            resultEl.className = 'caltopo-verify-result error';
+            resultEl.textContent = result.message || 'Verification failed.';
+        }
+    } catch (err) {
+        resultEl.className = 'caltopo-verify-result error';
+        resultEl.textContent = 'Verification error: ' + err.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify & Connect';
+    }
+}
+
+// Display verified CalTopo account info
+function showCaltopoVerifySuccess(data) {
+    var resultEl = document.getElementById('ctVerifyResult');
+    var html = '<strong>Connected successfully!</strong>';
+    if (data.title) html += '<div class="detail-row"><span class="detail-label">Title:</span><span>' + data.title + '</span></div>';
+    if (data.permission) html += '<div class="detail-row"><span class="detail-label">Permission:</span><span>' + data.permission + '</span></div>';
+    var lastUsedStr = 'Never';
+    if (data.lastUsed) {
+        try { lastUsedStr = new Date(data.lastUsed).toLocaleDateString(); } catch (e) { lastUsedStr = data.lastUsed; }
+    }
+    html += '<div class="detail-row"><span class="detail-label">Last used:</span><span>' + lastUsedStr + '</span></div>';
+    if (data.teamAccountId) html += '<div class="detail-row"><span class="detail-label">Team ID:</span><span>' + data.teamAccountId + '</span></div>';
+    if (data.teamName) html += '<div class="detail-row"><span class="detail-label">Team:</span><span>' + data.teamName + '</span></div>';
+    resultEl.className = 'caltopo-verify-result success';
+    resultEl.innerHTML = html;
+}
+
+// Populate map dropdown from maps array
+function populateMapDropdown(maps) {
+    var dropdown = document.getElementById('ctMapDropdown');
+    var field = document.getElementById('ctMapDropdownField');
+    // Clear existing options except the first "None" option
+    while (dropdown.options.length > 1) dropdown.remove(1);
+    if (maps && maps.length > 0) {
+        maps.forEach(function(map) {
+            var opt = document.createElement('option');
+            opt.value = map.id;
+            opt.textContent = map.name || map.id;
+            dropdown.appendChild(opt);
+        });
+    }
+    field.style.display = '';
+    // Pre-select saved map if there is one
+    preselectSavedMap();
+}
+
+// Try to pre-select the saved map in the dropdown
+function preselectSavedMap() {
+    var dropdown = document.getElementById('ctMapDropdown');
+    var urlField = document.getElementById('setupCaltopoMapUrl');
+    var mapId = extractMapId(urlField.value);
+    if (mapId) {
+        for (var i = 0; i < dropdown.options.length; i++) {
+            if (dropdown.options[i].value === mapId) {
+                dropdown.selectedIndex = i;
+                urlField.value = '';
+                var preview = document.getElementById('setupMapIdPreview');
+                preview.className = 'setup-status';
+                return;
+            }
+        }
+    }
+}
+
+// Build default CalTopo map JSON from dropdown or URL
+function buildCaltopoMapJson() {
+    var dropdown = document.getElementById('ctMapDropdown');
+    var selectedMapId = dropdown ? dropdown.value : '';
+    var selectedMapName = selectedMapId ? dropdown.options[dropdown.selectedIndex].text : null;
+
+    // If no dropdown selection, try manual URL
+    if (!selectedMapId) {
+        var url = document.getElementById('setupCaltopoMapUrl').value.trim();
+        selectedMapId = extractMapId(url);
+        selectedMapName = null;
+        if (!selectedMapId) return '';
+    }
+
+    return JSON.stringify({
+        mapId: selectedMapId,
+        mapName: selectedMapName,
+        folderSpec: null,
+        trackInfo: null,
+        limitImageUploadSize: false,
+        connectedWithServiceAccount: true,
+        version: 3,
+        importFolderIds: null
+    });
+}
+
+// Populate form from existing configuration
+function populateForm(config) {
+    var cfg = config.config || {};
+    document.getElementById('setupName').value = config.label || '';
+    document.getElementById('setupUnits').value = cfg.units || 'IMPERIAL';
+    document.getElementById('setupCoordsys').value = cfg.coordsys || 'DD';
+
+    // CalTopo service account
+    if (cfg.service_account) {
+        var sa = cfg.service_account;
+        document.getElementById('ctAccountId').value = sa.accountId || '';
+        document.getElementById('ctCredentialId').value = sa.credentialId || '';
+        document.getElementById('ctKey').value = sa.key || '';
+        // Store metadata from saved config so it's included on save
+        caltopoVerifiedData = {
+            title: sa.title || '',
+            permission: sa.permission || '',
+            lastUsed: sa.lastUsed || null,
+            teamAccountId: sa.teamAccountId || '',
+            teamName: sa.teamName || '',
+            maps: sa.maps || []
+        };
+        // Show stored metadata in the verify result area
+        showCaltopoVerifySuccess(caltopoVerifiedData);
+        if (caltopoVerifiedData.maps.length > 0) {
+            populateMapDropdown(caltopoVerifiedData.maps);
+        }
+    }
+
+    // CalTopo map
+    if (cfg.default_map) {
+        var map = cfg.default_map;
+        if (map.mapId) {
+            document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
+            var preview = document.getElementById('setupMapIdPreview');
+            preview.textContent = 'Detected map ID: ' + map.mapId;
+            preview.className = 'setup-status info';
+        }
+    }
+
+    document.getElementById('setupProceduresText').value = cfg.procedures_text || '';
+    document.getElementById('setupProceduresLink').value = cfg.procedures_link || '';
+}
+
+// Clear form
+function clearForm() {
+    document.getElementById('setupFormLicenseDisplay').textContent = '';
+    document.getElementById('setupName').value = '';
+    document.getElementById('setupUnits').value = 'IMPERIAL';
+    document.getElementById('setupCoordsys').value = 'DD';
+    document.getElementById('ctAccountId').value = '';
+    document.getElementById('ctCredentialId').value = '';
+    document.getElementById('ctKey').value = '';
+    caltopoVerifiedData = null;
+    var ctResult = document.getElementById('ctVerifyResult');
+    ctResult.className = 'caltopo-verify-result';
+    ctResult.style.display = 'none';
+    ctResult.innerHTML = '';
+    var ctDropdown = document.getElementById('ctMapDropdown');
+    while (ctDropdown.options.length > 1) ctDropdown.remove(1);
+    ctDropdown.selectedIndex = 0;
+    document.getElementById('ctMapDropdownField').style.display = 'none';
+    document.getElementById('setupCaltopoMapUrl').value = '';
+    document.getElementById('setupMapIdPreview').className = 'setup-status';
+    document.getElementById('setupProceduresText').value = '';
+    document.getElementById('setupProceduresLink').value = '';
+}
+
+// Save configuration
+async function saveConfiguration() {
+    if (!currentLicenseId) {
+        showStatus('setupFormStatus', 'License ID is required.', 'error');
+        return;
+    }
+    var name = document.getElementById('setupName').value.trim();
+    if (!name) {
+        showStatus('setupFormStatus', 'Name is required.', 'error');
+        return;
+    }
+
+    var saveBtn = document.getElementById('setupSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    clearStatus('setupFormStatus');
+
+    var body = {
+        license_id: currentLicenseId,
+        licenses: [currentLicenseId],
+        label: name,
+        integration_type: urlIntegrationType || 'caltopo',
+        config: {
+            units: document.getElementById('setupUnits').value,
+            coordsys: document.getElementById('setupCoordsys').value
+        }
+    };
+    if (urlClientAppVersion) body.client_app_version = urlClientAppVersion;
+
+    var serviceAccountJson = buildCaltopoServiceAccountJson();
+    if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+
+    var mapJson = buildCaltopoMapJson();
+    if (mapJson) body.config.default_map = JSON.parse(mapJson);
+
+    var proceduresText = document.getElementById('setupProceduresText').value.trim();
+    if (proceduresText) body.config.procedures_text = proceduresText;
+
+    var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
+    if (proceduresLink) body.config.procedures_link = proceduresLink;
+
+    if (currentConfigurationId) {
+        body.configuration_id = currentConfigurationId;
+    } else if (cachedConfigurations && cachedConfigurations.length > 0) {
+        var existing = cachedConfigurations.find(function(c) {
+            var ids = c.licenses || [];
+            return ids.indexOf(currentLicenseId) !== -1;
+        });
+        if (existing && existing.configuration_id) {
+            body.configuration_id = existing.configuration_id;
+        }
+    }
+
+    try {
+        var result = await apiCall('save_or_update_configuration', body);
+        if (result && result.configuration_id) {
+            currentConfigurationId = result.configuration_id;
+        }
+        showConfigList();
+    } catch (err) {
+        console.error('Error saving configuration:', err);
+        showStatus('setupFormStatus', 'Error saving: ' + err.message, 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    }
+}
+
+// Delete configuration
+async function deleteConfiguration() {
+    if (!currentConfigurationId || !currentLicenseId) return;
+    if (!confirm('Are you sure you want to delete this configuration? This cannot be undone.')) return;
+
+    var deleteBtn = document.getElementById('setupDeleteBtn');
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = 'Deleting...';
+    clearStatus('setupFormStatus');
+
+    try {
+        await apiCall('delete_configuration', {
+            license_id: currentLicenseId,
+            configuration_id: currentConfigurationId
+        });
+        currentConfigurationId = null;
+        clearForm();
+        showConfigList();
+    } catch (err) {
+        console.error('Error deleting configuration:', err);
+        showStatus('setupFormStatus', 'Error deleting: ' + err.message, 'error');
+    } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Delete';
+    }
+}
+
+// Firebase auth state
+(function() {
+    var signinOverlay = document.getElementById('signin-overlay');
+    var signinSection = document.getElementById('setupSigninSection');
+    var headerEl = document.getElementById('setupHeader');
+    var configList = document.getElementById('setupConfigList');
+    var userInfo = document.getElementById('setupUserInfo');
+    var userEmail = document.getElementById('setupUserEmail');
+    var signOutButton = document.getElementById('setupSignOutButton');
+
+    if (firebase.auth().currentUser) {
+        signinOverlay.style.display = 'none';
+    }
+
+    // Enter key handler for license input
+    document.getElementById('setupLicenseInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); submitLicenseDialog(); }
+    });
+
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            signinOverlay.style.display = 'none';
+            signinSection.style.display = 'none';
+            headerEl.style.display = '';
+            userInfo.style.display = 'flex';
+            userEmail.textContent = 'Logged in as: ' + user.email;
+
+            // Check for URL parameters
+            var urlParams = new URLSearchParams(window.location.search);
+            var urlLicenseId = urlParams.get('license_id');
+            if (urlLicenseId) {
+                currentLicenseId = urlLicenseId;
+                document.getElementById('setupLicenseInput').value = urlLicenseId;
+                document.getElementById('setupLicenseLink').textContent = 'License: ' + urlLicenseId + ' (change)';
+            }
+            loadConfigurations();
+        } else {
+            signinSection.style.display = 'block';
+            headerEl.style.display = 'none';
+            configList.style.display = 'none';
+            userInfo.style.display = 'none';
+            userEmail.textContent = '';
+            document.getElementById('setupForm').style.display = 'none';
+        }
+    });
+
+    signOutButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        firebase.auth().signOut().then(function() {
+            window.location.reload();
+        }).catch(function(error) {
+            console.error('Error signing out:', error);
+        });
+    });
+
+    // Emulator test user support
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('is_emulator') === 'true') {
+        var banner = document.getElementById('test-user-banner');
+        if (banner) banner.style.display = 'block';
+
+        var testUserBtn = document.getElementById('test-user-login');
+        if (testUserBtn) {
+            testUserBtn.addEventListener('click', function() {
+                var testEmail = 'test@example.com';
+                var testPassword = 'password123';
+                firebase.auth().signInWithEmailAndPassword(testEmail, testPassword)
+                    .then(function() { console.log('Test user signed in'); })
+                    .catch(function(error) {
+                        if (error.code === 'auth/user-not-found') {
+                            firebase.auth().createUserWithEmailAndPassword(testEmail, testPassword)
+                                .then(function() { console.log('Test user created and signed in'); })
+                                .catch(function(e) { console.error('Error creating test user:', e); });
+                        } else {
+                            console.error('Error signing in test user:', error);
+                        }
+                    });
+            });
+        }
+    }
+
+    document.addEventListener('signInComplete', function(e) {
+        signinOverlay.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    });
+})();
+</script>
