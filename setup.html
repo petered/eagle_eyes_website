@@ -689,6 +689,20 @@ permalink: /setup/
         <button id="test-user-login" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 10px;">Sign in as Test User</button>
     </div>
 
+    <!-- Code entry landing (shown when accessing /setup/ directly without params) -->
+    <div id="setupCodeEntry" style="display: none; text-align: center; padding: 2rem 0;">
+        <h2 style="font-size: 2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Controller Settings</h2>
+        <p style="font-size: 1.4rem; color: #888; margin: 0 0 2rem;">Enter your 6-digit activation code to get started.</p>
+        <input type="text" id="setupCodeInput" placeholder="ABC-123" maxlength="7" autocomplete="off" style="width: 100%; max-width: 280px; padding: 14px; font-size: 22px; font-weight: bold; text-align: center; border: 2px solid #dee2e6; border-radius: 8px; letter-spacing: 6px; text-transform: uppercase; font-family: 'Courier New', monospace; margin-bottom: 16px;">
+        <div>
+            <button class="setup-btn setup-btn-primary" onclick="handleSetupCode()" id="setupCodeBtn" style="min-width: 200px;">Continue</button>
+        </div>
+        <div id="setupCodeStatus" class="setup-status" style="margin-top: 1rem;"></div>
+        <div style="margin-top: 1.5rem;">
+            <a href="#" onclick="showDirectSignin(); return false;" style="font-size: 1.3rem; color: #1e90ff; text-decoration: none;">Sign in to manage existing settings &rarr;</a>
+        </div>
+    </div>
+
     <!-- Sign-in prompt (shown when not authenticated) -->
     <div id="setupSigninSection" class="setup-signin-section" style="display: none;">
         <p style="margin-bottom: 20px;">Sign in to manage your controller settings.</p>
@@ -699,6 +713,34 @@ permalink: /setup/
     <div class="setup-header" id="setupHeader" style="display: none;">
         <h1>Controller Settings</h1>
         <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
+    </div>
+
+    <!-- Mobile recommendation screen (shown before wizard step 1 on mobile) -->
+    <div id="mobileRecommendation" style="display: none;">
+        <h2 class="form-step-question">Setting up on a small screen?</h2>
+        <p class="form-step-hint">We recommend using a laptop or desktop for the best experience when configuring CalTopo credentials.</p>
+        <div class="form-step-actions">
+            <button class="setup-btn setup-btn-primary" onclick="showLaptopHandoff()">Continue on a larger screen</button>
+            <a href="#" class="back-link skip-link" onclick="dismissMobileRecommendation(); return false;">Continue on this device &rarr;</a>
+            <a href="#" class="back-link" onclick="showConfigList(); return false;">Back</a>
+        </div>
+    </div>
+
+    <!-- Laptop handoff screen -->
+    <div id="laptopHandoff" style="display: none; text-align: center;">
+        <h2 class="form-step-question">Continue on your laptop</h2>
+        <p class="form-step-hint">On your laptop or desktop, open a browser and go to:</p>
+        <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 1.5rem;">
+            <strong style="font-size: 1.6rem; color: #333;">eagleeyessearch.com/setup</strong>
+        </div>
+        <p class="form-step-hint">Then enter this code:</p>
+        <div style="background: #f0f7ff; border: 2px solid #1e90ff; border-radius: 12px; padding: 16px; margin-bottom: 1.5rem;">
+            <span id="handoffCode" style="font-size: 2.4rem; font-weight: bold; letter-spacing: 6px; font-family: 'Courier New', monospace; color: #333;"></span>
+        </div>
+        <p style="font-size: 1.3rem; color: #999;">You can close this page on your phone.</p>
+        <div style="margin-top: 1.5rem;">
+            <a href="#" class="back-link" onclick="hideLaptopHandoff(); return false;">Back</a>
+        </div>
     </div>
 
     <!-- Activation success banner (shown when redirected after activation) -->
@@ -922,7 +964,7 @@ permalink: /setup/
 
         <!-- Step 4: Procedures -->
         <div class="form-step" id="formStep4" style="display: none;">
-            <h2 class="form-step-question">Add team procedures (optional)</h2>
+            <h2 class="form-step-question">Add team procedures</h2>
             <p class="form-step-hint">Share standard operating procedures with your team.</p>
             <div class="setup-field">
                 <label for="setupProceduresText">Procedures Text</label>
@@ -935,6 +977,7 @@ permalink: /setup/
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Settings</button>
                 <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
+                <a href="#" class="back-link skip-link" onclick="saveConfiguration(); return false;">Skip &rarr;</a>
                 <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
             </div>
         </div>
@@ -958,11 +1001,133 @@ var urlIntegrationType = urlSetupParams.get('integration_type') || '';
 var urlSessionId = urlSetupParams.get('session_id') || '';
 var cameFromActivation = !!urlSetupParams.get('license_id');
 var activationSuccess = urlSetupParams.get('activation_success') || ''; // 'new' or 'resync'
+var directAccess = urlSetupParams.get('direct') === 'true';
+var isDirectAccess = !cameFromActivation && !urlSessionId; // no params = direct
 var introShown = false;
 
 var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
 
 // Toggle sign-in overlay
+// --- Code entry landing page ---
+function setupCodeEntryPage() {
+    var codeInput = document.getElementById('setupCodeInput');
+    if (!codeInput) return;
+
+    // Auto-format ABC-123
+    codeInput.addEventListener('input', function() {
+        var val = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').replace(/-/g, '');
+        if (val.length > 3) {
+            val = val.substring(0, 3) + '-' + val.substring(3, 6);
+        }
+        this.value = val;
+    });
+
+    codeInput.addEventListener('keypress', function(e) {
+        if (e.which === 13) handleSetupCode();
+    });
+}
+
+async function handleSetupCode() {
+    var code = document.getElementById('setupCodeInput').value.trim();
+    if (!code || code.length !== 7) {
+        showStatus('setupCodeStatus', 'Please enter a valid 6-digit code (e.g. ABC-123).', 'error');
+        return;
+    }
+
+    var sessionId = code.replace('-', '');
+    document.getElementById('setupCodeBtn').disabled = true;
+    document.getElementById('setupCodeBtn').textContent = 'Verifying...';
+    clearStatus('setupCodeStatus');
+
+    try {
+        var user = firebase.auth().currentUser;
+        if (!user) {
+            showStatus('setupCodeStatus', 'Please sign in first.', 'error');
+            // Show sign-in
+            toggleSignIn();
+            return;
+        }
+
+        var idToken = await user.getIdToken(true);
+        var hostURL = getHostURL();
+        var response = await fetch(hostURL + '/get_activation_request?session_id=' + encodeURIComponent(sessionId.toUpperCase()), {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+            var data = await response.json();
+            // We have the license info — reload with license_id param
+            var params = new URLSearchParams(window.location.search);
+            params.set('license_id', sessionId);
+            params.set('session_id', sessionId);
+            window.location.search = params.toString();
+        } else {
+            var errText = '';
+            switch (response.status) {
+                case 404: errText = 'Code not found. Please check and try again.'; break;
+                case 410: errText = 'Code has expired. Please request a new code.'; break;
+                default: errText = 'Could not verify code. Please try again.';
+            }
+            showStatus('setupCodeStatus', errText, 'error');
+        }
+    } catch (err) {
+        showStatus('setupCodeStatus', 'Error: ' + err.message, 'error');
+    } finally {
+        document.getElementById('setupCodeBtn').disabled = false;
+        document.getElementById('setupCodeBtn').textContent = 'Continue';
+    }
+}
+
+function showDirectSignin() {
+    document.getElementById('setupCodeEntry').style.display = 'none';
+    directAccess = true;
+    // Show sign-in or config list depending on auth state
+    var user = firebase.auth().currentUser;
+    if (user) {
+        document.getElementById('setupHeader').style.display = '';
+        document.getElementById('setupUserInfo').style.display = 'block';
+        loadConfigurations();
+    } else {
+        document.getElementById('setupSigninSection').style.display = 'block';
+    }
+}
+
+// --- Mobile recommendation ---
+function isMobileDevice() {
+    return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth < 768;
+}
+
+function showMobileRecommendation() {
+    document.getElementById('mobileRecommendation').style.display = 'block';
+    document.getElementById('setupForm').style.display = 'none';
+    document.getElementById('setupConfigList').style.display = 'none';
+    document.getElementById('setupIntro').style.display = 'none';
+}
+
+function dismissMobileRecommendation() {
+    document.getElementById('mobileRecommendation').style.display = 'none';
+    document.getElementById('setupForm').style.display = 'block';
+    showFormStep(1);
+    showCtSubStep(0);
+}
+
+function showLaptopHandoff() {
+    document.getElementById('mobileRecommendation').style.display = 'none';
+    document.getElementById('laptopHandoff').style.display = 'block';
+    // Show the activation code
+    var code = urlSessionId || '';
+    if (code.length === 6) {
+        code = code.substring(0, 3) + '-' + code.substring(3);
+    }
+    document.getElementById('handoffCode').textContent = code.toUpperCase();
+}
+
+function hideLaptopHandoff() {
+    document.getElementById('laptopHandoff').style.display = 'none';
+    document.getElementById('mobileRecommendation').style.display = 'block';
+}
+
 function toggleSignIn() {
     var overlay = document.getElementById('signin-overlay');
     overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
@@ -1307,6 +1472,10 @@ function createNewConfiguration() {
 
 function showConfigList() {
     document.getElementById('setupForm').style.display = 'none';
+    document.getElementById('mobileRecommendation').style.display = 'none';
+    document.getElementById('laptopHandoff').style.display = 'none';
+    // Hide device/user info bar — config list has its own context
+    document.getElementById('setupDeviceInfo').style.display = 'none';
     clearStatus('setupFormStatus');
     loadConfigurations();
 }
@@ -1318,6 +1487,13 @@ function showConfigForm() {
     document.getElementById('setupConfigList').style.display = 'none';
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
+
+    // On mobile, show recommendation to use larger screen first
+    if (isMobileDevice() && urlSessionId) {
+        showMobileRecommendation();
+        return;
+    }
+
     document.getElementById('setupForm').style.display = 'block';
     showFormStep(1);
     // Reset CalTopo sub-steps to initial state
@@ -1793,7 +1969,22 @@ async function deleteConfiguration() {
         if (e.key === 'Enter') { e.preventDefault(); submitLicenseDialog(); }
     });
 
+    // Initialize code entry page formatting
+    setupCodeEntryPage();
+
     firebase.auth().onAuthStateChanged(function(user) {
+        // Show code entry landing if accessing directly (no URL params) and not in direct mode
+        if (isDirectAccess && !directAccess) {
+            document.getElementById('setupCodeEntry').style.display = 'block';
+            signinOverlay.style.display = 'none';
+            if (user) {
+                // Already signed in — code entry can proceed
+                userInfo.style.display = 'flex';
+                userEmail.textContent = user.email;
+            }
+            return;
+        }
+
         if (user) {
             signinOverlay.style.display = 'none';
             signinSection.style.display = 'none';
@@ -1831,8 +2022,8 @@ async function deleteConfiguration() {
                 if (activationSuccess) {
                     var banner = document.getElementById('activationSuccessBanner');
                     var text = activationSuccess === 'resync'
-                        ? 'Re-sync completed successfully! Your device has been re-synchronized.'
-                        : 'Activation completed successfully! Your device is now activated.';
+                        ? 'Re-sync completed! Your device has been re-synchronized. Verify on the controller via "Set Up Controller" in the menu.'
+                        : 'Activation completed! Your device is now activated. Verify on the controller via "Set Up Controller" in the menu.';
                     document.getElementById('activationSuccessText').textContent = text;
                     banner.style.display = 'block';
                 }
