@@ -1059,10 +1059,24 @@ async function handleSetupCode() {
 
         if (response.ok) {
             var data = await response.json();
-            // Session is valid — hide code entry, show config list
-            // Store session info for later use
+            // Session is valid — hide code entry
             urlSessionId = sessionId;
             document.getElementById('setupCodeEntry').style.display = 'none';
+
+            // Extract license_id if available from response
+            if (data.license_id) {
+                currentLicenseId = data.license_id;
+                document.getElementById('setupLicenseInput').value = data.license_id;
+                document.getElementById('setupLicenseDisplay').textContent = data.license_id;
+                document.getElementById('setupLicenseInfo').style.display = '';
+            }
+
+            // Check email matches activation
+            if (data.email && user.email && data.email !== user.email) {
+                showStatus('setupCodeStatus', 'You are signed in as ' + user.email + ' but this code was activated by ' + data.email + '. Please sign in with the correct account.', 'error');
+                document.getElementById('setupCodeEntry').style.display = 'block';
+                return;
+            }
 
             // Populate device info if available
             if (data.device_identifier || data.machine_id) {
