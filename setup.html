@@ -731,7 +731,7 @@ permalink: /setup/
         <h2 class="form-step-question">Continue on your laptop</h2>
         <p class="form-step-hint">On your laptop or desktop, open a browser and go to:</p>
         <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 1.5rem;">
-            <strong style="font-size: 1.6rem; color: #333;">eagleeyessearch.com/setup</strong>
+            <strong style="font-size: 1.6rem; color: #333;">EagleEyesSearch.com/setup</strong>
         </div>
         <p class="form-step-hint">Then enter this code:</p>
         <div style="background: #f0f7ff; border: 2px solid #1e90ff; border-radius: 12px; padding: 16px; margin-bottom: 1.5rem;">
@@ -1057,11 +1057,22 @@ async function handleSetupCode() {
 
         if (response.ok) {
             var data = await response.json();
-            // We have the license info — reload with license_id param
-            var params = new URLSearchParams(window.location.search);
-            params.set('license_id', sessionId);
-            params.set('session_id', sessionId);
-            window.location.search = params.toString();
+            // Session is valid — hide code entry, show config list
+            // Store session info for later use
+            urlSessionId = sessionId;
+            document.getElementById('setupCodeEntry').style.display = 'none';
+
+            // Populate device info if available
+            if (data.device_identifier || data.machine_id) {
+                if (data.device_identifier) document.getElementById('setupDeviceName').textContent = data.device_identifier;
+                if (data.machine_id) document.getElementById('setupMachineId').textContent = data.machine_id;
+                document.getElementById('setupDeviceInfo').style.display = '';
+            }
+
+            // Show header and load config list — user picks license via dialog
+            document.getElementById('setupHeader').style.display = '';
+            document.getElementById('setupUserInfo').style.display = 'flex';
+            loadConfigurations();
         } else {
             var errText = '';
             switch (response.status) {
