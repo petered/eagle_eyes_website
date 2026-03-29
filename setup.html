@@ -846,9 +846,10 @@ permalink: /setup/
             <div id="ctSubStep0" class="ct-substep">
                 <h2 class="form-step-question">Connect your CalTopo account</h2>
                 <p class="form-step-hint">Without a service account, your CalTopo session on the controller expires every few days and you'll need to log in again. A service account keeps your team permanently connected — set it up once and everyone on your license can use it.</p>
-                <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
+                <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team and a <strong>laptop or desktop</strong> to set this up.</p>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
+                    <button class="setup-btn setup-btn-primary" id="ctSetupNowBtn" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
+                    <button class="setup-btn setup-btn-primary" id="ctSetupLaptopBtn" onclick="showLaptopHandoff()" style="display: none;">I have a laptop/desktop/tablet ready</button>
                     <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin / I'll do this later &rarr;</a>
                     <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
                 </div>
@@ -1560,12 +1561,6 @@ function showConfigForm() {
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
 
-    // On mobile, show recommendation to use larger screen first (only for new configs)
-    if (isMobileDevice() && urlSessionId && !skipMobileRecommendation) {
-        showMobileRecommendation();
-        return;
-    }
-    skipMobileRecommendation = false;
 
     document.getElementById('setupForm').style.display = 'block';
     showFormStep(1);
@@ -1685,6 +1680,12 @@ function showCtSubStep(n) {
     for (var i = 0; i <= 5; i++) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
+    }
+    // On step 0, show different buttons for mobile vs desktop
+    if (n === 0) {
+        var mobile = isMobileDevice();
+        document.getElementById('ctSetupNowBtn').style.display = mobile ? 'none' : '';
+        document.getElementById('ctSetupLaptopBtn').style.display = mobile ? '' : 'none';
     }
     // Show title in step 4 hint
     if (n === 4) {
