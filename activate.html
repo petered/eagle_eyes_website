@@ -638,7 +638,7 @@ permalink: /activate/
 
     // URL parameters passed from the app
     const urlParamsGlobal = new URLSearchParams(window.location.search);
-    const enableSetup = urlParamsGlobal.get('enable_setup') === 'true';
+    let enableSetup = urlParamsGlobal.get('enable_setup') === 'true';
     const clientAppVersion = urlParamsGlobal.get('client_app_version') || '';
     const urlIntegrationType = urlParamsGlobal.get('integration_type') || '';
 
@@ -915,6 +915,10 @@ permalink: /activate/
             const data = await response.json();
 
             if (response.ok) {
+                // Update enableSetup from server response if not already set via URL
+                if (!enableSetup && data.enable_setup) {
+                    enableSetup = true;
+                }
                 return {
                     success: true,
                     device_identifier: data.device_identifier,
