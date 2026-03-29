@@ -1260,14 +1260,25 @@ function showIntroScreen(configs) {
         var html = '';
         configs.forEach(function(config, index) {
             var cfg = config.config || {};
-            html += '<div class="config-card" onclick="introSelectConfig(' + index + ')" style="cursor: pointer;">';
+            html += '<div class="config-card" onclick="toggleIntroConfigDetails(' + index + ')" style="cursor: pointer;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
             html += '<div class="config-card-info">';
             html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
             if (cfg.service_account && cfg.service_account.teamName) {
                 html += '<span class="config-card-detail">CalTopo Team: ' + escapeHtml(cfg.service_account.teamName) + '</span>';
             }
             html += '</div>';
-            html += '<span style="color: #1e90ff; font-size: 1.3rem;">Select &rarr;</span>';
+            html += '<span class="config-card-chevron" id="introChevron' + index + '" style="color: #adb5bd; font-size: 1.2rem;">&#9660;</span>';
+            html += '</div>';
+            // Expandable details
+            html += '<div class="config-card-details" id="introDetails' + index + '" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; font-size: 1.3rem; color: #666;">';
+            if (cfg.units) html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric' : 'Imperial') + '</div>';
+            if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
+            if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
+            if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
+            if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
+            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')" style="width: 100%;">Select this setting</button></div>';
+            html += '</div>';
             html += '</div>';
         });
         existingEl.innerHTML = html;
@@ -1284,6 +1295,18 @@ function showIntroScreen(configs) {
 function introSetupController() {
     document.getElementById('setupIntro').style.display = 'none';
     createNewConfiguration();
+}
+
+function toggleIntroConfigDetails(index) {
+    var details = document.getElementById('introDetails' + index);
+    var chevron = document.getElementById('introChevron' + index);
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.innerHTML = '&#9650;'; // up arrow
+    } else {
+        details.style.display = 'none';
+        chevron.innerHTML = '&#9660;'; // down arrow
+    }
 }
 
 var skipMobileRecommendation = false;
