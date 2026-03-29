@@ -954,8 +954,9 @@ permalink: /setup/
                     <input type="text" id="ctKey" placeholder="Paste credential secret here" style="font-size: min(1.4rem, 3.2vw);">
                 </div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(4)">Next</button>
+                    <button class="setup-btn setup-btn-primary" onclick="validateCtSecret()">Next</button>
                     <a href="#" class="back-link" onclick="showCtSubStep(2); return false;">Back</a>
+                    <div class="setup-status" id="ctSecretStatus"></div>
                 </div>
             </div>
 
@@ -1696,6 +1697,38 @@ function skipStep() {
     }
 }
 
+function validateCtSecret() {
+    var key = document.getElementById('ctKey').value.trim();
+    var keyInput = document.getElementById('ctKey');
+
+    if (!key) {
+        keyInput.classList.add('field-error');
+        showStatus('ctSecretStatus', 'Please enter the credential secret.', 'error');
+        return;
+    }
+    if (key.length !== 44 || key[43] !== '=') {
+        keyInput.classList.add('field-error');
+        showStatus('ctSecretStatus', 'The credential secret should be exactly 44 characters ending with =', 'error');
+        return;
+    }
+    try {
+        var decoded = atob(key);
+        if (decoded.length !== 32) {
+            keyInput.classList.add('field-error');
+            showStatus('ctSecretStatus', 'This doesn\'t look like a valid credential secret. Please check and try again.', 'error');
+            return;
+        }
+    } catch (e) {
+        keyInput.classList.add('field-error');
+        showStatus('ctSecretStatus', 'This doesn\'t look like a valid credential secret. Please check and try again.', 'error');
+        return;
+    }
+
+    keyInput.classList.remove('field-error');
+    clearStatus('ctSecretStatus');
+    showCtSubStep(4);
+}
+
 function validateCtTitle() {
     var title = document.getElementById('ctServiceTitle').value.trim();
     if (!title) {
@@ -1771,7 +1804,13 @@ function showCtSubStep(n) {
         var cameraContainer = document.getElementById('cameraCaptureContainer');
         if (cameraContainer) cameraContainer.style.display = isMobile ? 'block' : 'none';
         var ctKeyInput = document.getElementById('ctKey');
-        if (ctKeyInput) ctKeyInput.placeholder = isMobile ? 'Or type the credential secret here' : 'Paste credential secret here';
+        if (ctKeyInput) {
+            ctKeyInput.placeholder = isMobile ? 'Or type the credential secret here' : 'Paste credential secret here';
+            ctKeyInput.addEventListener('input', function() {
+                this.classList.remove('field-error');
+                clearStatus('ctSecretStatus');
+            });
+        }
     }
 }
 
