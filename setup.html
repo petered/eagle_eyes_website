@@ -11,7 +11,7 @@ permalink: /setup/
         align-items: center;
         justify-content: center;
         margin-top: 16px;
-        margin-bottom: 8px;
+        margin-bottom: 1.5em;
     }
     .wizard-step {
         display: flex;
@@ -758,8 +758,8 @@ permalink: /setup/
     <!-- Save success screen (shown after saving from activation flow) -->
     <div id="saveSuccessScreen" style="display: none; text-align: center; padding: 2rem 0;">
         <div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
-            <h3 style="margin: 0 0 0.5rem; font-size: 1.6rem;">Controller settings saved!</h3>
-            <p style="margin: 0; font-size: 1.4rem;">Your settings have been synced. Verify on the controller via <strong>"Set Up Controller"</strong> in the menu.</p>
+            <h3 id="saveSuccessTitle" style="margin: 0 0 0.5rem; font-size: 1.6rem;">Controller settings saved!</h3>
+            <p id="saveSuccessMessage" style="margin: 0; font-size: 1.4rem;">Your settings have been synced. Verify on the controller via <strong>"Set Up Controller"</strong> in the menu.</p>
         </div>
         <a href="#" onclick="showConfigListFromSuccess(); return false;" style="font-size: 1.4rem; color: #1e90ff; text-decoration: none;">See all controller settings &rarr;</a>
     </div>
@@ -1260,14 +1260,25 @@ function showIntroScreen(configs) {
         var html = '';
         configs.forEach(function(config, index) {
             var cfg = config.config || {};
-            html += '<div class="config-card" onclick="introSelectConfig(' + index + ')" style="cursor: pointer;">';
+            html += '<div class="config-card" onclick="toggleIntroConfigDetails(' + index + ')" style="cursor: pointer;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
             html += '<div class="config-card-info">';
             html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
             if (cfg.service_account && cfg.service_account.teamName) {
                 html += '<span class="config-card-detail">CalTopo Team: ' + escapeHtml(cfg.service_account.teamName) + '</span>';
             }
             html += '</div>';
-            html += '<span style="color: #1e90ff; font-size: 1.3rem;">Select &rarr;</span>';
+            html += '<span class="config-card-chevron" id="introChevron' + index + '" style="color: #adb5bd; font-size: 1.2rem;">&#9660;</span>';
+            html += '</div>';
+            // Expandable details
+            html += '<div class="config-card-details" id="introDetails' + index + '" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; font-size: 1.3rem; color: #666;">';
+            if (cfg.units) html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric' : 'Imperial') + '</div>';
+            if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
+            if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
+            if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
+            if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
+            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')" style="width: 100%;">Select this setting</button></div>';
+            html += '</div>';
             html += '</div>';
         });
         existingEl.innerHTML = html;
@@ -1286,12 +1297,41 @@ function introSetupController() {
     createNewConfiguration();
 }
 
+function toggleIntroConfigDetails(index) {
+    var details = document.getElementById('introDetails' + index);
+    var chevron = document.getElementById('introChevron' + index);
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        chevron.innerHTML = '&#9650;'; // up arrow
+    } else {
+        details.style.display = 'none';
+        chevron.innerHTML = '&#9660;'; // down arrow
+    }
+}
+
 var skipMobileRecommendation = false;
 
-function introSelectConfig(index) {
+async function introSelectConfig(index) {
+    var config = cachedConfigurations[index];
+
+    // Write the selected config to the activation session so the app picks it up
+    if (urlSessionId && config) {
+        try {
+            await apiCall('set_activation_configuration_endpoint', {
+                session_id: urlSessionId,
+                configuration: config
+            });
+        } catch (linkErr) {
+            console.error('Error linking configuration to activation session:', linkErr);
+        }
+    }
+
     document.getElementById('setupIntro').style.display = 'none';
-    skipMobileRecommendation = true;
-    editConfiguration(index);
+    document.getElementById('activationSuccessBanner').style.display = 'none';
+
+    document.getElementById('saveSuccessTitle').textContent = 'Activation and setup complete!';
+    document.getElementById('saveSuccessMessage').textContent = 'You can close this window.';
+    document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
 function introSkip() {
@@ -1499,6 +1539,8 @@ function showSaveSuccess() {
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
     document.getElementById('setupDeviceInfo').style.display = 'none';
+    document.getElementById('saveSuccessTitle').textContent = 'Activation and setup complete!';
+    document.getElementById('saveSuccessMessage').textContent = 'You can close this window.';
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
@@ -1951,6 +1993,22 @@ async function saveConfiguration() {
         if (result && result.configuration_id) {
             currentConfigurationId = result.configuration_id;
         }
+
+        // If we came from an activation session, write the config to the activation request
+        if (urlSessionId && result && result.configuration_id) {
+            try {
+                var fullConfig = await apiCall('get_configuration', { configuration_id: result.configuration_id });
+                if (fullConfig && fullConfig.configuration) {
+                    await apiCall('set_activation_configuration_endpoint', {
+                        session_id: urlSessionId,
+                        configuration: fullConfig.configuration
+                    });
+                }
+            } catch (linkErr) {
+                console.error('Error linking configuration to activation session:', linkErr);
+            }
+        }
+
         if (cameFromActivation) {
             showSaveSuccess();
         } else {
