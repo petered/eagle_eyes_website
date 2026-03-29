@@ -1286,8 +1286,11 @@ function introSetupController() {
     createNewConfiguration();
 }
 
+var skipMobileRecommendation = false;
+
 function introSelectConfig(index) {
     document.getElementById('setupIntro').style.display = 'none';
+    skipMobileRecommendation = true;
     editConfiguration(index);
 }
 
@@ -1522,11 +1525,12 @@ function showConfigForm() {
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
 
-    // On mobile, show recommendation to use larger screen first
-    if (isMobileDevice() && urlSessionId) {
+    // On mobile, show recommendation to use larger screen first (only for new configs)
+    if (isMobileDevice() && urlSessionId && !skipMobileRecommendation) {
         showMobileRecommendation();
         return;
     }
+    skipMobileRecommendation = false;
 
     document.getElementById('setupForm').style.display = 'block';
     showFormStep(1);
