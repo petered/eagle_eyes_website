@@ -1288,15 +1288,26 @@ function introSetupController() {
 
 var skipMobileRecommendation = false;
 
-function introSelectConfig(index) {
+async function introSelectConfig(index) {
     var config = cachedConfigurations[index];
+
+    // Write the selected config to the activation session so the app picks it up
+    if (urlSessionId && config) {
+        try {
+            await apiCall('set_activation_configuration_endpoint', {
+                session_id: urlSessionId,
+                configuration: config
+            });
+        } catch (linkErr) {
+            console.error('Error linking configuration to activation session:', linkErr);
+        }
+    }
+
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
 
-    // Show sync message — config is already saved, controller will pick it up
-    var configName = config ? escapeHtml(config.label || 'Unnamed') : 'the selected setting';
-    document.getElementById('saveSuccessTitle').textContent = 'Controller setting selected!';
-    document.getElementById('saveSuccessMessage').innerHTML = '<strong>"' + configName + '"</strong> will be synced to your controller. If it doesn\'t appear automatically, go to <strong>"Set Up Controller"</strong> in the controller menu and select it from there.';
+    document.getElementById('saveSuccessTitle').textContent = 'Activation and setup complete!';
+    document.getElementById('saveSuccessMessage').textContent = 'You can close this window.';
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
@@ -1505,6 +1516,8 @@ function showSaveSuccess() {
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
     document.getElementById('setupDeviceInfo').style.display = 'none';
+    document.getElementById('saveSuccessTitle').textContent = 'Activation and setup complete!';
+    document.getElementById('saveSuccessMessage').textContent = 'You can close this window.';
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
@@ -1957,6 +1970,22 @@ async function saveConfiguration() {
         if (result && result.configuration_id) {
             currentConfigurationId = result.configuration_id;
         }
+
+        // If we came from an activation session, write the config to the activation request
+        if (urlSessionId && result && result.configuration_id) {
+            try {
+                var fullConfig = await apiCall('get_configuration', { configuration_id: result.configuration_id });
+                if (fullConfig && fullConfig.configuration) {
+                    await apiCall('set_activation_configuration_endpoint', {
+                        session_id: urlSessionId,
+                        configuration: fullConfig.configuration
+                    });
+                }
+            } catch (linkErr) {
+                console.error('Error linking configuration to activation session:', linkErr);
+            }
+        }
+
         if (cameFromActivation) {
             showSaveSuccess();
         } else {
