@@ -1,6 +1,6 @@
 ---
 layout: main
-title: Controller Settings - Eagle Eyes
+title: Manage Controller Settings - Eagle Eyes
 permalink: /setup/
 ---
 
@@ -67,6 +67,7 @@ permalink: /setup/
         display: flex;
         gap: 8px;
         justify-content: center;
+        margin-top: 1rem;
         margin-bottom: 1.5rem;
     }
     .step-dot {
@@ -99,12 +100,55 @@ permalink: /setup/
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
-        margin-top: 1.5rem;
+        gap: 0.75rem;
+        margin-top: 2rem;
     }
     .form-step-actions .setup-btn-primary,
     .form-step-actions .setup-btn-secondary {
         width: 100%;
+    }
+    /* Desktop: constrain button width, add spacing, larger text */
+    @media (min-width: 769px) {
+        .form-step-actions .setup-btn-primary,
+        .form-step-actions .setup-btn-secondary {
+            width: auto;
+            min-width: 200px;
+            max-width: 320px;
+            font-size: 1.6rem;
+            padding: 12px 28px;
+        }
+        .form-step-actions {
+            gap: 1rem;
+            margin-top: 2.5rem;
+        }
+        .form-step-question {
+            font-size: 2.2rem;
+            margin-bottom: 0.75rem;
+        }
+        .form-step-hint {
+            font-size: 1.6rem;
+            margin-bottom: 2rem;
+        }
+        .setup-field {
+            margin-bottom: 2rem;
+        }
+        .setup-field label {
+            font-size: 1.8rem;
+        }
+        .setup-field input,
+        .setup-field select,
+        .setup-field textarea {
+            font-size: 1.7rem;
+            padding: 12px 14px;
+            max-width: 450px;
+        }
+        .back-link {
+            font-size: 1.5rem;
+        }
+        .form-step ol,
+        .ct-substep ol {
+            font-size: 1.6rem !important;
+        }
     }
     .back-link::before {
         content: '\2190 ';
@@ -679,7 +723,7 @@ permalink: /setup/
 
     <!-- Code entry landing (shown when accessing /setup/ directly without params) -->
     <div id="setupCodeEntry" style="display: none; text-align: center; padding: 2rem 0;">
-        <h2 style="font-size: 2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Controller Settings</h2>
+        <h2 style="font-size: 2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Manage Controller Settings</h2>
         <p style="font-size: 1.4rem; color: #888; margin: 0 0 2rem;">Enter your 6-digit activation code to get started.</p>
         <input type="text" id="setupCodeInput" placeholder="ABC-123" maxlength="7" autocomplete="off" style="width: 100%; max-width: 280px; padding: 14px; font-size: 22px; font-weight: bold; text-align: center; border: 2px solid #dee2e6; border-radius: 8px; letter-spacing: 6px; text-transform: uppercase; font-family: 'Courier New', monospace; margin-bottom: 16px;">
         <div>
@@ -699,14 +743,14 @@ permalink: /setup/
 
     <!-- Page header -->
     <div class="setup-header" id="setupHeader" style="display: none;">
-        <h1>Controller Settings</h1>
+        <h1>Manage Controller Settings</h1>
         <p>Store and share controller settings — like CalTopo map connections, coordinate systems, and procedures — across your team.</p>
     </div>
 
     <!-- Mobile recommendation screen (shown before wizard step 1 on mobile) -->
     <div id="mobileRecommendation" style="display: none;">
         <h2 class="form-step-question">Setting up on a small screen?</h2>
-        <p class="form-step-hint">We recommend using a laptop or desktop for the best experience when configuring CalTopo credentials.</p>
+        <p class="form-step-hint">You'll need a laptop, desktop, or tablet to create a new controller setting.</p>
         <div class="form-step-actions">
             <button class="setup-btn setup-btn-primary" onclick="showLaptopHandoff()">I have a laptop/desktop/tablet ready</button>
             <a href="#" class="back-link" onclick="showConfigList(); return false;">Back</a>
@@ -910,8 +954,9 @@ permalink: /setup/
                     <input type="text" id="ctKey" placeholder="Paste credential secret here" style="font-size: min(1.4rem, 3.2vw);">
                 </div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(4)">Next</button>
+                    <button class="setup-btn setup-btn-primary" onclick="validateCtSecret()">Next</button>
                     <a href="#" class="back-link" onclick="showCtSubStep(2); return false;">Back</a>
+                    <div class="setup-status" id="ctSecretStatus"></div>
                 </div>
             </div>
 
@@ -919,13 +964,16 @@ permalink: /setup/
             <div id="ctSubStep4" class="ct-substep" style="display: none;">
                 <h2 class="form-step-question">Step 4: Enter Account ID and Credential ID</h2>
                 <p class="form-step-hint" id="ctSubStep4Hint">Close the credential secret popup. Find the service account you just created in the list and enter the Account ID and Credential ID shown to the right of it.</p>
-                <div class="setup-field">
-                    <label for="ctAccountId">Account ID <span class="field-counter" id="ctAccountIdCount"></span></label>
-                    <input type="text" id="ctAccountId" placeholder="e.g. G0NGJU" maxlength="6" style="text-transform: uppercase;">
-                </div>
-                <div class="setup-field">
-                    <label for="ctCredentialId">Credential ID <span class="field-counter" id="ctCredentialIdCount"></span></label>
-                    <input type="text" id="ctCredentialId" placeholder="e.g. P0NM6A5800ST" maxlength="12" style="text-transform: uppercase;">
+                <!-- Side by side inputs -->
+                <div style="display: flex; gap: 1rem;">
+                    <div class="setup-field" style="flex: 1;">
+                        <label for="ctAccountId">Account ID <span class="field-counter" id="ctAccountIdCount"></span></label>
+                        <input type="text" id="ctAccountId" placeholder="e.g. R0BNPA" maxlength="6" style="text-transform: uppercase;">
+                    </div>
+                    <div class="setup-field" style="flex: 1;">
+                        <label for="ctCredentialId">Credential ID <span class="field-counter" id="ctCredentialIdCount"></span></label>
+                        <input type="text" id="ctCredentialId" placeholder="e.g. Q9NVD150H92L" maxlength="12" style="text-transform: uppercase;">
+                    </div>
                 </div>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()" disabled>Verify &amp; Connect</button>
@@ -966,12 +1014,12 @@ permalink: /setup/
             </div>
             <div class="setup-field">
                 <label for="setupProceduresLink">Procedures Link</label>
+                <p class="form-step-hint" style="margin-bottom: 0.5rem; font-size: 1.2rem;">This URL will be converted into a QR code on the controller, so it can easily be scanned using a mobile phone.</p>
                 <input type="url" id="setupProceduresLink" placeholder="https://...">
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Settings</button>
                 <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
-                <a href="#" class="back-link skip-link" onclick="saveConfiguration(); return false;">Skip &rarr;</a>
                 <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
             </div>
         </div>
@@ -1052,17 +1100,32 @@ async function handleSetupCode() {
         }
 
         var idToken = await user.getIdToken(true);
-        var response = await fetch(API_BASE + 'get_activation_request?session_id=' + encodeURIComponent(sessionId.toUpperCase()), {
+        var response = await fetch(API_BASE + 'get_activation_request?session_id=' + encodeURIComponent(sessionId.toUpperCase()) + '&_t=' + Date.now(), {
             method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
+            headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
+            cache: 'no-store'
         });
 
         if (response.ok) {
             var data = await response.json();
-            // Session is valid — hide code entry, show config list
-            // Store session info for later use
+            // Session is valid — hide code entry
             urlSessionId = sessionId;
             document.getElementById('setupCodeEntry').style.display = 'none';
+
+            // Extract license_id if available from response
+            if (data.license_id) {
+                currentLicenseId = data.license_id;
+                document.getElementById('setupLicenseInput').value = data.license_id;
+                document.getElementById('setupLicenseDisplay').textContent = data.license_id;
+                document.getElementById('setupLicenseInfo').style.display = '';
+            }
+
+            // Check email matches activation
+            if (data.email && user.email && data.email !== user.email) {
+                showStatus('setupCodeStatus', 'You are signed in as ' + user.email + ' but this code was activated by ' + data.email + '. Please sign in with the correct account.', 'error');
+                document.getElementById('setupCodeEntry').style.display = 'block';
+                return;
+            }
 
             // Populate device info if available
             if (data.device_identifier || data.machine_id) {
@@ -1597,7 +1660,15 @@ function nextStep() {
     if (currentFormStep === 1) {
         var name = document.getElementById('setupName').value.trim();
         if (!name) {
-            showStatus('setupFormStatus', 'Please enter a name for this configuration.', 'error');
+            showStatus('setupFormStatus', 'Please enter a name for this setting.', 'error');
+            return;
+        }
+        // Check for duplicate name (exclude current config being edited)
+        var duplicate = cachedConfigurations.find(function(c) {
+            return (c.label || '') === name && c.configuration_id !== currentConfigurationId;
+        });
+        if (duplicate) {
+            showStatus('setupFormStatus', 'A setting with this name already exists. Please choose a different name.', 'error');
             return;
         }
         clearStatus('setupFormStatus');
@@ -1624,6 +1695,38 @@ function skipStep() {
     if (currentFormStep < totalFormSteps) {
         showFormStep(currentFormStep + 1);
     }
+}
+
+function validateCtSecret() {
+    var key = document.getElementById('ctKey').value.trim();
+    var keyInput = document.getElementById('ctKey');
+
+    if (!key) {
+        keyInput.classList.add('field-error');
+        showStatus('ctSecretStatus', 'Please enter the credential secret.', 'error');
+        return;
+    }
+    if (key.length !== 44 || key[43] !== '=') {
+        keyInput.classList.add('field-error');
+        showStatus('ctSecretStatus', 'The credential secret should be exactly 44 characters ending with =', 'error');
+        return;
+    }
+    try {
+        var decoded = atob(key);
+        if (decoded.length !== 32) {
+            keyInput.classList.add('field-error');
+            showStatus('ctSecretStatus', 'This doesn\'t look like a valid credential secret. Please check and try again.', 'error');
+            return;
+        }
+    } catch (e) {
+        keyInput.classList.add('field-error');
+        showStatus('ctSecretStatus', 'This doesn\'t look like a valid credential secret. Please check and try again.', 'error');
+        return;
+    }
+
+    keyInput.classList.remove('field-error');
+    clearStatus('ctSecretStatus');
+    showCtSubStep(4);
 }
 
 function validateCtTitle() {
@@ -1701,7 +1804,13 @@ function showCtSubStep(n) {
         var cameraContainer = document.getElementById('cameraCaptureContainer');
         if (cameraContainer) cameraContainer.style.display = isMobile ? 'block' : 'none';
         var ctKeyInput = document.getElementById('ctKey');
-        if (ctKeyInput) ctKeyInput.placeholder = isMobile ? 'Or type the credential secret here' : 'Paste credential secret here';
+        if (ctKeyInput) {
+            ctKeyInput.placeholder = isMobile ? 'Or type the credential secret here' : 'Paste credential secret here';
+            ctKeyInput.addEventListener('input', function() {
+                this.classList.remove('field-error');
+                clearStatus('ctSecretStatus');
+            });
+        }
     }
 }
 
