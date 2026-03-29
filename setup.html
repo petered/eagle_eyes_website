@@ -110,7 +110,7 @@ permalink: /setup/
         content: '\2190 ';
     }
     .back-link {
-        font-size: 1.3rem;
+        font-size: 1.5rem;
         color: #1e90ff;
         text-decoration: none;
         cursor: pointer;
@@ -120,6 +120,9 @@ permalink: /setup/
     }
     .back-link:hover {
         text-decoration: underline;
+    }
+    .back-link.skip-link::before {
+        content: '';
     }
     .setup-btn-link {
         background: none;
@@ -655,10 +658,13 @@ permalink: /setup/
 <!-- Main content -->
 <div class="setup-container">
 
-    <!-- User info bar -->
+    <!-- User/device info bar -->
     <div class="setup-user-info" id="setupUserInfo">
-        <span id="setupUserEmail"></span>
-        <a href="#" id="setupSignOutButton">Sign out</a>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #999;">
+            <span id="setupDeviceInfo" style="display: none;"><strong>Device:</strong> <span id="setupDeviceName"></span> <span style="color: #ddd;">|</span> <strong>ID:</strong> <span id="setupMachineId"></span> <span style="color: #ddd;">|</span></span>
+            <span id="setupUserEmail"></span>
+            <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 11px;">Switch user</a>
+        </div>
     </div>
 
     <div id="test-user-banner" style="display: none; background-color: #4CAF50; color: white; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 1rem;">
@@ -785,14 +791,15 @@ permalink: /setup/
         <!-- Step 3: CalTopo — sub-step flow -->
         <div class="form-step" id="formStep3" style="display: none;">
 
-            <!-- 3a: Do it now or later? -->
+            <!-- 3a: Why set up a service account? -->
             <div id="ctSubStep0" class="ct-substep">
                 <h2 class="form-step-question">Connect your CalTopo account</h2>
-                <p class="form-step-hint">Link your CalTopo service account so Eagle Eyes can access your team's maps.</p>
-                <p class="form-step-hint">You'll need access to CalTopo on a computer to create a service account.</p>
+                <p class="form-step-hint">Without a service account, your CalTopo session on the controller expires every few days and you'll need to log in again. A service account keeps your team permanently connected — set it up once and everyone on your license can use it.</p>
+                <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">Set up now</button>
-                    <a href="#" class="back-link" onclick="nextStep(); return false;">I'll do this later</a>
+                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
+                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin — skip for now &rarr;</a>
+                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'll do this later &rarr;</a>
                     <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
                 </div>
             </div>
@@ -805,7 +812,7 @@ permalink: /setup/
                     <li>Click your username in the top-right</li>
                     <li>Click <strong>"Administer"</strong> next to your team name</li>
                     <li>Go to the <strong>"Details"</strong> tab</li>
-                    <li>Click <strong>"Create a Service Account"</strong></li>
+                    <li>Scroll to the bottom and click <strong>"Create Service Account"</strong></li>
                 </ol>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(2)">I see the Create Service Account dialog</button>
@@ -862,7 +869,7 @@ permalink: /setup/
             <!-- 3e: Account ID & Credential ID -->
             <div id="ctSubStep4" class="ct-substep" style="display: none;">
                 <h2 class="form-step-question">Step 4: Enter Account ID and Credential ID</h2>
-                <p class="form-step-hint" id="ctSubStep4Hint">Find the service account you just created and enter the IDs shown next to it.</p>
+                <p class="form-step-hint" id="ctSubStep4Hint">Close the credential secret popup. Find the service account you just created in the list and enter the Account ID and Credential ID shown to the right of it.</p>
                 <div class="setup-field">
                     <label for="ctAccountId">Account ID <span class="field-counter" id="ctAccountIdCount"></span></label>
                     <input type="text" id="ctAccountId" placeholder="e.g. G0NGJU" maxlength="6" style="text-transform: uppercase;">
@@ -1423,7 +1430,7 @@ function showCtSubStep(n) {
         var title = document.getElementById('ctServiceTitle').value.trim();
         var hint = document.getElementById('ctSubStep4Hint');
         if (title) {
-            hint.innerHTML = 'Find the service account titled <strong>' + title + '</strong> and enter the IDs shown next to it.';
+            hint.innerHTML = 'Close the credential secret popup. Find <strong>' + title + '</strong> in the list and enter the Account ID and Credential ID shown to the right of it.';
         }
     }
     // Show camera button only on mobile for the secret step, update placeholder
@@ -1780,7 +1787,17 @@ async function deleteConfiguration() {
             signinOverlay.style.display = 'none';
             signinSection.style.display = 'none';
             userInfo.style.display = 'flex';
-            userEmail.textContent = 'Logged in as: ' + user.email;
+            userEmail.textContent = user.email;
+
+            // Populate device info if available from URL
+            var urlDeviceName = urlSetupParams.get('device_name');
+            var urlMachineId = urlSetupParams.get('machine_id');
+            if (urlDeviceName || urlMachineId) {
+                var deviceInfoEl = document.getElementById('setupDeviceInfo');
+                if (urlDeviceName) document.getElementById('setupDeviceName').textContent = urlDeviceName;
+                if (urlMachineId) document.getElementById('setupMachineId').textContent = urlMachineId;
+                deviceInfoEl.style.display = '';
+            }
 
             // Check for URL parameters
             var urlParams = new URLSearchParams(window.location.search);
