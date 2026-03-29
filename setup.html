@@ -758,8 +758,8 @@ permalink: /setup/
     <!-- Save success screen (shown after saving from activation flow) -->
     <div id="saveSuccessScreen" style="display: none; text-align: center; padding: 2rem 0;">
         <div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
-            <h3 style="margin: 0 0 0.5rem; font-size: 1.6rem;">Controller settings saved!</h3>
-            <p style="margin: 0; font-size: 1.4rem;">Your settings have been synced. Verify on the controller via <strong>"Set Up Controller"</strong> in the menu.</p>
+            <h3 id="saveSuccessTitle" style="margin: 0 0 0.5rem; font-size: 1.6rem;">Controller settings saved!</h3>
+            <p id="saveSuccessMessage" style="margin: 0; font-size: 1.4rem;">Your settings have been synced. Verify on the controller via <strong>"Set Up Controller"</strong> in the menu.</p>
         </div>
         <a href="#" onclick="showConfigListFromSuccess(); return false;" style="font-size: 1.4rem; color: #1e90ff; text-decoration: none;">See all controller settings &rarr;</a>
     </div>
@@ -1289,9 +1289,15 @@ function introSetupController() {
 var skipMobileRecommendation = false;
 
 function introSelectConfig(index) {
+    var config = cachedConfigurations[index];
     document.getElementById('setupIntro').style.display = 'none';
-    skipMobileRecommendation = true;
-    editConfiguration(index);
+    document.getElementById('activationSuccessBanner').style.display = 'none';
+
+    // Show sync message — config is already saved, controller will pick it up
+    var configName = config ? escapeHtml(config.label || 'Unnamed') : 'the selected setting';
+    document.getElementById('saveSuccessTitle').textContent = 'Controller setting selected!';
+    document.getElementById('saveSuccessMessage').innerHTML = '<strong>"' + configName + '"</strong> will be synced to your controller. If it doesn\'t appear automatically, go to <strong>"Set Up Controller"</strong> in the controller menu and select it from there.';
+    document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
 function introSkip() {
