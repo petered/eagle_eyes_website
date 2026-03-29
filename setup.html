@@ -106,6 +106,9 @@ permalink: /setup/
     .form-step-actions .setup-btn-secondary {
         width: 100%;
     }
+    .back-link::before {
+        content: '\2190 ';
+    }
     .back-link {
         font-size: 1.3rem;
         color: #1e90ff;
@@ -129,6 +132,20 @@ permalink: /setup/
     }
     .setup-btn-link:hover {
         color: #555;
+    }
+
+    /* Field validation */
+    .field-counter {
+        font-size: 1.2rem;
+        font-weight: 400;
+        color: #adb5bd;
+        margin-left: 0.5rem;
+    }
+    .field-counter.valid {
+        color: #28a745;
+    }
+    .setup-field input.field-error {
+        border-color: #dc3545 !important;
     }
 
     /* CalTopo sub-steps */
@@ -236,7 +253,7 @@ permalink: /setup/
 
     .page-logo {
         text-align: center;
-        padding: 48px 0 8px;
+        padding: 52px 0 4px;
     }
     .page-logo img {
         height: 24px;
@@ -589,7 +606,7 @@ permalink: /setup/
     @media (max-width: 768px) {
         .setup-container {
             width: 92%;
-            padding-top: 10rem;
+            padding-top: 0.5rem;
         }
 
         .setup-license-row {
@@ -604,7 +621,7 @@ permalink: /setup/
             flex-direction: column;
         }
 
-        .setup-btn {
+        .form-step-actions .setup-btn {
             width: 100%;
             text-align: center;
         }
@@ -711,8 +728,6 @@ permalink: /setup/
 
     <!-- Configuration form (hidden until editing/creating) -->
     <div class="setup-form" id="setupForm">
-        <a href="#" id="backToListLink" onclick="showConfigList(); return false;" style="display: inline-block; margin-bottom: 1rem; font-size: 1.4rem; color: #1e90ff; text-decoration: none;">&larr; Back to controller settings</a>
-
         <!-- License ID (always visible) -->
         <div id="licenseIdField" style="font-size: 1.3rem; color: #888; margin-bottom: 1rem;">
             License: <strong id="setupFormLicenseDisplay" style="color: #333;"></strong>
@@ -801,14 +816,19 @@ permalink: /setup/
             <!-- 3c: Fill in title and permission (with screenshot) -->
             <div id="ctSubStep2" class="ct-substep" style="display: none;">
                 <h2 class="form-step-question">Step 2: Fill in the details</h2>
-                <p class="form-step-hint">Enter a title (e.g. "Eagle Eyes") and make sure <strong>Update</strong> is selected as the permission, then click <strong>Create</strong>.</p>
-                <div style="text-align: center; margin: 1rem 0;">
+                <p class="form-step-hint">Enter a title for the service account below, then type the same title into CalTopo. Make sure <strong>Update</strong> is selected as the permission, then click <strong>Create</strong>.</p>
+                <div class="setup-field">
+                    <label for="ctServiceTitle">Service Account Title</label>
+                    <input type="text" id="ctServiceTitle" placeholder="e.g. Eagle Eyes">
+                </div>
+                <div style="text-align: center; margin: 0.75rem 0;">
                     <img src="{{ '/images/caltopo-create-service-account.png' | relative_url }}" alt="CalTopo Create Service Account dialog" style="max-width: 100%; border-radius: 8px; border: 1px solid #ddd;">
                 </div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(3)">Done — I clicked Create</button>
+                    <button class="setup-btn setup-btn-primary" onclick="validateCtTitle()">Done — I clicked Create</button>
                     <a href="#" class="back-link" onclick="showCtSubStep(1); return false;">Back</a>
                 </div>
+                <div class="setup-status" id="ctTitleStatus"></div>
             </div>
 
             <!-- 3d: Credential Secret -->
@@ -831,7 +851,7 @@ permalink: /setup/
                             <div class="camera-status" id="cameraStatus"></div>
                         </div>
                     </div>
-                    <input type="text" id="ctKey" placeholder="Paste credential secret here">
+                    <input type="text" id="ctKey" placeholder="Paste credential secret here" style="font-size: min(1.4rem, 3.2vw);">
                 </div>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(4)">Next</button>
@@ -842,17 +862,17 @@ permalink: /setup/
             <!-- 3e: Account ID & Credential ID -->
             <div id="ctSubStep4" class="ct-substep" style="display: none;">
                 <h2 class="form-step-question">Step 4: Enter Account ID and Credential ID</h2>
-                <p class="form-step-hint">These are shown alongside the secret when you create the service account.</p>
+                <p class="form-step-hint" id="ctSubStep4Hint">Find the service account you just created and enter the IDs shown next to it.</p>
                 <div class="setup-field">
-                    <label for="ctAccountId">Account ID</label>
-                    <input type="text" id="ctAccountId" placeholder="e.g. G0NGJU">
+                    <label for="ctAccountId">Account ID <span class="field-counter" id="ctAccountIdCount"></span></label>
+                    <input type="text" id="ctAccountId" placeholder="e.g. G0NGJU" maxlength="6" style="text-transform: uppercase;">
                 </div>
                 <div class="setup-field">
-                    <label for="ctCredentialId">Credential ID</label>
-                    <input type="text" id="ctCredentialId" placeholder="e.g. P0NM6A5800ST">
+                    <label for="ctCredentialId">Credential ID <span class="field-counter" id="ctCredentialIdCount"></span></label>
+                    <input type="text" id="ctCredentialId" placeholder="e.g. P0NM6A5800ST" maxlength="12" style="text-transform: uppercase;">
                 </div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()">Verify &amp; Connect</button>
+                    <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()" disabled>Verify &amp; Connect</button>
                     <a href="#" class="back-link" onclick="showCtSubStep(3); return false;">Back</a>
                 </div>
                 <div class="caltopo-verify-result" id="ctVerifyResult"></div>
@@ -1337,11 +1357,74 @@ function skipStep() {
     }
 }
 
+function validateCtTitle() {
+    var title = document.getElementById('ctServiceTitle').value.trim();
+    if (!title) {
+        showStatus('ctTitleStatus', 'Please enter a title for the service account.', 'error');
+        return;
+    }
+    clearStatus('ctTitleStatus');
+    showCtSubStep(3);
+}
+
+// Auto-format and validate Account ID / Credential ID
+function setupCtFieldFormatting() {
+    var accountInput = document.getElementById('ctAccountId');
+    var credInput = document.getElementById('ctCredentialId');
+    var accountCount = document.getElementById('ctAccountIdCount');
+    var credCount = document.getElementById('ctCredentialIdCount');
+    var verifyBtn = document.getElementById('ctVerifyBtn');
+
+    function formatField(input, maxLen, counterEl) {
+        input.addEventListener('input', function() {
+            // Auto-uppercase, strip non-alphanumeric, auto-correct O→0 and I→1
+            var val = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/O/g, '0').replace(/I/g, '1').substring(0, maxLen);
+            this.value = val;
+            // Update counter
+            if (val.length === maxLen) {
+                counterEl.textContent = '✓';
+                counterEl.className = 'field-counter valid';
+            } else {
+                counterEl.textContent = val.length + '/' + maxLen;
+                counterEl.className = 'field-counter';
+            }
+            // Clear error state on typing
+            this.classList.remove('field-error');
+            // Enable/disable verify button
+            updateVerifyButton();
+        });
+    }
+
+    function updateVerifyButton() {
+        var aOk = accountInput.value.length === 6;
+        var cOk = credInput.value.length === 12;
+        verifyBtn.disabled = !(aOk && cOk);
+    }
+
+    formatField(accountInput, 6, accountCount);
+    formatField(credInput, 12, credCount);
+}
+
+// Run formatting setup when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupCtFieldFormatting);
+} else {
+    setupCtFieldFormatting();
+}
+
 // CalTopo sub-steps within step 3
 function showCtSubStep(n) {
     for (var i = 0; i <= 5; i++) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
+    }
+    // Show title in step 4 hint
+    if (n === 4) {
+        var title = document.getElementById('ctServiceTitle').value.trim();
+        var hint = document.getElementById('ctSubStep4Hint');
+        if (title) {
+            hint.innerHTML = 'Find the service account titled <strong>' + title + '</strong> and enter the IDs shown next to it.';
+        }
     }
     // Show camera button only on mobile for the secret step, update placeholder
     if (n === 3) {
@@ -1415,11 +1498,15 @@ async function verifyCaltopoServiceAccount() {
             setTimeout(function() { showCtSubStep(5); }, 800);
         } else {
             resultEl.className = 'caltopo-verify-result error';
-            resultEl.textContent = result.message || 'Verification failed.';
+            resultEl.innerHTML = '<strong>Verification failed.</strong> Please double-check your Account ID, Credential ID, and Credential Secret. <a href="#" onclick="showCtSubStep(3); return false;" style="color: #dc3545;">Re-enter Credential Secret</a>';
+            document.getElementById('ctAccountId').classList.add('field-error');
+            document.getElementById('ctCredentialId').classList.add('field-error');
         }
     } catch (err) {
         resultEl.className = 'caltopo-verify-result error';
-        resultEl.textContent = 'Verification error: ' + err.message;
+        resultEl.innerHTML = '<strong>Verification error:</strong> ' + err.message + '. Please check all values and try again.';
+        document.getElementById('ctAccountId').classList.add('field-error');
+        document.getElementById('ctCredentialId').classList.add('field-error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Verify & Connect';
