@@ -741,13 +741,23 @@ permalink: /activate/
         }
 
         // Check authentication state
+        var authResolved = false;
         firebase.auth().onAuthStateChanged(function(user) {
+            authResolved = true;
             if (user) {
                 showActivationContent();
             } else {
                 showAuthRequired();
             }
         });
+
+        // Fallback: if Firebase auth hasn't responded after 5s, show sign-in
+        setTimeout(function() {
+            if (!authResolved) {
+                console.warn('Firebase auth timeout — showing sign-in as fallback');
+                showAuthRequired();
+            }
+        }, 5000);
 
         // Listen for sign-in completion
         document.addEventListener('signInComplete', function(event) {
