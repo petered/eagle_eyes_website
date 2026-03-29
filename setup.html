@@ -668,7 +668,7 @@ permalink: /setup/
     <div class="wizard-step-connector completed"></div>
     <div class="wizard-step active">
         <div class="wizard-step-number">2</div>
-        <div class="wizard-step-label">Configure</div>
+        <div class="wizard-step-label">Setup</div>
     </div>
 </div>
 
@@ -2063,6 +2063,12 @@ async function deleteConfiguration() {
                         : 'Activation completed! Your device is now activated. Verify on the controller via "Set Up Controller" in the menu.';
                     document.getElementById('activationSuccessText').textContent = text;
                     banner.style.display = 'block';
+                    // Clear activation_success from URL to prevent stale banner on revisit
+                    if (window.history && window.history.replaceState) {
+                        var cleanUrl = new URL(window.location);
+                        cleanUrl.searchParams.delete('activation_success');
+                        window.history.replaceState({}, document.title, cleanUrl.toString());
+                    }
                 }
 
                 showIntroScreen(null); // null = loading state
