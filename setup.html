@@ -207,7 +207,7 @@ permalink: /setup/
     }
     .camera-preview video {
         width: 100%;
-        max-height: 50px;
+        max-height: 70px;
         object-fit: cover;
         display: block;
         border-radius: 12px 12px 0 0;
@@ -456,6 +456,7 @@ permalink: /setup/
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .setup-btn-primary {
@@ -468,8 +469,22 @@ permalink: /setup/
     }
 
     .setup-btn-primary:focus,
-    .setup-btn-primary:active {
-        background-color: #1e90ff;
+    .setup-btn-primary:active,
+    .setup-btn-primary:visited {
+        background-color: #1e90ff !important;
+        color: white !important;
+        outline: none;
+    }
+
+    .setup-btn-secondary:focus,
+    .setup-btn-secondary:active,
+    .setup-btn-secondary:visited {
+        color: white !important;
+        outline: none;
+    }
+
+    .setup-btn:focus,
+    .setup-btn:active {
         outline: none;
     }
 
@@ -663,7 +678,7 @@ permalink: /setup/
     <!-- User/device info bar -->
     <div class="setup-user-info" id="setupUserInfo">
         <div style="font-size: 12px; color: #999; line-height: 1.6;">
-            <div><span id="setupUserEmail"></span> <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 11px;">Switch user</a></div>
+            <div><span id="setupUserEmail" style="text-decoration: none;"></span> <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 12px; vertical-align: baseline;">Switch user</a></div>
             <div id="setupDeviceInfo" style="display: none;"><strong>Device:</strong> <span id="setupDeviceName"></span> <span style="color: #ddd;">|</span> <strong>ID:</strong> <span id="setupMachineId"></span></div>
             <div id="setupLicenseInfo" style="display: none;"><strong>License:</strong> <span id="setupLicenseDisplay"></span></div>
         </div>
@@ -736,10 +751,7 @@ permalink: /setup/
 
     <!-- Configuration form (hidden until editing/creating) -->
     <div class="setup-form" id="setupForm">
-        <!-- License ID (always visible) -->
-        <div id="licenseIdField" style="font-size: 1.3rem; color: #888; margin-bottom: 1rem;">
-            License: <strong id="setupFormLicenseDisplay" style="color: #333;"></strong>
-        </div>
+        <!-- License ID display removed — shown in info bar above -->
 
         <!-- Step indicator -->
         <div class="form-step-indicator" id="formStepIndicator">
@@ -1225,7 +1237,6 @@ function editConfiguration(index) {
     }
     clearForm();
     populateForm(config);
-    document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId || '';
     document.getElementById('setupDeleteBtn').style.display = '';
     showConfigForm();
 }
@@ -1281,7 +1292,6 @@ function createNewConfiguration() {
         showLicenseDialog(function() {
             currentConfigurationId = null;
             clearForm();
-            document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
             document.getElementById('setupName').value = getDefaultName();
             document.getElementById('setupDeleteBtn').style.display = 'none';
             showConfigForm();
@@ -1290,7 +1300,6 @@ function createNewConfiguration() {
     }
     currentConfigurationId = null;
     clearForm();
-    document.getElementById('setupFormLicenseDisplay').textContent = currentLicenseId;
     document.getElementById('setupName').value = getDefaultName();
     document.getElementById('setupDeleteBtn').style.display = 'none';
     showConfigForm();
@@ -1649,7 +1658,6 @@ function populateForm(config) {
 
 // Clear form
 function clearForm() {
-    document.getElementById('setupFormLicenseDisplay').textContent = '';
     document.getElementById('setupName').value = '';
     document.getElementById('setupUnits').value = 'IMPERIAL';
     document.getElementById('setupCoordsys').value = 'DD';
@@ -1892,8 +1900,8 @@ var cameraScanActive = false;
 var tesseractLoaded = false;
 
 // CalTopo secrets are base64-encoded 32-byte keys = exactly 44 chars ending with =
-// Must contain a mix of upper, lower, and digits to avoid false positives from OCR noise
-var SECRET_PATTERN = /[A-Za-z0-9+\/]{43}=/;
+// Match only when bounded by whitespace/line boundary to avoid cross-line concatenation
+var SECRET_PATTERN = /(?:^|[\s])([A-Za-z0-9+\/]{43}=)(?:[\s]|$)/;
 
 // Validate that a matched string looks like a real base64 secret (not OCR noise)
 // Real secrets have a mix of uppercase, lowercase, and digits
@@ -1928,11 +1936,11 @@ function startCameraCapture() {
     status.textContent = 'Starting camera...';
 
     navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
     }).then(function(stream) {
         cameraStream = stream;
         video.srcObject = stream;
-        status.textContent = 'Point camera at the credential secret on your screen...';
+        status.textContent = 'Move close so the secret fills the screen...';
         cameraScanActive = true;
         loadTesseractThenScan();
     }).catch(function(err) {
@@ -1976,28 +1984,45 @@ function autoScanLoop() {
         return;
     }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Crop to center 80% width, middle 40% height for tighter focus
+    var cropX = Math.floor(video.videoWidth * 0.1);
+    var cropW = Math.floor(video.videoWidth * 0.8);
+    var cropY = Math.floor(video.videoHeight * 0.3);
+    var cropH = Math.floor(video.videoHeight * 0.4);
+    canvas.width = cropW;
+    canvas.height = cropH;
     var ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-    status.textContent = 'Scanning...';
+    // Preprocess: convert to high-contrast grayscale
+    var imgData = ctx.getImageData(0, 0, cropW, cropH);
+    var pixels = imgData.data;
+    for (var i = 0; i < pixels.length; i += 4) {
+        var gray = 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
+        // High contrast threshold
+        gray = gray > 140 ? 255 : 0;
+        pixels[i] = pixels[i+1] = pixels[i+2] = gray;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    status.textContent = 'Scanning... hold steady over the secret';
 
     canvas.toBlob(function(blob) {
         if (!cameraScanActive) return;
         var imageUrl = URL.createObjectURL(blob);
 
-        Tesseract.recognize(imageUrl, 'eng').then(function(result) {
+        Tesseract.recognize(imageUrl, 'eng', {
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+        }).then(function(result) {
             URL.revokeObjectURL(imageUrl);
             if (!cameraScanActive) return;
 
             var text = result.data.text || '';
-            // Remove whitespace and look for the exact 44-char base64 pattern
-            var cleaned = text.replace(/\s+/g, '');
-            var match = cleaned.match(SECRET_PATTERN);
+            // Match on raw text (with whitespace) to avoid cross-line concatenation
+            var match = text.match(SECRET_PATTERN);
 
-            if (match && isValidBase64Secret(match[0])) {
-                document.getElementById('ctKey').value = match[0];
+            if (match && isValidBase64Secret(match[1])) {
+                document.getElementById('ctKey').value = match[1];
                 status.textContent = 'Secret detected!';
                 cameraScanActive = false;
                 setTimeout(function() { stopCameraCapture(); }, 1000);
