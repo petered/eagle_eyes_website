@@ -1298,18 +1298,36 @@ permalink: /activate/
 
             $('#activationLoading').hide();
 
-            // Redirect to setup page with success indicator
-            const setupParams = new URLSearchParams({ license_id: selectedLicense });
-            if (globalSessionId) setupParams.set('session_id', globalSessionId);
-            if (clientAppVersion) setupParams.set('client_app_version', clientAppVersion);
-            if (urlIntegrationType) setupParams.set('integration_type', urlIntegrationType);
-            setupParams.set('activation_success', hasExistingKey ? 'resync' : 'new');
-            var dn = $('#deviceName').text();
-            var mi = $('#machineId').text();
-            if (dn) setupParams.set('device_name', dn);
-            if (mi) setupParams.set('machine_id', mi);
-            const setupUrl = '{{ "/setup/" | relative_url }}?' + setupParams.toString();
-            window.location.href = setupUrl;
+            if (enableSetup) {
+                // Redirect to setup page with success indicator
+                const setupParams = new URLSearchParams({ license_id: selectedLicense });
+                if (globalSessionId) setupParams.set('session_id', globalSessionId);
+                if (clientAppVersion) setupParams.set('client_app_version', clientAppVersion);
+                if (urlIntegrationType) setupParams.set('integration_type', urlIntegrationType);
+                setupParams.set('activation_success', hasExistingKey ? 'resync' : 'new');
+                var dn = $('#deviceName').text();
+                var mi = $('#machineId').text();
+                if (dn) setupParams.set('device_name', dn);
+                if (mi) setupParams.set('machine_id', mi);
+                const setupUrl = '{{ "/setup/" | relative_url }}?' + setupParams.toString();
+                window.location.href = setupUrl;
+            } else {
+                // Show success message on this page
+                var resultHtml = `
+                    <div class="success-message">
+                        <h3>${hasExistingKey ? 'Re-sync Completed!' : 'Activation Completed!'}</h3>
+                        <p>${hasExistingKey ? 'Your device has been re-synchronized.' : 'Your device is now activated.'}</p>
+                        <p><strong>Next step:</strong> Go back to your device and verify that the activation is successful.</p>
+                        <button class="activate-button" onclick="window.location.href='{{ '/account/' | relative_url }}'">
+                            Go to Account Page
+                        </button>
+                    </div>
+                `;
+                $('#activationResult').html(resultHtml).show();
+                setTimeout(function() {
+                    $('#activationResult')[0].scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
 
         } catch (parseError) {
             console.error('Error parsing activation response:', parseError);
