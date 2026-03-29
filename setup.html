@@ -675,15 +675,6 @@ permalink: /setup/
 <!-- Main content -->
 <div class="setup-container">
 
-    <!-- User/device info bar -->
-    <div class="setup-user-info" id="setupUserInfo">
-        <div style="font-size: 12px; color: #999; line-height: 1.6;">
-            <div><span id="setupUserEmail" style="text-decoration: none;"></span> <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 12px; vertical-align: baseline;">Switch user</a></div>
-            <div id="setupDeviceInfo" style="display: none;"><strong>Device:</strong> <span id="setupDeviceName"></span> <span style="color: #ddd;">|</span> <strong>ID:</strong> <span id="setupMachineId"></span></div>
-            <div id="setupLicenseInfo" style="display: none;"><strong>License:</strong> <span id="setupLicenseDisplay"></span></div>
-        </div>
-    </div>
-
     <div id="test-user-banner" style="display: none; background-color: #4CAF50; color: white; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 1rem;">
         <strong>Development Mode</strong>
         <button id="test-user-login" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 10px;">Sign in as Test User</button>
@@ -728,8 +719,8 @@ permalink: /setup/
 
     <!-- Laptop handoff screen -->
     <div id="laptopHandoff" style="display: none; text-align: center;">
-        <h2 class="form-step-question">Continue on your laptop</h2>
-        <p class="form-step-hint">On your laptop or desktop, open a browser and go to:</p>
+        <h2 class="form-step-question">Continue on your other device</h2>
+        <p class="form-step-hint">On your laptop, desktop, or tablet, open a browser and go to:</p>
         <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 1.5rem;">
             <strong style="font-size: 1.6rem; color: #333;">EagleEyesSearch.com/setup</strong>
         </div>
@@ -994,6 +985,15 @@ permalink: /setup/
         <div class="setup-status" id="setupFormStatus"></div>
     </div>
 
+    <!-- User/device info bar (at bottom) -->
+    <div class="setup-user-info" id="setupUserInfo" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #f1f3f4;">
+        <div style="font-size: 12px; color: #999; line-height: 1.6;">
+            <div><span id="setupUserEmail" style="text-decoration: none;"></span> <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 12px; vertical-align: baseline;">Switch user</a></div>
+            <div id="setupDeviceInfo" style="display: none;"><strong>Device:</strong> <span id="setupDeviceName"></span> <span style="color: #ddd;">|</span> <strong>ID:</strong> <span id="setupMachineId"></span></div>
+            <div id="setupLicenseInfo" style="display: none;"><strong>License:</strong> <span id="setupLicenseDisplay"></span></div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -1058,8 +1058,7 @@ async function handleSetupCode() {
         }
 
         var idToken = await user.getIdToken(true);
-        var hostURL = getHostURL();
-        var response = await fetch(hostURL + '/get_activation_request?session_id=' + encodeURIComponent(sessionId.toUpperCase()), {
+        var response = await fetch(API_BASE + 'get_activation_request?session_id=' + encodeURIComponent(sessionId.toUpperCase()), {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
         });
@@ -1135,6 +1134,8 @@ function dismissMobileRecommendation() {
 function showLaptopHandoff() {
     document.getElementById('mobileRecommendation').style.display = 'none';
     document.getElementById('laptopHandoff').style.display = 'block';
+    document.getElementById('setupUserInfo').style.display = 'none';
+    document.getElementById('activationSuccessBanner').style.display = 'none';
     // Show the activation code
     var code = urlSessionId || '';
     if (code.length === 6) {
@@ -1285,8 +1286,11 @@ function introSetupController() {
     createNewConfiguration();
 }
 
+var skipMobileRecommendation = false;
+
 function introSelectConfig(index) {
     document.getElementById('setupIntro').style.display = 'none';
+    skipMobileRecommendation = true;
     editConfiguration(index);
 }
 
@@ -1521,11 +1525,12 @@ function showConfigForm() {
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
 
-    // On mobile, show recommendation to use larger screen first
-    if (isMobileDevice() && urlSessionId) {
+    // On mobile, show recommendation to use larger screen first (only for new configs)
+    if (isMobileDevice() && urlSessionId && !skipMobileRecommendation) {
         showMobileRecommendation();
         return;
     }
+    skipMobileRecommendation = false;
 
     document.getElementById('setupForm').style.display = 'block';
     showFormStep(1);
