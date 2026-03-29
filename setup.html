@@ -11,7 +11,7 @@ permalink: /setup/
         align-items: center;
         justify-content: center;
         margin-top: 16px;
-        margin-bottom: 24px;
+        margin-bottom: 8px;
     }
     .wizard-step {
         display: flex;
@@ -97,9 +97,26 @@ permalink: /setup/
     }
     .form-step-actions {
         display: flex;
-        gap: 0.75rem;
+        flex-direction: column;
         align-items: center;
+        gap: 0.5rem;
         margin-top: 1.5rem;
+    }
+    .form-step-actions .setup-btn-primary,
+    .form-step-actions .setup-btn-secondary {
+        width: 100%;
+    }
+    .back-link {
+        font-size: 1.3rem;
+        color: #1e90ff;
+        text-decoration: none;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0.25rem;
+    }
+    .back-link:hover {
+        text-decoration: underline;
     }
     .setup-btn-link {
         background: none;
@@ -170,7 +187,7 @@ permalink: /setup/
     }
     .camera-preview video {
         width: 100%;
-        max-height: 200px;
+        max-height: 80px;
         object-fit: cover;
         display: block;
         border-radius: 12px 12px 0 0;
@@ -240,7 +257,7 @@ permalink: /setup/
         background: #f8f9fa;
         border-radius: 6px;
         padding: 0.5rem 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
         font-size: 14px;
         color: #555;
     }
@@ -718,7 +735,7 @@ permalink: /setup/
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
-                <button class="setup-btn setup-btn-link" onclick="skipStep()">Skip</button>
+                <a href="#" class="back-link" onclick="skipStep(); return false;">Skip</a>
             </div>
         </div>
 
@@ -745,8 +762,8 @@ permalink: /setup/
                 </select>
             </div>
             <div class="form-step-actions">
-                <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+                <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
             </div>
         </div>
 
@@ -758,32 +775,45 @@ permalink: /setup/
                 <h2 class="form-step-question">Connect your CalTopo account</h2>
                 <p class="form-step-hint">Link your CalTopo service account so Eagle Eyes can access your team's maps.</p>
                 <p class="form-step-hint">You'll need access to CalTopo on a computer to create a service account.</p>
-                <div class="form-step-actions" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)" style="width: 100%;">Set up now</button>
-                    <button class="setup-btn setup-btn-secondary" onclick="nextStep()" style="width: 100%;">I'll do this later</button>
+                <div class="form-step-actions">
+                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">Set up now</button>
+                    <a href="#" class="back-link" onclick="nextStep(); return false;">I'll do this later</a>
+                    <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
                 </div>
             </div>
 
-            <!-- 3b: Guide to create service account -->
+            <!-- 3b: Navigate to service account page -->
             <div id="ctSubStep1" class="ct-substep" style="display: none;">
-                <h2 class="form-step-question">Step 1: Create a service account</h2>
+                <h2 class="form-step-question">Step 1: Open CalTopo</h2>
                 <p class="form-step-hint">On your computer, open CalTopo and follow these steps:</p>
                 <ol style="font-size: 1.4rem; color: #555; line-height: 2; padding-left: 1.5rem; margin: 0;">
                     <li>Click your username in the top-right</li>
                     <li>Click <strong>"Administer"</strong> next to your team name</li>
                     <li>Go to the <strong>"Details"</strong> tab</li>
                     <li>Click <strong>"Create a Service Account"</strong></li>
-                    <li>Choose a title and permission level, then click <strong>Create</strong></li>
                 </ol>
-                <div style="text-align: center; margin-top: 1.5rem;">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(2)" style="width: 100%;">Credential secret is visible on my screen</button>
-                    <a href="#" onclick="showCtSubStep(0); return false;" style="display: inline-block; margin-top: 0.75rem; font-size: 1.3rem; color: #1e90ff; text-decoration: none;">Back</a>
+                <div class="form-step-actions">
+                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(2)">I see the Create Service Account dialog</button>
+                    <a href="#" class="back-link" onclick="showCtSubStep(0); return false;">Back</a>
                 </div>
             </div>
 
-            <!-- 3c: Credential Secret -->
+            <!-- 3c: Fill in title and permission (with screenshot) -->
             <div id="ctSubStep2" class="ct-substep" style="display: none;">
-                <h2 class="form-step-question">Step 2: Enter the Credential Secret</h2>
+                <h2 class="form-step-question">Step 2: Fill in the details</h2>
+                <p class="form-step-hint">Enter a title (e.g. "Eagle Eyes") and make sure <strong>Update</strong> is selected as the permission, then click <strong>Create</strong>.</p>
+                <div style="text-align: center; margin: 1rem 0;">
+                    <img src="{{ '/images/caltopo-create-service-account.png' | relative_url }}" alt="CalTopo Create Service Account dialog" style="max-width: 100%; border-radius: 8px; border: 1px solid #ddd;">
+                </div>
+                <div class="form-step-actions">
+                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(3)">Done — I clicked Create</button>
+                    <a href="#" class="back-link" onclick="showCtSubStep(1); return false;">Back</a>
+                </div>
+            </div>
+
+            <!-- 3d: Credential Secret -->
+            <div id="ctSubStep3" class="ct-substep" style="display: none;">
+                <h2 class="form-step-question">Step 3: Enter the Credential Secret</h2>
                 <p class="form-step-hint">Copy the secret from CalTopo and paste it here. It's only shown once!</p>
                 <div class="setup-field">
                     <div class="camera-capture-container" id="cameraCaptureContainer" style="display: none; margin-bottom: 0.75rem;">
@@ -804,14 +834,14 @@ permalink: /setup/
                     <input type="text" id="ctKey" placeholder="Paste credential secret here">
                 </div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-secondary" onclick="showCtSubStep(1)">Back</button>
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(3)">Next</button>
+                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(4)">Next</button>
+                    <a href="#" class="back-link" onclick="showCtSubStep(2); return false;">Back</a>
                 </div>
             </div>
 
-            <!-- 3d: Account ID & Credential ID -->
-            <div id="ctSubStep3" class="ct-substep" style="display: none;">
-                <h2 class="form-step-question">Step 3: Enter Account ID and Credential ID</h2>
+            <!-- 3e: Account ID & Credential ID -->
+            <div id="ctSubStep4" class="ct-substep" style="display: none;">
+                <h2 class="form-step-question">Step 4: Enter Account ID and Credential ID</h2>
                 <p class="form-step-hint">These are shown alongside the secret when you create the service account.</p>
                 <div class="setup-field">
                     <label for="ctAccountId">Account ID</label>
@@ -822,14 +852,14 @@ permalink: /setup/
                     <input type="text" id="ctCredentialId" placeholder="e.g. P0NM6A5800ST">
                 </div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-secondary" onclick="showCtSubStep(2)">Back</button>
                     <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()">Verify &amp; Connect</button>
+                    <a href="#" class="back-link" onclick="showCtSubStep(3); return false;">Back</a>
                 </div>
                 <div class="caltopo-verify-result" id="ctVerifyResult"></div>
             </div>
 
-            <!-- 3e: Map selection (shown after verify success) -->
-            <div id="ctSubStep4" class="ct-substep" style="display: none;">
+            <!-- 3f: Map selection (shown after verify success) -->
+            <div id="ctSubStep5" class="ct-substep" style="display: none;">
                 <h2 class="form-step-question">Choose a default map (optional)</h2>
                 <p class="form-step-hint">Select a map from your CalTopo account to use as the default.</p>
                 <div class="setup-field" id="ctMapDropdownField" style="margin-bottom: 1rem;">
@@ -843,9 +873,8 @@ permalink: /setup/
                 </div>
                 <div class="setup-status info" id="setupMapIdPreview" style="display: none;"></div>
                 <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-secondary" onclick="showCtSubStep(3)">Back</button>
                     <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
-                    <button class="setup-btn setup-btn-link" onclick="nextStep()">Skip</button>
+                    <a href="#" class="back-link" onclick="showCtSubStep(4); return false;">Back</a>
                 </div>
             </div>
 
@@ -864,9 +893,9 @@ permalink: /setup/
                 <input type="url" id="setupProceduresLink" placeholder="https://...">
             </div>
             <div class="form-step-actions">
-                <button class="setup-btn setup-btn-secondary" onclick="prevStep()">Back</button>
                 <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Settings</button>
                 <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
+                <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
             </div>
         </div>
 
@@ -1310,12 +1339,12 @@ function skipStep() {
 
 // CalTopo sub-steps within step 3
 function showCtSubStep(n) {
-    for (var i = 0; i <= 4; i++) {
+    for (var i = 0; i <= 5; i++) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
     }
     // Show camera button only on mobile for the secret step, update placeholder
-    if (n === 2) {
+    if (n === 3) {
         var isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
         var cameraContainer = document.getElementById('cameraCaptureContainer');
         if (cameraContainer) cameraContainer.style.display = isMobile ? 'block' : 'none';
@@ -1383,7 +1412,7 @@ async function verifyCaltopoServiceAccount() {
             showCaltopoVerifySuccess(caltopoVerifiedData);
             populateMapDropdown(caltopoVerifiedData.maps);
             // Advance to map selection sub-step
-            setTimeout(function() { showCtSubStep(4); }, 800);
+            setTimeout(function() { showCtSubStep(5); }, 800);
         } else {
             resultEl.className = 'caltopo-verify-result error';
             resultEl.textContent = result.message || 'Verification failed.';
