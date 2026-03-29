@@ -272,14 +272,10 @@ permalink: /setup/
 
     .setup-user-info {
         display: none;
-        align-items: center;
-        justify-content: space-between;
-        background: #f8f9fa;
-        border-radius: 6px;
-        padding: 0.5rem 1rem;
-        margin-bottom: 0.5rem;
-        font-size: 14px;
-        color: #555;
+        padding: 0 2px 8px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: #999;
     }
 
     .setup-user-info a {
@@ -471,6 +467,12 @@ permalink: /setup/
         background-color: #1873cc;
     }
 
+    .setup-btn-primary:focus,
+    .setup-btn-primary:active {
+        background-color: #1e90ff;
+        outline: none;
+    }
+
     .setup-btn-primary:disabled {
         background-color: #a0c4e8;
         cursor: not-allowed;
@@ -660,10 +662,10 @@ permalink: /setup/
 
     <!-- User/device info bar -->
     <div class="setup-user-info" id="setupUserInfo">
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #999;">
-            <span id="setupDeviceInfo" style="display: none;"><strong>Device:</strong> <span id="setupDeviceName"></span> <span style="color: #ddd;">|</span> <strong>ID:</strong> <span id="setupMachineId"></span> <span style="color: #ddd;">|</span></span>
-            <span id="setupUserEmail"></span>
-            <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 11px;">Switch user</a>
+        <div style="font-size: 12px; color: #999; line-height: 1.6;">
+            <div><span id="setupUserEmail"></span> <a href="#" id="setupSignOutButton" style="color: #bbb; text-decoration: underline; font-size: 11px;">Switch user</a></div>
+            <div id="setupDeviceInfo" style="display: none;"><strong>Device:</strong> <span id="setupDeviceName"></span> <span style="color: #ddd;">|</span> <strong>ID:</strong> <span id="setupMachineId"></span></div>
+            <div id="setupLicenseInfo" style="display: none;"><strong>License:</strong> <span id="setupLicenseDisplay"></span></div>
         </div>
     </div>
 
@@ -756,7 +758,7 @@ permalink: /setup/
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
-                <a href="#" class="back-link" onclick="skipStep(); return false;">Skip</a>
+                <a href="#" class="back-link skip-link" onclick="skipStep(); return false;">Skip &rarr;</a>
             </div>
         </div>
 
@@ -798,8 +800,7 @@ permalink: /setup/
                 <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
-                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin — skip for now &rarr;</a>
-                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'll do this later &rarr;</a>
+                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin / I'll do this later &rarr;</a>
                     <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
                 </div>
             </div>
@@ -1316,6 +1317,8 @@ function showConfigForm() {
 
 function showFormStep(step) {
     currentFormStep = step;
+    // Remove focus from any button to prevent "pressed" appearance
+    if (document.activeElement) document.activeElement.blur();
     for (var i = 1; i <= totalFormSteps; i++) {
         var el = document.getElementById('formStep' + i);
         if (el) el.style.display = (i === step) ? 'block' : 'none';
@@ -1806,6 +1809,8 @@ async function deleteConfiguration() {
                 currentLicenseId = urlLicenseId;
                 document.getElementById('setupLicenseInput').value = urlLicenseId;
                 document.getElementById('setupLicenseLink').textContent = 'License: ' + urlLicenseId + ' (change)';
+                document.getElementById('setupLicenseDisplay').textContent = urlLicenseId;
+                document.getElementById('setupLicenseInfo').style.display = '';
             }
 
             if (cameFromActivation && !introShown) {
@@ -1893,11 +1898,23 @@ var SECRET_PATTERN = /[A-Za-z0-9+\/]{43}=/;
 // Validate that a matched string looks like a real base64 secret (not OCR noise)
 // Real secrets have a mix of uppercase, lowercase, and digits
 function isValidBase64Secret(s) {
+    // Must be exactly 44 chars ending with =
+    if (!s || s.length !== 44 || s[43] !== '=') return false;
+    // Must actually decode to 32 bytes (valid base64)
+    try {
+        var decoded = atob(s);
+        if (decoded.length !== 32) return false;
+    } catch (e) {
+        return false;
+    }
+    // Must not contain common OCR noise patterns (dates, words)
+    if (/\d{2}\/\d{2}\/\d{4}/.test(s)) return false;
+    if (/[a-z]{5,}/.test(s.toLowerCase()) && !/[A-Z].*[a-z].*[0-9]/.test(s)) return false;
+    // Real base64 secrets always have uppercase, lowercase, AND digits
     var hasUpper = /[A-Z]/.test(s);
     var hasLower = /[a-z]/.test(s);
     var hasDigit = /[0-9]/.test(s);
-    // Must have at least 2 of 3 character types
-    return (hasUpper + hasLower + hasDigit) >= 2;
+    return hasUpper && hasLower && hasDigit;
 }
 
 function startCameraCapture() {
