@@ -806,8 +806,8 @@ permalink: /setup/
 
     <!-- Controller settings list (shown after auth) -->
     <div id="setupConfigList" style="display: none;">
-        <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="configListSubtitle"></div>
-        <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"><strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></div>
+        <div style="font-size: 1.5rem; color: #999; margin-bottom: 0.5rem;" id="configListSubtitle"></div>
+        <div style="font-size: 1.5rem; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"><strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></div>
         <div style="margin-bottom: 1rem;">
             <button class="setup-btn setup-btn-primary" onclick="createNewConfiguration()">+ New</button>
         </div>
@@ -1515,7 +1515,10 @@ function renderConfigList(configs) {
         if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
         if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
         if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
-        html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); editConfiguration(' + index + ')" style="width: 100%;"><span style="margin-right: 6px;">&#9998;</span> Edit</button></div>';
+        html += '<div style="text-align: center; margin-top: 0.75rem; display: flex; gap: 0.75rem;">';
+        html += '<button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); editConfiguration(' + index + ')" style="flex: 1;"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
+        html += '<button class="setup-btn setup-btn-danger" onclick="event.stopPropagation(); deleteConfigurationByIndex(' + index + ')" style="flex: 0 0 auto; padding: 10px 16px;">Delete</button>';
+        html += '</div>';
         html += '</div>';
         html += '</div>';
     });
@@ -2143,6 +2146,27 @@ async function saveConfiguration() {
 }
 
 // Delete configuration
+async function deleteConfigurationByIndex(index) {
+    var config = cachedConfigurations[index];
+    if (!config || !config.configuration_id) return;
+    var configName = config.label || 'Unnamed';
+    if (!confirm('Are you sure you want to delete "' + configName + '"? This cannot be undone.')) return;
+
+    var licenses = config.licenses || [];
+    var licenseId = licenses[0] || currentLicenseId;
+
+    try {
+        await apiCall('delete_configuration', {
+            license_id: licenseId,
+            configuration_id: config.configuration_id
+        });
+        loadConfigurations();
+    } catch (err) {
+        console.error('Error deleting configuration:', err);
+        alert('Error deleting: ' + err.message);
+    }
+}
+
 async function deleteConfiguration() {
     if (!currentConfigurationId || !currentLicenseId) return;
     if (!confirm('Are you sure you want to delete this configuration? This cannot be undone.')) return;
