@@ -1311,7 +1311,7 @@ function showIntroScreen(configs) {
         skipBtn.style.display = 'none';
     } else if (configs && configs.length > 0) {
         titleEl.textContent = 'Controller settings available';
-        messageEl.textContent = 'Your team already has controller settings. Select one to apply it to the device that was just activated, or create a new one.';
+        messageEl.textContent = 'Your team has controller settings available. Select one to apply it to the device that was just activated, or create a new one.';
         setupBtn.textContent = 'Create New';
         setupBtn.style.display = '';
         skipBtn.style.display = '';
@@ -1405,8 +1405,24 @@ async function introSelectConfig(index) {
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
-function introSkip() {
-    window.location.href = '{{ "/account/" | relative_url }}';
+async function introSkip() {
+    // Complete the mobile activation request to tell the app no settings are coming
+    if (urlSessionId) {
+        try {
+            await apiCall('complete_setup_session', {
+                session_id: urlSessionId,
+                skipped: true
+            });
+        } catch (err) {
+            console.error('Error completing setup session:', err);
+        }
+    }
+    // Show completion screen
+    document.getElementById('setupIntro').style.display = 'none';
+    document.getElementById('activationSuccessBanner').style.display = 'none';
+    document.getElementById('saveSuccessTitle').textContent = 'Activation complete!';
+    document.getElementById('saveSuccessMessage').textContent = 'You can close this window. No controller settings were applied.';
+    document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
 // --- Configuration list ---
