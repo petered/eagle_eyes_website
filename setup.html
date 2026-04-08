@@ -1621,50 +1621,6 @@ var currentFormStep = 1;
 var totalFormSteps = 4;
 
 // Single-step mode: load existing config then jump to the relevant step
-async function startSingleStepMode() {
-    // Load existing config for this license
-    try {
-        var result = await apiCall('get_configuration', { license_id: currentLicenseId });
-        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
-        cachedConfigurations = configs;
-        if (configs.length > 0) {
-            var config = configs[0];
-            currentConfigurationId = config.configuration_id;
-            clearForm();
-            populateForm(config);
-        } else {
-            // No existing config — set a default name so saves work
-            document.getElementById('setupName').value = getDefaultName();
-        }
-    } catch (err) {
-        console.error('Error loading config for single-step mode:', err);
-        document.getElementById('setupName').value = getDefaultName();
-    }
-
-    // Show the form and jump to the right step
-    document.getElementById('setupForm').style.display = 'block';
-    if (caltopoOnly) {
-        showFormStep(3);
-        showCtSubStep(0);
-    } else if (proceduresOnly) {
-        showFormStep(4);
-    }
-
-    // Hide back links in single-step mode — there's nowhere to go back to
-    var activeStep = document.getElementById('formStep' + currentFormStep);
-    if (activeStep) {
-        var backLinks = activeStep.querySelectorAll('.back-link:not(.skip-link)');
-        backLinks.forEach(function(link) { link.style.display = 'none'; });
-    }
-    // Also hide back links inside CalTopo sub-steps
-    if (caltopoOnly) {
-        var ctStep0 = document.getElementById('ctSubStep0');
-        if (ctStep0) {
-            var backs = ctStep0.querySelectorAll('.back-link:not(.skip-link)');
-            backs.forEach(function(link) { link.style.display = 'none'; });
-        }
-    }
-}
 
 // Save and finish in single-step mode (called from nextStep for caltopo)
 async function saveSingleStep() {
@@ -1743,8 +1699,15 @@ function nextStep() {
         }
         clearStatus('setupFormStatus');
     }
+    if (singleStepMode && currentFormStep === 1) {
+        // After naming, jump to the relevant step
+        if (caltopoOnly) { showFormStep(3); showCtSubStep(0); }
+        else if (proceduresOnly) { showFormStep(4); }
+        saveCurrentStep();
+        return;
+    }
     if (singleStepMode) {
-        // In single-step mode, save and show success instead of advancing
+        // After the relevant step, save and show success
         saveSingleStep();
         return;
     }
@@ -2163,6 +2126,8 @@ function buildConfigBody() {
             body.configuration_id = existing.configuration_id;
         }
     }
+    if (caltopoOnly) body.update_scope = 'caltopo';
+    if (proceduresOnly) body.update_scope = 'procedures';
     return body;
 }
 
@@ -2320,11 +2285,7 @@ async function deleteConfigurationByIndex(index) {
                 document.getElementById('setupLicenseInfo').style.display = '';
             }
 
-            if (singleStepMode && currentLicenseId) {
-                headerEl.style.display = 'none';
-                document.getElementById('wizardStepper').style.display = 'none';
-                startSingleStepMode();
-            } else if (cameFromActivation && !introShown) {
+            if (cameFromActivation && !introShown) {
                 // Show stepper and intro immediately (no flash of config list)
                 document.getElementById('wizardStepper').style.display = 'flex';
                 introShown = true;
