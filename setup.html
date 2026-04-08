@@ -850,7 +850,6 @@ permalink: /setup/
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
-                <a href="#" class="back-link skip-link" onclick="skipStep(); return false;">Skip &rarr;</a>
             </div>
         </div>
 
@@ -892,7 +891,7 @@ permalink: /setup/
                 <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
-                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin / I'll do this later &rarr;</a>
+                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin / skip &rarr;</a>
                     <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
                 </div>
             </div>
@@ -1006,20 +1005,19 @@ permalink: /setup/
 
         <!-- Step 4: Procedures -->
         <div class="form-step" id="formStep4" style="display: none;">
-            <h2 class="form-step-question">Add team procedures</h2>
-            <p class="form-step-hint">Share standard operating procedures with your team.</p>
+            <h2 class="form-step-question">Add emergency procedures</h2>
+            <p class="form-step-hint">Eagle Eyes can store basic procedures and emergency contact information which can be quickly accessed by the pilot. There is also an option to enter a link to a document (e.g. Google Doc) that pilots can click on if they need to access more detailed information.</p>
             <div class="setup-field">
-                <label for="setupProceduresText">Procedures Text</label>
-                <textarea id="setupProceduresText" placeholder="Enter procedures text..."></textarea>
+                <label for="setupProceduresText">Procedures &amp; Emergency Contacts</label>
+                <textarea id="setupProceduresText" placeholder="Enter emergency procedures and contact information..."></textarea>
             </div>
             <div class="setup-field">
-                <label for="setupProceduresLink">Procedures Link</label>
+                <label for="setupProceduresLink">Link to Full Document</label>
                 <p class="form-step-hint" style="margin-bottom: 0.5rem; font-size: 1.2rem;">This URL will be converted into a QR code on the controller, so it can easily be scanned using a mobile phone.</p>
-                <input type="url" id="setupProceduresLink" placeholder="https://...">
+                <input type="url" id="setupProceduresLink" placeholder="https://docs.google.com/...">
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Settings</button>
-                <button class="setup-btn setup-btn-danger" id="setupDeleteBtn" onclick="deleteConfiguration()" style="display: none;">Delete</button>
                 <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
             </div>
         </div>
@@ -1336,7 +1334,7 @@ function showIntroScreen(configs) {
             if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
             if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
             if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
-            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')" style="width: 100%;">Select this setting</button></div>';
+            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')">Select this setting</button></div>';
             html += '</div>';
             html += '</div>';
         });
@@ -1499,7 +1497,10 @@ function renderConfigList(configs) {
         if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
         if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
         if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
-        html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); editConfiguration(' + index + ')" style="width: 100%;"><span style="margin-right: 6px;">&#9998;</span> Edit</button></div>';
+        html += '<div style="display: flex; align-items: center; justify-content: center; margin-top: 0.75rem; gap: 1.5rem;">';
+        html += '<button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); editConfiguration(' + index + ')"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
+        html += '<a href="#" onclick="event.stopPropagation(); deleteConfigurationByIndex(' + index + '); return false;" style="color: #1e90ff; font-size: 1.3rem; white-space: nowrap;">Delete</a>';
+        html += '</div>';
         html += '</div>';
         html += '</div>';
     });
@@ -1523,7 +1524,6 @@ function editConfiguration(index) {
     }
     clearForm();
     populateForm(config);
-    document.getElementById('setupDeleteBtn').style.display = '';
     showConfigForm();
 }
 
@@ -1579,7 +1579,6 @@ function createNewConfiguration() {
             currentConfigurationId = null;
             clearForm();
             document.getElementById('setupName').value = getDefaultName();
-            document.getElementById('setupDeleteBtn').style.display = 'none';
             showConfigForm();
         });
         return;
@@ -1587,7 +1586,6 @@ function createNewConfiguration() {
     currentConfigurationId = null;
     clearForm();
     document.getElementById('setupName').value = getDefaultName();
-    document.getElementById('setupDeleteBtn').style.display = 'none';
     showConfigForm();
 }
 
@@ -1675,6 +1673,7 @@ function nextStep() {
     }
     if (currentFormStep < totalFormSteps) {
         showFormStep(currentFormStep + 1);
+        saveCurrentStep();
     }
 }
 
@@ -1862,9 +1861,20 @@ async function verifyCaltopoServiceAccount() {
         });
 
         if (result.success) {
+            var permission = result.permission || '';
+            var requiredPermissions = ['Update', 'Write', 'Manage', 'Administer'];
+            if (requiredPermissions.indexOf(permission) === -1) {
+                resultEl.className = 'caltopo-verify-result error';
+                resultEl.innerHTML = '<strong>Insufficient permission level.</strong> The service account has <strong>' + (permission || 'None') + '</strong> permission, but <strong>Update</strong> or higher is required. Please go to your CalTopo account settings and grant at least <strong>Update</strong> permission to the service account, then try again.';
+                resultEl.style.display = '';
+                // Reset — don't save progress
+                caltopoVerifiedData = null;
+                setTimeout(function() { showCtSubStep(0); }, 3000);
+                return;
+            }
             caltopoVerifiedData = {
                 title: result.title || '',
-                permission: result.permission || '',
+                permission: permission,
                 lastUsed: result.last_used || null,
                 teamAccountId: result.team_account_id || '',
                 teamName: result.team_name || '',
@@ -1896,7 +1906,7 @@ function showCaltopoVerifySuccess(data) {
     var resultEl = document.getElementById('ctVerifyResult');
     var html = '<strong>Connected successfully!</strong>';
     if (data.title) html += '<div class="detail-row"><span class="detail-label">Title:</span><span>' + data.title + '</span></div>';
-    if (data.permission) html += '<div class="detail-row"><span class="detail-label">Permission:</span><span>' + data.permission + '</span></div>';
+    if (data.permission) html += '<div class="detail-row"><span class="detail-label">Permission:</span><span>' + data.permission + ' <span style="color: #28a745; font-weight: bold;">&#10003;</span></span></div>';
     var lastUsedStr = 'Never';
     if (data.lastUsed) {
         try { lastUsedStr = new Date(data.lastUsed).toLocaleDateString(); } catch (e) { lastUsedStr = data.lastUsed; }
@@ -2038,27 +2048,13 @@ function clearForm() {
     document.getElementById('setupProceduresLink').value = '';
 }
 
-// Save configuration
-async function saveConfiguration() {
-    if (!currentLicenseId) {
-        showStatus('setupFormStatus', 'License ID is required.', 'error');
-        return;
-    }
+// Build the configuration request body from current form state
+function buildConfigBody() {
     var name = document.getElementById('setupName').value.trim();
-    if (!name) {
-        showStatus('setupFormStatus', 'Name is required.', 'error');
-        return;
-    }
-
-    var saveBtn = document.getElementById('setupSaveBtn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
-    clearStatus('setupFormStatus');
-
     var body = {
         license_id: currentLicenseId,
         licenses: [currentLicenseId],
-        label: name,
+        label: name || getDefaultName(),
         integration_type: urlIntegrationType || 'caltopo',
         config: {
             units: document.getElementById('setupUnits').value,
@@ -2090,8 +2086,44 @@ async function saveConfiguration() {
             body.configuration_id = existing.configuration_id;
         }
     }
+    return body;
+}
+
+// Save current step's settings quietly in the background
+async function saveCurrentStep() {
+    if (!currentLicenseId) return;
+    var name = document.getElementById('setupName').value.trim();
+    if (!name) return; // nothing to save yet
+    try {
+        var body = buildConfigBody();
+        var result = await apiCall('save_or_update_configuration', body);
+        if (result && result.configuration_id) {
+            currentConfigurationId = result.configuration_id;
+        }
+    } catch (err) {
+        console.error('Error saving step:', err);
+    }
+}
+
+// Save configuration (final save with full UI feedback)
+async function saveConfiguration() {
+    if (!currentLicenseId) {
+        showStatus('setupFormStatus', 'License ID is required.', 'error');
+        return;
+    }
+    var name = document.getElementById('setupName').value.trim();
+    if (!name) {
+        showStatus('setupFormStatus', 'Name is required.', 'error');
+        return;
+    }
+
+    var saveBtn = document.getElementById('setupSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    clearStatus('setupFormStatus');
 
     try {
+        var body = buildConfigBody();
         var result = await apiCall('save_or_update_configuration', body);
         if (result && result.configuration_id) {
             currentConfigurationId = result.configuration_id;
@@ -2126,30 +2158,24 @@ async function saveConfiguration() {
     }
 }
 
-// Delete configuration
-async function deleteConfiguration() {
-    if (!currentConfigurationId || !currentLicenseId) return;
+// Delete configuration by index from the config list
+async function deleteConfigurationByIndex(index) {
+    var config = cachedConfigurations[index];
+    if (!config || !config.configuration_id) return;
     if (!confirm('Are you sure you want to delete this configuration? This cannot be undone.')) return;
 
-    var deleteBtn = document.getElementById('setupDeleteBtn');
-    deleteBtn.disabled = true;
-    deleteBtn.textContent = 'Deleting...';
-    clearStatus('setupFormStatus');
+    var licenseId = currentLicenseId || (config.licenses && config.licenses[0]) || null;
+    if (!licenseId) return;
 
     try {
         await apiCall('delete_configuration', {
-            license_id: currentLicenseId,
-            configuration_id: currentConfigurationId
+            license_id: licenseId,
+            configuration_id: config.configuration_id
         });
-        currentConfigurationId = null;
-        clearForm();
         showConfigList();
     } catch (err) {
         console.error('Error deleting configuration:', err);
-        showStatus('setupFormStatus', 'Error deleting: ' + err.message, 'error');
-    } finally {
-        deleteBtn.disabled = false;
-        deleteBtn.textContent = 'Delete';
+        showStatus('configListStatus', 'Error deleting: ' + err.message, 'error');
     }
 }
 
@@ -2224,7 +2250,7 @@ async function deleteConfiguration() {
                 // Show activation success banner if redirected after activation
                 if (activationSuccess) {
                     var banner = document.getElementById('activationSuccessBanner');
-                    document.getElementById('activationSuccessText').textContent = 'Activation completed! Your device is now activated.';
+                    document.getElementById('activationSuccessText').textContent = 'Activation completed! Your license will sync to the controller — this may take up to 10 seconds.';
                     banner.style.display = 'block';
                     // Clear activation_success from URL to prevent stale banner on revisit
                     if (window.history && window.history.replaceState) {
