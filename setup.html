@@ -1646,11 +1646,35 @@ var totalFormSteps = 4;
 // Save and finish in single-step mode (called from nextStep for caltopo)
 async function saveSingleStep() {
     try {
+        // Complete activation first if we have a session and license
+        if (urlSessionId && currentLicenseId) {
+            await apiCall('complete_activation', {
+                session_id: urlSessionId,
+                license_id: currentLicenseId
+            });
+        }
+
         var body = buildConfigBody();
         var result = await apiCall('save_or_update_configuration', body);
         if (result && result.configuration_id) {
             currentConfigurationId = result.configuration_id;
         }
+
+        // Write config to activation session so the controller picks it up
+        if (urlSessionId && result && result.configuration_id) {
+            try {
+                var fullConfig = await apiCall('get_configuration', { configuration_id: result.configuration_id });
+                if (fullConfig && fullConfig.configuration) {
+                    await apiCall('set_activation_configuration_endpoint', {
+                        session_id: urlSessionId,
+                        configuration: fullConfig.configuration
+                    });
+                }
+            } catch (linkErr) {
+                console.error('Error linking configuration to activation session:', linkErr);
+            }
+        }
+
         showSingleStepSuccess();
     } catch (err) {
         console.error('Error saving in single-step mode:', err);
