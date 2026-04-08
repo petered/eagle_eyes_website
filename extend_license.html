@@ -463,6 +463,20 @@ permalink: /extend_license/
                     <div id="tokens-table-container">
                         <p style="color: #9ca3af; font-size: 13px;">No tokens loaded yet.</p>
                     </div>
+
+                    <h4>Add Token</h4>
+                    <div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 180px;">
+                            <label for="add_token_email">Email</label>
+                            <input type="text" id="add_token_email" placeholder="user@example.com" style="margin-bottom: 0;">
+                        </div>
+                        <div style="flex: 1; min-width: 180px;">
+                            <label for="add_token_machine_id">Machine ID</label>
+                            <input type="text" id="add_token_machine_id" placeholder="e.g. DEVICE_001" style="margin-bottom: 0;">
+                        </div>
+                        <button class="load-btn" onclick="addToken()" id="add-token-btn" style="white-space: nowrap; margin-bottom: 0;">Add Token</button>
+                    </div>
+                    <div id="addTokenStatus" style="margin-top: 8px;"></div>
                 </div>
             </div>
         </div>
@@ -952,6 +966,67 @@ permalink: /extend_license/
             var div = document.createElement('div');
             div.appendChild(document.createTextNode(text));
             return div.innerHTML;
+        }
+
+        // Add a new token to the license
+        function addToken() {
+            if (!currentLicense) {
+                displayStatus('Please load a license first', false);
+                return;
+            }
+
+            var email = $('#add_token_email').val().trim();
+            var machineId = $('#add_token_machine_id').val().trim();
+
+            if (!email || !machineId) {
+                $('#addTokenStatus').html('<div class="error-box"><strong>✗ Please enter both email and machine ID.</strong></div>');
+                return;
+            }
+
+            var btn = $('#add-token-btn');
+            btn.prop('disabled', true).text('Adding...');
+            $('#addTokenStatus').html('<div class="info-box">Adding token...</div>');
+
+            firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+                $.ajax({
+                    url: hostURL + '/admin_add_token',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken
+                    },
+                    data: JSON.stringify({
+                        license_id: currentLicense.license_id,
+                        email: email,
+                        machine_id: machineId
+                    }),
+                    success: function(response) {
+                        console.log('Token added successfully:', response);
+                        btn.prop('disabled', false).text('Add Token');
+                        $('#addTokenStatus').html('<div class="success-box"><strong>✓ Token added successfully</strong></div>');
+                        $('#add_token_email').val('');
+                        $('#add_token_machine_id').val('');
+                        // Reload the license to refresh the tokens table
+                        loadLicense();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Failed to add token:', xhr.responseText);
+                        btn.prop('disabled', false).text('Add Token');
+                        var errorMessage = 'Failed to add token';
+                        try {
+                            var errorData = JSON.parse(xhr.responseText);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            errorMessage = xhr.responseText || errorMessage;
+                        }
+                        $('#addTokenStatus').html('<div class="error-box"><strong>✗ ' + escapeHtml(errorMessage) + '</strong></div>');
+                    }
+                });
+            }).catch(function(error) {
+                console.error('Error getting ID token:', error);
+                btn.prop('disabled', false).text('Add Token');
+                $('#addTokenStatus').html('<div class="error-box"><strong>✗ Authentication error: ' + escapeHtml(error.message) + '</strong></div>');
+            });
         }
 
         // Delete a token by its ID
