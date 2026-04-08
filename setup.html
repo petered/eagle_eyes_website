@@ -1341,11 +1341,7 @@ function showIntroScreen(configs) {
             html += '</div>';
             // Expandable details
             html += '<div class="config-card-details" id="introDetails' + index + '" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; font-size: 1.3rem; color: #666; line-height: 2;">';
-            if (cfg.units) html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)') + '</div>';
-            if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
-            if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
-            if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
-            if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
+            html += renderConfigDetails(cfg);
             html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')">Select this setup</button></div>';
             html += '</div>';
             html += '</div>';
@@ -1516,11 +1512,7 @@ function renderConfigList(configs) {
         html += '</div>';
         // Expandable details
         html += '<div id="configDetails' + index + '" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; font-size: 1.3rem; color: #666; line-height: 2;">';
-        html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)') + '</div>';
-        if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
-        if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
-        if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text.substring(0, 80)) + (cfg.procedures_text.length > 80 ? '...' : '') + '</div>';
-        if (cfg.procedures_link) html += '<div><strong>Link:</strong> ' + escapeHtml(cfg.procedures_link) + '</div>';
+        html += renderConfigDetails(cfg);
         html += '<div style="display: flex; align-items: center; justify-content: center; margin-top: 0.75rem; gap: 1.5rem;">';
         html += '<button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); editConfiguration(' + index + ')"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
         html += '<a href="#" onclick="event.stopPropagation(); deleteConfigurationByIndex(' + index + '); return false;" style="color: #1e90ff; font-size: 1.3rem; white-space: nowrap;">Delete</a>';
@@ -1529,6 +1521,21 @@ function renderConfigList(configs) {
         html += '</div>';
     });
     listEl.innerHTML = html;
+}
+
+function renderConfigDetails(cfg) {
+    var html = '';
+    html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)') + '</div>';
+    if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
+    if (cfg.service_account) {
+        if (cfg.service_account.title) html += '<div><strong>Service Account:</strong> ' + escapeHtml(cfg.service_account.title) + '</div>';
+        if (cfg.service_account.teamName) html += '<div><strong>CalTopo Team:</strong> ' + escapeHtml(cfg.service_account.teamName) + '</div>';
+        if (cfg.service_account.permission) html += '<div><strong>Permission:</strong> ' + escapeHtml(cfg.service_account.permission) + '</div>';
+    }
+    if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Default Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
+    if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text) + '</div>';
+    if (cfg.procedures_link) html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
+    return html;
 }
 
 function escapeHtml(str) {
@@ -2141,24 +2148,38 @@ function buildConfigBody() {
         licenses: [currentLicenseId],
         label: name || getDefaultName(),
         integration_type: urlIntegrationType || 'caltopo',
-        config: {
-            units: document.getElementById('setupUnits').value,
-            coordsys: document.getElementById('setupCoordsys').value
-        }
+        config: {}
     };
     if (urlClientAppVersion) body.client_app_version = urlClientAppVersion;
 
-    var serviceAccountJson = buildCaltopoServiceAccountJson();
-    if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+    // Only include fields the user actually saw during setup
+    if (caltopoOnly) {
+        // CalTopo-only: service account + map
+        var serviceAccountJson = buildCaltopoServiceAccountJson();
+        if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+        var mapJson = buildCaltopoMapJson();
+        if (mapJson) body.config.default_map = JSON.parse(mapJson);
+    } else if (proceduresOnly) {
+        // Procedures-only: text + link
+        var proceduresText = document.getElementById('setupProceduresText').value.trim();
+        if (proceduresText) body.config.procedures_text = proceduresText;
+        var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
+        if (proceduresLink) body.config.procedures_link = proceduresLink;
+    } else {
+        // Full setup: everything
+        body.config.units = document.getElementById('setupUnits').value;
+        body.config.coordsys = document.getElementById('setupCoordsys').value;
 
-    var mapJson = buildCaltopoMapJson();
-    if (mapJson) body.config.default_map = JSON.parse(mapJson);
+        var serviceAccountJson = buildCaltopoServiceAccountJson();
+        if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+        var mapJson = buildCaltopoMapJson();
+        if (mapJson) body.config.default_map = JSON.parse(mapJson);
 
-    var proceduresText = document.getElementById('setupProceduresText').value.trim();
-    if (proceduresText) body.config.procedures_text = proceduresText;
-
-    var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
-    if (proceduresLink) body.config.procedures_link = proceduresLink;
+        var proceduresText = document.getElementById('setupProceduresText').value.trim();
+        if (proceduresText) body.config.procedures_text = proceduresText;
+        var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
+        if (proceduresLink) body.config.procedures_link = proceduresLink;
+    }
 
     if (currentConfigurationId) {
         body.configuration_id = currentConfigurationId;
