@@ -2148,24 +2148,38 @@ function buildConfigBody() {
         licenses: [currentLicenseId],
         label: name || getDefaultName(),
         integration_type: urlIntegrationType || 'caltopo',
-        config: {
-            units: document.getElementById('setupUnits').value,
-            coordsys: document.getElementById('setupCoordsys').value
-        }
+        config: {}
     };
     if (urlClientAppVersion) body.client_app_version = urlClientAppVersion;
 
-    var serviceAccountJson = buildCaltopoServiceAccountJson();
-    if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+    // Only include fields the user actually saw during setup
+    if (caltopoOnly) {
+        // CalTopo-only: service account + map
+        var serviceAccountJson = buildCaltopoServiceAccountJson();
+        if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+        var mapJson = buildCaltopoMapJson();
+        if (mapJson) body.config.default_map = JSON.parse(mapJson);
+    } else if (proceduresOnly) {
+        // Procedures-only: text + link
+        var proceduresText = document.getElementById('setupProceduresText').value.trim();
+        if (proceduresText) body.config.procedures_text = proceduresText;
+        var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
+        if (proceduresLink) body.config.procedures_link = proceduresLink;
+    } else {
+        // Full setup: everything
+        body.config.units = document.getElementById('setupUnits').value;
+        body.config.coordsys = document.getElementById('setupCoordsys').value;
 
-    var mapJson = buildCaltopoMapJson();
-    if (mapJson) body.config.default_map = JSON.parse(mapJson);
+        var serviceAccountJson = buildCaltopoServiceAccountJson();
+        if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+        var mapJson = buildCaltopoMapJson();
+        if (mapJson) body.config.default_map = JSON.parse(mapJson);
 
-    var proceduresText = document.getElementById('setupProceduresText').value.trim();
-    if (proceduresText) body.config.procedures_text = proceduresText;
-
-    var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
-    if (proceduresLink) body.config.procedures_link = proceduresLink;
+        var proceduresText = document.getElementById('setupProceduresText').value.trim();
+        if (proceduresText) body.config.procedures_text = proceduresText;
+        var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
+        if (proceduresLink) body.config.procedures_link = proceduresLink;
+    }
 
     if (currentConfigurationId) {
         body.configuration_id = currentConfigurationId;
