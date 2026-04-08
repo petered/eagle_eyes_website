@@ -1121,6 +1121,15 @@ async function handleSetupCode() {
                 document.getElementById('setupLicenseInfo').style.display = '';
             }
 
+            // Set single-step mode from setup_type
+            if (data.setup_type === 'caltopo') {
+                caltopoOnly = true;
+                singleStepMode = true;
+            } else if (data.setup_type === 'procedures') {
+                proceduresOnly = true;
+                singleStepMode = true;
+            }
+
             // Check email matches activation
             if (data.email && user.email && data.email !== user.email) {
                 showStatus('setupCodeStatus', 'You are signed in as ' + user.email + ' but this code was activated by ' + data.email + '. Please sign in with the correct account.', 'error');
@@ -1385,6 +1394,18 @@ var skipMobileRecommendation = false;
 
 async function introSelectConfig(index) {
     var config = cachedConfigurations[index];
+
+    // Complete activation if we have a session and license
+    if (urlSessionId && currentLicenseId) {
+        try {
+            await apiCall('complete_activation', {
+                session_id: urlSessionId,
+                license_id: currentLicenseId
+            });
+        } catch (activationErr) {
+            console.error('Error completing activation:', activationErr);
+        }
+    }
 
     // Write the selected config to the activation session so the app picks it up
     if (urlSessionId && config) {
@@ -2165,6 +2186,20 @@ async function saveConfiguration() {
     clearStatus('setupFormStatus');
 
     try {
+        // Complete activation first if we have a session and license
+        if (urlSessionId && currentLicenseId) {
+            try {
+                await apiCall('complete_activation', {
+                    session_id: urlSessionId,
+                    license_id: currentLicenseId
+                });
+            } catch (activationErr) {
+                console.error('Error completing activation:', activationErr);
+                showStatus('setupFormStatus', 'Error activating license: ' + activationErr.message, 'error');
+                return;
+            }
+        }
+
         var body = buildConfigBody();
         var result = await apiCall('save_or_update_configuration', body);
         if (result && result.configuration_id) {
