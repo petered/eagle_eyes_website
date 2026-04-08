@@ -464,17 +464,13 @@ permalink: /extend_license/
                         <p style="color: #9ca3af; font-size: 13px;">No tokens loaded yet.</p>
                     </div>
 
-                    <h4>Add Token</h4>
+                    <h4>Add Token Slots</h4>
                     <div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 180px;">
-                            <label for="add_token_email">Email</label>
-                            <input type="text" id="add_token_email" placeholder="user@example.com" style="margin-bottom: 0;">
+                        <div style="flex: 0 0 150px;">
+                            <label for="add_token_count">Number of slots</label>
+                            <input type="number" id="add_token_count" placeholder="e.g. 5" min="1" value="1" style="margin-bottom: 0;">
                         </div>
-                        <div style="flex: 1; min-width: 180px;">
-                            <label for="add_token_machine_id">Machine ID</label>
-                            <input type="text" id="add_token_machine_id" placeholder="e.g. DEVICE_001" style="margin-bottom: 0;">
-                        </div>
-                        <button class="load-btn" onclick="addToken()" id="add-token-btn" style="white-space: nowrap; margin-bottom: 0;">Add Token</button>
+                        <button class="load-btn" onclick="addTokenSlots()" id="add-token-btn" style="white-space: nowrap; margin-bottom: 0;">Add Slots</button>
                     </div>
                     <div id="addTokenStatus" style="margin-top: 8px;"></div>
                 </div>
@@ -968,24 +964,22 @@ permalink: /extend_license/
             return div.innerHTML;
         }
 
-        // Add a new token to the license
-        function addToken() {
+        // Add token slots (device seats) to the license
+        function addTokenSlots() {
             if (!currentLicense) {
                 displayStatus('Please load a license first', false);
                 return;
             }
 
-            var email = $('#add_token_email').val().trim();
-            var machineId = $('#add_token_machine_id').val().trim();
-
-            if (!email || !machineId) {
-                $('#addTokenStatus').html('<div class="error-box"><strong>✗ Please enter both email and machine ID.</strong></div>');
+            var count = parseInt($('#add_token_count').val());
+            if (isNaN(count) || count < 1) {
+                $('#addTokenStatus').html('<div class="error-box"><strong>✗ Please enter a valid number of slots.</strong></div>');
                 return;
             }
 
             var btn = $('#add-token-btn');
             btn.prop('disabled', true).text('Adding...');
-            $('#addTokenStatus').html('<div class="info-box">Adding token...</div>');
+            $('#addTokenStatus').html('<div class="info-box">Adding ' + count + ' token slot' + (count > 1 ? 's' : '') + '...</div>');
 
             firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
                 $.ajax({
@@ -997,22 +991,20 @@ permalink: /extend_license/
                     },
                     data: JSON.stringify({
                         license_id: currentLicense.license_id,
-                        email: email,
-                        machine_id: machineId
+                        additional_tokens: count
                     }),
                     success: function(response) {
-                        console.log('Token added successfully:', response);
-                        btn.prop('disabled', false).text('Add Token');
-                        $('#addTokenStatus').html('<div class="success-box"><strong>✓ Token added successfully</strong></div>');
-                        $('#add_token_email').val('');
-                        $('#add_token_machine_id').val('');
-                        // Reload the license to refresh the tokens table
+                        console.log('Token slots added successfully:', response);
+                        var data = typeof response === 'string' ? JSON.parse(response) : response;
+                        btn.prop('disabled', false).text('Add Slots');
+                        $('#addTokenStatus').html('<div class="success-box"><strong>✓ Added ' + count + ' slot' + (count > 1 ? 's' : '') + '</strong> (' + data.previous_n_tokens + ' → ' + data.new_n_tokens + ' total)</div>');
+                        // Reload the license to refresh token counts
                         loadLicense();
                     },
                     error: function(xhr, status, error) {
-                        console.error('Failed to add token:', xhr.responseText);
-                        btn.prop('disabled', false).text('Add Token');
-                        var errorMessage = 'Failed to add token';
+                        console.error('Failed to add token slots:', xhr.responseText);
+                        btn.prop('disabled', false).text('Add Slots');
+                        var errorMessage = 'Failed to add token slots';
                         try {
                             var errorData = JSON.parse(xhr.responseText);
                             errorMessage = errorData.error || errorMessage;
@@ -1024,7 +1016,7 @@ permalink: /extend_license/
                 });
             }).catch(function(error) {
                 console.error('Error getting ID token:', error);
-                btn.prop('disabled', false).text('Add Token');
+                btn.prop('disabled', false).text('Add Slots');
                 $('#addTokenStatus').html('<div class="error-box"><strong>✗ Authentication error: ' + escapeHtml(error.message) + '</strong></div>');
             });
         }
