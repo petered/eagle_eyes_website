@@ -1329,21 +1329,12 @@ function showIntroScreen(configs) {
         var html = '';
         configs.forEach(function(config, index) {
             var cfg = config.config || {};
-            html += '<div class="config-card" onclick="toggleIntroConfigDetails(' + index + ')" style="cursor: pointer;">';
-            html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
-            html += '<div class="config-card-info">';
+            html += '<div class="config-card">';
             html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
-            if (cfg.service_account && cfg.service_account.teamName) {
-                html += '<span class="config-card-detail">CalTopo Team: ' + escapeHtml(cfg.service_account.teamName) + '</span>';
-            }
+            html += '<div style="font-size: 1.3rem; color: #666; line-height: 2;">';
+            html += renderConfigDetails(cfg, 'intro' + index);
             html += '</div>';
-            html += '<span class="config-card-chevron" id="introChevron' + index + '" style="color: #adb5bd; font-size: 1.2rem;">&#9660;</span>';
-            html += '</div>';
-            // Expandable details
-            html += '<div class="config-card-details" id="introDetails' + index + '" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; font-size: 1.3rem; color: #666; line-height: 2;">';
-            html += renderConfigDetails(cfg);
-            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')">Select this setup</button></div>';
-            html += '</div>';
+            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="introSelectConfig(' + index + ')">Select this setup</button></div>';
             html += '</div>';
         });
         existingEl.innerHTML = html;
@@ -1500,32 +1491,23 @@ function renderConfigList(configs) {
     configs.forEach(function(config, index) {
         var cfg = config.config || {};
 
-        html += '<div class="config-card" onclick="toggleConfigDetails(' + index + ')">';
-        html += '<div style="display: flex; justify-content: space-between; align-items: center;">';
-        html += '<div class="config-card-info">';
+        html += '<div class="config-card">';
         html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
-        if (cfg.service_account && cfg.service_account.teamName) {
-            html += '<span class="config-card-detail">CalTopo Team: ' + escapeHtml(cfg.service_account.teamName) + '</span>';
-        }
+        html += '<div style="font-size: 1.3rem; color: #666; line-height: 2;">';
+        html += renderConfigDetails(cfg, 'config' + index);
         html += '</div>';
-        html += '<span class="config-card-chevron" id="configChevron' + index + '" style="color: #adb5bd; font-size: 1.2rem;">&#9660;</span>';
-        html += '</div>';
-        // Expandable details
-        html += '<div id="configDetails' + index + '" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee; font-size: 1.3rem; color: #666; line-height: 2;">';
-        html += renderConfigDetails(cfg);
         html += '<div style="display: flex; align-items: center; justify-content: center; margin-top: 0.75rem; gap: 1.5rem;">';
-        html += '<button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); editConfiguration(' + index + ')"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
-        html += '<a href="#" onclick="event.stopPropagation(); deleteConfigurationByIndex(' + index + '); return false;" style="color: #1e90ff; font-size: 1.3rem; white-space: nowrap;">Delete</a>';
-        html += '</div>';
+        html += '<button class="setup-btn setup-btn-primary" onclick="editConfiguration(' + index + ')"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
+        html += '<a href="#" onclick="deleteConfigurationByIndex(' + index + '); return false;" style="color: #1e90ff; font-size: 1.3rem; white-space: nowrap;">Delete</a>';
         html += '</div>';
         html += '</div>';
     });
     listEl.innerHTML = html;
 }
 
-function renderConfigDetails(cfg) {
+function renderConfigDetails(cfg, uniqueId) {
     var html = '';
-    html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)') + '</div>';
+    if (cfg.units) html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)') + '</div>';
     if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
     if (cfg.service_account) {
         if (cfg.service_account.title) html += '<div><strong>Service Account:</strong> ' + escapeHtml(cfg.service_account.title) + '</div>';
@@ -1533,9 +1515,33 @@ function renderConfigDetails(cfg) {
         if (cfg.service_account.permission) html += '<div><strong>Permission:</strong> ' + escapeHtml(cfg.service_account.permission) + '</div>';
     }
     if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Default Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
-    if (cfg.procedures_text) html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text) + '</div>';
-    if (cfg.procedures_link) html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
+    if (cfg.procedures_text) {
+        var firstLine = cfg.procedures_text.split('\n')[0];
+        var hasMore = cfg.procedures_text.indexOf('\n') !== -1 || cfg.procedures_text.length > 100;
+        if (hasMore) {
+            var shortText = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
+            html += '<div><strong>Procedures:</strong> ' + escapeHtml(shortText);
+            html += ' <a href="#" onclick="event.stopPropagation(); toggleProcedures(\'' + uniqueId + '\'); return false;" style="color: #1e90ff; font-size: 1.1rem;" id="procToggle_' + uniqueId + '">Show more</a>';
+            html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + escapeHtml(cfg.procedures_text) + '</div>';
+            html += '</div>';
+        } else {
+            html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text) + '</div>';
+        }
+    }
+    if (cfg.procedures_link) html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
     return html;
+}
+
+function toggleProcedures(id) {
+    var full = document.getElementById('procFull_' + id);
+    var toggle = document.getElementById('procToggle_' + id);
+    if (full.style.display === 'none') {
+        full.style.display = '';
+        toggle.textContent = 'Show less';
+    } else {
+        full.style.display = 'none';
+        toggle.textContent = 'Show more';
+    }
 }
 
 function escapeHtml(str) {
