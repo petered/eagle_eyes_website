@@ -653,17 +653,66 @@
             if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
                 let email = window.localStorage.getItem('emailForSignIn');
                 if (!email) {
-                    email = window.prompt("Please provide your email for confirmation");
+                    // No stored email — user likely opened the link in a different browser/webview
+                    // (common on DJI RC Plus and other embedded browsers).
+                    // Show the sign-in widget with a prompt to enter their email to complete sign-in.
+                    console.log("Email link detected but no stored email. Showing email confirmation UI.");
+                    this._showEmailConfirmationForLink();
+                    return;
                 }
-                
+
+                this._completeEmailLinkSignin(email);
+            }
+        }
+
+        _showEmailConfirmationForLink() {
+            // Make the sign-in widget visible so the user can see the prompt
+            const widgetContainer = document.getElementById('signin-widget-container');
+            if (widgetContainer) widgetContainer.style.display = '';
+            const authRequired = document.getElementById('auth-required');
+            if (authRequired) authRequired.style.display = 'none';
+
+            // Update the UI to ask for email confirmation
+            this.showMessage("Please enter your email to complete sign-in.", "info");
+
+            // Change the email form submit to complete the link sign-in instead of sending a new link
+            const form = this.emailForm;
+            const originalHandler = form.onsubmit;
+            const self = this;
+
+            // Remove existing listeners by cloning the form
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            this.emailForm = newForm;
+            this.emailInput = newForm.querySelector('input[type="email"]');
+
+            // Update button text
+            const submitBtn = newForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.textContent = 'Confirm & Sign In';
+
+            newForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = self.emailInput.value.trim();
+                if (!email) {
+                    self.showError("Please enter your email address.");
+                    return;
+                }
+                self._completeEmailLinkSignin(email);
+            });
+
+            // Focus the email input
+            if (this.emailInput) this.emailInput.focus();
+        }
+
+        _completeEmailLinkSignin(email) {
                 // Check if we're in account linking mode
                 const isLinkingMode = window.location.href.includes('linkMode=true');
                 const pendingCredentialJson = isLinkingMode ? localStorage.getItem('pendingMicrosoftCredential') : null;
-                
+
                 if (isLinkingMode && pendingCredentialJson) {
                     console.log("Detected linking mode with pending credential");
                 }
-                
+
                 firebase.auth().signInWithEmailLink(email, window.location.href)
                     .then((result) => {
                         window.localStorage.removeItem('emailForSignIn');
@@ -731,7 +780,6 @@
                             localStorage.removeItem('pendingMicrosoftCredential');
                         }
                     });
-            }
         }
 
         // Add a more versatile message display method for info/warning states
