@@ -460,9 +460,6 @@ permalink: /extend_license/
                 <!-- Tokens Table -->
                 <div class="form-section" id="tokens-section">
                     <h3>Registered Tokens <span id="tokens-count" style="font-weight: normal; color: #6b7280; font-size: 13px;"></span></h3>
-                    <div id="tokens-table-container">
-                        <p style="color: #9ca3af; font-size: 13px;">No tokens loaded yet.</p>
-                    </div>
 
                     <h4>Token Slots</h4>
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -471,6 +468,10 @@ permalink: /extend_license/
                         <button class="load-btn" onclick="saveTokenSlots()" id="save-token-btn" style="white-space: nowrap; margin: 0;">Save</button>
                     </div>
                     <div id="addTokenStatus" style="margin-top: 8px;"></div>
+
+                    <div id="tokens-table-container" style="margin-top: 12px;">
+                        <p style="color: #9ca3af; font-size: 13px;">No tokens loaded yet.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -978,6 +979,12 @@ permalink: /extend_license/
                 return;
             }
 
+            var adminPassword = $('#admin_password').val();
+            if (!adminPassword) {
+                $('#addTokenStatus').html('<div class="error-box"><strong>✗ Please enter the admin password first.</strong></div>');
+                return;
+            }
+
             var newTotal = parseInt($('#token_slots_count').val());
             var currentTotal = currentLicense.n_tokens || 0;
             var additional = newTotal - currentTotal;
@@ -1005,7 +1012,8 @@ permalink: /extend_license/
                     },
                     data: JSON.stringify({
                         license_id: currentLicense.license_id,
-                        additional_tokens: additional
+                        additional_tokens: additional,
+                        admin_password: adminPassword
                     }),
                     success: function(response) {
                         var data = typeof response === 'string' ? JSON.parse(response) : response;
