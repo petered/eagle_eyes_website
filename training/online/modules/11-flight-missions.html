@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 11: Flight Missions - Eagle Eyes Training</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- Fixed Header with Full Logo -->
+  <header class="fixed-header">
+    <a href="../index.html">
+      <img src="https://eagleeyessearch.com/images/eagle_eyes_flat_logo_2.png" alt="Eagle Eyes Logo" class="header-logo">
+    </a>
+    <div class="header-title">
+      <h1>Eagle Eyes Pilot</h1>
+      <div class="subtitle">SAR Training Program</div>
+    </div>
+  </header>
+
+  <button class="menu-toggle">☰ Menu</button>
+  <div class="layout">
+    <nav class="sidebar">
+      <a href="../index.html" class="nav-item" style="margin: 10px 15px; background: rgba(30,144,255,0.3); border-radius: 8px;">
+        <span class="nav-title">🏠 Return to Home</span>
+      </a>
+      <div class="progress-bar"><div class="progress-fill" style="width: 95%"></div></div>
+      <div class="nav-section">
+        <div class="nav-section-title">Modules</div>
+        <div class="nav-modules">
+          <a href="01-getting-started.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">1</span><span class="nav-title">Getting Started</span></a>
+          <a href="02-core-interface.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">2</span><span class="nav-title">Core Interface</span></a>
+          <a href="03-detection-system.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">3</span><span class="nav-title">Detection System</span></a>
+          <a href="05-camera-control.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">4</span><span class="nav-title">Camera Control</span></a>
+          <a href="07-caltopo.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">5</span><span class="nav-title">Mapping, CalTopo &amp; Sessions</span></a>
+          <a href="09-livestreaming.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">6</span><span class="nav-title">Broadcasting &amp; Livestreaming</span></a>
+          <a href="10-field-operations.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">7</span><span class="nav-title">Field Operations</span></a>
+          <a href="11-flight-missions.html" class="nav-item active"><span class="nav-check"></span><span class="nav-number">8</span><span class="nav-title">Flight Missions</span></a>
+          <a href="12-advanced-features.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">9</span><span class="nav-title">Advanced Features</span></a>
+        </div>
+      </div>
+    </nav>
+    <main class="main-content">
+      <div class="page-header">
+        <span class="module-tag">Module 8</span>
+        <h1>Flight Missions</h1>
+        <span class="duration">⏱️ 75 minutes</span>
+      </div>
+
+      <div class="content-section">
+        <h2>Learning Objectives</h2>
+        <ul>
+          <li>Create flight grid missions for systematic area searches</li>
+          <li>Choose the right search pattern for each scenario</li>
+          <li>Execute and monitor autonomous missions</li>
+          <li>Handle mission interruptions and emergencies</li>
+        </ul>
+      </div>
+
+      <div class="content-section">
+        <h2>11.1 Introduction to Flight Missions</h2>
+        <p>Eagle Eyes provides powerful autonomous flight capabilities for systematic SAR operations:</p>
+        <ul>
+          <li><strong>Flight Grid Planning</strong> - Create search patterns over defined areas</li>
+          <li><strong>Fly-to-Waypoint</strong> - Quick flights to specific locations</li>
+          <li><strong>Mission Control</strong> - Execute and monitor missions in-app (SDK5)</li>
+          <li><strong>KMZ Export</strong> - Export for DJI Pilot 2 (SDK4 fallback)</li>
+        </ul>
+      </div>
+
+      <div class="content-section">
+        <h2>11.2 Flight Grid Planning</h2>
+        <p>Create systematic coverage patterns over search areas.</p>
+
+        <!-- Mission Workflow Diagram -->
+        <div style="margin: 20px 0; text-align: center;">
+          <img src="../images/diagrams/mission-workflow.svg" alt="Mission Execution Workflow" style="max-width: 100%; height: auto;">
+        </div>
+
+        <div class="screenshot-placeholder">
+          <div class="icon">📷</div>
+          <p>Screenshot: Generate Flight Grid dialog with all parameters</p>
+        </div>
+
+        <h3>Accessing the Dialog</h3>
+        <ol>
+          <li>Draw or select a polygon on the map</li>
+          <li>Tap the polygon to select it</li>
+          <li>Tap menu (⋮) or right-click</li>
+          <li>Select <strong>Generate Flight Grid</strong></li>
+        </ol>
+
+        <h3>Configuration Parameters</h3>
+        <table>
+          <tr><th>Parameter</th><th>Range</th><th>Description</th></tr>
+          <tr><td>Altitude</td><td>10-500m</td><td>Flight altitude AGL</td></tr>
+          <tr><td>Flight Speed</td><td>1-15 m/s</td><td>Speed between waypoints</td></tr>
+          <tr><td>Line Spacing</td><td>Variable</td><td>Distance between flight lines</td></tr>
+          <tr><td>Side Overlap</td><td>0-90%</td><td>Left-right camera overlap</td></tr>
+          <tr><td>Front-Back Overlap</td><td>0-90%</td><td>Forward camera overlap</td></tr>
+          <tr><td>Gimbal Pitch</td><td>-90° to 0°</td><td>Camera angle (-90° = straight down)</td></tr>
+        </table>
+
+        <h3>Camera Modes</h3>
+        <table>
+          <tr><th>Mode</th><th>Ratio</th><th>Use Case</th></tr>
+          <tr><td>Photo</td><td>4:3</td><td>Standard mapping/search</td></tr>
+          <tr><td>Video</td><td>16:9</td><td>Continuous recording</td></tr>
+          <tr><td>IR Photo</td><td>4:3</td><td>Thermal mapping (M3T/M30T)</td></tr>
+          <tr><td>IR Video</td><td>16:9</td><td>Thermal video (M3T/M30T)</td></tr>
+          <tr><td>Fly-Only</td><td>N/A</td><td>No camera actions</td></tr>
+        </table>
+
+        <h3>Terrain Following</h3>
+        <ul>
+          <li><strong>Standard</strong> - Pre-calculated waypoint elevations</li>
+          <li><strong>Live</strong> - Real-time adjustment (M4T only)</li>
+        </ul>
+
+        <h3>Real-Time Calculations</h3>
+        <p>As you adjust parameters, the dialog shows:</p>
+        <ul>
+          <li>Swath width</li>
+          <li>Estimated photo count</li>
+          <li>Flight time estimate</li>
+          <li>Total distance</li>
+          <li>Area coverage</li>
+        </ul>
+      </div>
+
+      <div class="content-section">
+        <h2>11.3 Search Patterns</h2>
+        <p>Eagle Eyes supports three search patterns optimized for different scenarios.</p>
+
+        <!-- Search Patterns Diagram -->
+        <div style="margin: 20px 0; text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+          <img src="../images/diagrams/search-patterns.svg" alt="Search Patterns Comparison" style="max-width: 100%; height: auto;">
+        </div>
+
+        <h3>Grid Pattern (Parallel Lines)</h3>
+        <div class="screenshot-placeholder">
+          <div class="icon">📷</div>
+          <p>Screenshot: Grid pattern preview on map</p>
+        </div>
+        <p><strong>Best For:</strong> Systematic area searches, mapping, maximum coverage</p>
+        <ul>
+          <li>Parallel flight lines covering entire area</li>
+          <li>Even coverage throughout</li>
+          <li>Predictable path, easy to track</li>
+        </ul>
+
+        <h3>Expanding Square Pattern</h3>
+        <p><strong>Best For:</strong> Point Last Seen (PLS) searches, unknown direction of travel</p>
+        <ul>
+          <li>Spiral from center outward</li>
+          <li>Covers high-probability areas first</li>
+          <li>Expands systematically</li>
+        </ul>
+
+        <h3>Star Pattern (Radial Spokes)</h3>
+        <p><strong>Best For:</strong> Trail intersections, 360° quick coverage</p>
+        <ul>
+          <li>Radial spokes from center point</li>
+          <li>Quick coverage in all directions</li>
+          <li>Best combined with other patterns</li>
+        </ul>
+
+        <h3>Pattern Selection Guide</h3>
+        <table>
+          <tr><th>Scenario</th><th>Pattern</th><th>Reason</th></tr>
+          <tr><td>Lost hiker, unknown direction</td><td>Expanding Square</td><td>Starts at PLS, covers all directions</td></tr>
+          <tr><td>Known search area</td><td>Grid</td><td>Systematic, complete coverage</td></tr>
+          <tr><td>Trail junction</td><td>Star</td><td>Quick coverage of all trails</td></tr>
+          <tr><td>Water search (known current)</td><td>Grid (oriented)</td><td>Covers drift zone</td></tr>
+        </table>
+      </div>
+
+      <div class="content-section">
+        <h2>11.4 Fly-to-Waypoint Missions</h2>
+        <p>Simple point-to-point flights for investigations and targeted searches.</p>
+
+        <div class="screenshot-placeholder">
+          <div class="icon">📷</div>
+          <p>Screenshot: Fly-to-Waypoint dialog</p>
+        </div>
+
+        <h3>Creating a Fly-to-Waypoint Mission</h3>
+        <ol>
+          <li>Long-press on map destination</li>
+          <li>Select <strong>Fly to Waypoint</strong></li>
+          <li>Set altitude and speed</li>
+          <li>Choose waypoint action</li>
+          <li>Tap <strong>Fly</strong></li>
+        </ol>
+
+        <h3>Waypoint Actions</h3>
+        <table>
+          <tr><th>Action</th><th>Description</th></tr>
+          <tr><td>Hover</td><td>Hold position, no camera action</td></tr>
+          <tr><td>Take Photo</td><td>Capture single photo</td></tr>
+          <tr><td>Start Video</td><td>Begin video recording</td></tr>
+          <tr><td>360° Photos</td><td>Rotate and capture 4 directional photos</td></tr>
+        </table>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>Use 360° Photos to document a detection location for ground teams.</div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <h2>11.5 Mission Execution (SDK5)</h2>
+        <p>For SDK5 drones (Mavic 3, M30 series), execute missions directly from Eagle Eyes.</p>
+
+        <div class="screenshot-placeholder">
+          <div class="icon">📷</div>
+          <p>Screenshot: Mission Control Dialog with checklist</p>
+        </div>
+
+        <h3>Mission Control Dialog</h3>
+        <p>Shows mission details and controls:</p>
+        <ul>
+          <li>Mission name and waypoint count</li>
+          <li>Total distance and estimated time</li>
+          <li>Pre-flight checklist status</li>
+          <li>Control buttons</li>
+        </ul>
+
+        <h3>Pre-Flight Checklist</h3>
+        <table>
+          <tr><th>Item</th><th>Requirement</th></tr>
+          <tr><td>✅ Drone Connected</td><td>Active connection to drone</td></tr>
+          <tr><td>✅ GPS Lock</td><td>4+ satellites acquired</td></tr>
+          <tr><td>✅ Battery Level</td><td>Sufficient for mission</td></tr>
+          <tr><td>✅ Home Point Set</td><td>Valid home location</td></tr>
+        </table>
+        <p><strong>All items must be green before starting.</strong></p>
+
+        <h3>Control Buttons</h3>
+        <table>
+          <tr><th>Button</th><th>Function</th></tr>
+          <tr><td><strong>Upload</strong></td><td>Transfer mission to drone</td></tr>
+          <tr><td><strong>Start</strong></td><td>Begin mission execution</td></tr>
+          <tr><td><strong>Pause</strong></td><td>Pause at current position</td></tr>
+          <tr><td><strong>Resume</strong></td><td>Continue from pause point</td></tr>
+          <tr><td><strong>Stop</strong></td><td>Abort mission completely</td></tr>
+          <tr><td><strong>Restart</strong></td><td>Start mission from beginning</td></tr>
+        </table>
+
+        <h3>Mission States</h3>
+        <table>
+          <tr><th>State</th><th>Description</th></tr>
+          <tr><td>Idle</td><td>No mission loaded</td></tr>
+          <tr><td>Uploading</td><td>Transferring to drone</td></tr>
+          <tr><td>Ready</td><td>Ready to start</td></tr>
+          <tr><td>Executing</td><td>Flying mission</td></tr>
+          <tr><td>Paused</td><td>Holding at waypoint</td></tr>
+          <tr><td>Completed</td><td>Mission finished</td></tr>
+        </table>
+
+        <h3>Execution Steps</h3>
+        <ol>
+          <li>Open Mission Control after creating mission</li>
+          <li>Verify all checklist items are green</li>
+          <li>Tap <strong>Upload</strong> and wait for completion</li>
+          <li>Tap <strong>Start</strong> to begin</li>
+          <li>Monitor progress on map and overlay</li>
+          <li>Use Pause/Resume as needed</li>
+          <li>Mission completes automatically</li>
+        </ol>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>Always monitor the mission and be ready to pause or stop if needed.</div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <h2>11.6 KMZ Export & DJI Pilot 2</h2>
+        <p>For SDK4 drones or as a backup, export missions as KMZ files.</p>
+
+        <h3>Exporting a Mission</h3>
+        <ol>
+          <li>Create flight grid or waypoint mission</li>
+          <li>Tap <strong>Export to KMZ</strong></li>
+          <li>File saves to Downloads folder</li>
+          <li>Filename includes timestamp</li>
+        </ol>
+
+        <h3>Using with DJI Pilot 2</h3>
+        <ol>
+          <li>Open DJI Pilot 2</li>
+          <li>Go to <strong>Flight</strong> → <strong>Mission</strong></li>
+          <li>Tap <strong>Import</strong></li>
+          <li>Select exported KMZ file</li>
+          <li>Review and execute in DJI Pilot 2</li>
+        </ol>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>KMZ files can also be viewed in Google Earth for mission visualization.</div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <h2>11.7 Handling Interruptions</h2>
+
+        <h3>Pause/Resume</h3>
+        <ul>
+          <li>Tap <strong>Pause</strong> to stop at current position</li>
+          <li>Drone hovers and maintains altitude</li>
+          <li>Take manual control if needed</li>
+          <li>Tap <strong>Resume</strong> to continue</li>
+        </ul>
+
+        <h3>RTH During Mission</h3>
+        <ul>
+          <li>Mission pauses automatically</li>
+          <li>State changes to "Paused by RTH"</li>
+          <li>After RTH completes, Resume or Restart</li>
+        </ul>
+
+        <h3>Low Battery</h3>
+        <ul>
+          <li>Monitor battery throughout mission</li>
+          <li>Eagle Eyes warns when low</li>
+          <li>Consider pausing early</li>
+          <li>Auto-RTH may trigger if critical</li>
+        </ul>
+
+        <div class="callout callout-danger">
+          <span class="callout-icon">🚨</span>
+          <div>If signal is lost, the drone continues the mission briefly, then executes RTH.</div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <h2>Knowledge Check</h2>
+        <div class="knowledge-check">
+          <div class="question">What are the three search patterns available?</div>
+          <div class="question">When should you use an Expanding Square pattern?</div>
+          <div class="question">What must be verified before starting a mission?</div>
+          <div class="question">How do you export a mission for DJI Pilot 2?</div>
+          <div class="question">What happens if RTH triggers during a mission?</div>
+        </div>
+      </div>
+
+      <div class="page-nav">
+        <a href="10-field-operations.html" class="nav-btn prev"><span class="arrow">←</span> Field Operations</a>
+        <a href="12-advanced-features.html" class="nav-btn next" onclick="TrainingApp.completeModule('11-flight-missions')">Next: Advanced Features <span class="arrow">→</span></a>
+      </div>
+    </main>
+  </div>
+  <script src="../js/navigation.js"></script>
+</body>
+</html>
