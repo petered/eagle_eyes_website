@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 3: Detection System - Eagle Eyes Training</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- Fixed Header with Full Logo -->
+  <header class="fixed-header">
+    <a href="../index.html">
+      <img src="https://eagleeyessearch.com/images/eagle_eyes_flat_logo_2.png" alt="Eagle Eyes Logo" class="header-logo">
+    </a>
+    <div class="header-title">
+      <h1>Eagle Eyes Pilot</h1>
+      <div class="subtitle">SAR Training Program</div>
+    </div>
+  </header>
+
+  <button class="menu-toggle">☰ Menu</button>
+  <div class="layout">
+    <nav class="sidebar">
+      <a href="../index.html" class="nav-item" style="margin: 10px 15px; background: rgba(30,144,255,0.3); border-radius: 8px;">
+        <span class="nav-title">🏠 Return to Home</span>
+      </a>
+      <div class="progress-bar"><div class="progress-fill" style="width: 20%"></div></div>
+      <div class="nav-section">
+        <div class="nav-section-title">Modules</div>
+        <div class="nav-modules">
+          <a href="01-getting-started.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">1</span><span class="nav-title">Getting Started</span></a>
+          <a href="02-core-interface.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">2</span><span class="nav-title">Core Interface</span></a>
+          <a href="03-detection-system.html" class="nav-item active"><span class="nav-check"></span><span class="nav-number">3</span><span class="nav-title">Detection System</span></a>
+          <a href="05-camera-control.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">4</span><span class="nav-title">Camera Control</span></a>
+          <a href="07-caltopo.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">5</span><span class="nav-title">Mapping, CalTopo &amp; Sessions</span></a>
+          <a href="09-livestreaming.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">6</span><span class="nav-title">Broadcasting &amp; Livestreaming</span></a>
+          <a href="10-field-operations.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">7</span><span class="nav-title">Field Operations</span></a>
+          <a href="11-flight-missions.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">8</span><span class="nav-title">Flight Missions</span></a>
+          <a href="12-advanced-features.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">9</span><span class="nav-title">Advanced Features</span></a>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Reference</div>
+        <a href="../appendices/glossary.html" class="nav-item"><span class="nav-title">📖 Glossary</span></a>
+        <a href="../appendices/troubleshooting.html" class="nav-item"><span class="nav-title">🔧 Troubleshooting</span></a>
+        <a href="../appendices/coordinates.html" class="nav-item"><span class="nav-title">🗺️ Coordinates</span></a>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="page-header">
+        <span class="module-tag">Module 3</span>
+        <h1>Detection System</h1>
+        <span class="duration">⏱️ 60 minutes</span>
+      </div>
+
+      <div class="content-section">
+        <h2>Learning Objectives</h2>
+        <ul>
+          <li>Understand each detection mode and when to use it</li>
+          <li>Know how the default AI detector processes video frames</li>
+          <li>Understand what confidence scores represent and how thresholds work</li>
+          <li>Know what thermal detection can and cannot do</li>
+          <li>Distinguish between true detections and false positives</li>
+        </ul>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.1 - DETECTION MODES              -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.1 Detection Modes</h2>
+
+        <p>Eagle Eyes has four detection modes that control how the AI processes the live video feed. The current mode is shown as an icon in the top status bar of the Fly Screen, and you can cycle through modes by tapping the detection mode icon.</p>
+
+        <div style="margin: 20px 0; text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+          <img src="../images/diagrams/detection-modes.svg" alt="Detection Modes Overview" style="max-width: 100%; height: auto;">
+        </div>
+
+        <table>
+          <tr><th>Icon</th><th>Mode</th><th>Threshold Applied</th></tr>
+          <tr><td style="font-size: 1.4em; text-align: center;">✖</td><td><strong>OFF</strong></td><td>N/A</td></tr>
+          <tr><td style="font-size: 1.4em; text-align: center;">👁️</td><td><strong>NORMAL</strong></td><td>Yes</td></tr>
+          <tr><td style="font-size: 1.4em; text-align: center;">👀</td><td><strong>HYPERSENSITIVE</strong></td><td>No</td></tr>
+          <tr><td style="font-size: 1.4em; text-align: center;">💾</td><td><strong>SILENT</strong></td><td>Yes</td></tr>
+        </table>
+
+        <h3>✖ OFF Mode</h3>
+        <p>When detection is set to OFF, no AI processing takes place. The drone's video feed streams to your screen as a raw video with no analysis. No frames are sent to the detection model, no bounding boxes are drawn, and no detections are logged.</p>
+        <p>Use OFF mode during transit flights when you are simply repositioning the drone and do not need detection. This saves battery on both the drone and your controller device, since AI inference is computationally expensive. It also reduces heat generation on the controller, which can be a factor during long operations in warm weather.</p>
+
+        <h3>👁️ NORMAL Mode</h3>
+        <p>Normal is the default and most commonly used detection mode. Every video frame from the drone is passed through the AI detection model. The model analyzes each frame and returns any detections it finds, each with a confidence score. In Normal mode, the app applies your <strong>confidence threshold</strong> (default 50%) as a filter &mdash; only detections that score <em>at or above</em> your threshold are shown on screen as bounding boxes.</p>
+        <p>This means the AI is still examining every frame, but it only alerts you to detections where it has reasonable confidence. Lower-scoring detections that the model is less sure about are quietly discarded. This gives you a balanced experience: you get alerted to likely targets without being overwhelmed by low-confidence noise. Normal mode is the right choice for the vast majority of SAR operations.</p>
+
+        <h3>👀 HYPERSENSITIVE Mode</h3>
+        <p>Hypersensitive mode runs the exact same AI model on every frame, but with one critical difference: <strong>the confidence threshold is completely ignored</strong>. Every single detection the model produces is displayed on screen, regardless of how low the score is. A detection at 5% confidence will be shown just the same as one at 95%.</p>
+        <p>This dramatically increases the number of bounding boxes you see. You will get far more false positives &mdash; rocks, tree stumps, shadows, and debris will frequently trigger detections. The tradeoff is that you are much less likely to miss a real target. If the model detected a person even at very low confidence, you will see it.</p>
+        <p>Use Hypersensitive mode when the stakes are highest and you cannot afford to miss anything: dense vegetation where targets may be partially obscured, low-light conditions where the model struggles, or areas where a target is known to be but Normal mode isn't finding them. Be prepared for significantly more operator workload in reviewing detections.</p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>Hypersensitive mode requires more operator attention. You will see many more bounding boxes and need to mentally filter real targets from false positives. This is tiring over long flights &mdash; rotate operators if possible.</div>
+        </div>
+
+        <h3>💾 SILENT Mode</h3>
+        <p>Silent mode runs the AI detection model with the same threshold filtering as Normal mode, but detections are <strong>not displayed on screen</strong>. Instead, they are logged in the background for later review. The video feed appears clean with no bounding boxes drawn.</p>
+        <p>This mode is useful when you want to record detection data for post-flight analysis without the visual clutter on screen during the flight. The detections are still captured and saved, but the pilot's view remains unobstructed.</p>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div><strong>Recommendation:</strong> Start every mission in NORMAL mode. Switch to HYPERSENSITIVE if you are searching a high-priority area or if Normal isn't finding what you expect. Use OFF for transit repositioning between search areas.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.2 - HOW THE DETECTOR WORKS        -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.2 How the Detector Works</h2>
+
+        <h3>The Default Detector</h3>
+        <p>Eagle Eyes ships with a default live detector called <strong>V2.5.Pilot.Legacy</strong>. This is a TensorFlow Lite neural network model that has been trained specifically for aerial SAR &mdash; it has learned to recognize people, tents, vehicles, and other objects of interest as seen from a drone's perspective at various altitudes.</p>
+
+        <p>Here is what happens every time a video frame arrives from the drone:</p>
+        <ol>
+          <li><strong>Frame Capture</strong> &mdash; The app grabs the current frame from the drone's live video feed as a bitmap image.</li>
+          <li><strong>Preprocessing</strong> &mdash; The frame is resized and normalized to match the input dimensions the model expects.</li>
+          <li><strong>Inference</strong> &mdash; The preprocessed image is fed into the TensorFlow Lite model, which runs a forward pass through its neural network. This is the computationally expensive step that takes most of the processing time.</li>
+          <li><strong>Output Parsing</strong> &mdash; The model outputs a set of <strong>bounding boxes</strong>, each with coordinates (where in the frame the detection is) and a <strong>confidence score</strong> (how certain the model is that this detection is real). A cropped thumbnail of each detection is also extracted.</li>
+          <li><strong>Threshold Filtering</strong> &mdash; In Normal and Silent modes, any detection with a score below your confidence threshold is discarded. In Hypersensitive mode, all detections pass through.</li>
+          <li><strong>Display</strong> &mdash; Surviving detections are drawn as colored rectangles (bounding boxes) over the video feed, with their confidence score shown as a percentage. The detection is also logged and can be reviewed later.</li>
+        </ol>
+
+        <p>This entire pipeline runs on every frame in real time. The model uses the <code>.eaglelite</code> format, which is an encrypted and compressed TensorFlow Lite model. Encryption ensures the trained model weights are protected, while compression keeps file sizes small (typically 2-6 MB for live detectors).</p>
+
+        <h3>Other Available Detectors</h3>
+        <p>In addition to the default live detector, Eagle Eyes supports multiple detector models that are optimized for different situations:</p>
+
+        <table>
+          <tr><th>Detector</th><th>Type</th><th>Optimized For</th></tr>
+          <tr><td><strong>V2.5.Pilot.Legacy</strong></td><td>Live</td><td>Real-time video analysis during flight (default)</td></tr>
+          <tr><td><strong>V2.5.Pilot.Photo.4k</strong></td><td>Photo</td><td>High-resolution still image analysis at 4K resolution</td></tr>
+        </table>
+
+        <p>The <strong>Photo 4K detector</strong> is the default for analyzing still photographs. It is a larger model (around 6 MB) designed to work with high-resolution images rather than video frames. Because it doesn't need to run in real time, it can be more thorough in its analysis. Use this when reviewing photos taken during or after a flight.</p>
+
+        <p>Additional detector models can be loaded into Eagle Eyes as they become available. The app automatically discovers any <code>.eaglelite</code> or <code>.tflite</code> model files and makes them selectable.</p>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>You can change which detector model is active in <strong>Advanced Settings</strong> (covered in Module 12). For most operations, the defaults are the right choice &mdash; the live detector for flight and the photo detector for image review.</div>
+        </div>
+
+        <h3>What the Model Detects</h3>
+        <p>The detector models are trained on aerial imagery and optimized for SAR-relevant objects. They are best at detecting:</p>
+        <ul>
+          <li>People (standing, sitting, lying down, partially obscured)</li>
+          <li>Brightly colored clothing and gear</li>
+          <li>Tents and shelters</li>
+          <li>Vehicles</li>
+          <li>Objects that contrast with natural terrain</li>
+        </ul>
+        <p>The models are <em>not</em> perfect. They work best at altitudes between 30-120m where people are large enough to be distinguishable but the field of view is wide enough to cover ground efficiently. At very high altitudes people become too small, and at very low altitudes the model may not recognize partial views.</p>
+
+        <h3>Common False Positives</h3>
+        <p>The AI will sometimes identify non-target objects as detections. Understanding common false positives helps you assess detections faster:</p>
+        <ul>
+          <li><strong>Large rocks and boulders</strong> &mdash; Especially those with color contrast against surrounding terrain</li>
+          <li><strong>Tree stumps</strong> &mdash; Upright stumps can resemble a seated or standing person</li>
+          <li><strong>Wildlife</strong> &mdash; Deer, bears, and large animals trigger detections frequently</li>
+          <li><strong>Trash and debris</strong> &mdash; Colored litter, abandoned gear, or equipment</li>
+          <li><strong>Water reflections</strong> &mdash; Bright glare spots on water surfaces</li>
+          <li><strong>Shadows</strong> &mdash; Strong shadows can create shapes the model interprets as objects</li>
+        </ul>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>The AI can also miss real targets (false negatives). Never rely solely on AI detection &mdash; always maintain visual scanning of the video feed alongside the automated system.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.3 - CONFIDENCE SCORES             -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.3 Understanding Confidence Scores</h2>
+
+        <p>Every detection the AI produces comes with a <strong>confidence score</strong>, displayed as a percentage on the bounding box (e.g., "78%"). Understanding what this number actually means is critical for making good decisions in the field.</p>
+
+        <h3>What the Percentage Represents</h3>
+        <p>The confidence score is <strong>the model's estimated probability that the detection is correct</strong>. When the model says "78%", it means that based on the patterns it learned during training, there is a 78% likelihood that what it found in that region of the frame is a real object of interest (typically a person).</p>
+
+        <p>More technically: the neural network's final output layer produces a raw activation value for each potential detection. This value is passed through a sigmoid function that maps it to a number between 0.0 and 1.0. The app displays this as a percentage &mdash; so 0.78 becomes "78%". A score of 1.0 (100%) would mean the model is completely certain, while 0.0 (0%) would mean no confidence at all.</p>
+
+        <p>It is important to understand what confidence does <strong>not</strong> mean:</p>
+        <ul>
+          <li>It is <strong>not</strong> a measure of how important the detection is</li>
+          <li>It is <strong>not</strong> related to the size or distance of the object</li>
+          <li>It is <strong>not</strong> a comparison between different detections &mdash; a 90% detection is not "more of a person" than a 60% detection</li>
+          <li>It is simply the model's internal certainty that something is there at all</li>
+        </ul>
+
+        <h3>The Confidence Threshold</h3>
+        <p>Eagle Eyes has a configurable <strong>confidence threshold</strong> that acts as a cutoff filter. The default threshold is <strong>50%</strong>. In Normal and Silent modes, any detection scoring below this threshold is discarded before being shown to you.</p>
+
+        <p>This means with the default threshold:</p>
+        <ul>
+          <li>A detection at 51% &rarr; <strong>Shown</strong> on screen</li>
+          <li>A detection at 49% &rarr; <strong>Discarded</strong>, you never see it</li>
+          <li>A detection at 95% &rarr; <strong>Shown</strong> on screen</li>
+        </ul>
+
+        <p>You can adjust the threshold in the app settings. Lowering it (e.g., to 30%) means more detections get through, including weaker ones. Raising it (e.g., to 70%) means only high-confidence detections are shown, reducing noise but increasing the risk of missing real targets.</p>
+
+        <p>In <strong>Hypersensitive mode</strong>, the threshold is completely bypassed &mdash; every detection is shown regardless of its score.</p>
+
+        <h3>Interpreting Scores in the Field</h3>
+        <table>
+          <tr><th>Score Range</th><th>What It Means</th><th>Recommended Action</th></tr>
+          <tr><td><strong>90-100%</strong></td><td>The model is highly certain this is a real detection. The object closely matches training examples.</td><td>Investigate immediately. Very likely a real target.</td></tr>
+          <tr><td><strong>70-89%</strong></td><td>Strong detection. The model found clear patterns consistent with a target, but some ambiguity remains.</td><td>Strong candidate. Prioritize investigation.</td></tr>
+          <tr><td><strong>50-69%</strong></td><td>Moderate confidence. The model sees something that partially matches, but there is significant uncertainty. Could be a partially obscured target or a convincing false positive.</td><td>Worth investigating when possible. Check the cropped thumbnail for more detail.</td></tr>
+          <tr><td><strong>30-49%</strong></td><td>Low confidence. Only visible in Hypersensitive mode or with a lowered threshold. The model is mostly uncertain.</td><td>Quick visual check if time permits. Often false positives.</td></tr>
+          <tr><td><strong>Below 30%</strong></td><td>Very low confidence. The model barely detected anything. Only visible in Hypersensitive mode.</td><td>Usually noise. Only investigate in high-priority search areas.</td></tr>
+        </table>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div><strong>Field tip:</strong> Don't fixate on the exact number. The difference between 72% and 78% is not meaningful. Think in broad ranges: "high confidence", "moderate", or "low". The thumbnail crop of the detection is often more useful than the score for deciding whether to investigate.</div>
+        </div>
+
+        <h3>Why Scores Vary</h3>
+        <p>The same real target can produce different confidence scores depending on conditions:</p>
+        <ul>
+          <li><strong>Altitude</strong> &mdash; The model performs best at its trained altitude range. Too high and targets are tiny; too low and they fill the frame abnormally.</li>
+          <li><strong>Angle</strong> &mdash; A straight-down view produces different scores than an angled view of the same target.</li>
+          <li><strong>Lighting</strong> &mdash; Harsh shadows, backlighting, or low light all reduce confidence.</li>
+          <li><strong>Occlusion</strong> &mdash; A person partially hidden behind a tree or under a tarp will score lower than someone in the open.</li>
+          <li><strong>Contrast</strong> &mdash; Bright clothing against green forest scores higher than camouflage patterns.</li>
+          <li><strong>Motion blur</strong> &mdash; Fast drone movement can blur frames and reduce detection quality.</li>
+        </ul>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.4 - THERMAL DETECTION             -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.4 Thermal Detection</h2>
+
+        <p>Some DJI drones are equipped with a dedicated thermal infrared camera in addition to their standard RGB camera. Eagle Eyes supports thermal camera feeds and provides a specialized thermal overlay system for SAR operations.</p>
+
+        <h3>Supported Thermal Drones</h3>
+        <p>Thermal detection is available on DJI drones with built-in thermal cameras:</p>
+        <ul>
+          <li><strong>Matrice 3T (M3T)</strong></li>
+          <li><strong>Matrice 30T (M30T)</strong></li>
+          <li><strong>Matrice 4T (M4T)</strong></li>
+          <li><strong>H30T</strong></li>
+        </ul>
+        <p>These drones have a dedicated thermal sensor alongside their RGB camera. The thermal sensor captures infrared radiation (heat) rather than visible light, producing a grayscale or false-color image where pixel brightness corresponds to temperature.</p>
+
+        <h3>How Thermal Overlay Works</h3>
+        <p>When viewing the thermal camera feed, Eagle Eyes reads temperature data from the drone's thermal sensor at a native resolution of <strong>640 &times; 512 pixels</strong>. The app identifies the hottest and coldest points in the frame and displays them as overlay markers:</p>
+
+        <ul>
+          <li><strong style="color: #e74c3c;">Red circle</strong> &mdash; Marks the hottest point in the frame, with the temperature displayed in your chosen units (&deg;C or &deg;F)</li>
+          <li><strong style="color: #3498db;">Blue circle</strong> &mdash; Marks the coldest point in the frame, with the temperature displayed</li>
+        </ul>
+
+        <p>You can configure which markers are shown through the thermal overlay display modes:</p>
+
+        <table>
+          <tr><th>Display Mode</th><th>Shows</th><th>When to Use</th></tr>
+          <tr><td><strong>Hot and Cold</strong></td><td>Both the hottest (red) and coldest (blue) markers</td><td>General thermal scanning &mdash; gives full temperature awareness</td></tr>
+          <tr><td><strong>Hot Only</strong></td><td>Only the hottest point marker</td><td>Searching for warm targets (people, animals, vehicles) against cool backgrounds</td></tr>
+          <tr><td><strong>Cold Only</strong></td><td>Only the coldest point marker</td><td>Specialized use &mdash; finding cold anomalies</td></tr>
+          <tr><td><strong>Hot Above Threshold</strong></td><td>Hottest point, but only when it exceeds a temperature threshold you set (default 25&deg;C)</td><td>Filtering out low-temperature hot spots that aren't interesting &mdash; only alerts you when something genuinely warm appears</td></tr>
+          <tr><td><strong>None</strong></td><td>No markers</td><td>When you want the raw thermal image without overlay markers</td></tr>
+        </table>
+
+        <h3>Important: No AI Detection on Thermal</h3>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div>The AI object detection model does <strong>not</strong> run on the thermal camera feed. When viewing the thermal stream, AI bounding boxes are disabled. The thermal overlay (hot/cold markers) is the only detection aid available on the thermal feed.</div>
+        </div>
+
+        <p>This is an important distinction. The AI models (V2.5.Pilot.Legacy, etc.) were trained on RGB (visible light) imagery. Thermal images look fundamentally different &mdash; they show heat signatures rather than colors and textures &mdash; so the RGB-trained models would not produce useful results on thermal frames. When the app detects that the active camera feed is thermal, it automatically skips AI inference for those frames.</p>
+
+        <p>This means your thermal detection workflow relies on:</p>
+        <ol>
+          <li>The hot/cold marker overlay to identify temperature anomalies</li>
+          <li>Your own visual scanning of the thermal image for human-shaped heat signatures</li>
+          <li>Switching between thermal and RGB feeds to cross-reference &mdash; if you spot a heat anomaly on thermal, switch to RGB and let the AI analyze the same area</li>
+        </ol>
+
+        <h3>Thermal Limitations and Accuracy</h3>
+        <p>Thermal imaging is a powerful tool for SAR, but it has significant limitations you must understand:</p>
+
+        <ul>
+          <li><strong>Resolution</strong> &mdash; The thermal sensor is 640&times;512 pixels, far lower than the RGB camera. At high altitudes, a person may be only a few pixels on the thermal image, making them difficult to distinguish from other warm objects.</li>
+          <li><strong>Environmental Interference</strong> &mdash; Sun-heated rocks, asphalt, metal surfaces, and even patches of dark soil can appear as hot spots. During the day, the ground absorbs solar heat and can mask human body heat. Thermal works best at dawn, dusk, and at night when the ground has cooled and warm bodies stand out clearly.</li>
+          <li><strong>Insulation</strong> &mdash; A person under a thermal blanket, inside a sleeping bag, or beneath dense tree canopy may not show a detectable heat signature. The thermal camera only sees surface temperatures.</li>
+          <li><strong>Distance</strong> &mdash; At high altitudes (120m+), a person's heat signature becomes a single warm pixel that blends with environmental noise. Effective thermal search altitudes are generally lower than RGB &mdash; typically 30-80m depending on conditions.</li>
+          <li><strong>Weather</strong> &mdash; Rain reduces thermal contrast significantly. Fog and heavy moisture in the air absorb infrared radiation. Wind cools exposed surfaces, reducing the temperature difference between a person and their surroundings.</li>
+          <li><strong>Ambient Temperature</strong> &mdash; When air temperature is close to body temperature (above ~30&deg;C / 86&deg;F), the contrast between a person and the environment decreases dramatically, making thermal detection much harder.</li>
+          <li><strong>Animal False Positives</strong> &mdash; Thermal cannot distinguish between humans and other warm-blooded animals. Deer, bears, coyotes, and even large birds will appear as heat signatures similar to people.</li>
+        </ul>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div><strong>Best practice:</strong> Use thermal as a complement to RGB detection, not a replacement. Fly thermal search patterns at lower altitudes (30-60m) during low-light conditions for best results. When you find a heat anomaly, cross-reference with the RGB camera to confirm the target.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.5 - DETECTION VIEWER              -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.5 Detection Viewer</h2>
+
+        <p>Every detection the AI produces during a flight is saved automatically. The <strong>Detection Viewer</strong> lets you review all detections after or during a flight. Access it via <strong>☰ Menu &rarr; Detection Viewer</strong>.</p>
+
+        <h3>Grid Layout</h3>
+        <p>Detections are displayed in a 3-column grid of cropped thumbnails. Each thumbnail shows the section of the video frame that triggered the detection, with a confidence badge overlaid. Tap any thumbnail to open a detail view with the full-frame context and options for rating.</p>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.6 - RATING SYSTEM                 -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.6 Rating System</h2>
+
+        <p>You can rate each detection to help prioritize ground follow-up and keep your detection list organized:</p>
+
+        <table>
+          <tr><th>Rating</th><th>Value</th><th>When to Use</th></tr>
+          <tr><td>👍 Interesting</td><td>+1</td><td>Worth investigating &mdash; looks like a real target or something you want ground teams to check</td></tr>
+          <tr><td>➖ Neutral</td><td>0</td><td>Uncertain &mdash; can't tell from the thumbnail alone</td></tr>
+          <tr><td>👎 Dismissed</td><td>-1</td><td>Confirmed false positive &mdash; clearly a rock, stump, shadow, or other non-target</td></tr>
+        </table>
+
+        <p>Rating detections as you review them makes it much faster to hand off actionable information to ground teams. They can filter to only "Interesting" detections and see exactly which locations need boots on the ground.</p>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.7 - FILTERING & SORTING           -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.7 Filtering &amp; Sorting</h2>
+
+        <p>When a flight produces dozens or hundreds of detections, filtering and sorting help you work through them efficiently.</p>
+
+        <h3>Filter By</h3>
+        <ul>
+          <li><strong>Rating</strong> &mdash; Show only Interesting, Neutral, or Dismissed detections</li>
+          <li><strong>Session</strong> &mdash; Current flight, today's flights, or historical data</li>
+          <li><strong>Source</strong> &mdash; AI-generated detections vs. manual annotations</li>
+          <li><strong>Confidence threshold</strong> &mdash; Set a minimum score to hide low-confidence results</li>
+        </ul>
+
+        <h3>Sort Options</h3>
+        <ul>
+          <li><strong>Time</strong> &mdash; Newest or oldest first</li>
+          <li><strong>Score</strong> &mdash; Highest confidence first (useful for quickly finding the most likely real targets)</li>
+          <li><strong>Rating</strong> &mdash; Group by your assigned ratings</li>
+        </ul>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 3.8 - MANUAL ANNOTATION             -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>3.8 Manual Annotation</h2>
+
+        <p>Sometimes you spot something on the video feed that the AI missed. Manual annotation lets you create a detection entry yourself so it is logged with GPS coordinates and can be reviewed or shared just like AI detections.</p>
+
+        <ol>
+          <li>Long-press on the video feed at the location of the object you spotted</li>
+          <li>Select <strong>Add Annotation</strong> from the context menu</li>
+          <li>Draw a bounding box around the object</li>
+          <li>Add a label and any notes</li>
+          <li>Tap <strong>Save</strong></li>
+        </ol>
+
+        <p>Manual annotations appear in the Detection Viewer alongside AI detections, but are marked with a different source tag so you can filter them separately. They include the GPS coordinates of the drone at the time of annotation and the camera angle, so ground teams can locate the area.</p>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- KNOWLEDGE CHECK                             -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>Knowledge Check</h2>
+        <div class="knowledge-check">
+          <div class="question">What is the key difference between Normal and Hypersensitive mode in terms of how detections are filtered?</div>
+          <div class="question">The default confidence threshold is 50%. A detection comes in at 45% in Normal mode. What happens to it?</div>
+          <div class="question">A detection shows a confidence score of 73%. What does that percentage actually represent?</div>
+          <div class="question">You switch to the thermal camera feed. Will the AI detection model still draw bounding boxes? Why or why not?</div>
+          <div class="question">Name three conditions that reduce the effectiveness of thermal detection.</div>
+          <div class="question">How would you use the rating system to help ground teams prioritize follow-up locations?</div>
+        </div>
+      </div>
+
+      <div class="page-nav">
+        <a href="02-core-interface.html" class="nav-btn prev"><span class="arrow">←</span> Core Interface</a>
+        <a href="05-camera-control.html" class="nav-btn next" onclick="TrainingApp.completeModule('03-detection-system')">Next: Camera Control <span class="arrow">→</span></a>
+      </div>
+    </main>
+  </div>
+  <script src="../js/navigation.js"></script>
+</body>
+</html>

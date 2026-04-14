@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 5: Mapping, CalTopo &amp; Sessions - Eagle Eyes Training</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="fixed-header">
+    <a href="../index.html">
+      <img src="https://eagleeyessearch.com/images/eagle_eyes_flat_logo_2.png" alt="Eagle Eyes Logo" class="header-logo">
+    </a>
+    <div class="header-title">
+      <h1>Eagle Eyes Pilot</h1>
+      <div class="subtitle">SAR Training Program</div>
+    </div>
+  </header>
+
+  <button class="menu-toggle">☰ Menu</button>
+  <div class="layout">
+    <nav class="sidebar">
+      <a href="../index.html" class="nav-item" style="margin: 10px 15px; background: rgba(30,144,255,0.3); border-radius: 8px;">
+        <span class="nav-title">🏠 Return to Home</span>
+      </a>
+      <div class="progress-bar"><div class="progress-fill" style="width: 50%"></div></div>
+      <div class="nav-section">
+        <div class="nav-section-title">Modules</div>
+        <div class="nav-modules">
+          <a href="01-getting-started.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">1</span><span class="nav-title">Getting Started</span></a>
+          <a href="02-core-interface.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">2</span><span class="nav-title">Core Interface</span></a>
+          <a href="03-detection-system.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">3</span><span class="nav-title">Detection System</span></a>
+          <a href="05-camera-control.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">4</span><span class="nav-title">Camera Control</span></a>
+          <a href="07-caltopo.html" class="nav-item active"><span class="nav-check"></span><span class="nav-number">5</span><span class="nav-title">Mapping, CalTopo &amp; Sessions</span></a>
+          <a href="09-livestreaming.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">6</span><span class="nav-title">Broadcasting &amp; Livestreaming</span></a>
+          <a href="10-field-operations.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">7</span><span class="nav-title">Field Operations</span></a>
+          <a href="11-flight-missions.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">8</span><span class="nav-title">Flight Missions</span></a>
+          <a href="12-advanced-features.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">9</span><span class="nav-title">Advanced Features</span></a>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Reference</div>
+        <a href="../appendices/glossary.html" class="nav-item"><span class="nav-title">📖 Glossary</span></a>
+        <a href="../appendices/troubleshooting.html" class="nav-item"><span class="nav-title">🔧 Troubleshooting</span></a>
+        <a href="../appendices/coordinates.html" class="nav-item"><span class="nav-title">🗺️ Coordinates</span></a>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div class="page-header">
+        <span class="module-tag">Module 5</span>
+        <h1>Mapping, CalTopo &amp; Sessions</h1>
+        <span class="duration">⏱️ 60 minutes</span>
+      </div>
+
+      <div class="content-section">
+        <h2>Learning Objectives</h2>
+        <ul>
+          <li>Navigate the map interface and work with tile sources</li>
+          <li>Understand map markers and load offline maps</li>
+          <li>Connect Eagle Eyes to a CalTopo map</li>
+          <li>Sync markers and features bidirectionally</li>
+          <li>Set up service accounts for persistent connections</li>
+          <li>Understand how sessions organize your missions and data</li>
+        </ul>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.1 - MAP INTERFACE                 -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.1 Map Interface</h2>
+
+        <p>The map panel on the Fly Screen shows the drone's position, flight path, detections, and other operational data overlaid on map imagery. Eagle Eyes uses OSMDroid for map rendering with support for multiple tile sources.</p>
+
+        <h3>Map Gestures</h3>
+        <table>
+          <tr><th>Gesture</th><th>Action</th></tr>
+          <tr><td>Drag</td><td>Pan the map</td></tr>
+          <tr><td>Pinch</td><td>Zoom in/out</td></tr>
+          <tr><td>Double-tap</td><td>Zoom to tapped point</td></tr>
+          <tr><td>Two-finger rotate</td><td>Rotate the map orientation</td></tr>
+        </table>
+
+        <h3>Tile Sources</h3>
+        <p>You can change the map background imagery depending on what is most useful for your operation:</p>
+        <table>
+          <tr><th>Source</th><th>Description</th><th>When to Use</th></tr>
+          <tr><td><strong>Esri World Imagery</strong></td><td>High-resolution satellite imagery</td><td>Most SAR operations &mdash; see actual terrain, buildings, roads, vegetation</td></tr>
+          <tr><td><strong>OpenStreetMap</strong></td><td>Detailed street and trail map</td><td>Urban search, finding access routes, identifying trails and structures</td></tr>
+          <tr><td><strong>OpenTopo</strong></td><td>Topographic map with contour lines</td><td>Mountainous terrain, elevation-aware planning</td></tr>
+          <tr><td><strong>USGS Topo</strong></td><td>US Geological Survey topographic map</td><td>US operations requiring official USGS data</td></tr>
+        </table>
+
+        <h3>Map Markers</h3>
+        <p>The map displays several types of markers that update in real time during flight:</p>
+        <table>
+          <tr><th>Marker</th><th>What It Shows</th></tr>
+          <tr><td><strong>✈️ Drone</strong></td><td>Your drone's current GPS position and heading. Updates continuously during flight.</td></tr>
+          <tr><td><strong>✈️ Other Drones</strong></td><td>Other Eagle Eyes drones on the same UDP network. Shows their positions so you can coordinate coverage. (See Module 6: Broadcasting &amp; Livestreaming)</td></tr>
+          <tr><td><strong>H Home</strong></td><td>The drone's takeoff point / Return-to-Home location. Important reference for battery planning.</td></tr>
+          <tr><td><strong>👤 Operator</strong></td><td>Your phone/controller GPS position. Shows where you are relative to the drone.</td></tr>
+          <tr><td><strong>📍 Detection</strong></td><td>AI and manual detections. Each detection is placed on the map at the estimated GPS coordinates of what was detected.</td></tr>
+          <tr><td><strong>⊕ Laser Point</strong></td><td>Laser rangefinder measurement points with distance readings.</td></tr>
+        </table>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>Tap any detection marker on the map to see its thumbnail, confidence score, and timestamp. This is a quick way to review what was found in a specific area without opening the full Detection Viewer.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.2 - OFFLINE MAPS                  -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.2 Offline Maps</h2>
+
+        <p>SAR operations often take place in areas with limited or no cellular connectivity. Eagle Eyes supports <strong>MBTiles</strong> files for offline map use, ensuring you have map imagery even without internet.</p>
+
+        <h3>Loading an Offline Map</h3>
+        <ol>
+          <li>Go to <strong>☰ Menu &rarr; Map Loader</strong></li>
+          <li>Tap <strong>Select MBTiles</strong></li>
+          <li>Choose your <code>.mbtiles</code> file from storage</li>
+          <li>The map tiles load and are available for offline use</li>
+        </ol>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div><strong>Download offline maps before heading to the field.</strong> MBTiles files can be large (hundreds of MB for detailed coverage of a large area). Prepare these in advance when you have a good internet connection.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.3 - CONNECTING TO CALTOPO         -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.3 Connecting to CalTopo</h2>
+
+        <p>CalTopo is a powerful mapping platform widely used in SAR. Eagle Eyes integrates directly with CalTopo, allowing you to see team assignments, search areas, and markers on your drone's map &mdash; and push detections back to CalTopo for the whole team to see.</p>
+
+        <h3>Method 1: QR Code (Fastest)</h3>
+        <ol>
+          <li>Generate QR code on the CalTopo website</li>
+          <li>In Eagle Eyes: <strong>☰ Menu &rarr; CalTopo Connection</strong></li>
+          <li>Tap <strong>Scan QR Code</strong></li>
+          <li>Point the device camera at the QR code</li>
+        </ol>
+
+        <h3>Method 2: Manual Entry</h3>
+        <ol>
+          <li><strong>☰ Menu &rarr; CalTopo Connection</strong></li>
+          <li>Tap <strong>Enter Map ID</strong></li>
+          <li>Type the CalTopo map ID</li>
+          <li>Enter credentials and connect</li>
+        </ol>
+
+        <h3>Connection Status</h3>
+        <table>
+          <tr><th>Status</th><th>Meaning</th></tr>
+          <tr><td>🟢 Green</td><td>Connected and syncing</td></tr>
+          <tr><td>🟡 Yellow</td><td>Connected but sync delayed</td></tr>
+          <tr><td>🔴 Red</td><td>Disconnected</td></tr>
+        </table>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.4 - WHAT SYNCS                    -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.4 What Syncs</h2>
+
+        <h3>From CalTopo &rarr; Eagle Eyes</h3>
+        <ul>
+          <li>Markers and points</li>
+          <li>Lines and routes</li>
+          <li>Polygons and search areas</li>
+          <li>Team member positions</li>
+        </ul>
+
+        <h3>From Eagle Eyes &rarr; CalTopo</h3>
+        <ul>
+          <li>Manual markers</li>
+          <li>Detection locations</li>
+          <li>Detection images</li>
+        </ul>
+
+        <p>This bidirectional sync means your incident commander can draw search areas on CalTopo and they immediately appear on your drone's map. When the AI detects something, the detection location and thumbnail are pushed back to CalTopo where the entire team can see it.</p>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.5 - SERVICE ACCOUNTS              -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.5 Service Account Setup <span class="module-tag" style="font-size: 0.7rem; vertical-align: middle;">New in 1.6.0</span></h2>
+
+        <p>Service accounts allow automatic map connections without scanning QR codes each time. This is ideal for dedicated SAR tablets that stay in team vehicles.</p>
+
+        <h3>What is a Service Account?</h3>
+        <ul>
+          <li>A persistent CalTopo connection credential</li>
+          <li>Configured once by the team lead</li>
+          <li>Automatically reconnects to the team map on app startup</li>
+          <li>No QR scanning needed in the field</li>
+        </ul>
+
+        <h3>Setting Up a Service Account</h3>
+        <ol>
+          <li>In CalTopo, create a service account for your organization</li>
+          <li>Generate the service account credentials</li>
+          <li>In Eagle Eyes: <strong>☰ Menu &rarr; CalTopo Connection</strong></li>
+          <li>Tap <strong>Service Account</strong></li>
+          <li>Enter the service account credentials</li>
+          <li>Select your team's default map</li>
+          <li>Tap <strong>Save</strong></li>
+        </ol>
+
+        <h3>Auto Re-Sync</h3>
+        <p>With a service account configured:</p>
+        <ul>
+          <li>Connection restores automatically after app restart</li>
+          <li>Sync resumes when network becomes available</li>
+          <li>No manual intervention needed in the field</li>
+        </ul>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>Service accounts are especially useful for tablets that stay in team vehicles. Configure once and the connection persists across operations.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.6 - SESSIONS                      -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.6 Sessions</h2>
+
+        <p>A <strong>session</strong> in Eagle Eyes is a container that groups together all the data from a single mission or operation. Every detection, map feature, and configuration setting is tied to the active session. Understanding sessions helps you keep your operations organized and your data separated.</p>
+
+        <h3>What a Session Stores</h3>
+        <p>Each session contains:</p>
+        <ul>
+          <li><strong>All AI detections</strong> &mdash; Every bounding box, confidence score, thumbnail, and GPS coordinate captured during that session</li>
+          <li><strong>Manual annotations</strong> &mdash; Any detections you marked manually</li>
+          <li><strong>Map features</strong> &mdash; GeoJSON features (lines, polygons, markers) created or synced during the session</li>
+          <li><strong>CalTopo connection</strong> &mdash; Which CalTopo map this session is linked to, and whether auto-connect is enabled</li>
+          <li><strong>Map visibility filters</strong> &mdash; Which map layers and features are shown/hidden</li>
+          <li><strong>Mission-specific configuration</strong> &mdash; UI preferences and settings tied to this session</li>
+        </ul>
+
+        <h3>How Sessions Are Created</h3>
+        <p>Eagle Eyes uses an intelligent auto-reuse system for sessions:</p>
+        <ul>
+          <li>When you open the app, it checks the <strong>last session's timestamp</strong></li>
+          <li>If the last session was opened <strong>less than 12 hours ago</strong>, the app automatically resumes that session &mdash; you pick up right where you left off</li>
+          <li>If more than 12 hours have passed, the app treats it as a new mission and <strong>creates a new session automatically</strong></li>
+          <li>You can also <strong>manually create a new session</strong> at any time through the Session Manager</li>
+        </ul>
+
+        <p>This means if you close the app for a lunch break and reopen it an hour later, you're still in the same session and all your detections stay together. But if you come back the next day for a new operation, a fresh session starts automatically.</p>
+
+        <h3>Session Manager</h3>
+        <p>Access the Session Manager via <strong>☰ Menu &rarr; Sessions</strong>. From here you can:</p>
+        <ul>
+          <li><strong>View all sessions</strong> &mdash; Listed with name and creation date, newest first. The active session is highlighted.</li>
+          <li><strong>Create a new session</strong> &mdash; Give it a name (e.g., "Morning Search - North Ridge") and optional description. The new session becomes active immediately.</li>
+          <li><strong>Rename a session</strong> &mdash; Tap the edit icon to change the name at any time.</li>
+          <li><strong>Switch sessions</strong> &mdash; Tap a session to make it the active one. All subsequent detections and data will be recorded under this session.</li>
+          <li><strong>Delete a session</strong> &mdash; Removes the session and all its associated detections, map features, and configuration. This cannot be undone.</li>
+        </ul>
+
+        <h3>Session Identification</h3>
+        <p>Each session has a unique ID generated using ULID (Universally Unique Lexicographically Sortable Identifier). In the UI, sessions are displayed as a short identifier plus the name you gave it:</p>
+        <p style="font-family: monospace; background: #f0f0f0; padding: 10px; border-radius: 6px; display: inline-block;">*3K2: Morning Search - North Ridge (2026-02-22 08:30)</p>
+        <ul>
+          <li><strong>*</strong> indicates this is the currently active session</li>
+          <li><strong>3K2</strong> is the last 3 characters of the unique ID</li>
+          <li><strong>Morning Search - North Ridge</strong> is the name you assigned</li>
+          <li><strong>(2026-02-22 08:30)</strong> is the creation timestamp</li>
+        </ul>
+
+        <h3>Why Sessions Matter for SAR</h3>
+        <p>In a real SAR operation, you may run multiple flights over several days. Sessions let you:</p>
+        <ul>
+          <li>Keep each day's or each sortie's detections separate so you can review them independently</li>
+          <li>Link a session to a specific CalTopo map for that operation</li>
+          <li>Filter detections by session in the Detection Viewer (see Module 3)</li>
+          <li>Delete test/training data without affecting real mission data</li>
+          <li>Share or reference a specific session's findings in reports</li>
+        </ul>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div><strong>Best practice:</strong> Name your sessions descriptively at the start of each operation. Something like "Feb 22 AM - River Valley East" is much easier to find later than "Session 1".</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- KNOWLEDGE CHECK                             -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>Knowledge Check</h2>
+        <div class="knowledge-check">
+          <div class="question">Name four types of markers that appear on the map during flight.</div>
+          <div class="question">Why should you load MBTiles before heading to the field?</div>
+          <div class="question">What are the two methods for connecting Eagle Eyes to a CalTopo map?</div>
+          <div class="question">What data syncs from Eagle Eyes back to CalTopo?</div>
+          <div class="question">What is the advantage of setting up a CalTopo service account?</div>
+          <div class="question">You close the app at 2:00 PM and reopen it at 3:30 PM. Will you be in the same session or a new one? Why?</div>
+          <div class="question">What data is lost when you delete a session?</div>
+        </div>
+      </div>
+
+      <div class="page-nav">
+        <a href="05-camera-control.html" class="nav-btn prev"><span class="arrow">←</span> Camera Control</a>
+        <a href="09-livestreaming.html" class="nav-btn next" onclick="TrainingApp.completeModule('07-caltopo')">Next: Broadcasting &amp; Livestreaming <span class="arrow">→</span></a>
+      </div>
+    </main>
+  </div>
+  <script src="../js/navigation.js"></script>
+</body>
+</html>
