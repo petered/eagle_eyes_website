@@ -200,93 +200,6 @@ permalink: /setup/
         margin-bottom: 1rem;
     }
 
-    /* Camera capture */
-    .camera-capture-container {
-        margin-top: 0.5rem;
-    }
-    .camera-capture-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 8px 14px;
-        font-size: 1.3rem;
-        color: #555;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .camera-capture-btn:hover {
-        background: #e9ecef;
-        border-color: #adb5bd;
-    }
-    .camera-capture-btn svg {
-        width: 18px;
-        height: 18px;
-    }
-    .camera-preview {
-        position: relative;
-        margin-top: 0.75rem;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #000;
-    }
-    .camera-preview {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1010;
-        width: 90%;
-        max-width: 360px;
-        border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    }
-    .camera-overlay-bg {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 1009;
-    }
-    .camera-preview video {
-        width: 100%;
-        max-height: 70px;
-        object-fit: cover;
-        display: block;
-        border-radius: 12px 12px 0 0;
-    }
-    .camera-preview canvas {
-        display: none;
-    }
-    .camera-controls {
-        display: flex;
-        gap: 0.75rem;
-        justify-content: center;
-        padding: 0.75rem;
-        background: #222;
-        border-radius: 0 0 12px 12px;
-    }
-    .camera-controls button {
-        padding: 8px 18px;
-        border-radius: 6px;
-        font-size: 1.3rem;
-        font-weight: 500;
-        cursor: pointer;
-        border: none;
-    }
-    .camera-controls .cancel-btn {
-        background: #6c757d;
-        color: white;
-    }
-    .camera-status {
-        text-align: center;
-        padding: 0.5rem;
-        font-size: 1.3rem;
-        color: #ccc;
-        background: #222;
-    }
-
     /* Hide the main navbar and overlay nav on this page */
     header.header,
     .overlay-navigation-wrapper {
@@ -687,7 +600,66 @@ permalink: /setup/
             text-align: center;
         }
     }
+    /* CalTopo mobile handoff card */
+    .ct-handoff-box {
+        background: #f0f7ff;
+        border: 1px solid #c4ddf7;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin: 0.75rem 0 1rem;
+        font-size: 1.4rem;
+        color: #333;
+        word-break: break-all;
+    }
+    .ct-handoff-url {
+        font-weight: 600;
+        font-size: 1.6rem;
+        color: #1e90ff;
+        display: block;
+        margin-top: 0.25rem;
+    }
+    #qrScannerModal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 1100;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+    #qrScannerModal .qr-scanner-panel {
+        background: #222;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+        padding: 1rem;
+        color: #fff;
+        text-align: center;
+    }
+    #qrScannerModal h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1.6rem;
+        color: #fff;
+    }
+    #qrScannerModal #qrScannerReader {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+    }
+    #qrScannerModal .qr-scanner-status {
+        font-size: 1.3rem;
+        color: #ccc;
+        margin-top: 0.5rem;
+        min-height: 1.2em;
+    }
+    #qrScannerModal .qr-scanner-actions {
+        margin-top: 0.75rem;
+    }
 </style>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <!-- Sign-in overlay -->
 <div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
@@ -889,10 +861,29 @@ permalink: /setup/
                 <h2 class="form-step-question">Connect your CalTopo account</h2>
                 <p class="form-step-hint">Without a service account, your CalTopo session on the controller expires every few days and you'll need to log in again. A service account keeps your team permanently connected — set it up once and everyone on your license can use it.</p>
                 <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
-                <div class="form-step-actions">
-                    <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
-                    <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin / skip &rarr;</a>
-                    <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
+
+                <!-- Mobile handoff (shown on small screens) -->
+                <div id="ctMobileHandoff" style="display: none;">
+                    <p class="form-step-hint">CalTopo's admin settings only work on a laptop or desktop. Open this page on your computer:</p>
+                    <div class="ct-handoff-box">
+                        <span class="ct-handoff-url">eagleeyessearch.com/caltopo</span>
+                    </div>
+                    <p class="form-step-hint">When you finish on the laptop, you'll see a QR code. Scan it here to bring the credentials back.</p>
+                    <div class="form-step-actions">
+                        <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()">Scan QR from laptop</button>
+                        <a href="#" class="back-link skip-link" onclick="showCtSubStep(1); return false;">Enter manually instead &rarr;</a>
+                        <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">Skip CalTopo setup &rarr;</a>
+                        <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
+                    </div>
+                </div>
+
+                <!-- Desktop / inline flow -->
+                <div id="ctDesktopIntro">
+                    <div class="form-step-actions">
+                        <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">I'm a CalTopo admin — set up now</button>
+                        <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">I'm not an admin / skip &rarr;</a>
+                        <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
+                    </div>
                 </div>
             </div>
 
@@ -935,21 +926,6 @@ permalink: /setup/
                 <h2 class="form-step-question">Step 3: Enter the Credential Secret</h2>
                 <p class="form-step-hint">Copy the secret from CalTopo and paste it here. It's only shown once!</p>
                 <div class="setup-field">
-                    <div class="camera-capture-container" id="cameraCaptureContainer" style="display: none; margin-bottom: 0.75rem;">
-                        <button type="button" class="camera-capture-btn" onclick="startCameraCapture()" style="background: #28a745; color: white; border-color: #28a745; width: 100%; justify-content: center;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                            Scan Credential Secret with camera
-                        </button>
-                        <div id="cameraOverlayBg" class="camera-overlay-bg" style="display: none;" onclick="stopCameraCapture()"></div>
-                        <div id="cameraPreview" class="camera-preview" style="display: none;">
-                            <video id="cameraVideo" autoplay playsinline></video>
-                            <canvas id="cameraCanvas"></canvas>
-                            <div class="camera-controls">
-                                <button type="button" class="cancel-btn" onclick="stopCameraCapture()">Cancel</button>
-                            </div>
-                            <div class="camera-status" id="cameraStatus"></div>
-                        </div>
-                    </div>
                     <input type="text" id="ctKey" placeholder="Paste credential secret here" style="font-size: min(1.4rem, 3.2vw);">
                 </div>
                 <div class="form-step-actions">
@@ -1023,6 +999,18 @@ permalink: /setup/
         </div>
 
         <div class="setup-status" id="setupFormStatus"></div>
+    </div>
+
+    <!-- QR Scanner modal for mobile CalTopo handoff -->
+    <div id="qrScannerModal">
+        <div class="qr-scanner-panel">
+            <h3>Scan the QR from your laptop</h3>
+            <div id="qrScannerReader"></div>
+            <div class="qr-scanner-status" id="qrScannerStatus">Starting camera...</div>
+            <div class="qr-scanner-actions">
+                <button class="setup-btn setup-btn-secondary" onclick="closeCaltopoQrScanner()">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- User/device info bar (at bottom) -->
@@ -1707,16 +1695,9 @@ function showConfigForm() {
     document.getElementById('setupIntro').style.display = 'none';
     document.getElementById('activationSuccessBanner').style.display = 'none';
 
-    // On mobile, show recommendation to use larger screen
-    if (isMobileDevice() && urlSessionId && !skipMobileRecommendation) {
-        showMobileRecommendation();
-        return;
-    }
-    skipMobileRecommendation = false;
-
     document.getElementById('setupForm').style.display = 'block';
     showFormStep(1);
-    // Reset CalTopo sub-steps to initial state
+    // Reset CalTopo sub-steps to initial state (substep 0 decides mobile vs desktop variant)
     showCtSubStep(0);
 }
 
@@ -1886,6 +1867,14 @@ function showCtSubStep(n) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
     }
+    // On substep 0, show mobile handoff card on mobile, inline flow on desktop
+    if (n === 0) {
+        var mobile = isMobileDevice();
+        var handoff = document.getElementById('ctMobileHandoff');
+        var intro = document.getElementById('ctDesktopIntro');
+        if (handoff) handoff.style.display = mobile ? 'block' : 'none';
+        if (intro) intro.style.display = mobile ? 'none' : 'block';
+    }
     // Show title in step 4 hint
     if (n === 4) {
         var title = document.getElementById('ctServiceTitle').value.trim();
@@ -1894,19 +1883,92 @@ function showCtSubStep(n) {
             hint.innerHTML = 'Close the credential secret popup. Find <strong>' + title + '</strong> in the list and enter the Account ID and Credential ID shown to the right of it.';
         }
     }
-    // Show camera button only on mobile for the secret step, update placeholder
     if (n === 3) {
-        var isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-        var cameraContainer = document.getElementById('cameraCaptureContainer');
-        if (cameraContainer) cameraContainer.style.display = isMobile ? 'block' : 'none';
         var ctKeyInput = document.getElementById('ctKey');
         if (ctKeyInput) {
-            ctKeyInput.placeholder = isMobile ? 'Or type the credential secret here' : 'Paste credential secret here';
             ctKeyInput.addEventListener('input', function() {
                 this.classList.remove('field-error');
                 clearStatus('ctSecretStatus');
             });
         }
+    }
+}
+
+// --- Mobile CalTopo QR handoff (scans QR emitted by /caltopo/) ---
+var qrScannerInstance = null;
+
+function openCaltopoQrScanner() {
+    var modal = document.getElementById('qrScannerModal');
+    var statusEl = document.getElementById('qrScannerStatus');
+    modal.style.display = 'flex';
+    statusEl.textContent = 'Starting camera...';
+
+    // Lazy-instantiate html5-qrcode scanner
+    if (!window.Html5Qrcode) {
+        statusEl.textContent = 'QR scanner library failed to load.';
+        return;
+    }
+    try {
+        qrScannerInstance = new Html5Qrcode('qrScannerReader');
+        var config = { fps: 10, qrbox: { width: 240, height: 240 } };
+        qrScannerInstance.start(
+            { facingMode: 'environment' },
+            config,
+            function(decodedText) {
+                handleCaltopoQrPayload(decodedText);
+            },
+            function() { /* ignore per-frame scan failures */ }
+        ).then(function() {
+            statusEl.textContent = 'Aim at the QR code on your laptop screen.';
+        }).catch(function(err) {
+            statusEl.textContent = 'Camera error: ' + (err && err.message ? err.message : err);
+        });
+    } catch (e) {
+        statusEl.textContent = 'Could not start scanner: ' + e.message;
+    }
+}
+
+function closeCaltopoQrScanner() {
+    var modal = document.getElementById('qrScannerModal');
+    if (qrScannerInstance) {
+        qrScannerInstance.stop().then(function() {
+            try { qrScannerInstance.clear(); } catch (e) {}
+            qrScannerInstance = null;
+        }).catch(function() { qrScannerInstance = null; });
+    }
+    modal.style.display = 'none';
+}
+
+function handleCaltopoQrPayload(text) {
+    var payload;
+    try { payload = JSON.parse(text); } catch (e) {
+        document.getElementById('qrScannerStatus').textContent = 'Not a valid Eagle Eyes QR code.';
+        return;
+    }
+    if (!payload || payload.type !== 'mirada-caltopo-service-account' ||
+        !payload.accountId || !payload.credentialId || !payload.secretKey) {
+        document.getElementById('qrScannerStatus').textContent = 'QR code is the wrong type.';
+        return;
+    }
+
+    document.getElementById('qrScannerStatus').textContent = 'Got it — verifying...';
+
+    // Populate fields
+    document.getElementById('ctAccountId').value = payload.accountId;
+    document.getElementById('ctCredentialId').value = payload.credentialId;
+    document.getElementById('ctKey').value = payload.secretKey;
+    // Fire input events so counters/verify-button update
+    ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
+        var ev = new Event('input', { bubbles: true });
+        document.getElementById(id).dispatchEvent(ev);
+    });
+
+    closeCaltopoQrScanner();
+
+    // Jump to verify substep and run verify (authed call from phone) to fetch team/maps metadata
+    showCtSubStep(4);
+    if (typeof verifyCaltopoServiceAccount === 'function') {
+        verifyCaltopoServiceAccount();
     }
 }
 
@@ -2446,163 +2508,4 @@ async function deleteConfigurationByIndex(index) {
     });
 })();
 
-// --- Camera capture for CalTopo credential secret (auto-scan) ---
-var cameraStream = null;
-var cameraScanActive = false;
-var tesseractLoaded = false;
-
-// CalTopo secrets are base64-encoded 32-byte keys = exactly 44 chars ending with =
-// Match only when bounded by whitespace/line boundary to avoid cross-line concatenation
-var SECRET_PATTERN = /(?:^|[\s])([A-Za-z0-9+\/]{43}=)(?:[\s]|$)/;
-
-// Validate that a matched string looks like a real base64 secret (not OCR noise)
-// Real secrets have a mix of uppercase, lowercase, and digits
-function isValidBase64Secret(s) {
-    // Must be exactly 44 chars ending with =
-    if (!s || s.length !== 44 || s[43] !== '=') return false;
-    // Must actually decode to 32 bytes (valid base64)
-    try {
-        var decoded = atob(s);
-        if (decoded.length !== 32) return false;
-    } catch (e) {
-        return false;
-    }
-    // Must not contain common OCR noise patterns (dates, words)
-    if (/\d{2}\/\d{2}\/\d{4}/.test(s)) return false;
-    if (/[a-z]{5,}/.test(s.toLowerCase()) && !/[A-Z].*[a-z].*[0-9]/.test(s)) return false;
-    // Real base64 secrets always have uppercase, lowercase, AND digits
-    var hasUpper = /[A-Z]/.test(s);
-    var hasLower = /[a-z]/.test(s);
-    var hasDigit = /[0-9]/.test(s);
-    return hasUpper && hasLower && hasDigit;
-}
-
-function startCameraCapture() {
-    var preview = document.getElementById('cameraPreview');
-    var overlay = document.getElementById('cameraOverlayBg');
-    var video = document.getElementById('cameraVideo');
-    var status = document.getElementById('cameraStatus');
-
-    overlay.style.display = 'block';
-    preview.style.display = 'block';
-    status.textContent = 'Starting camera...';
-
-    navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
-    }).then(function(stream) {
-        cameraStream = stream;
-        video.srcObject = stream;
-        status.textContent = 'Move close so the secret fills the screen...';
-        cameraScanActive = true;
-        loadTesseractThenScan();
-    }).catch(function(err) {
-        console.error('Camera error:', err);
-        status.textContent = 'Could not access camera: ' + err.message;
-    });
-}
-
-function loadTesseractThenScan() {
-    if (typeof Tesseract !== 'undefined') {
-        tesseractLoaded = true;
-        autoScanLoop();
-    } else {
-        var status = document.getElementById('cameraStatus');
-        status.textContent = 'Loading scanner...';
-        var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-        script.onload = function() {
-            tesseractLoaded = true;
-            if (cameraScanActive) {
-                document.getElementById('cameraStatus').textContent = 'Scanning...';
-                autoScanLoop();
-            }
-        };
-        script.onerror = function() {
-            document.getElementById('cameraStatus').textContent = 'Failed to load scanner. Enter the secret manually.';
-        };
-        document.head.appendChild(script);
-    }
-}
-
-function autoScanLoop() {
-    if (!cameraScanActive || !cameraStream) return;
-
-    var video = document.getElementById('cameraVideo');
-    var canvas = document.getElementById('cameraCanvas');
-    var status = document.getElementById('cameraStatus');
-
-    if (video.readyState < 2) {
-        setTimeout(autoScanLoop, 500);
-        return;
-    }
-
-    // Crop to center 80% width, middle 40% height for tighter focus
-    var cropX = Math.floor(video.videoWidth * 0.1);
-    var cropW = Math.floor(video.videoWidth * 0.8);
-    var cropY = Math.floor(video.videoHeight * 0.3);
-    var cropH = Math.floor(video.videoHeight * 0.4);
-    canvas.width = cropW;
-    canvas.height = cropH;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-    // Preprocess: convert to high-contrast grayscale
-    var imgData = ctx.getImageData(0, 0, cropW, cropH);
-    var pixels = imgData.data;
-    for (var i = 0; i < pixels.length; i += 4) {
-        var gray = 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
-        // High contrast threshold
-        gray = gray > 140 ? 255 : 0;
-        pixels[i] = pixels[i+1] = pixels[i+2] = gray;
-    }
-    ctx.putImageData(imgData, 0, 0);
-
-    status.textContent = 'Scanning... hold steady over the secret';
-
-    canvas.toBlob(function(blob) {
-        if (!cameraScanActive) return;
-        var imageUrl = URL.createObjectURL(blob);
-
-        Tesseract.recognize(imageUrl, 'eng', {
-            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
-        }).then(function(result) {
-            URL.revokeObjectURL(imageUrl);
-            if (!cameraScanActive) return;
-
-            var text = result.data.text || '';
-            // Match on raw text (with whitespace) to avoid cross-line concatenation
-            var match = text.match(SECRET_PATTERN);
-
-            if (match && isValidBase64Secret(match[1])) {
-                document.getElementById('ctKey').value = match[1];
-                status.textContent = 'Secret detected!';
-                cameraScanActive = false;
-                setTimeout(function() { stopCameraCapture(); }, 1000);
-            } else {
-                // No match yet — scan again
-                if (cameraScanActive) {
-                    setTimeout(autoScanLoop, 500);
-                }
-            }
-        }).catch(function(err) {
-            console.error('OCR scan error:', err);
-            if (cameraScanActive) {
-                setTimeout(autoScanLoop, 1000);
-            }
-        });
-    }, 'image/png');
-}
-
-function stopCameraCapture() {
-    cameraScanActive = false;
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(function(track) { track.stop(); });
-        cameraStream = null;
-    }
-    var video = document.getElementById('cameraVideo');
-    video.srcObject = null;
-    document.getElementById('cameraPreview').style.display = 'none';
-    document.getElementById('cameraOverlayBg').style.display = 'none';
-    document.getElementById('cameraStatus').textContent = '';
-}
 </script>

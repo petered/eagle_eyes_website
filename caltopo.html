@@ -1,0 +1,568 @@
+---
+layout: main
+title: CalTopo Service Account Setup - Eagle Eyes
+permalink: /caltopo/
+---
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+    import {
+        initializeAppCheck,
+        ReCaptchaEnterpriseProvider,
+        getToken,
+    } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js';
+
+    // Isolated v10 app instance (unique name avoids collision with the global v8 app
+    // initialized in _includes/head.html). Used only for App Check on this page.
+    const app = initializeApp({
+        apiKey: "AIzaSyAL9w9qClktCNFM1XSfo_HB59nU6zHI0bk",
+        authDomain: "eagleeyessearch.firebaseapp.com",
+        projectId: "eagleeyessearch",
+        storageBucket: "eagleeyessearch.appspot.com",
+        messagingSenderId: "983592831720",
+        appId: "1:983592831720:web:57b3880d0185ea3110575d",
+    }, 'caltopo-appcheck');
+
+    const appCheck = initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider('6Le_j7ksAAAAAK2wklsGrz6CNiEP3BHGczTgEBj4'),
+        isTokenAutoRefreshEnabled: true,
+    });
+
+    window.getAppCheckToken = async () => {
+        const result = await getToken(appCheck, /* forceRefresh */ false);
+        return result.token;
+    };
+</script>
+
+<style>
+    header.header,
+    .overlay-navigation-wrapper {
+        display: none !important;
+    }
+    body, .wrapper-inner, .content {
+        background: #fff !important;
+    }
+    .page-logo {
+        text-align: center;
+        padding: 52px 0 4px;
+    }
+    .page-logo img {
+        height: 24px;
+        width: auto;
+    }
+    .ct-container {
+        width: 92%;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 1rem 1rem 4rem;
+    }
+    .ct-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .ct-header h1 {
+        font-size: 2.4rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.5rem;
+    }
+    .ct-header p {
+        font-size: 1.5rem;
+        color: #555;
+        margin: 0;
+    }
+    .ct-card {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+    .ct-card h2 {
+        font-size: 1.7rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.75rem;
+        padding-left: 0.75rem;
+        border-left: 3px solid #1e90ff;
+    }
+    .ct-card p {
+        font-size: 1.4rem;
+        color: #555;
+        line-height: 1.6;
+        margin: 0 0 0.75rem;
+    }
+    .ct-card ol {
+        font-size: 1.4rem;
+        color: #555;
+        line-height: 2;
+        padding-left: 1.5rem;
+        margin: 0.5rem 0;
+    }
+    .ct-card strong { color: #333; }
+    .ct-field {
+        margin-bottom: 1rem;
+    }
+    .ct-field label {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 0.4rem;
+    }
+    .ct-field .counter {
+        font-size: 1.2rem;
+        font-weight: 400;
+        color: #adb5bd;
+        margin-left: 0.5rem;
+    }
+    .ct-field .counter.valid { color: #28a745; }
+    .ct-field input[type="text"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1.5rem;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+    .ct-field input[type="text"]:focus {
+        outline: none;
+        border-color: #1e90ff;
+    }
+    .ct-field input.field-error {
+        border-color: #dc3545 !important;
+    }
+    .ct-field-row {
+        display: flex;
+        gap: 1rem;
+    }
+    .ct-field-row .ct-field { flex: 1; }
+    @media (max-width: 600px) {
+        .ct-field-row { flex-direction: column; gap: 0; }
+    }
+    .ct-btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        background-color: #1e90ff;
+        color: white;
+    }
+    .ct-btn:hover { background-color: #1873cc; }
+    .ct-btn:disabled { background-color: #a0c4e8; cursor: not-allowed; }
+    .ct-btn-secondary {
+        background-color: #6c757d;
+    }
+    .ct-btn-secondary:hover { background-color: #5a6268; }
+    .ct-status {
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-size: 1.4rem;
+        margin-top: 1rem;
+        display: none;
+    }
+    .ct-status.error {
+        display: block;
+        background-color: #fce8e6;
+        color: #d93025;
+    }
+    .ct-status.success {
+        display: block;
+        background-color: #e6f4ea;
+        color: #1e8e3e;
+    }
+    .ct-caltopo-screenshot {
+        max-width: 100%;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        margin: 0.5rem 0;
+    }
+    .ct-qr-wrap {
+        text-align: center;
+        padding: 1rem 0;
+    }
+    .ct-qr-wrap .qr-box {
+        display: inline-block;
+        padding: 18px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    .ct-detail-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.3rem;
+        font-size: 1.3rem;
+    }
+    .ct-detail-row .label {
+        font-weight: 600;
+        min-width: 100px;
+    }
+    .ct-success-box {
+        background: #e6f4ea;
+        border: 1px solid #a8dab5;
+        color: #1e8e3e;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        font-size: 1.3rem;
+    }
+    .ct-error-box {
+        background: #fce8e6;
+        border: 1px solid #f5c6cb;
+        color: #d93025;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        font-size: 1.3rem;
+    }
+</style>
+
+<div class="page-logo">
+    <a href="{{ '/' | relative_url }}"><img src="{{ '/images/eagle_eyes_flat_logo_2.png' | relative_url }}" alt="Eagle Eyes"></a>
+</div>
+
+<div class="ct-container">
+    <div class="ct-header">
+        <h1>CalTopo Service Account Setup</h1>
+        <p>Create a CalTopo service account so Eagle Eyes can connect without session expiry. No sign-in needed on this page.</p>
+    </div>
+
+    <!-- Step 1: Why -->
+    <div class="ct-card" id="ctStep1">
+        <h2>Why you need this</h2>
+        <p>Without a service account, your CalTopo session on the controller expires every few days. A service account keeps your team permanently connected.</p>
+        <p>You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
+        <div style="margin-top: 1rem;">
+            <button class="ct-btn" onclick="ctShow(2)">I'm a CalTopo admin — continue</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Open CalTopo -->
+    <div class="ct-card" id="ctStep2" style="display: none;">
+        <h2>Step 1: Open CalTopo</h2>
+        <p>On this computer, open CalTopo and follow these steps:</p>
+        <ol>
+            <li>Click your username in the top-right</li>
+            <li>Click <strong>"Administer"</strong> next to your team name</li>
+            <li>Go to the <strong>"Details"</strong> tab</li>
+            <li>Scroll to the bottom and click <strong>"Create Service Account"</strong></li>
+        </ol>
+        <div style="margin-top: 1rem;">
+            <button class="ct-btn" onclick="ctShow(3)">I see the Create Service Account dialog</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Fill title -->
+    <div class="ct-card" id="ctStep3" style="display: none;">
+        <h2>Step 2: Fill in the details</h2>
+        <p>Enter a title for the service account below, then type the same title into CalTopo. Make sure <strong>Update</strong> is selected as the permission, then click <strong>Create</strong>.</p>
+        <div class="ct-field">
+            <label for="ctTitle">Service Account Title</label>
+            <input type="text" id="ctTitle" placeholder="e.g. Eagle Eyes">
+        </div>
+        <div style="text-align: center;">
+            <img src="{{ '/images/caltopo-create-service-account.png' | relative_url }}" alt="CalTopo Create Service Account dialog" class="ct-caltopo-screenshot">
+        </div>
+        <div style="margin-top: 1rem;">
+            <button class="ct-btn" onclick="ctValidateTitle()">Done — I clicked Create</button>
+        </div>
+        <div class="ct-status" id="ctTitleStatus"></div>
+    </div>
+
+    <!-- Step 4: Credential Secret -->
+    <div class="ct-card" id="ctStep4" style="display: none;">
+        <h2>Step 3: Enter the Credential Secret</h2>
+        <p>Copy the secret from CalTopo and paste it here. It's only shown once!</p>
+        <div class="ct-field">
+            <input type="text" id="ctSecret" placeholder="Paste credential secret here">
+        </div>
+        <div style="margin-top: 1rem;">
+            <button class="ct-btn" onclick="ctValidateSecret()">Next</button>
+        </div>
+        <div class="ct-status" id="ctSecretStatus"></div>
+    </div>
+
+    <!-- Step 5: Account ID + Credential ID -->
+    <div class="ct-card" id="ctStep5" style="display: none;">
+        <h2>Step 4: Enter Account ID and Credential ID</h2>
+        <p id="ctStep5Hint">Close the credential secret popup. Find the service account you just created in the list and enter the Account ID and Credential ID shown to the right of it.</p>
+        <div class="ct-field-row">
+            <div class="ct-field">
+                <label for="ctAccountId">Account ID <span class="counter" id="ctAccountIdCount"></span></label>
+                <input type="text" id="ctAccountId" placeholder="e.g. R0BNPA" maxlength="6" style="text-transform: uppercase;">
+            </div>
+            <div class="ct-field">
+                <label for="ctCredentialId">Credential ID <span class="counter" id="ctCredentialIdCount"></span></label>
+                <input type="text" id="ctCredentialId" placeholder="e.g. Q9NVD150H92L" maxlength="12" style="text-transform: uppercase;">
+            </div>
+        </div>
+        <div style="margin-top: 1rem;">
+            <button class="ct-btn" id="ctVerifyBtn" onclick="ctVerify()" disabled>Verify &amp; Connect</button>
+        </div>
+        <div class="ct-status" id="ctVerifyStatus"></div>
+    </div>
+
+    <!-- Step 6: Done (QR + JSON) -->
+    <div class="ct-card" id="ctStep6" style="display: none;">
+        <h2>Done! Scan with your phone or controller</h2>
+        <div class="ct-success-box" id="ctVerifiedBox" style="margin-bottom: 1rem;"></div>
+        <p>Scan this QR code with your phone (if you started on mobile) or with your Eagle Eyes controller to transfer the credentials.</p>
+        <div class="ct-qr-wrap">
+            <div class="qr-box" id="ctQrBox"></div>
+        </div>
+        <p style="font-size: 1.3rem; color: #888; text-align: center;">Or download the credentials as a file:</p>
+        <div style="text-align: center; margin-top: 0.5rem;">
+            <button class="ct-btn ct-btn-secondary" onclick="ctDownloadJson()">Download JSON</button>
+        </div>
+        <div style="font-size: 1.2rem; color: #888; text-align: center; margin-top: 1.5rem;">
+            <strong>Keep this safe.</strong> The credential secret cannot be retrieved from CalTopo again.
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
+    var verifiedData = null; // {title, permission, teamAccountId, teamName, accountId, credentialId, secretKey}
+
+    // Replace http hostname if running via local emulator.
+    // caltopo.html is public and never signed in, so no emulator auth path is needed.
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('is_emulator') === 'true') {
+            API_BASE = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/';
+        }
+    } catch (e) {}
+
+    window.ctShow = function(n) {
+        for (var i = 1; i <= 6; i++) {
+            var el = document.getElementById('ctStep' + i);
+            if (el) el.style.display = (i === n) ? 'block' : 'none';
+        }
+        if (n === 5) {
+            var title = (document.getElementById('ctTitle').value || '').trim();
+            if (title) {
+                document.getElementById('ctStep5Hint').innerHTML =
+                    'Close the credential secret popup. Find <strong>' + escapeHtml(title) +
+                    '</strong> in the list and enter the Account ID and Credential ID shown to the right of it.';
+            }
+        }
+    };
+
+    function showStatus(id, msg, type) {
+        var el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = 'ct-status ' + type;
+    }
+    function clearStatus(id) {
+        var el = document.getElementById(id);
+        el.textContent = '';
+        el.className = 'ct-status';
+    }
+
+    window.ctValidateTitle = function() {
+        var title = document.getElementById('ctTitle').value.trim();
+        if (!title) {
+            showStatus('ctTitleStatus', 'Please enter a title for the service account.', 'error');
+            return;
+        }
+        clearStatus('ctTitleStatus');
+        ctShow(4);
+    };
+
+    window.ctValidateSecret = function() {
+        var key = document.getElementById('ctSecret').value.trim();
+        var input = document.getElementById('ctSecret');
+        if (!key) {
+            input.classList.add('field-error');
+            showStatus('ctSecretStatus', 'Please enter the credential secret.', 'error');
+            return;
+        }
+        if (key.length !== 44 || key[43] !== '=') {
+            input.classList.add('field-error');
+            showStatus('ctSecretStatus', 'The credential secret should be exactly 44 characters ending with =', 'error');
+            return;
+        }
+        try {
+            var decoded = atob(key);
+            if (decoded.length !== 32) throw new Error('wrong length');
+        } catch (e) {
+            input.classList.add('field-error');
+            showStatus('ctSecretStatus', "This doesn't look like a valid credential secret. Please check and try again.", 'error');
+            return;
+        }
+        input.classList.remove('field-error');
+        clearStatus('ctSecretStatus');
+        ctShow(5);
+    };
+
+    function formatField(inputId, counterId, maxLen) {
+        var input = document.getElementById(inputId);
+        var counter = document.getElementById(counterId);
+        input.addEventListener('input', function() {
+            var v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                .replace(/O/g, '0').replace(/I/g, '1').substring(0, maxLen);
+            this.value = v;
+            if (v.length === maxLen) {
+                counter.textContent = '✓';
+                counter.className = 'counter valid';
+            } else {
+                counter.textContent = v.length + '/' + maxLen;
+                counter.className = 'counter';
+            }
+            this.classList.remove('field-error');
+            var a = document.getElementById('ctAccountId').value.length === 6;
+            var c = document.getElementById('ctCredentialId').value.length === 12;
+            document.getElementById('ctVerifyBtn').disabled = !(a && c);
+        });
+    }
+    formatField('ctAccountId', 'ctAccountIdCount', 6);
+    formatField('ctCredentialId', 'ctCredentialIdCount', 12);
+
+    document.getElementById('ctSecret').addEventListener('input', function() {
+        this.classList.remove('field-error');
+        clearStatus('ctSecretStatus');
+    });
+
+    window.ctVerify = async function() {
+        var accountId = document.getElementById('ctAccountId').value.trim();
+        var credentialId = document.getElementById('ctCredentialId').value.trim();
+        var secretKey = document.getElementById('ctSecret').value.trim();
+        var btn = document.getElementById('ctVerifyBtn');
+
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+        clearStatus('ctVerifyStatus');
+
+        var appCheckToken;
+        try {
+            if (typeof window.getAppCheckToken !== 'function') {
+                throw new Error('App Check not initialized');
+            }
+            appCheckToken = await window.getAppCheckToken();
+        } catch (e) {
+            showStatus('ctVerifyStatus',
+                'Could not initialize browser security check. If you use an ad blocker or privacy extension, ' +
+                'please disable it for eagleeyessearch.com and reload.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Verify & Connect';
+            return;
+        }
+
+        try {
+            var resp = await fetch(API_BASE + 'verify_caltopo_service_account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Firebase-AppCheck': appCheckToken
+                },
+                body: JSON.stringify({
+                    account_id: accountId,
+                    credential_id: credentialId,
+                    credential_secret: secretKey
+                })
+            });
+
+            if (resp.status === 429) {
+                showStatus('ctVerifyStatus', 'Too many verification attempts. Please wait a minute and try again.', 'error');
+                return;
+            }
+
+            var result;
+            try { result = await resp.json(); } catch (e) { result = null; }
+
+            if (!resp.ok || !result || !result.success) {
+                showStatus('ctVerifyStatus',
+                    'Verification failed. Please double-check your Account ID, Credential ID, and Credential Secret.',
+                    'error');
+                document.getElementById('ctAccountId').classList.add('field-error');
+                document.getElementById('ctCredentialId').classList.add('field-error');
+                return;
+            }
+
+            var permission = result.permission || '';
+            var allowed = ['Update', 'Write', 'Manage', 'Administer'];
+            if (allowed.indexOf(permission) === -1) {
+                showStatus('ctVerifyStatus',
+                    'Insufficient permission level. The service account has ' + (permission || 'None') +
+                    ', but Update or higher is required. Please update the permission in CalTopo and try again.',
+                    'error');
+                return;
+            }
+
+            verifiedData = {
+                title: result.title || '',
+                permission: permission,
+                teamAccountId: result.team_account_id || '',
+                teamName: result.team_name || '',
+                accountId: accountId,
+                credentialId: credentialId,
+                secretKey: secretKey
+            };
+
+            renderSuccess(verifiedData);
+            ctShow(6);
+        } catch (err) {
+            showStatus('ctVerifyStatus', 'Verification error: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify & Connect';
+        }
+    };
+
+    function renderSuccess(data) {
+        var box = document.getElementById('ctVerifiedBox');
+        var html = '<strong>Connected successfully!</strong>';
+        if (data.title) html += '<div class="ct-detail-row"><span class="label">Title:</span><span>' + escapeHtml(data.title) + '</span></div>';
+        if (data.permission) html += '<div class="ct-detail-row"><span class="label">Permission:</span><span>' + escapeHtml(data.permission) + '</span></div>';
+        if (data.teamName) html += '<div class="ct-detail-row"><span class="label">Team:</span><span>' + escapeHtml(data.teamName) + '</span></div>';
+        box.innerHTML = html;
+
+        var payload = JSON.stringify({
+            type: 'mirada-caltopo-service-account',
+            accountId: data.accountId,
+            credentialId: data.credentialId,
+            secretKey: data.secretKey
+        });
+
+        var qrBox = document.getElementById('ctQrBox');
+        qrBox.innerHTML = '';
+        new QRCode(qrBox, {
+            text: payload,
+            width: 260,
+            height: 260,
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    window.ctDownloadJson = function() {
+        if (!verifiedData) return;
+        var payload = JSON.stringify({
+            type: 'mirada-caltopo-service-account',
+            accountId: verifiedData.accountId,
+            credentialId: verifiedData.credentialId,
+            secretKey: verifiedData.secretKey
+        }, null, 2);
+        var blob = new Blob([payload], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'caltopo_service_account_' + verifiedData.accountId + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+})();
+</script>
