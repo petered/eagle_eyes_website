@@ -316,11 +316,13 @@ permalink: /caltopo/
 (function() {
     var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
     var verifiedData = null;
+    var isEmulator = false;
 
     try {
         var params = new URLSearchParams(window.location.search);
         if (params.get('is_emulator') === 'true') {
             API_BASE = 'http://127.0.0.1:5001/eagleeyessearch/us-central1/';
+            isEmulator = true;
         }
     } catch (e) {}
 
@@ -396,26 +398,25 @@ permalink: /caltopo/
         statusEl.textContent = '';
         statusEl.className = 'ct-status';
 
-        var appCheckToken;
-        try {
-            if (typeof window.getAppCheckToken !== 'function') throw new Error('App Check not initialized');
-            appCheckToken = await window.getAppCheckToken();
-        } catch (e) {
-            showStatus('ctVerifyStatus',
-                'Could not initialize browser security check. If you use an ad blocker or privacy extension, ' +
-                'please disable it for eagleeyessearch.com and reload.', 'error');
-            btn.disabled = false;
-            btn.textContent = 'Verify & Connect';
-            return;
+        var headers = { 'Content-Type': 'application/json' };
+        if (!isEmulator) {
+            try {
+                if (typeof window.getAppCheckToken !== 'function') throw new Error('App Check not initialized');
+                headers['X-Firebase-AppCheck'] = await window.getAppCheckToken();
+            } catch (e) {
+                showStatus('ctVerifyStatus',
+                    'Could not initialize browser security check. If you use an ad blocker or privacy extension, ' +
+                    'please disable it for eagleeyessearch.com and reload.', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Verify & Connect';
+                return;
+            }
         }
 
         try {
             var resp = await fetch(API_BASE + 'verify_caltopo_service_account', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Firebase-AppCheck': appCheckToken
-                },
+                headers: headers,
                 body: JSON.stringify({
                     account_id: accountId,
                     credential_id: credentialId,
