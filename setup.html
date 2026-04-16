@@ -136,6 +136,56 @@ permalink: /setup/
         box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.1);
         background: white;
     }
+    /* Optional section toggles */
+    .optional-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 1.5rem;
+        transition: background 0.2s, border-color 0.2s;
+        user-select: none;
+    }
+    .optional-toggle:hover {
+        background: #eef1f4;
+        border-color: #dee2e6;
+    }
+    .optional-toggle.active {
+        background: #f0f7ff;
+        border-color: #b3d4fc;
+    }
+    .optional-toggle input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #1e90ff;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .optional-toggle .toggle-label {
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+    .optional-toggle .toggle-desc {
+        font-size: 1.3rem;
+        color: #888;
+        margin-top: 0.15rem;
+    }
+    .optional-content {
+        display: none;
+        animation: fadeIn 0.2s ease;
+    }
+    .optional-content.visible {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
     .form-step-hint {
         font-size: 1.4rem;
         color: #888;
@@ -1091,8 +1141,17 @@ permalink: /setup/
             </div>
         </div>
 
+        <!-- CalTopo toggle (form mode only) -->
+        <label class="optional-toggle" id="ctToggle" style="display: none;">
+            <input type="checkbox" id="ctToggleCheck" onchange="toggleOptionalSection('caltopo')">
+            <div>
+                <div class="toggle-label">CalTopo Service Account</div>
+                <div class="toggle-desc">Keep your controller permanently connected to CalTopo</div>
+            </div>
+        </label>
+
         <!-- Step 3: CalTopo — sub-step flow -->
-        <div class="form-step" id="formStep3" style="display: none;">
+        <div class="form-step optional-content" id="formStep3" style="display: none;">
 
             <!-- 3a: Service account summary / setup prompt -->
             <div id="ctSubStep0" class="ct-substep">
@@ -1125,16 +1184,15 @@ permalink: /setup/
 
                 <!-- No account yet (shown when no service account is configured) -->
                 <div id="ctNoAccount">
-                    <p class="form-step-hint">A service account keeps your team permanently connected to CalTopo — no more session expiry every few days.</p>
-                    <p class="form-step-hint">You'll need <strong>admin access</strong> to your CalTopo team to set this up.</p>
+                    <p class="form-step-hint">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days to keep the connection going.</p>
+                    <p class="form-step-hint">We highly recommend setting up a CalTopo service account using a laptop or desktop. Open the link below on a laptop or desktop to get started.</p>
 
                     <!-- Mobile handoff (shown on small screens) -->
                     <div id="ctMobileHandoff" style="display: none;">
-                        <p class="form-step-hint">CalTopo's admin settings only work on a laptop or desktop. Open this page on your computer:</p>
                         <div class="ct-handoff-box">
                             <span class="ct-handoff-url">eagleeyessearch.com/caltopo</span>
                         </div>
-                        <p class="form-step-hint">When you finish on the laptop, you'll see a QR code. Scan it here to bring the credentials back.</p>
+                        <p class="form-step-hint">Completing the form on that page will generate a QR code. Scan it with this device to transfer the service account credentials to your controller.</p>
                         <div class="form-step-actions">
                             <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()">Scan QR from laptop</button>
                             <a href="#" class="back-link skip-link" onclick="showCtSubStep(1); return false;">Enter manually instead &rarr;</a>
@@ -1246,8 +1304,17 @@ permalink: /setup/
 
         </div>
 
+        <!-- Procedures toggle (form mode only) -->
+        <label class="optional-toggle" id="procToggleWrap" style="display: none;">
+            <input type="checkbox" id="procToggleCheck" onchange="toggleOptionalSection('procedures')">
+            <div>
+                <div class="toggle-label">Procedures &amp; Emergency Contacts</div>
+                <div class="toggle-desc">Store procedures and contact info accessible from the controller</div>
+            </div>
+        </label>
+
         <!-- Step 4: Procedures -->
-        <div class="form-step" id="formStep4" style="display: none;">
+        <div class="form-step optional-content" id="formStep4" style="display: none;">
             <h2 class="form-step-question">Procedures</h2>
             <p class="form-step-hint">Emergency procedures and contact information that can be quickly accessed by the pilot. Optionally include a link to a full document.</p>
             <div class="setup-field">
@@ -1419,13 +1486,13 @@ async function handleSetupCode() {
             // Treat as activation flow
             cameFromActivation = true;
             document.getElementById('setupUserInfo').style.display = 'flex';
-            document.getElementById('wizardStepper').style.display = 'flex';
 
             if (!currentLicenseId) {
-                // No license yet — show license picker before proceeding
+                // No license yet — show license picker (stepper shown after activation)
                 showLicensePicker();
             } else {
-                // License known — show intro with existing configs
+                // License known (activation already done) — show stepper + intro
+                document.getElementById('wizardStepper').style.display = 'flex';
                 showIntroScreen(null); // loading state
                 loadConfigurationsForIntro();
             }
@@ -1723,6 +1790,9 @@ async function lpConfirmActivation() {
         document.getElementById('setupLicenseInput').value = currentLicenseId;
         document.getElementById('setupLicenseDisplay').textContent = currentLicenseId;
         document.getElementById('setupLicenseInfo').style.display = '';
+
+        // Now show the stepper (activation is complete)
+        document.getElementById('wizardStepper').style.display = 'flex';
 
         // Hide license picker, show intro/config wizard
         document.getElementById('licensePickerSection').style.display = 'none';
@@ -2206,11 +2276,13 @@ function showConfigList() {
     document.getElementById('mobileRecommendation').style.display = 'none';
     document.getElementById('laptopHandoff').style.display = 'none';
     document.getElementById('setupDeviceInfo').style.display = 'none';
-    // Restore per-step action buttons (hidden in all-steps form mode)
+    // Restore per-step action buttons and hide form-mode elements
     document.querySelectorAll('.form-step .form-step-actions').forEach(function(el) {
         el.style.display = '';
     });
     document.getElementById('formBottomActions').style.display = 'none';
+    document.getElementById('ctToggle').style.display = 'none';
+    document.getElementById('procToggleWrap').style.display = 'none';
     clearStatus('setupFormStatus');
     loadConfigurations();
 }
@@ -2291,20 +2363,55 @@ function showAllFormSteps() {
     var form = document.getElementById('setupForm');
     form.classList.add('form-mode');
     document.getElementById('formStepIndicator').style.display = 'none';
-    for (var i = 1; i <= totalFormSteps; i++) {
-        var el = document.getElementById('formStep' + i);
-        if (el) el.style.display = 'block';
-    }
-    // Hide per-step Next/Back/Save buttons — form-bottom has the single Save
+
+    // Always show Name and Units
+    document.getElementById('formStep1').style.display = 'block';
+    document.getElementById('formStep2').style.display = 'block';
+
+    // Show toggles for optional sections
+    document.getElementById('ctToggle').style.display = '';
+    document.getElementById('procToggleWrap').style.display = '';
+
+    // Auto-expand if existing data is present
+    var hasCaltopo = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
+    var hasProcs = !!(document.getElementById('setupProceduresText').value || document.getElementById('setupProceduresLink').value);
+
+    document.getElementById('ctToggleCheck').checked = hasCaltopo;
+    document.getElementById('procToggleCheck').checked = hasProcs;
+    toggleOptionalSection('caltopo');
+    toggleOptionalSection('procedures');
+
+    // Hide per-step Next/Back/Save buttons
     document.querySelectorAll('.form-step .form-step-actions').forEach(function(el) {
         el.style.display = 'none';
     });
-    // Show CalTopo inline (desktop variant of substep 0)
+
+    // Show CalTopo substep 0 (summary or setup prompt)
     showCtSubStep(0);
-    // Show bottom actions with Save + Delete
+
+    // Show bottom actions
     document.getElementById('formBottomActions').style.display = 'block';
     var isEditing = currentEditIndex !== null;
     document.getElementById('formDeleteAction').style.display = isEditing ? 'block' : 'none';
+}
+
+function toggleOptionalSection(type) {
+    if (type === 'caltopo') {
+        var checked = document.getElementById('ctToggleCheck').checked;
+        var content = document.getElementById('formStep3');
+        var toggle = document.getElementById('ctToggle');
+        content.style.display = checked ? 'block' : 'none';
+        if (checked) content.classList.add('visible'); else content.classList.remove('visible');
+        toggle.classList.toggle('active', checked);
+        if (checked) showCtSubStep(0);
+    } else if (type === 'procedures') {
+        var checked = document.getElementById('procToggleCheck').checked;
+        var content = document.getElementById('formStep4');
+        var toggle = document.getElementById('procToggleWrap');
+        content.style.display = checked ? 'block' : 'none';
+        if (checked) content.classList.add('visible'); else content.classList.remove('visible');
+        toggle.classList.toggle('active', checked);
+    }
 }
 
 var currentEditIndex = null;
