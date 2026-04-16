@@ -314,8 +314,11 @@ noindex: true
                 <div style="flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1.25rem;">
                     <p style="font-size: 1.4rem; margin: 0 0 0.75rem; line-height: 1.5;"><strong>Setting up from another tab on this computer?</strong></p>
                     <p style="font-size: 1.35rem; color: #555; margin: 0 0 1rem; line-height: 1.5;">Copy the code below and paste it into the credentials field in the other tab.</p>
-                    <textarea id="ctCredentialString" readonly onclick="this.select(); document.execCommand('copy'); document.getElementById('ctCopyFeedback').style.display='inline';" style="width: 100%; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 1.1rem; border: 1px solid #dee2e6; border-radius: 4px; background: white; resize: none; min-height: 80px; cursor: pointer; color: #555;"></textarea>
-                    <span id="ctCopyFeedback" style="display: none; color: #1e8e3e; font-size: 1.2rem; margin-top: 0.3rem;">Copied!</span>
+                    <textarea id="ctCredentialString" readonly onclick="ctCopyCode()" style="width: 100%; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 1.1rem; border: 1px solid #dee2e6; border-radius: 4px; background: white; resize: none; min-height: 80px; cursor: pointer; color: #555;"></textarea>
+                    <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <button onclick="ctCopyCode()" style="padding: 6px 16px; background: #e9ecef; color: #333; border: none; border-radius: 4px; font-size: 1.3rem; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.background='#1e90ff'; this.style.color='white';" onmouseup="this.style.background='#e9ecef'; this.style.color='#333';" onmouseleave="this.style.background='#e9ecef'; this.style.color='#333';">Copy code</button>
+                        <span id="ctCopyFeedback" style="display: none; color: #1e8e3e; font-size: 1.2rem;">Copied!</span>
+                    </div>
                 </div>
             </div>
 
@@ -518,6 +521,15 @@ noindex: true
             document.getElementById('ctResult').scrollIntoView({ behavior: 'smooth' });
         }, 100);
     }
+
+    window.ctCopyCode = function() {
+        var el = document.getElementById('ctCredentialString');
+        el.select();
+        document.execCommand('copy');
+        var fb = document.getElementById('ctCopyFeedback');
+        fb.style.display = 'inline';
+        setTimeout(function() { fb.style.display = 'none'; }, 2000);
+    };
 
     window.ctDownloadJson = function() {
         if (!verifiedData) return;
