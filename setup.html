@@ -92,15 +92,13 @@ permalink: /setup/
         padding-left: 0.75rem;
         border-left: 3px solid #1e90ff;
     }
-    /* Form mode: each section as a distinct card */
+    /* Form mode: each section matches the toggle container style */
     .setup-form.form-mode .form-step {
-        background: white;
+        background: #f8f9fa;
         border: 1px solid #e9ecef;
-        border-left: 4px solid #1e90ff;
         border-radius: 8px;
-        padding: 1.75rem 2rem;
+        padding: 1.5rem 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     }
     .setup-form.form-mode .form-step .form-step-question {
         font-size: 1.8rem;
@@ -166,14 +164,14 @@ permalink: /setup/
         flex-shrink: 0;
     }
     .optional-toggle .toggle-label {
-        font-size: 1.5rem;
-        font-weight: 500;
+        font-size: 1.7rem;
+        font-weight: 600;
         color: #333;
     }
     .optional-toggle .toggle-desc {
-        font-size: 1.3rem;
+        font-size: 1.45rem;
         color: #888;
-        margin-top: 0.15rem;
+        margin-top: 0.2rem;
     }
     .optional-content {
         display: none;
@@ -1104,9 +1102,9 @@ permalink: /setup/
         <!-- Step 1: Name -->
         <div class="form-step" id="formStep1">
             <h2 class="form-step-question">Name</h2>
-            <p class="form-step-hint">A name to identify this setup — e.g. "SAR Team Alpha" or "Training Settings"</p>
+            <p class="form-step-hint">A name to identify this setup — e.g. "Default Team Settings"</p>
             <div class="setup-field">
-                <input type="text" id="setupName" placeholder="e.g. SAR Team Alpha" required>
+                <input type="text" id="setupName" placeholder="e.g. Default Team Settings" required>
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
@@ -1141,72 +1139,65 @@ permalink: /setup/
             </div>
         </div>
 
-        <!-- CalTopo toggle (form mode only) -->
-        <label class="optional-toggle" id="ctToggle" style="display: none;">
-            <input type="checkbox" id="ctToggleCheck" onchange="toggleOptionalSection('caltopo')">
-            <div>
+        <!-- CalTopo toggle + content (form mode only) -->
+        <div class="optional-toggle" id="ctToggle" style="display: none;" onclick="document.getElementById('ctToggleCheck').checked = !document.getElementById('ctToggleCheck').checked; toggleOptionalSection('caltopo');">
+            <input type="checkbox" id="ctToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('caltopo')">
+            <div style="flex: 1;">
                 <div class="toggle-label">CalTopo Service Account</div>
                 <div class="toggle-desc">Keep your controller permanently connected to CalTopo</div>
+
+                <!-- Folds out inside the same container when checked -->
+                <div id="ctExistingSummary" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="color: #1e8e3e; font-weight: 600; font-size: 1.5rem;">&#10003; Connected</span>
+                    </div>
+                    <div style="font-size: 1.4rem; color: #333; line-height: 1.9;" id="ctExistingDetails"></div>
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
+                        <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.4rem;">Default Map</label>
+                        <div style="position: relative;">
+                            <select id="ctSummaryMapDropdown" onchange="ctSummaryMapDropdownChanged()" onclick="event.stopPropagation();" style="width: calc(100% - 8px); appearance: auto; -webkit-appearance: menulist; background-image: none; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 1.4rem; background: white; cursor: pointer;">
+                                <option value="">None — no default map</option>
+                            </select>
+                            <div id="ctSummaryMapSpinner" style="display: none; position: absolute; right: 40px; top: 50%; transform: translateY(-50%);">
+                                <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                            </div>
+                        </div>
+                        <div id="ctSummaryMapStatus" style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;"></div>
+                    </div>
+                    <div style="margin-top: 0.75rem;">
+                        <a href="{{ '/caltopo/' | relative_url }}" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; font-size: 1.3rem; text-decoration: none;">Change service account &rarr;</a>
+                    </div>
+                </div>
             </div>
-        </label>
+        </div>
 
         <!-- Step 3: CalTopo — sub-step flow -->
         <div class="form-step optional-content" id="formStep3" style="display: none;">
 
-            <!-- 3a: Service account summary / setup prompt -->
+            <!-- 3a: Setup prompt (no account yet) -->
             <div id="ctSubStep0" class="ct-substep">
                 <h2 class="form-step-question">CalTopo Service Account</h2>
 
-                <!-- Existing account summary (shown when a service account is already configured) -->
-                <div id="ctExistingSummary" style="display: none;">
-                    <div style="background: #e6f4ea; border: 1px solid #a8dab5; border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                            <span style="color: #1e8e3e; font-weight: 600; font-size: 1.6rem;">&#10003; Connected</span>
-                        </div>
-                        <div style="font-size: 1.5rem; color: #333; line-height: 2;" id="ctExistingDetails"></div>
-                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #a8dab5;">
-                            <label style="font-size: 1.5rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.4rem;">Default Map</label>
-                            <div style="position: relative;">
-                                <select id="ctSummaryMapDropdown" onchange="ctSummaryMapDropdownChanged()" style="width: calc(100% - 8px); appearance: auto; -webkit-appearance: menulist; background-image: none; padding: 10px 12px; border: 1px solid #a8dab5; border-radius: 6px; font-size: 1.5rem; background: #f0faf2; cursor: pointer;">
-                                    <option value="">None — no default map</option>
-                                </select>
-                                <div id="ctSummaryMapSpinner" style="display: none; position: absolute; right: 40px; top: 50%; transform: translateY(-50%);">
-                                    <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
-                                </div>
-                            </div>
-                            <div id="ctSummaryMapStatus" style="font-size: 1.3rem; color: #5a8a5e; margin-top: 0.4rem;"></div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 0.5rem;">
-                        <a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; font-size: 1.3rem; text-decoration: none;">Change service account &rarr;</a>
-                    </div>
-                </div>
-
-                <!-- No account yet (shown when no service account is configured) -->
                 <div id="ctNoAccount">
                     <p class="form-step-hint">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days to keep the connection going.</p>
-                    <p class="form-step-hint">We highly recommend setting up a CalTopo service account using a laptop or desktop. Open the link below on a laptop or desktop to get started.</p>
+                    <p class="form-step-hint">We recommend setting this up on a laptop or desktop.</p>
+                    <div style="margin-bottom: 1rem;">
+                        <a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; font-size: 1.5rem; font-weight: 500; text-decoration: none;">Open CalTopo setup page &rarr;</a>
+                    </div>
+                    <p class="form-step-hint">After completing the form, you'll get a QR code to scan with your phone or controller.</p>
 
                     <!-- Mobile handoff (shown on small screens) -->
                     <div id="ctMobileHandoff" style="display: none;">
-                        <div class="ct-handoff-box">
-                            <span class="ct-handoff-url">eagleeyessearch.com/caltopo</span>
-                        </div>
-                        <p class="form-step-hint">Completing the form on that page will generate a QR code. Scan it with this device to transfer the service account credentials to your controller.</p>
                         <div class="form-step-actions">
                             <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()">Scan QR from laptop</button>
                             <a href="#" class="back-link skip-link" onclick="showCtSubStep(1); return false;">Enter manually instead &rarr;</a>
-                            <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">Skip &rarr;</a>
-                            <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
                         </div>
                     </div>
 
                     <!-- Desktop / inline flow -->
                     <div id="ctDesktopIntro">
                         <div class="form-step-actions">
-                            <button class="setup-btn setup-btn-primary" onclick="showCtSubStep(1)">Set up service account</button>
-                            <a href="#" class="back-link skip-link" onclick="nextStep(); return false;">Skip &rarr;</a>
-                            <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
+                            <button class="setup-btn setup-btn-outline" onclick="showCtSubStep(1)">Or enter credentials manually</button>
                         </div>
                     </div>
                 </div>
@@ -2389,12 +2380,24 @@ function showAllFormSteps() {
 function toggleOptionalSection(type) {
     if (type === 'caltopo') {
         var checked = document.getElementById('ctToggleCheck').checked;
-        var content = document.getElementById('formStep3');
         var toggle = document.getElementById('ctToggle');
-        content.style.display = checked ? 'block' : 'none';
-        if (checked) content.classList.add('visible'); else content.classList.remove('visible');
+        var summaryEl = document.getElementById('ctExistingSummary');
+        var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
         toggle.classList.toggle('active', checked);
-        if (checked) showCtSubStep(0);
+
+        if (hasAccount) {
+            // Summary is inside the toggle — just show/hide it
+            summaryEl.style.display = checked ? 'block' : 'none';
+            document.getElementById('formStep3').style.display = 'none';
+            if (checked) {
+                showCtSubStep(0);
+            }
+        } else {
+            // No account — show/hide the setup form
+            var content = document.getElementById('formStep3');
+            content.style.display = checked ? 'block' : 'none';
+            if (checked) showCtSubStep(0);
+        }
     } else if (type === 'procedures') {
         var checked = document.getElementById('procToggleCheck').checked;
         var content = document.getElementById('formStep4');
@@ -2584,35 +2587,29 @@ function showCtSubStep(n) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
     }
-    // On substep 0, decide: show existing account summary OR setup prompt
+    // On substep 0, decide: show existing account summary in toggle OR setup prompt in formStep3
     if (n === 0) {
         var summaryEl = document.getElementById('ctExistingSummary');
         var noAccountEl = document.getElementById('ctNoAccount');
         var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
 
         if (hasAccount) {
-            // Show summary of the existing service account
             var details = '';
             if (caltopoVerifiedData.teamName) details += '<div><strong>Team:</strong> ' + escapeHtml(caltopoVerifiedData.teamName) + '</div>';
             if (caltopoVerifiedData.title) details += '<div><strong>Account:</strong> ' + escapeHtml(caltopoVerifiedData.title) + '</div>';
             if (caltopoVerifiedData.permission) details += '<div><strong>Permission:</strong> ' + escapeHtml(caltopoVerifiedData.permission) + '</div>';
             var acctId = document.getElementById('ctAccountId').value;
             if (acctId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(acctId) + '</div>';
-            // Show default map if one is set
-            var mapUrl = document.getElementById('setupCaltopoMapUrl').value;
-            var mapDropdown = document.getElementById('ctMapDropdown');
-            var mapName = (mapDropdown && mapDropdown.selectedIndex > 0) ? mapDropdown.options[mapDropdown.selectedIndex].text : null;
-            if (!mapName && mapUrl) { var mid = extractMapId(mapUrl); if (mid) mapName = mid; }
             document.getElementById('ctExistingDetails').innerHTML = details;
             ctPopulateSummaryMap();
             summaryEl.style.display = 'block';
-            noAccountEl.style.display = 'none';
-            // Refresh maps from CalTopo in the background
+            if (noAccountEl) noAccountEl.style.display = 'none';
+            // Hide the expandable formStep3 — summary is shown in the toggle
+            document.getElementById('formStep3').style.display = 'none';
             ctRefreshMaps();
         } else {
-            // No account — show setup prompt (mobile vs desktop)
             summaryEl.style.display = 'none';
-            noAccountEl.style.display = 'block';
+            if (noAccountEl) noAccountEl.style.display = 'block';
             var mobile = isMobileDevice();
             var handoff = document.getElementById('ctMobileHandoff');
             var intro = document.getElementById('ctDesktopIntro');
