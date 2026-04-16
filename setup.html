@@ -1768,14 +1768,9 @@ async function lpConfirmActivation() {
     document.getElementById('lpActivationLoading').style.display = 'block';
 
     try {
-        var result = await apiCall('complete_activation', {
-            session_id: urlSessionId,
-            license_id: lpSelectedLicense
-        });
-
-        if (!result.success) throw new Error(result.message || 'Activation failed');
-
-        // Activation succeeded — set license and proceed to controller setup
+        // Don't call complete_activation here — it flips the session to "completed"
+        // and the app finishes before the user has gone through the setup wizard.
+        // complete_activation is called later in saveConfiguration or introSelectConfig.
         currentLicenseId = lpSelectedLicense;
         document.getElementById('setupLicenseInput').value = currentLicenseId;
         document.getElementById('setupLicenseDisplay').textContent = currentLicenseId;
