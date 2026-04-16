@@ -2133,12 +2133,12 @@ function renderConfigDetails(cfg, uniqueId) {
         var hasMore = cfg.procedures_text.indexOf('\n') !== -1 || cfg.procedures_text.length > 100;
         if (hasMore) {
             var shortText = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
-            html += '<div><strong>Procedures:</strong> ' + escapeHtml(shortText);
+            html += '<div><strong>Procedures:</strong> ' + linkifyText(shortText);
             html += ' <a href="#" onclick="event.stopPropagation(); toggleProcedures(\'' + uniqueId + '\'); return false;" style="color: #1e90ff; font-size: 1.1rem;" id="procToggle_' + uniqueId + '">Show more</a>';
-            html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + escapeHtml(cfg.procedures_text) + '</div>';
+            html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + linkifyText(cfg.procedures_text) + '</div>';
             html += '</div>';
         } else {
-            html += '<div><strong>Procedures:</strong> ' + escapeHtml(cfg.procedures_text) + '</div>';
+            html += '<div><strong>Procedures:</strong> ' + linkifyText(cfg.procedures_text) + '</div>';
         }
     }
     if (cfg.procedures_link) html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
@@ -2163,6 +2163,11 @@ function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+function linkifyText(str) {
+    var escaped = escapeHtml(str);
+    return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; word-break: break-all;">$1</a>');
 }
 
 function editConfiguration(index) {
