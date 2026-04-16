@@ -2093,7 +2093,7 @@ async function introSelectConfig(index) {
     document.getElementById('activationSuccessBanner').style.display = 'none';
 
     document.getElementById('saveSuccessTitle').textContent = 'Activation and setup complete!';
-    document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window.<br><br><span style="font-size: 1.2rem; color: #888;">The Controller Setup will sync within 10 seconds. If it doesn\'t, go to <strong>"Set Up Controller"</strong> in the controller menu and reapply the setup from there.</span>';
+    document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window.<br><br><span style="font-size: 1.2rem; color: #888;">The settings will sync within 10 seconds.</span>';
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
@@ -2332,7 +2332,7 @@ function showSaveSuccess() {
     document.getElementById('activationSuccessBanner').style.display = 'none';
     document.getElementById('setupDeviceInfo').style.display = 'none';
     document.getElementById('saveSuccessTitle').textContent = 'Activation and setup complete!';
-    document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window.<br><br><span style="font-size: 1.2rem; color: #888;">The Controller Setup will sync within 10 seconds. If it doesn\'t, go to <strong>"Set Up Controller"</strong> in the controller menu and reapply the setup from there.</span>';
+    document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window.<br><br><span style="font-size: 1.2rem; color: #888;">The settings will sync within 10 seconds.</span>';
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
@@ -3250,7 +3250,16 @@ function buildCaltopoMapJson() {
     var selectedMapId = dropdown ? dropdown.value : '';
     var selectedMapName = selectedMapId ? dropdown.options[dropdown.selectedIndex].text : null;
 
-    // If no dropdown selection, try manual URL
+    // Fallback: check the summary dropdown (used in toggle-based form mode)
+    if (!selectedMapId) {
+        var summaryDropdown = document.getElementById('ctSummaryMapDropdown');
+        if (summaryDropdown && summaryDropdown.value) {
+            selectedMapId = summaryDropdown.value;
+            selectedMapName = summaryDropdown.options[summaryDropdown.selectedIndex].text;
+        }
+    }
+
+    // Fallback: try manual URL
     if (!selectedMapId) {
         var url = document.getElementById('setupCaltopoMapUrl').value.trim();
         selectedMapId = extractMapId(url);
