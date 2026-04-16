@@ -289,14 +289,21 @@ permalink: /caltopo/
     <!-- Result (hidden until verify succeeds) -->
     <div id="ctResult" style="display: none;">
         <div class="ct-section">
-            <h2>Done! Scan or download</h2>
+            <h2>Done! Transfer to your controller</h2>
             <div class="ct-success-box" id="ctVerifiedBox" style="margin-bottom: 1.25rem;"></div>
-            <p>Scan this QR code with your phone or Eagle Eyes controller to transfer the credentials.</p>
+            <p>Scan this QR code with your phone or Eagle Eyes controller:</p>
             <div class="ct-qr-wrap">
                 <div class="qr-box" id="ctQrBox"></div>
             </div>
+
+            <p style="margin-top: 1.5rem;">Or copy this code and paste it into the Controller Setup page:</p>
+            <div style="position: relative; margin-bottom: 1rem;">
+                <textarea id="ctCredentialString" readonly onclick="this.select(); document.execCommand('copy'); document.getElementById('ctCopyFeedback').style.display='inline';" style="width: 100%; box-sizing: border-box; padding: 12px; font-family: monospace; font-size: 1.2rem; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; resize: none; min-height: 60px; cursor: pointer; color: #555;"></textarea>
+                <span id="ctCopyFeedback" style="display: none; color: #1e8e3e; font-size: 1.2rem; margin-top: 0.25rem;">Copied!</span>
+            </div>
+
             <div style="text-align: center; margin-top: 1rem;">
-                <button class="ct-btn ct-btn-secondary" onclick="ctDownloadJson()">Download JSON</button>
+                <button class="ct-btn ct-btn-secondary" onclick="ctDownloadJson()">Download as file</button>
             </div>
             <p style="font-size: 1.3rem; color: #888; text-align: center; margin-top: 1.5rem;">
                 <strong>Keep this safe.</strong> The credential secret cannot be retrieved from CalTopo again.
@@ -486,6 +493,7 @@ permalink: /caltopo/
             correctLevel: QRCode.CorrectLevel.M
         });
 
+        document.getElementById('ctCredentialString').value = payload;
         document.getElementById('ctResult').style.display = 'block';
         setTimeout(function() {
             document.getElementById('ctResult').scrollIntoView({ behavior: 'smooth' });

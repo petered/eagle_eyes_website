@@ -137,7 +137,7 @@ permalink: /setup/
     /* Optional section toggles */
     .optional-toggle {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 0.75rem;
         padding: 1rem 1.25rem;
         background: #f8f9fa;
@@ -159,6 +159,7 @@ permalink: /setup/
     .optional-toggle input[type="checkbox"] {
         width: 18px;
         height: 18px;
+        margin-top: 3px;
         accent-color: #1e90ff;
         cursor: pointer;
         flex-shrink: 0;
@@ -1111,28 +1112,39 @@ permalink: /setup/
             </div>
         </div>
 
-        <!-- Step 2: Units & Coordinate System -->
+        <!-- Units & Coordinate System toggle -->
+        <div class="optional-toggle" id="unitsToggle" style="display: none;" onclick="document.getElementById('unitsToggleCheck').checked = !document.getElementById('unitsToggleCheck').checked; toggleOptionalSection('units');">
+            <input type="checkbox" id="unitsToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('units')">
+            <div style="flex: 1;">
+                <div class="toggle-label">Units &amp; Coordinate System</div>
+                <div class="toggle-desc">Set measurement units and coordinate format</div>
+
+                <div id="unitsContent" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
+                    <div class="setup-field">
+                        <label for="setupUnits">Units</label>
+                        <select id="setupUnits">
+                            <option value="IMPERIAL">US / Imperial (ft, mph)</option>
+                            <option value="METRIC">Metric (m, km/h)</option>
+                        </select>
+                    </div>
+                    <div class="setup-field">
+                        <label for="setupCoordsys">Coordinate System</label>
+                        <select id="setupCoordsys">
+                            <option value="DD">Decimal Degrees (DD) — e.g. 38.8977, -77.0365</option>
+                            <option value="DDM">Degrees Decimal Minutes (DDM) — e.g. 38°53.862'N 77°02.190'W</option>
+                            <option value="DMS">Degrees Minutes Seconds (DMS) — e.g. 38°53'51.7"N 77°02'11.4"W</option>
+                            <option value="UTM">UTM — e.g. 18S 323394 4306842</option>
+                            <option value="MGRS">MGRS — e.g. 18SUJ2339406842</option>
+                            <option value="OSGRID">OS Grid — e.g. TQ 30163 80057</option>
+                            <option value="USNG">USNG — e.g. 18S UJ 23394 06842</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keep formStep2 for wizard mode compatibility -->
         <div class="form-step" id="formStep2" style="display: none;">
-            <h2 class="form-step-question">Units &amp; Coordinate System</h2>
-            <div class="setup-field">
-                <label for="setupUnits">Units</label>
-                <select id="setupUnits">
-                    <option value="IMPERIAL">US / Imperial (ft, mph)</option>
-                    <option value="METRIC">Metric (m, km/h)</option>
-                </select>
-            </div>
-            <div class="setup-field">
-                <label for="setupCoordsys">Coordinate System</label>
-                <select id="setupCoordsys">
-                    <option value="DD">Decimal Degrees (DD) — e.g. 38.8977, -77.0365</option>
-                    <option value="DDM">Degrees Decimal Minutes (DDM) — e.g. 38°53.862'N 77°02.190'W</option>
-                    <option value="DMS">Degrees Minutes Seconds (DMS) — e.g. 38°53'51.7"N 77°02'11.4"W</option>
-                    <option value="UTM">UTM — e.g. 18S 323394 4306842</option>
-                    <option value="MGRS">MGRS — e.g. 18SUJ2339406842</option>
-                    <option value="OSGRID">OS Grid — e.g. TQ 30163 80057</option>
-                    <option value="USNG">USNG — e.g. 18S UJ 23394 06842</option>
-                </select>
-            </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
                 <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
@@ -1146,7 +1158,7 @@ permalink: /setup/
                 <div class="toggle-label">CalTopo Service Account</div>
                 <div class="toggle-desc">Keep your controller permanently connected to CalTopo</div>
 
-                <!-- Folds out inside the same container when checked -->
+                <!-- Folds out inside the same container when checked: existing account -->
                 <div id="ctExistingSummary" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                         <span style="color: #1e8e3e; font-weight: 600; font-size: 1.5rem;">&#10003; Connected</span>
@@ -1168,40 +1180,25 @@ permalink: /setup/
                         <a href="{{ '/caltopo/' | relative_url }}" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; font-size: 1.3rem; text-decoration: none;">Change service account &rarr;</a>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Step 3: CalTopo — sub-step flow -->
-        <div class="form-step optional-content" id="formStep3" style="display: none;">
+                <!-- Folds out inside the same container when checked: no account yet -->
+                <div id="ctNoAccount" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">We recommend setting this up on a laptop or desktop. <a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Open CalTopo setup page &rarr;</a></p>
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, you can transfer the credentials to your controller:</p>
 
-            <!-- 3a: Setup prompt (no account yet) -->
-            <div id="ctSubStep0" class="ct-substep">
-                <h2 class="form-step-question">CalTopo Service Account</h2>
-
-                <div id="ctNoAccount">
-                    <p class="form-step-hint">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days to keep the connection going.</p>
-                    <p class="form-step-hint">We recommend setting this up on a laptop or desktop.</p>
-                    <div style="margin-bottom: 1rem;">
-                        <a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; font-size: 1.5rem; font-weight: 500; text-decoration: none;">Open CalTopo setup page &rarr;</a>
-                    </div>
-                    <p class="form-step-hint">After completing the form, you'll get a QR code to scan with your phone or controller.</p>
-
-                    <!-- Mobile handoff (shown on small screens) -->
-                    <div id="ctMobileHandoff" style="display: none;">
-                        <div class="form-step-actions">
-                            <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()">Scan QR from laptop</button>
-                            <a href="#" class="back-link skip-link" onclick="showCtSubStep(1); return false;">Enter manually instead &rarr;</a>
-                        </div>
-                    </div>
-
-                    <!-- Desktop / inline flow -->
-                    <div id="ctDesktopIntro">
-                        <div class="form-step-actions">
-                            <button class="setup-btn setup-btn-outline" onclick="showCtSubStep(1)">Or enter credentials manually</button>
-                        </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+                        <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()">Scan QR code</button>
+                        <button class="setup-btn setup-btn-outline" onclick="showCtPasteDialog()">Paste credentials</button>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Step 3: CalTopo — sub-step flow (manual entry, hidden until user clicks "enter manually") -->
+        <div class="form-step optional-content" id="formStep3" style="display: none;">
+
+            <div id="ctSubStep0" class="ct-substep" style="display: none;"></div>
 
             <!-- 3b: Navigate to service account page -->
             <div id="ctSubStep1" class="ct-substep" style="display: none;">
@@ -1295,28 +1292,29 @@ permalink: /setup/
 
         </div>
 
-        <!-- Procedures toggle (form mode only) -->
-        <label class="optional-toggle" id="procToggleWrap" style="display: none;">
-            <input type="checkbox" id="procToggleCheck" onchange="toggleOptionalSection('procedures')">
-            <div>
+        <!-- Procedures toggle + content -->
+        <div class="optional-toggle" id="procToggleWrap" style="display: none;" onclick="document.getElementById('procToggleCheck').checked = !document.getElementById('procToggleCheck').checked; toggleOptionalSection('procedures');">
+            <input type="checkbox" id="procToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('procedures')">
+            <div style="flex: 1;">
                 <div class="toggle-label">Procedures &amp; Emergency Contacts</div>
                 <div class="toggle-desc">Store procedures and contact info accessible from the controller</div>
-            </div>
-        </label>
 
-        <!-- Step 4: Procedures -->
-        <div class="form-step optional-content" id="formStep4" style="display: none;">
-            <h2 class="form-step-question">Procedures</h2>
-            <p class="form-step-hint">Emergency procedures and contact information that can be quickly accessed by the pilot. Optionally include a link to a full document.</p>
-            <div class="setup-field">
-                <label for="setupProceduresText">Procedures &amp; Emergency Contacts</label>
-                <textarea id="setupProceduresText" placeholder="Enter emergency procedures and contact information..." style="min-height: 160px; width: 100%; box-sizing: border-box;"></textarea>
+                <div id="procContent" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
+                    <div class="setup-field">
+                        <label for="setupProceduresText">Procedures &amp; Emergency Contacts</label>
+                        <textarea id="setupProceduresText" placeholder="Enter emergency procedures and contact information..." style="min-height: 160px; width: 100%; box-sizing: border-box;"></textarea>
+                    </div>
+                    <div class="setup-field">
+                        <label for="setupProceduresLink">Link to Full Document</label>
+                        <p style="font-size: 1.3rem; color: #888; margin-bottom: 0.5rem;">This URL will be converted into a QR code on the controller.</p>
+                        <input type="url" id="setupProceduresLink" placeholder="https://docs.google.com/...">
+                    </div>
+                </div>
             </div>
-            <div class="setup-field">
-                <label for="setupProceduresLink">Link to Full Document</label>
-                <p class="form-step-hint" style="margin-bottom: 0.5rem; font-size: 1.2rem;">This URL will be converted into a QR code on the controller, so it can easily be scanned using a mobile phone.</p>
-                <input type="url" id="setupProceduresLink" placeholder="https://docs.google.com/...">
-            </div>
+        </div>
+
+        <!-- Keep formStep4 for wizard mode compatibility -->
+        <div class="form-step" id="formStep4" style="display: none;">
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Setup</button>
                 <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
@@ -2273,6 +2271,7 @@ function showConfigList() {
         el.style.display = '';
     });
     document.getElementById('formBottomActions').style.display = 'none';
+    document.getElementById('unitsToggle').style.display = 'none';
     document.getElementById('ctToggle').style.display = 'none';
     document.getElementById('procToggleWrap').style.display = 'none';
     clearStatus('setupFormStatus');
@@ -2346,20 +2345,24 @@ function showAllFormSteps() {
     form.classList.add('form-mode');
     document.getElementById('formStepIndicator').style.display = 'none';
 
-    // Always show Name and Units
+    // Always show Name
     document.getElementById('formStep1').style.display = 'block';
-    document.getElementById('formStep2').style.display = 'block';
+    document.getElementById('formStep2').style.display = 'none';
 
-    // Show toggles for optional sections
+    // Show all toggles
+    document.getElementById('unitsToggle').style.display = '';
     document.getElementById('ctToggle').style.display = '';
     document.getElementById('procToggleWrap').style.display = '';
 
     // Auto-expand if existing data is present
+    var hasUnits = (document.getElementById('setupUnits').value !== 'IMPERIAL' || document.getElementById('setupCoordsys').value !== 'DD');
     var hasCaltopo = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
     var hasProcs = !!(document.getElementById('setupProceduresText').value || document.getElementById('setupProceduresLink').value);
 
+    document.getElementById('unitsToggleCheck').checked = hasUnits;
     document.getElementById('ctToggleCheck').checked = hasCaltopo;
     document.getElementById('procToggleCheck').checked = hasProcs;
+    toggleOptionalSection('units');
     toggleOptionalSection('caltopo');
     toggleOptionalSection('procedures');
 
@@ -2382,28 +2385,38 @@ function toggleOptionalSection(type) {
         var checked = document.getElementById('ctToggleCheck').checked;
         var toggle = document.getElementById('ctToggle');
         var summaryEl = document.getElementById('ctExistingSummary');
+        var noAccountEl = document.getElementById('ctNoAccount');
         var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
         toggle.classList.toggle('active', checked);
 
         if (hasAccount) {
-            // Summary is inside the toggle — just show/hide it
             summaryEl.style.display = checked ? 'block' : 'none';
+            noAccountEl.style.display = 'none';
+            document.getElementById('formStep3').style.display = 'none';
+            if (checked) ctRefreshMaps();
+        } else {
+            summaryEl.style.display = 'none';
+            noAccountEl.style.display = checked ? 'block' : 'none';
             document.getElementById('formStep3').style.display = 'none';
             if (checked) {
-                showCtSubStep(0);
+                var mobile = isMobileDevice();
+                var handoff = document.getElementById('ctMobileHandoff');
+                var intro = document.getElementById('ctDesktopIntro');
+                if (handoff) handoff.style.display = mobile ? 'block' : 'none';
+                if (intro) intro.style.display = mobile ? 'none' : 'block';
             }
-        } else {
-            // No account — show/hide the setup form
-            var content = document.getElementById('formStep3');
-            content.style.display = checked ? 'block' : 'none';
-            if (checked) showCtSubStep(0);
         }
+    } else if (type === 'units') {
+        var checked = document.getElementById('unitsToggleCheck').checked;
+        var content = document.getElementById('unitsContent');
+        var toggle = document.getElementById('unitsToggle');
+        content.style.display = checked ? 'block' : 'none';
+        toggle.classList.toggle('active', checked);
     } else if (type === 'procedures') {
         var checked = document.getElementById('procToggleCheck').checked;
-        var content = document.getElementById('formStep4');
+        var content = document.getElementById('procContent');
         var toggle = document.getElementById('procToggleWrap');
         content.style.display = checked ? 'block' : 'none';
-        if (checked) content.classList.add('visible'); else content.classList.remove('visible');
         toggle.classList.toggle('active', checked);
     }
 }
@@ -2587,12 +2600,9 @@ function showCtSubStep(n) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
     }
-    // On substep 0, decide: show existing account summary in toggle OR setup prompt in formStep3
+    // On substep 0, populate the summary details (toggle handles visibility)
     if (n === 0) {
-        var summaryEl = document.getElementById('ctExistingSummary');
-        var noAccountEl = document.getElementById('ctNoAccount');
         var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
-
         if (hasAccount) {
             var details = '';
             if (caltopoVerifiedData.teamName) details += '<div><strong>Team:</strong> ' + escapeHtml(caltopoVerifiedData.teamName) + '</div>';
@@ -2602,19 +2612,6 @@ function showCtSubStep(n) {
             if (acctId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(acctId) + '</div>';
             document.getElementById('ctExistingDetails').innerHTML = details;
             ctPopulateSummaryMap();
-            summaryEl.style.display = 'block';
-            if (noAccountEl) noAccountEl.style.display = 'none';
-            // Hide the expandable formStep3 — summary is shown in the toggle
-            document.getElementById('formStep3').style.display = 'none';
-            ctRefreshMaps();
-        } else {
-            summaryEl.style.display = 'none';
-            if (noAccountEl) noAccountEl.style.display = 'block';
-            var mobile = isMobileDevice();
-            var handoff = document.getElementById('ctMobileHandoff');
-            var intro = document.getElementById('ctDesktopIntro');
-            if (handoff) handoff.style.display = mobile ? 'block' : 'none';
-            if (intro) intro.style.display = mobile ? 'none' : 'block';
         }
     }
     // Show title in step 4 hint
@@ -2639,6 +2636,32 @@ function showCtSubStep(n) {
 // Start changing the CalTopo service account (from the summary view)
 function ctStartChange() {
     showCtSubStep(1);
+}
+
+// Paste credentials from the /caltopo/ page JSON download
+function showCtPasteDialog() {
+    var input = prompt('Paste the credentials from the CalTopo setup page:');
+    if (!input) return;
+    input = input.trim();
+    try {
+        var data = JSON.parse(input);
+        if (data.type === 'mirada-caltopo-service-account' && data.accountId && data.credentialId && data.secretKey) {
+            document.getElementById('ctAccountId').value = data.accountId;
+            document.getElementById('ctCredentialId').value = data.credentialId;
+            document.getElementById('ctKey').value = data.secretKey;
+            ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
+                document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            // Show formStep3 with verify substep
+            document.getElementById('formStep3').style.display = 'block';
+            showCtSubStep(4);
+            verifyCaltopoServiceAccount();
+        } else {
+            alert('Invalid format. Please paste the full JSON from the CalTopo setup page or the downloaded file.');
+        }
+    } catch (e) {
+        alert('Could not read the credentials. Please paste the full JSON from the CalTopo setup page or the downloaded file.');
+    }
 }
 
 // Re-verify stored CalTopo credentials to fetch fresh maps list
@@ -3130,8 +3153,13 @@ async function saveConfiguration() {
     }
 
     var saveBtn = document.getElementById('setupSaveBtn');
+    var formSaveBtn = document.getElementById('formSaveAllBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
+    if (formSaveBtn) {
+        formSaveBtn.disabled = true;
+        formSaveBtn.textContent = 'Saving...';
+    }
     clearStatus('setupFormStatus');
 
     try {
@@ -3183,6 +3211,10 @@ async function saveConfiguration() {
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Setup';
+        if (formSaveBtn) {
+            formSaveBtn.disabled = false;
+            formSaveBtn.textContent = 'Save Setup';
+        }
     }
 }
 
