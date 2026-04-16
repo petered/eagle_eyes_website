@@ -2064,6 +2064,17 @@ var skipMobileRecommendation = false;
 async function introSelectConfig(index) {
     var config = cachedConfigurations[index];
 
+    // Show loading on the clicked card
+    var cards = document.querySelectorAll('#introExistingConfigs .config-card');
+    cards.forEach(function(card, i) {
+        card.style.pointerEvents = 'none';
+        card.style.opacity = i === index ? '1' : '0.5';
+    });
+    if (cards[index]) {
+        var chevron = cards[index].querySelector('div:last-child');
+        if (chevron) chevron.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>';
+    }
+
     // Complete activation if we have a session and license
     if (urlSessionId && currentLicenseId) {
         try {
