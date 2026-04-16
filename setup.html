@@ -1186,23 +1186,38 @@ permalink: /setup/
 
                 <!-- Folds out inside the same container when checked: no account yet -->
                 <div id="ctNoAccount" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;"><strong>Keep this page open.</strong> In a new browser window, go to:</p>
-                    <div style="margin-bottom: 1rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, you can transfer the CalTopo service account credentials back here:</p>
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
 
-                    <div style="margin-top: 0.75rem;">
-                        <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%; max-width: 320px;">Scan QR Code</button>
-                        <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">I'm on my phone — scan the QR code from my laptop screen</div>
+                    <!-- Device selection -->
+                    <div style="font-size: 1.4rem; color: #333; margin-bottom: 0.75rem;">I'm viewing this page on:</div>
+                    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                        <button class="setup-btn" id="ctDeviceMobile" onclick="ctSelectDevice('mobile')" style="flex: 1; padding: 10px; font-size: 1.4rem; background: #e9ecef; color: #333; border: 2px solid transparent;">A phone</button>
+                        <button class="setup-btn" id="ctDeviceDesktop" onclick="ctSelectDevice('desktop')" style="flex: 1; padding: 10px; font-size: 1.4rem; background: #e9ecef; color: #333; border: 2px solid transparent;">A laptop / desktop</button>
                     </div>
 
-                    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                        <div style="font-size: 1.35rem; color: #333; margin-bottom: 0.5rem;">Or paste the credentials code from the setup page:</div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="ctPasteField" placeholder="Paste credentials here" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1.4rem; font-family: monospace; background: #fafbfc;">
-                            <button class="setup-btn setup-btn-outline" onclick="handleCtPasteField()" style="white-space: nowrap;">Verify</button>
+                    <!-- Mobile instructions -->
+                    <div id="ctMobileInstructions" style="display: none;">
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;"><strong>We recommend setting up the CalTopo service account from a desktop or laptop computer.</strong></p>
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Keep this page open and open a browser on your desktop or laptop. Go to:</p>
+                        <div style="margin-bottom: 0.75rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form you will see a QR code. Scan it here:</p>
+                        <div>
+                            <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%; max-width: 320px;">Scan QR Code</button>
                         </div>
-                        <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">If you set up CalTopo on this computer</div>
+                    </div>
+
+                    <!-- Desktop instructions -->
+                    <div id="ctDesktopInstructions" style="display: none;">
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Keep this page open and open another tab in your browser. Go to:</p>
+                        <div style="margin-bottom: 0.75rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, copy the credentials code and paste it here:</p>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="ctPasteField" readonly placeholder="Click Paste to fill" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1.3rem; font-family: monospace; background: #fafbfc;">
+                            <button class="setup-btn setup-btn-outline" onclick="ctPasteFromClipboard()" style="white-space: nowrap;">Paste</button>
+                        </div>
+                        <div>
+                            <button class="setup-btn setup-btn-primary" onclick="handleCtPasteField()" style="width: 100%; max-width: 320px; margin-top: 0.5rem;">Verify</button>
+                        </div>
                         <div id="ctPasteError" style="display: none; font-size: 1.3rem; color: #d93025; margin-top: 0.5rem;"></div>
                     </div>
                 </div>
@@ -2677,15 +2692,38 @@ function ctStartChange() {
 }
 
 // Paste credentials from the /caltopo/ page JSON download
-// Enter key on paste field triggers verify
-document.addEventListener('DOMContentLoaded', function() {
-    var pasteField = document.getElementById('ctPasteField');
-    if (pasteField) {
-        pasteField.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); handleCtPasteField(); }
-        });
+function ctSelectDevice(type) {
+    var mobileBtn = document.getElementById('ctDeviceMobile');
+    var desktopBtn = document.getElementById('ctDeviceDesktop');
+    var mobileInst = document.getElementById('ctMobileInstructions');
+    var desktopInst = document.getElementById('ctDesktopInstructions');
+
+    mobileBtn.style.background = type === 'mobile' ? '#1e90ff' : '#e9ecef';
+    mobileBtn.style.color = type === 'mobile' ? 'white' : '#333';
+    mobileBtn.style.borderColor = type === 'mobile' ? '#1e90ff' : 'transparent';
+    desktopBtn.style.background = type === 'desktop' ? '#1e90ff' : '#e9ecef';
+    desktopBtn.style.color = type === 'desktop' ? 'white' : '#333';
+    desktopBtn.style.borderColor = type === 'desktop' ? '#1e90ff' : 'transparent';
+
+    mobileInst.style.display = type === 'mobile' ? 'block' : 'none';
+    desktopInst.style.display = type === 'desktop' ? 'block' : 'none';
+}
+
+async function ctPasteFromClipboard() {
+    var field = document.getElementById('ctPasteField');
+    var errorEl = document.getElementById('ctPasteError');
+    errorEl.style.display = 'none';
+    try {
+        var text = await navigator.clipboard.readText();
+        field.value = text.trim();
+    } catch (e) {
+        errorEl.textContent = 'Could not access clipboard. Please paste manually into the field (Ctrl+V / Cmd+V).';
+        errorEl.style.display = 'block';
+        field.readOnly = false;
+        field.placeholder = 'Paste here with Ctrl+V / Cmd+V';
+        field.focus();
     }
-});
+}
 
 function handleCtPasteField() {
     var input = document.getElementById('ctPasteField').value.trim();
