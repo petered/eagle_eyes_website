@@ -3250,7 +3250,16 @@ function buildCaltopoMapJson() {
     var selectedMapId = dropdown ? dropdown.value : '';
     var selectedMapName = selectedMapId ? dropdown.options[dropdown.selectedIndex].text : null;
 
-    // If no dropdown selection, try manual URL
+    // Fallback: check the summary dropdown (used in toggle-based form mode)
+    if (!selectedMapId) {
+        var summaryDropdown = document.getElementById('ctSummaryMapDropdown');
+        if (summaryDropdown && summaryDropdown.value) {
+            selectedMapId = summaryDropdown.value;
+            selectedMapName = summaryDropdown.options[summaryDropdown.selectedIndex].text;
+        }
+    }
+
+    // Fallback: try manual URL
     if (!selectedMapId) {
         var url = document.getElementById('setupCaltopoMapUrl').value.trim();
         selectedMapId = extractMapId(url);
