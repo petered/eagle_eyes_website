@@ -2685,15 +2685,83 @@ function showCtPasteDialog() {
             ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
                 document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
             });
-            // Show formStep3 with verify substep
-            document.getElementById('formStep3').style.display = 'block';
-            showCtSubStep(4);
-            verifyCaltopoServiceAccount();
+            applyCaltopoCredentials(data);
         } else {
             alert('Invalid format. Please paste the full JSON from the CalTopo setup page or the downloaded file.');
         }
     } catch (e) {
         alert('Could not read the credentials. Please paste the full JSON from the CalTopo setup page or the downloaded file.');
+    }
+}
+
+async function applyCaltopoCredentials(payload) {
+    var noAccountEl = document.getElementById('ctNoAccount');
+    var summaryEl = document.getElementById('ctExistingSummary');
+    // Hide the setup content and show a spinner
+    if (noAccountEl) noAccountEl.style.display = 'none';
+    // Insert a temporary loading indicator
+    var loadingEl = document.createElement('div');
+    loadingEl.id = 'ctVerifyLoading';
+    loadingEl.style.cssText = 'text-align: center; padding: 1rem; margin-top: 0.75rem; border-top: 1px solid #dee2e6;';
+    loadingEl.innerHTML = '<div class="spinner" style="margin: 0 auto 0.5rem;"></div><div style="font-size: 1.4rem; color: #888;">Verifying credentials...</div>';
+    var toggle = document.getElementById('ctToggle');
+    toggle.querySelector('[style*="flex: 1"]').appendChild(loadingEl);
+
+    try {
+        var result = await apiCall('verify_caltopo_service_account', {
+            license_id: currentLicenseId,
+            account_id: payload.accountId,
+            credential_id: payload.credentialId,
+            credential_secret: payload.secretKey
+        });
+
+        if (!result.success) throw new Error('Verification failed');
+
+        var permission = result.permission || '';
+        var allowed = ['Update', 'Write', 'Manage', 'Administer'];
+        if (allowed.indexOf(permission) === -1) {
+            noAccountEl.innerHTML = '<p style="font-size: 1.4rem; color: #d93025;">Insufficient permission: "' + escapeHtml(permission || 'None') + '". Update or higher is required in CalTopo.</p>';
+            return;
+        }
+
+        // Store verified data
+        caltopoVerifiedData = {
+            title: result.title || '',
+            permission: permission,
+            lastUsed: result.last_used || null,
+            teamAccountId: result.team_account_id || '',
+            teamName: result.team_name || '',
+            maps: result.maps || []
+        };
+
+        // Populate the main map dropdown
+        populateMapDropdown(caltopoVerifiedData.maps);
+
+        // Populate and show the connected summary
+        var details = '';
+        if (caltopoVerifiedData.teamName) details += '<div><strong>Team:</strong> ' + escapeHtml(caltopoVerifiedData.teamName) + '</div>';
+        if (caltopoVerifiedData.title) details += '<div><strong>Account:</strong> ' + escapeHtml(caltopoVerifiedData.title) + '</div>';
+        if (caltopoVerifiedData.permission) details += '<div><strong>Permission:</strong> ' + escapeHtml(caltopoVerifiedData.permission) + '</div>';
+        if (payload.accountId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(payload.accountId) + '</div>';
+        document.getElementById('ctExistingDetails').innerHTML = details;
+        ctPopulateSummaryMap();
+
+        // Remove loading, show summary
+        var loader = document.getElementById('ctVerifyLoading');
+        if (loader) loader.remove();
+        summaryEl.style.display = 'block';
+        document.getElementById('formStep3').style.display = 'none';
+
+        ctRefreshMaps();
+    } catch (err) {
+        console.error('CalTopo verify after scan/paste failed:', err);
+        var loader = document.getElementById('ctVerifyLoading');
+        if (loader) loader.remove();
+        // Show the setup content again with an error
+        if (noAccountEl) {
+            noAccountEl.style.display = 'block';
+        }
+        alert('Verification failed: ' + err.message + '. Please try again.');
     }
 }
 
@@ -2846,22 +2914,18 @@ function handleCaltopoQrPayload(text) {
 
     document.getElementById('qrScannerStatus').textContent = 'Got it — verifying...';
 
-    // Populate fields
+    // Populate hidden credential fields
     document.getElementById('ctAccountId').value = payload.accountId;
     document.getElementById('ctCredentialId').value = payload.credentialId;
     document.getElementById('ctKey').value = payload.secretKey;
-    // Fire input events so counters/verify-button update
     ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
-        var ev = new Event('input', { bubbles: true });
-        document.getElementById(id).dispatchEvent(ev);
+        document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     closeCaltopoQrScanner();
 
-    // Jump to verify substep and run verify (authed call from phone) to fetch team/maps metadata
-    showCtSubStep(4);
-    if (typeof verifyCaltopoServiceAccount === 'function') {
-        verifyCaltopoServiceAccount();
+    // Verify in background, then swap to connected summary inside the toggle
+    applyCaltopoCredentials(payload);
     }
 }
 
