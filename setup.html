@@ -1112,6 +1112,9 @@ permalink: /setup/
             </div>
         </div>
 
+        <!-- Label for optional sections (form mode only) -->
+        <div id="optionalSectionsLabel" style="display: none; font-size: 1.5rem; color: #555; margin-bottom: 1rem;">Select what to include in this setup:</div>
+
         <!-- Units & Coordinate System toggle -->
         <div class="optional-toggle" id="unitsToggle" style="display: none;" onclick="document.getElementById('unitsToggleCheck').checked = !document.getElementById('unitsToggleCheck').checked; toggleOptionalSection('units');">
             <input type="checkbox" id="unitsToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('units')">
@@ -1184,12 +1187,18 @@ permalink: /setup/
                 <!-- Folds out inside the same container when checked: no account yet -->
                 <div id="ctNoAccount" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
                     <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">We recommend setting this up on a laptop or desktop. <a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 500;">Open CalTopo setup page &rarr;</a></p>
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">We recommend setting this up on a laptop or desktop. Go to:<br><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.6rem;">EagleEyesSearch.com/caltopo</a></p>
                     <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, you can transfer the credentials to your controller:</p>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
-                        <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()">Scan QR code</button>
-                        <button class="setup-btn setup-btn-outline" onclick="showCtPasteDialog()">Paste credentials</button>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
+                        <div style="flex: 1; min-width: 200px; text-align: center;">
+                            <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%;">Scan QR code</button>
+                            <div style="font-size: 1.2rem; color: #888; margin-top: 0.3rem;">Use your phone's camera</div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px; text-align: center;">
+                            <button class="setup-btn setup-btn-outline" onclick="showCtPasteDialog()" style="width: 100%;">Paste credentials</button>
+                            <div style="font-size: 1.2rem; color: #888; margin-top: 0.3rem;">If you set up CalTopo on this computer</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1780,14 +1789,14 @@ async function lpConfirmActivation() {
         document.getElementById('setupLicenseDisplay').textContent = currentLicenseId;
         document.getElementById('setupLicenseInfo').style.display = '';
 
-        // Always call complete_activation so the app gets the license_key
+        // Call complete_activation so the app gets the license_key
         // and transitions from "Waiting for activation" to the next state.
-        // When enableSetup=true, the app sees completed + no configuration
-        // and shows "Waiting for Controller Setup..." until we write the config later.
-        await apiCall('complete_activation', {
+        console.log('lpConfirmActivation: calling complete_activation', { session_id: urlSessionId, license_id: currentLicenseId, enableSetup: enableSetup });
+        var activationResult = await apiCall('complete_activation', {
             session_id: urlSessionId,
             license_id: currentLicenseId
         });
+        console.log('lpConfirmActivation: complete_activation result:', activationResult);
 
         document.getElementById('licensePickerSection').style.display = 'none';
 
@@ -1950,12 +1959,14 @@ function showIntroScreen(configs) {
         var html = '';
         configs.forEach(function(config, index) {
             var cfg = config.config || {};
-            html += '<div class="config-card">';
+            html += '<div class="config-card" onclick="introSelectConfig(' + index + ')" style="cursor: pointer; display: flex; align-items: center; gap: 1rem;">';
+            html += '<div style="flex: 1;">';
             html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
-            html += '<div style="font-size: 1.3rem; color: #666; line-height: 2;">';
+            html += '<div style="font-size: 1.3rem; color: #666; line-height: 1.8;">';
             html += renderConfigDetails(cfg, 'intro' + index);
             html += '</div>';
-            html += '<div style="text-align: center; margin-top: 0.75rem;"><button class="setup-btn setup-btn-primary" onclick="introSelectConfig(' + index + ')">Select this setup</button></div>';
+            html += '</div>';
+            html += '<div style="color: #adb5bd; font-size: 2rem; flex-shrink: 0;">&#8250;</div>';
             html += '</div>';
         });
         existingEl.innerHTML = html;
@@ -2226,16 +2237,13 @@ function submitLicenseDialog() {
 }
 
 function getDefaultName() {
-    var baseName = 'Default Controller Setup';
-    if (!cachedConfigurations || cachedConfigurations.length === 0) return baseName;
-    // Check for existing names with this base
-    var existingNames = cachedConfigurations.map(function(c) { return c.label || ''; });
-    if (existingNames.indexOf(baseName) === -1) return baseName;
-    for (var i = 2; i <= 20; i++) {
+    var baseName = 'Controller Setup';
+    var existingNames = (cachedConfigurations || []).map(function(c) { return c.label || ''; });
+    for (var i = 1; i <= 20; i++) {
         var candidate = baseName + ' ' + i;
         if (existingNames.indexOf(candidate) === -1) return candidate;
     }
-    return baseName + ' ' + (cachedConfigurations.length + 1);
+    return baseName + ' ' + ((cachedConfigurations || []).length + 1);
 }
 
 function createNewConfiguration() {
@@ -2294,6 +2302,7 @@ function showConfigList() {
         el.style.display = '';
     });
     document.getElementById('formBottomActions').style.display = 'none';
+    document.getElementById('optionalSectionsLabel').style.display = 'none';
     document.getElementById('unitsToggle').style.display = 'none';
     document.getElementById('ctToggle').style.display = 'none';
     document.getElementById('procToggleWrap').style.display = 'none';
@@ -2372,7 +2381,8 @@ function showAllFormSteps() {
     document.getElementById('formStep1').style.display = 'block';
     document.getElementById('formStep2').style.display = 'none';
 
-    // Show all toggles
+    // Show label + toggles
+    document.getElementById('optionalSectionsLabel').style.display = '';
     document.getElementById('unitsToggle').style.display = '';
     document.getElementById('ctToggle').style.display = '';
     document.getElementById('procToggleWrap').style.display = '';
@@ -3116,19 +3126,27 @@ function buildConfigBody() {
         var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
         if (proceduresLink) body.config.procedures_link = proceduresLink;
     } else {
-        // Full setup: everything
-        body.config.units = document.getElementById('setupUnits').value;
-        body.config.coordsys = document.getElementById('setupCoordsys').value;
+        // Full setup: only include sections the user checked
+        var unitsChecked = !document.getElementById('unitsToggleCheck') || document.getElementById('unitsToggleCheck').checked;
+        var ctChecked = !document.getElementById('ctToggleCheck') || document.getElementById('ctToggleCheck').checked;
+        var procChecked = !document.getElementById('procToggleCheck') || document.getElementById('procToggleCheck').checked;
 
-        var serviceAccountJson = buildCaltopoServiceAccountJson();
-        if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
-        var mapJson = buildCaltopoMapJson();
-        if (mapJson) body.config.default_map = JSON.parse(mapJson);
-
-        var proceduresText = document.getElementById('setupProceduresText').value.trim();
-        if (proceduresText) body.config.procedures_text = proceduresText;
-        var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
-        if (proceduresLink) body.config.procedures_link = proceduresLink;
+        if (unitsChecked) {
+            body.config.units = document.getElementById('setupUnits').value;
+            body.config.coordsys = document.getElementById('setupCoordsys').value;
+        }
+        if (ctChecked) {
+            var serviceAccountJson = buildCaltopoServiceAccountJson();
+            if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
+            var mapJson = buildCaltopoMapJson();
+            if (mapJson) body.config.default_map = JSON.parse(mapJson);
+        }
+        if (procChecked) {
+            var proceduresText = document.getElementById('setupProceduresText').value.trim();
+            if (proceduresText) body.config.procedures_text = proceduresText;
+            var proceduresLink = document.getElementById('setupProceduresLink').value.trim();
+            if (proceduresLink) body.config.procedures_link = proceduresLink;
+        }
     }
 
     if (currentConfigurationId) {
