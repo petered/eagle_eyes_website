@@ -1189,17 +1189,21 @@ permalink: /setup/
                     <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
                     <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;"><strong>Keep this page open.</strong> In a new browser window, go to:</p>
                     <div style="margin-bottom: 1rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">Once you've completed the setup there, come back here to transfer the credentials:</p>
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, you can transfer the CalTopo service account credentials back here:</p>
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem;">
-                        <div style="flex: 1; min-width: 200px; text-align: center;">
-                            <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%;">Scan QR Code</button>
-                            <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">I'm on my phone — scan the QR code from my laptop screen</div>
+                    <div style="margin-top: 0.75rem;">
+                        <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%; max-width: 320px;">Scan QR Code</button>
+                        <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">I'm on my phone — scan the QR code from my laptop screen</div>
+                    </div>
+
+                    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                        <div style="font-size: 1.35rem; color: #333; margin-bottom: 0.5rem;">Or paste the credentials code from the setup page:</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="ctPasteField" placeholder="Paste credentials here" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1.4rem; font-family: monospace; background: #fafbfc;">
+                            <button class="setup-btn setup-btn-outline" onclick="handleCtPasteField()" style="white-space: nowrap;">Verify</button>
                         </div>
-                        <div style="flex: 1; min-width: 200px; text-align: center;">
-                            <button class="setup-btn setup-btn-outline" onclick="showCtPasteDialog()" style="width: 100%;">Paste Credentials</button>
-                            <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">I set up CalTopo on this computer</div>
-                        </div>
+                        <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">If you set up CalTopo on this computer</div>
+                        <div id="ctPasteError" style="display: none; font-size: 1.3rem; color: #d93025; margin-top: 0.5rem;"></div>
                     </div>
                 </div>
             </div>
@@ -2673,10 +2677,26 @@ function ctStartChange() {
 }
 
 // Paste credentials from the /caltopo/ page JSON download
-function showCtPasteDialog() {
-    var input = prompt('Paste the credentials from the CalTopo setup page:');
-    if (!input) return;
-    input = input.trim();
+// Enter key on paste field triggers verify
+document.addEventListener('DOMContentLoaded', function() {
+    var pasteField = document.getElementById('ctPasteField');
+    if (pasteField) {
+        pasteField.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); handleCtPasteField(); }
+        });
+    }
+});
+
+function handleCtPasteField() {
+    var input = document.getElementById('ctPasteField').value.trim();
+    var errorEl = document.getElementById('ctPasteError');
+    errorEl.style.display = 'none';
+
+    if (!input) {
+        errorEl.textContent = 'Please paste the credentials code first.';
+        errorEl.style.display = 'block';
+        return;
+    }
     try {
         var data = JSON.parse(input);
         if (data.type === 'mirada-caltopo-service-account' && data.accountId && data.credentialId && data.secretKey) {
@@ -2688,10 +2708,12 @@ function showCtPasteDialog() {
             });
             applyCaltopoCredentials(data);
         } else {
-            alert('Invalid format. Please paste the full JSON from the CalTopo setup page or the downloaded file.');
+            errorEl.textContent = 'Invalid format. Please paste the full code from the CalTopo setup page.';
+            errorEl.style.display = 'block';
         }
     } catch (e) {
-        alert('Could not read the credentials. Please paste the full JSON from the CalTopo setup page or the downloaded file.');
+        errorEl.textContent = 'Could not read the credentials. Please paste the full code from the CalTopo setup page.';
+        errorEl.style.display = 'block';
     }
 }
 
@@ -2892,13 +2914,22 @@ function openCaltopoQrScanner() {
 
 function closeCaltopoQrScanner() {
     var modal = document.getElementById('qrScannerModal');
-    if (qrScannerInstance) {
-        qrScannerInstance.stop().then(function() {
-            try { qrScannerInstance.clear(); } catch (e) {}
-            qrScannerInstance = null;
-        }).catch(function() { qrScannerInstance = null; });
-    }
+    // Always hide the modal first
     modal.style.display = 'none';
+    // Then clean up the scanner if it was running
+    if (qrScannerInstance) {
+        try {
+            qrScannerInstance.stop().then(function() {
+                try { qrScannerInstance.clear(); } catch (e) {}
+                qrScannerInstance = null;
+            }).catch(function() {
+                try { qrScannerInstance.clear(); } catch (e) {}
+                qrScannerInstance = null;
+            });
+        } catch (e) {
+            qrScannerInstance = null;
+        }
+    }
 }
 
 function handleCaltopoQrPayload(text) {
