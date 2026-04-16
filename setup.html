@@ -1042,6 +1042,12 @@ var directAccess = urlSetupParams.get('direct') === 'true';
 var isDirectAccess = !cameFromActivation && !urlSessionId; // no params = direct
 var caltopoOnly = urlSetupParams.get('caltopo') === 'true';
 var proceduresOnly = urlSetupParams.get('procedures') === 'true';
+// setup_type URL param (new contract) overrides legacy caltopo/procedures URL flags.
+// Backend get_activation_request.setup_type is still the primary source; this is a URL
+// fallback for cases where the auto-fetch is slow or fails.
+var urlSetupType = urlSetupParams.get('setup_type') || '';
+if (urlSetupType === 'caltopo') caltopoOnly = true;
+else if (urlSetupType === 'procedures') proceduresOnly = true;
 var singleStepMode = caltopoOnly || proceduresOnly;
 var introShown = false;
 
@@ -2430,6 +2436,19 @@ async function deleteConfigurationByIndex(index) {
                 document.getElementById('setupLicenseLink').textContent = 'License: ' + urlLicenseId + ' (change)';
                 document.getElementById('setupLicenseDisplay').textContent = urlLicenseId;
                 document.getElementById('setupLicenseInfo').style.display = '';
+            }
+
+            // New Android contract: URL has only session_id (no license_id). Auto-run the
+            // activation fetch that populates license/device/setup_type from the backend.
+            if (urlSessionId && !cameFromActivation && !introShown) {
+                introShown = true;
+                var code = urlSessionId.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                if (code.length === 6) {
+                    code = code.substring(0, 3) + '-' + code.substring(3);
+                }
+                document.getElementById('setupCodeInput').value = code;
+                handleSetupCode();
+                return;
             }
 
             if (cameFromActivation && !introShown) {
