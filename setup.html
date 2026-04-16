@@ -1780,14 +1780,18 @@ async function lpConfirmActivation() {
         document.getElementById('setupLicenseDisplay').textContent = currentLicenseId;
         document.getElementById('setupLicenseInfo').style.display = '';
 
+        // Always call complete_activation so the app gets the license_key
+        // and transitions from "Waiting for activation" to the next state.
+        // When enableSetup=true, the app sees completed + no configuration
+        // and shows "Waiting for Controller Setup..." until we write the config later.
+        await apiCall('complete_activation', {
+            session_id: urlSessionId,
+            license_id: currentLicenseId
+        });
+
         document.getElementById('licensePickerSection').style.display = 'none';
 
         if (!enableSetup) {
-            // No setup needed — complete activation now and show success
-            await apiCall('complete_activation', {
-                session_id: urlSessionId,
-                license_id: currentLicenseId
-            });
             showActivationOnlySuccess();
         } else if (singleStepMode) {
             document.getElementById('wizardStepper').style.display = 'flex';
