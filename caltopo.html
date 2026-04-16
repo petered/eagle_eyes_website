@@ -288,7 +288,7 @@ noindex: true
 
     <!-- Verify button -->
     <div style="text-align: center; margin-bottom: 2rem;">
-        <p style="font-size: 1.35rem; color: #777; margin-bottom: 1rem;">Once all three credential fields are filled and show a checkmark, press the button below to verify they work.</p>
+        <p style="font-size: 1.35rem; color: #777; margin-bottom: 1rem;">Once all three credential fields are filled, press the button below to verify the credentials.</p>
         <button class="ct-btn" id="ctVerifyBtn" onclick="ctVerify()" disabled>Verify &amp; Connect</button>
         <div class="ct-status" id="ctVerifyStatus"></div>
     </div>
@@ -297,7 +297,8 @@ noindex: true
     <div id="ctResult" style="display: none;">
         <div class="ct-section">
             <h2>Step 3: Transfer CalTopo Service Account to Eagle Eyes</h2>
-            <div class="ct-success-box" id="ctVerifiedBox" style="margin-bottom: 1.5rem;"></div>
+            <div class="ct-success-box" id="ctVerifiedBox" style="margin-bottom: 1rem;"></div>
+            <p style="font-size: 1.4rem; color: #333; margin-bottom: 1.5rem; line-height: 1.6;">Follow the instructions below to transfer the credentials to Eagle Eyes, depending on whether you started this process from a mobile device or from this computer.</p>
 
             <div class="ct-transfer-layout" style="display: flex; gap: 1.5rem; align-items: flex-start;">
                 <!-- Option A: Phone / QR -->
@@ -313,8 +314,11 @@ noindex: true
                 <div style="flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1.25rem;">
                     <p style="font-size: 1.4rem; margin: 0 0 0.75rem; line-height: 1.5;"><strong>Setting up from another tab on this computer?</strong></p>
                     <p style="font-size: 1.35rem; color: #555; margin: 0 0 1rem; line-height: 1.5;">Copy the code below and paste it into the credentials field in the other tab.</p>
-                    <textarea id="ctCredentialString" readonly onclick="this.select(); document.execCommand('copy'); document.getElementById('ctCopyFeedback').style.display='inline';" style="width: 100%; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 1.1rem; border: 1px solid #dee2e6; border-radius: 4px; background: white; resize: none; min-height: 80px; cursor: pointer; color: #555;"></textarea>
-                    <span id="ctCopyFeedback" style="display: none; color: #1e8e3e; font-size: 1.2rem; margin-top: 0.3rem;">Copied!</span>
+                    <textarea id="ctCredentialString" readonly onclick="ctCopyCode()" style="width: 100%; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 1.1rem; border: 1px solid #dee2e6; border-radius: 4px; background: white; resize: none; min-height: 80px; cursor: pointer; color: #555;"></textarea>
+                    <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <button onclick="ctCopyCode()" style="padding: 6px 16px; background: #e9ecef; color: #333; border: none; border-radius: 4px; font-size: 1.3rem; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.background='#1e90ff'; this.style.color='white';" onmouseup="this.style.background='#e9ecef'; this.style.color='#333';" onmouseleave="this.style.background='#e9ecef'; this.style.color='#333';">Copy code</button>
+                        <span id="ctCopyFeedback" style="display: none; color: #1e8e3e; font-size: 1.2rem;">Copied!</span>
+                    </div>
                 </div>
             </div>
 
@@ -489,7 +493,7 @@ noindex: true
 
     function renderSuccess(data) {
         var box = document.getElementById('ctVerifiedBox');
-        var html = '<strong>CalTopo Service Account verification successful.</strong> Follow the instructions below to transfer the credentials to Eagle Eyes.';
+        var html = '<span style="color: #333;">We verified your CalTopo Service Account exists and has the right permission level.</span>';
         if (data.teamName) html += '<div class="ct-detail-row"><span class="label">Team:</span><span>' + escapeHtml(data.teamName) + '</span></div>';
         if (data.title) html += '<div class="ct-detail-row"><span class="label">Account:</span><span>' + escapeHtml(data.title) + '</span></div>';
         if (data.permission) html += '<div class="ct-detail-row"><span class="label">Permission:</span><span>' + escapeHtml(data.permission) + '</span></div>';
@@ -517,6 +521,15 @@ noindex: true
             document.getElementById('ctResult').scrollIntoView({ behavior: 'smooth' });
         }, 100);
     }
+
+    window.ctCopyCode = function() {
+        var el = document.getElementById('ctCredentialString');
+        el.select();
+        document.execCommand('copy');
+        var fb = document.getElementById('ctCopyFeedback');
+        fb.style.display = 'inline';
+        setTimeout(function() { fb.style.display = 'none'; }, 2000);
+    };
 
     window.ctDownloadJson = function() {
         if (!verifiedData) return;
