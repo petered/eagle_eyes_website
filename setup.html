@@ -1383,6 +1383,7 @@ var urlSetupType = urlSetupParams.get('setup_type') || '';
 if (urlSetupType === 'caltopo') caltopoOnly = true;
 else if (urlSetupType === 'procedures') proceduresOnly = true;
 var singleStepMode = caltopoOnly || proceduresOnly;
+var enableSetup = true;
 var introShown = false;
 
 var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
@@ -1458,6 +1459,9 @@ async function handleSetupCode() {
                 singleStepMode = true;
             }
 
+            // Track whether setup is enabled for this session
+            enableSetup = !!(data.enable_setup || singleStepMode);
+
             // Check email matches activation
             if (data.email && user.email && data.email !== user.email) {
                 showStatus('setupCodeStatus', 'You are signed in as ' + user.email + ' but this code was activated by ' + data.email + '. Please sign in with the correct account.', 'error');
@@ -1477,12 +1481,15 @@ async function handleSetupCode() {
             document.getElementById('setupUserInfo').style.display = 'flex';
 
             if (!currentLicenseId) {
-                // No license yet — show license picker (stepper shown after activation)
+                // No license yet — show license picker
                 showLicensePicker();
+            } else if (!enableSetup) {
+                // License known, no setup needed — activation is already done, show success
+                showActivationOnlySuccess();
             } else {
-                // License known (activation already done) — show stepper + intro
+                // License known, setup enabled — show stepper + intro
                 document.getElementById('wizardStepper').style.display = 'flex';
-                showIntroScreen(null); // loading state
+                showIntroScreen(null);
                 loadConfigurationsForIntro();
             }
         } else {
@@ -1768,24 +1775,25 @@ async function lpConfirmActivation() {
     document.getElementById('lpActivationLoading').style.display = 'block';
 
     try {
-        // Don't call complete_activation here — it flips the session to "completed"
-        // and the app finishes before the user has gone through the setup wizard.
-        // complete_activation is called later in saveConfiguration or introSelectConfig.
         currentLicenseId = lpSelectedLicense;
         document.getElementById('setupLicenseInput').value = currentLicenseId;
         document.getElementById('setupLicenseDisplay').textContent = currentLicenseId;
         document.getElementById('setupLicenseInfo').style.display = '';
 
-        // Now show the stepper (activation is complete)
-        document.getElementById('wizardStepper').style.display = 'flex';
-
-        // Hide license picker, show intro/config wizard
         document.getElementById('licensePickerSection').style.display = 'none';
 
-        if (singleStepMode) {
-            // CalTopo-only or procedures-only — go straight to config form
+        if (!enableSetup) {
+            // No setup needed — complete activation now and show success
+            await apiCall('complete_activation', {
+                session_id: urlSessionId,
+                license_id: currentLicenseId
+            });
+            showActivationOnlySuccess();
+        } else if (singleStepMode) {
+            document.getElementById('wizardStepper').style.display = 'flex';
             showConfigForm();
         } else {
+            document.getElementById('wizardStepper').style.display = 'flex';
             showIntroScreen(null);
             loadConfigurationsForIntro();
         }
@@ -2242,6 +2250,17 @@ function createNewConfiguration() {
     clearForm();
     document.getElementById('setupName').value = getDefaultName();
     showConfigForm();
+}
+
+function showActivationOnlySuccess() {
+    document.getElementById('setupForm').style.display = 'none';
+    document.getElementById('setupIntro').style.display = 'none';
+    document.getElementById('licensePickerSection').style.display = 'none';
+    document.getElementById('setupHeader').style.display = 'none';
+    document.getElementById('wizardStepper').style.display = 'none';
+    document.getElementById('saveSuccessTitle').textContent = 'Activation complete!';
+    document.getElementById('saveSuccessMessage').innerHTML = 'Your license has been activated. Go back to your device and verify that the activation was successful.';
+    document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
 function showSaveSuccess() {
