@@ -174,10 +174,23 @@ permalink: /setup/
         color: transparent;
         transition: all 0.2s;
     }
+    .optional-toggle.active .toggle-status {
+        border-color: #1e90ff;
+        background: #1e90ff;
+        color: transparent;
+        box-shadow: inset 0 0 0 4px white, inset 0 0 0 6px #1e90ff;
+    }
     .optional-toggle.filled .toggle-status {
         background: #28a745;
         border-color: #28a745;
         color: white;
+        box-shadow: none;
+    }
+    .optional-toggle.filled.active .toggle-status {
+        background: #28a745;
+        border-color: #28a745;
+        color: white;
+        box-shadow: none;
     }
     .optional-toggle .toggle-label {
         font-size: 1.7rem;
@@ -1370,7 +1383,7 @@ permalink: /setup/
         <!-- Bottom actions (visible in all-steps form mode) -->
         <div id="formBottomActions" style="display: none; margin-top: 2.5rem; padding-top: 1.5rem;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem;">
-                <button class="setup-btn setup-btn-primary" id="formSaveAllBtn" onclick="saveConfiguration()" style="min-width: 220px; padding: 12px 32px; font-size: 1.6rem;">Save Setup</button>
+                <button class="setup-btn" id="formSaveAllBtn" onclick="saveConfiguration()" style="min-width: 220px; padding: 12px 32px; font-size: 1.6rem; background-color: #28a745; color: white; box-shadow: 0 2px 8px rgba(40,167,69,0.25);">Save Setup</button>
                 <a href="#" onclick="showConfigList(); return false;" style="color: #888; font-size: 1.4rem; text-decoration: none;">Cancel</a>
             </div>
             <div id="formDeleteAction" style="display: none; text-align: center; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
@@ -2480,34 +2493,61 @@ function showAllFormSteps() {
 var sectionExpanded = { units: false, caltopo: false, procedures: false };
 
 function toggleSection(type) {
-    sectionExpanded[type] = !sectionExpanded[type];
-    var expanded = sectionExpanded[type];
+    var wasExpanded = sectionExpanded[type];
 
+    // Collapse all sections first (accordion)
+    collapseSection('units');
+    collapseSection('caltopo');
+    collapseSection('procedures');
+
+    // Toggle the clicked one
+    if (!wasExpanded) {
+        sectionExpanded[type] = true;
+        expandSection(type);
+    }
+}
+
+function expandSection(type) {
+    sectionExpanded[type] = true;
     if (type === 'units') {
-        document.getElementById('unitsContent').style.display = expanded ? 'block' : 'none';
-        document.getElementById('unitsToggle').classList.toggle('active', expanded);
+        document.getElementById('unitsContent').style.display = 'block';
+        document.getElementById('unitsToggle').classList.add('active');
     } else if (type === 'caltopo') {
         var toggle = document.getElementById('ctToggle');
         var summaryEl = document.getElementById('ctExistingSummary');
         var noAccountEl = document.getElementById('ctNoAccount');
         var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
-        toggle.classList.toggle('active', expanded);
-
+        toggle.classList.add('active');
         if (hasAccount) {
-            summaryEl.style.display = expanded ? 'block' : 'none';
+            summaryEl.style.display = 'block';
             noAccountEl.style.display = 'none';
-            document.getElementById('formStep3').style.display = 'none';
-            if (expanded) ctRefreshMaps();
+            ctRefreshMaps();
         } else {
             summaryEl.style.display = 'none';
-            noAccountEl.style.display = expanded ? 'block' : 'none';
-            document.getElementById('formStep3').style.display = 'none';
+            noAccountEl.style.display = 'block';
         }
+        document.getElementById('formStep3').style.display = 'none';
     } else if (type === 'procedures') {
-        document.getElementById('procContent').style.display = expanded ? 'block' : 'none';
-        document.getElementById('procToggleWrap').classList.toggle('active', expanded);
+        document.getElementById('procContent').style.display = 'block';
+        document.getElementById('procToggleWrap').classList.add('active');
     }
     updateToggleState(type);
+}
+
+function collapseSection(type) {
+    sectionExpanded[type] = false;
+    if (type === 'units') {
+        document.getElementById('unitsContent').style.display = 'none';
+        document.getElementById('unitsToggle').classList.remove('active');
+    } else if (type === 'caltopo') {
+        document.getElementById('ctExistingSummary').style.display = 'none';
+        document.getElementById('ctNoAccount').style.display = 'none';
+        document.getElementById('formStep3').style.display = 'none';
+        document.getElementById('ctToggle').classList.remove('active');
+    } else if (type === 'procedures') {
+        document.getElementById('procContent').style.display = 'none';
+        document.getElementById('procToggleWrap').classList.remove('active');
+    }
 }
 
 function updateToggleState(type) {
