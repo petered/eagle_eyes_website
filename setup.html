@@ -156,13 +156,28 @@ permalink: /setup/
         background: #f0f7ff;
         border-color: #b3d4fc;
     }
-    .optional-toggle input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        margin-top: 3px;
-        accent-color: #1e90ff;
-        cursor: pointer;
+    .optional-toggle.filled {
+        background: #f0faf2;
+        border-color: #a8dab5;
+    }
+    .optional-toggle .toggle-status {
+        width: 22px;
+        height: 22px;
+        margin-top: 2px;
         flex-shrink: 0;
+        border-radius: 50%;
+        border: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: transparent;
+        transition: all 0.2s;
+    }
+    .optional-toggle.filled .toggle-status {
+        background: #28a745;
+        border-color: #28a745;
+        color: white;
     }
     .optional-toggle .toggle-label {
         font-size: 1.7rem;
@@ -1116,8 +1131,8 @@ permalink: /setup/
         <div id="optionalSectionsLabel" style="display: none; font-size: 1.5rem; color: #555; margin-bottom: 1rem;">Select what to include in this setup:</div>
 
         <!-- Units & Coordinate System toggle -->
-        <div class="optional-toggle" id="unitsToggle" style="display: none;" onclick="document.getElementById('unitsToggleCheck').checked = !document.getElementById('unitsToggleCheck').checked; toggleOptionalSection('units');">
-            <input type="checkbox" id="unitsToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('units')">
+        <div class="optional-toggle" id="unitsToggle" style="display: none;" onclick="toggleSection('units');">
+            <div class="toggle-status">&#10003;</div>
             <div style="flex: 1;">
                 <div class="toggle-label">Units &amp; Coordinate System</div>
                 <div class="toggle-desc">Set measurement units and coordinate format</div>
@@ -1125,14 +1140,16 @@ permalink: /setup/
                 <div id="unitsContent" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
                     <div class="setup-field">
                         <label for="setupUnits">Units</label>
-                        <select id="setupUnits">
+                        <select id="setupUnits" onchange="updateToggleState('units')">
+                            <option value="">Select units...</option>
                             <option value="IMPERIAL">US / Imperial (ft, mph)</option>
                             <option value="METRIC">Metric (m, km/h)</option>
                         </select>
                     </div>
                     <div class="setup-field">
                         <label for="setupCoordsys">Coordinate System</label>
-                        <select id="setupCoordsys">
+                        <select id="setupCoordsys" onchange="updateToggleState('units')">
+                            <option value="">Select coordinate system...</option>
                             <option value="DD">Decimal Degrees (DD) — e.g. 38.8977, -77.0365</option>
                             <option value="DDM">Degrees Decimal Minutes (DDM) — e.g. 38°53.862'N 77°02.190'W</option>
                             <option value="DMS">Degrees Minutes Seconds (DMS) — e.g. 38°53'51.7"N 77°02'11.4"W</option>
@@ -1155,8 +1172,8 @@ permalink: /setup/
         </div>
 
         <!-- CalTopo toggle + content (form mode only) -->
-        <div class="optional-toggle" id="ctToggle" style="display: none;" onclick="document.getElementById('ctToggleCheck').checked = !document.getElementById('ctToggleCheck').checked; toggleOptionalSection('caltopo');">
-            <input type="checkbox" id="ctToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('caltopo')">
+        <div class="optional-toggle" id="ctToggle" style="display: none;" onclick="toggleSection('caltopo');">
+            <div class="toggle-status">&#10003;</div>
             <div style="flex: 1;">
                 <div class="toggle-label">CalTopo Service Account</div>
                 <div class="toggle-desc">Keep your controller permanently connected to CalTopo</div>
@@ -1186,23 +1203,38 @@ permalink: /setup/
 
                 <!-- Folds out inside the same container when checked: no account yet -->
                 <div id="ctNoAccount" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;"><strong>Keep this page open.</strong> In a new browser window, go to:</p>
-                    <div style="margin-bottom: 1rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
-                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, you can transfer the CalTopo service account credentials back here:</p>
+                    <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">A CalTopo service account keeps your controller permanently connected to CalTopo, so you don't have to log in manually every few days.</p>
 
-                    <div style="margin-top: 0.75rem;">
-                        <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%; max-width: 320px;">Scan QR Code</button>
-                        <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">I'm on my phone — scan the QR code from my laptop screen</div>
+                    <!-- Device selection -->
+                    <div style="font-size: 1.4rem; color: #333; margin-bottom: 0.75rem;">I'm viewing this page on:</div>
+                    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                        <button class="setup-btn" id="ctDeviceMobile" onclick="ctSelectDevice('mobile')" style="flex: 1; padding: 10px; font-size: 1.4rem; background: #e9ecef; color: #333; border: 2px solid transparent;">A phone</button>
+                        <button class="setup-btn" id="ctDeviceDesktop" onclick="ctSelectDevice('desktop')" style="flex: 1; padding: 10px; font-size: 1.4rem; background: #e9ecef; color: #333; border: 2px solid transparent;">A laptop / desktop</button>
                     </div>
 
-                    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                        <div style="font-size: 1.35rem; color: #333; margin-bottom: 0.5rem;">Or paste the credentials code from the setup page:</div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="ctPasteField" placeholder="Paste credentials here" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1.4rem; font-family: monospace; background: #fafbfc;">
-                            <button class="setup-btn setup-btn-outline" onclick="handleCtPasteField()" style="white-space: nowrap;">Verify</button>
+                    <!-- Mobile instructions -->
+                    <div id="ctMobileInstructions" style="display: none;">
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;"><strong>We recommend setting up the CalTopo service account from a desktop or laptop computer.</strong></p>
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Keep this page open and open a browser on your desktop or laptop. Go to:</p>
+                        <div style="margin-bottom: 0.75rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form you will see a QR code. Scan it here:</p>
+                        <div>
+                            <button class="setup-btn setup-btn-primary" onclick="openCaltopoQrScanner()" style="width: 100%; max-width: 320px;">Scan QR Code</button>
                         </div>
-                        <div style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;">If you set up CalTopo on this computer</div>
+                    </div>
+
+                    <!-- Desktop instructions -->
+                    <div id="ctDesktopInstructions" style="display: none;">
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Keep this page open and open another tab in your browser. Go to:</p>
+                        <div style="margin-bottom: 0.75rem;"><a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 700; font-size: 1.7rem;">EagleEyesSearch.com/caltopo</a></div>
+                        <p style="font-size: 1.5rem; color: #333; margin: 0 0 1rem; line-height: 1.6;">After completing the form, copy the credentials code and paste it here:</p>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="ctPasteField" readonly placeholder="Click Paste to fill" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1.3rem; font-family: monospace; background: #fafbfc;">
+                            <button class="setup-btn setup-btn-outline" onclick="ctPasteFromClipboard()" style="white-space: nowrap;">Paste</button>
+                        </div>
+                        <div>
+                            <button class="setup-btn setup-btn-primary" onclick="handleCtPasteField()" style="width: 100%; max-width: 320px; margin-top: 0.5rem;">Verify</button>
+                        </div>
                         <div id="ctPasteError" style="display: none; font-size: 1.3rem; color: #d93025; margin-top: 0.5rem;"></div>
                     </div>
                 </div>
@@ -1307,8 +1339,8 @@ permalink: /setup/
         </div>
 
         <!-- Procedures toggle + content -->
-        <div class="optional-toggle" id="procToggleWrap" style="display: none;" onclick="document.getElementById('procToggleCheck').checked = !document.getElementById('procToggleCheck').checked; toggleOptionalSection('procedures');">
-            <input type="checkbox" id="procToggleCheck" onclick="event.stopPropagation();" onchange="toggleOptionalSection('procedures')">
+        <div class="optional-toggle" id="procToggleWrap" style="display: none;" onclick="toggleSection('procedures');">
+            <div class="toggle-status">&#10003;</div>
             <div style="flex: 1;">
                 <div class="toggle-label">Procedures &amp; Emergency Contacts</div>
                 <div class="toggle-desc">Store procedures and contact info accessible from the controller</div>
@@ -1316,12 +1348,12 @@ permalink: /setup/
                 <div id="procContent" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
                     <div class="setup-field">
                         <label for="setupProceduresText">Procedures &amp; Emergency Contacts</label>
-                        <textarea id="setupProceduresText" placeholder="Enter emergency procedures and contact information..." style="min-height: 160px; width: 100%; box-sizing: border-box;"></textarea>
+                        <textarea id="setupProceduresText" placeholder="Enter emergency procedures and contact information..." style="min-height: 160px; width: 100%; box-sizing: border-box;" oninput="updateToggleState('procedures')"></textarea>
                     </div>
                     <div class="setup-field">
                         <label for="setupProceduresLink">Link to Full Document</label>
                         <p style="font-size: 1.3rem; color: #888; margin-bottom: 0.5rem;">This URL will be converted into a QR code on the controller.</p>
-                        <input type="url" id="setupProceduresLink" placeholder="https://docs.google.com/...">
+                        <input type="url" id="setupProceduresLink" placeholder="https://docs.google.com/..." oninput="updateToggleState('procedures')">
                     </div>
                 </div>
             </div>
@@ -2392,17 +2424,43 @@ function showAllFormSteps() {
     document.getElementById('ctToggle').style.display = '';
     document.getElementById('procToggleWrap').style.display = '';
 
-    // Auto-expand if existing data is present
-    var hasUnits = (document.getElementById('setupUnits').value !== 'IMPERIAL' || document.getElementById('setupCoordsys').value !== 'DD');
+    // Auto-expand sections that already have data
+    var hasUnits = document.getElementById('setupUnits').value !== '' && document.getElementById('setupCoordsys').value !== '';
     var hasCaltopo = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
     var hasProcs = !!(document.getElementById('setupProceduresText').value || document.getElementById('setupProceduresLink').value);
 
-    document.getElementById('unitsToggleCheck').checked = hasUnits;
-    document.getElementById('ctToggleCheck').checked = hasCaltopo;
-    document.getElementById('procToggleCheck').checked = hasProcs;
-    toggleOptionalSection('units');
-    toggleOptionalSection('caltopo');
-    toggleOptionalSection('procedures');
+    // Reset expanded states
+    sectionExpanded = { units: false, caltopo: false, procedures: false };
+    // Expand sections with existing data
+    if (hasUnits) { sectionExpanded.units = true; }
+    if (hasCaltopo) { sectionExpanded.caltopo = true; }
+    if (hasProcs) { sectionExpanded.procedures = true; }
+
+    // Apply expand states
+    document.getElementById('unitsContent').style.display = sectionExpanded.units ? 'block' : 'none';
+    document.getElementById('unitsToggle').classList.toggle('active', sectionExpanded.units);
+    document.getElementById('procContent').style.display = sectionExpanded.procedures ? 'block' : 'none';
+    document.getElementById('procToggleWrap').classList.toggle('active', sectionExpanded.procedures);
+
+    // CalTopo expand
+    var summaryEl = document.getElementById('ctExistingSummary');
+    var noAccountEl = document.getElementById('ctNoAccount');
+    if (hasCaltopo) {
+        summaryEl.style.display = 'block';
+        noAccountEl.style.display = 'none';
+        document.getElementById('ctToggle').classList.add('active');
+    } else if (sectionExpanded.caltopo) {
+        summaryEl.style.display = 'none';
+        noAccountEl.style.display = 'block';
+        document.getElementById('ctToggle').classList.add('active');
+    } else {
+        summaryEl.style.display = 'none';
+        noAccountEl.style.display = 'none';
+    }
+    document.getElementById('formStep3').style.display = 'none';
+
+    // Set green states
+    updateAllToggleStates();
 
     // Hide per-step Next/Back/Save buttons
     document.querySelectorAll('.form-step .form-step-actions').forEach(function(el) {
@@ -2418,45 +2476,62 @@ function showAllFormSteps() {
     document.getElementById('formDeleteAction').style.display = isEditing ? 'block' : 'none';
 }
 
-function toggleOptionalSection(type) {
-    if (type === 'caltopo') {
-        var checked = document.getElementById('ctToggleCheck').checked;
+// Track which sections are expanded
+var sectionExpanded = { units: false, caltopo: false, procedures: false };
+
+function toggleSection(type) {
+    sectionExpanded[type] = !sectionExpanded[type];
+    var expanded = sectionExpanded[type];
+
+    if (type === 'units') {
+        document.getElementById('unitsContent').style.display = expanded ? 'block' : 'none';
+        document.getElementById('unitsToggle').classList.toggle('active', expanded);
+    } else if (type === 'caltopo') {
         var toggle = document.getElementById('ctToggle');
         var summaryEl = document.getElementById('ctExistingSummary');
         var noAccountEl = document.getElementById('ctNoAccount');
         var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
-        toggle.classList.toggle('active', checked);
+        toggle.classList.toggle('active', expanded);
 
         if (hasAccount) {
-            summaryEl.style.display = checked ? 'block' : 'none';
+            summaryEl.style.display = expanded ? 'block' : 'none';
             noAccountEl.style.display = 'none';
             document.getElementById('formStep3').style.display = 'none';
-            if (checked) ctRefreshMaps();
+            if (expanded) ctRefreshMaps();
         } else {
             summaryEl.style.display = 'none';
-            noAccountEl.style.display = checked ? 'block' : 'none';
+            noAccountEl.style.display = expanded ? 'block' : 'none';
             document.getElementById('formStep3').style.display = 'none';
-            if (checked) {
-                var mobile = isMobileDevice();
-                var handoff = document.getElementById('ctMobileHandoff');
-                var intro = document.getElementById('ctDesktopIntro');
-                if (handoff) handoff.style.display = mobile ? 'block' : 'none';
-                if (intro) intro.style.display = mobile ? 'none' : 'block';
-            }
         }
-    } else if (type === 'units') {
-        var checked = document.getElementById('unitsToggleCheck').checked;
-        var content = document.getElementById('unitsContent');
-        var toggle = document.getElementById('unitsToggle');
-        content.style.display = checked ? 'block' : 'none';
-        toggle.classList.toggle('active', checked);
     } else if (type === 'procedures') {
-        var checked = document.getElementById('procToggleCheck').checked;
-        var content = document.getElementById('procContent');
-        var toggle = document.getElementById('procToggleWrap');
-        content.style.display = checked ? 'block' : 'none';
-        toggle.classList.toggle('active', checked);
+        document.getElementById('procContent').style.display = expanded ? 'block' : 'none';
+        document.getElementById('procToggleWrap').classList.toggle('active', expanded);
     }
+    updateToggleState(type);
+}
+
+function updateToggleState(type) {
+    var filled = false;
+    var toggleEl;
+
+    if (type === 'units') {
+        toggleEl = document.getElementById('unitsToggle');
+        filled = document.getElementById('setupUnits').value !== '' && document.getElementById('setupCoordsys').value !== '';
+    } else if (type === 'caltopo') {
+        toggleEl = document.getElementById('ctToggle');
+        filled = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
+    } else if (type === 'procedures') {
+        toggleEl = document.getElementById('procToggleWrap');
+        filled = !!(document.getElementById('setupProceduresText').value.trim() || document.getElementById('setupProceduresLink').value.trim());
+    }
+
+    if (toggleEl) toggleEl.classList.toggle('filled', filled);
+}
+
+function updateAllToggleStates() {
+    updateToggleState('units');
+    updateToggleState('caltopo');
+    updateToggleState('procedures');
 }
 
 var currentEditIndex = null;
@@ -2677,15 +2752,38 @@ function ctStartChange() {
 }
 
 // Paste credentials from the /caltopo/ page JSON download
-// Enter key on paste field triggers verify
-document.addEventListener('DOMContentLoaded', function() {
-    var pasteField = document.getElementById('ctPasteField');
-    if (pasteField) {
-        pasteField.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); handleCtPasteField(); }
-        });
+function ctSelectDevice(type) {
+    var mobileBtn = document.getElementById('ctDeviceMobile');
+    var desktopBtn = document.getElementById('ctDeviceDesktop');
+    var mobileInst = document.getElementById('ctMobileInstructions');
+    var desktopInst = document.getElementById('ctDesktopInstructions');
+
+    mobileBtn.style.background = type === 'mobile' ? '#1e90ff' : '#e9ecef';
+    mobileBtn.style.color = type === 'mobile' ? 'white' : '#333';
+    mobileBtn.style.borderColor = type === 'mobile' ? '#1e90ff' : 'transparent';
+    desktopBtn.style.background = type === 'desktop' ? '#1e90ff' : '#e9ecef';
+    desktopBtn.style.color = type === 'desktop' ? 'white' : '#333';
+    desktopBtn.style.borderColor = type === 'desktop' ? '#1e90ff' : 'transparent';
+
+    mobileInst.style.display = type === 'mobile' ? 'block' : 'none';
+    desktopInst.style.display = type === 'desktop' ? 'block' : 'none';
+}
+
+async function ctPasteFromClipboard() {
+    var field = document.getElementById('ctPasteField');
+    var errorEl = document.getElementById('ctPasteError');
+    errorEl.style.display = 'none';
+    try {
+        var text = await navigator.clipboard.readText();
+        field.value = text.trim();
+    } catch (e) {
+        errorEl.textContent = 'Could not access clipboard. Please paste manually into the field (Ctrl+V / Cmd+V).';
+        errorEl.style.display = 'block';
+        field.readOnly = false;
+        field.placeholder = 'Paste here with Ctrl+V / Cmd+V';
+        field.focus();
     }
-});
+}
 
 function handleCtPasteField() {
     var input = document.getElementById('ctPasteField').value.trim();
@@ -3222,9 +3320,12 @@ function buildConfigBody() {
         if (proceduresLink) body.config.procedures_link = proceduresLink;
     } else {
         // Full setup: only include sections the user checked
-        var unitsChecked = !document.getElementById('unitsToggleCheck') || document.getElementById('unitsToggleCheck').checked;
-        var ctChecked = !document.getElementById('ctToggleCheck') || document.getElementById('ctToggleCheck').checked;
-        var procChecked = !document.getElementById('procToggleCheck') || document.getElementById('procToggleCheck').checked;
+        var unitsFilled = document.getElementById('unitsToggle') && document.getElementById('unitsToggle').classList.contains('filled');
+        var ctFilled = document.getElementById('ctToggle') && document.getElementById('ctToggle').classList.contains('filled');
+        var procFilled = document.getElementById('procToggleWrap') && document.getElementById('procToggleWrap').classList.contains('filled');
+        var unitsChecked = unitsFilled;
+        var ctChecked = ctFilled;
+        var procChecked = procFilled;
 
         if (unitsChecked) {
             body.config.units = document.getElementById('setupUnits').value;
