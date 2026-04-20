@@ -1241,10 +1241,17 @@ noindex: true
                 Store and share your setup — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
             </p>
             <div id="introExistingConfigs"></div>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+            <p style="font-size: 1.25rem; color: #888; line-height: 1.5; margin: 1.25rem 0 0.75rem;">
+                This step is optional — you can also configure later.
+            </p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.25rem;">
                 <button class="setup-btn setup-btn-primary" id="introSetupBtn" onclick="introSetupController()">Set Up Controller</button>
-                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip</button>
+                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip setup</button>
             </div>
+            <p id="introSkipHint" style="font-size: 1.2rem; color: #888; line-height: 1.5; margin: 0.5rem 0 0;">
+                Skipping keeps the controller's existing settings. You can load a saved setup later from the controller.
+            </p>
+            <div id="introStatus" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 4px; font-size: 1.3rem;"></div>
         </div>
     </div>
 
@@ -1818,8 +1825,15 @@ async function getIdToken() {
 }
 
 // API call helper
-async function apiCall(endpoint, body) {
-    var token = await getIdToken();
+async function apiCall(endpoint, body, opts) {
+    opts = opts || {};
+    var user = firebase.auth().currentUser;
+    if (!user) {
+        var authErr = new Error('Not authenticated');
+        authErr.status = 401;
+        throw authErr;
+    }
+    var token = await user.getIdToken(!!opts.forceRefreshToken);
     var response = await fetch(API_BASE + endpoint, {
         method: 'POST',
         headers: {
@@ -1830,7 +1844,9 @@ async function apiCall(endpoint, body) {
     });
     if (!response.ok) {
         var text = await response.text();
-        throw new Error(text || 'API error: ' + response.status);
+        var err = new Error(text || 'API error: ' + response.status);
+        err.status = response.status;
+        throw err;
     }
     return response.json();
 }
@@ -2267,48 +2283,94 @@ async function introSelectConfig(index) {
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
+function setIntroStatus(message, type) {
+    var el = document.getElementById('introStatus');
+    if (!el) return;
+    if (!message) {
+        el.style.display = 'none';
+        el.textContent = '';
+        return;
+    }
+    el.textContent = message;
+    el.style.display = 'block';
+    if (type === 'error') {
+        el.style.background = '#f8d7da';
+        el.style.border = '1px solid #f5c6cb';
+        el.style.color = '#721c24';
+    } else {
+        el.style.background = '#e2e3e5';
+        el.style.border = '1px solid #d6d8db';
+        el.style.color = '#383d41';
+    }
+}
+
 async function introSkip() {
     var skipBtn = document.getElementById('introSkipBtn');
     var setupBtn = document.getElementById('introSetupBtn');
-    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip';
+    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip setup';
+    setIntroStatus('', null);
     if (skipBtn) {
         skipBtn.disabled = true;
-        skipBtn.textContent = 'Finishing…';
+        skipBtn.textContent = 'Skipping…';
     }
     if (setupBtn) setupBtn.disabled = true;
 
-    var hadActivation = !!(urlSessionId && currentLicenseId);
+    var hadActivation = !!urlSessionId;
+    var showSkippedSuccess = function() {
+        document.getElementById('setupIntro').style.display = 'none';
+        document.getElementById('activationSuccessBanner').style.display = 'none';
+        document.getElementById('saveSuccessTitle').textContent = hadActivation ? 'Skipped!' : 'Setup complete!';
+        document.getElementById('saveSuccessMessage').innerHTML = hadActivation
+            ? 'Your controller will continue with its existing settings. You can close this window or continue to manage your Controller Setup.'
+            : 'You can close this window or continue to manage your Controller Setup.';
+        document.getElementById('saveSuccessScreen').style.display = 'block';
+        window.scrollTo(0, 0);
+    };
 
-    if (hadActivation) {
-        try {
-            await apiCall('complete_activation', {
-                session_id: urlSessionId,
-                license_id: currentLicenseId
-            });
-        } catch (activationErr) {
-            console.error('Error completing activation on skip:', activationErr);
-            if (skipBtn) {
-                skipBtn.disabled = false;
-                skipBtn.textContent = originalSkipText;
+    if (!hadActivation) {
+        showSkippedSuccess();
+        return;
+    }
+
+    var restoreButtons = function() {
+        if (skipBtn) {
+            skipBtn.disabled = false;
+            skipBtn.textContent = originalSkipText;
+        }
+        if (setupBtn) setupBtn.disabled = false;
+    };
+
+    var callSkip = function(forceRefreshToken) {
+        return apiCall('skip_activation_configuration_endpoint', { session_id: urlSessionId }, { forceRefreshToken: forceRefreshToken });
+    };
+
+    try {
+        await callSkip(false);
+        showSkippedSuccess();
+        return;
+    } catch (err) {
+        console.error('Skip activation configuration failed:', err);
+        if (err && err.status === 401) {
+            try {
+                await callSkip(true);
+                showSkippedSuccess();
+                return;
+            } catch (retryErr) {
+                console.error('Skip retry after token refresh failed:', retryErr);
+                restoreButtons();
+                setIntroStatus('Your sign-in has expired. Please sign in again and try Skip once more.', 'error');
+                return;
             }
-            if (setupBtn) setupBtn.disabled = false;
-            alert('Error completing activation: ' + (activationErr && activationErr.message ? activationErr.message : 'Unknown error'));
+        }
+        if (err && err.status === 404) {
+            if (skipBtn) skipBtn.style.display = 'none';
+            if (setupBtn) setupBtn.style.display = 'none';
+            setIntroStatus('This session has expired.', 'error');
             return;
         }
+        restoreButtons();
+        setIntroStatus('Could not skip setup. Please try again.', 'error');
     }
-
-    document.getElementById('setupIntro').style.display = 'none';
-    document.getElementById('activationSuccessBanner').style.display = 'none';
-
-    if (hadActivation) {
-        document.getElementById('saveSuccessTitle').textContent = 'Activation complete!';
-        document.getElementById('saveSuccessMessage').innerHTML = 'Your license is activated. You can close this window or continue to manage your Controller Setup.';
-    } else {
-        document.getElementById('saveSuccessTitle').textContent = 'Setup complete!';
-        document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window or continue to manage your Controller Setup.';
-    }
-    document.getElementById('saveSuccessScreen').style.display = 'block';
-    window.scrollTo(0, 0);
 }
 
 // --- Configuration list ---
