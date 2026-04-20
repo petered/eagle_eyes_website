@@ -3335,6 +3335,7 @@ async function ctRefreshMaps() {
     var key = document.getElementById('ctKey').value.trim();
     var accessUrlEl = document.getElementById('ctAccessUrl');
     var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
+    console.log('[ctRefreshMaps] entry:', { hasAccount: !!accountId, hasCred: !!credentialId, hasKey: !!key, hasLicense: !!currentLicenseId });
     if (!accountId || !credentialId || !key) return;
 
     var spinner = document.getElementById('ctSummaryMapSpinner');
@@ -3501,20 +3502,28 @@ function ctMapRecency(m) {
         var v = m[CT_MAP_RECENCY_CANDIDATES[i]];
         if (v == null) continue;
         var t = typeof v === 'number' ? v : Date.parse(v);
-        if (!isNaN(t)) return t;
+        if (isNaN(t)) continue;
+        // Normalize epoch seconds to ms if it looks like seconds-since-1970
+        if (t > 0 && t < 1e12) t = t * 1000;
+        return t;
     }
     return 0;
 }
 
 // One-time diagnostic: log the keys of the first loaded map so we can see
 // which timestamp field CalTopo actually returns, and narrow the helper above
-// once confirmed. Fires once per page load.
+// once confirmed. Always fires once per page load, even if maps is empty.
 var _ctMapShapeLogged = false;
 function ctLogMapShapeOnce(maps) {
-    if (_ctMapShapeLogged || !maps || !maps.length) return;
+    if (_ctMapShapeLogged) return;
     _ctMapShapeLogged = true;
-    var sample = maps[0];
     try {
+        console.log('[CalTopo maps] loaded count:', maps ? maps.length : 0);
+        if (!maps || !maps.length) {
+            console.log('[CalTopo maps] (no maps to sample)');
+            return;
+        }
+        var sample = maps[0];
         console.log('[CalTopo maps] sample keys:', Object.keys(sample));
         console.log('[CalTopo maps] sample:', sample);
         var found = null;
@@ -3524,8 +3533,10 @@ function ctLogMapShapeOnce(maps) {
                 break;
             }
         }
-        console.log('[CalTopo maps] recency field matched:', found || '(none — sort will fall back to name)');
-    } catch (e) {}
+        console.log('[CalTopo maps] recency field matched:', found || '(none — sort falls back to alphabetical)');
+    } catch (e) {
+        console.log('[CalTopo maps] log error:', e);
+    }
 }
 
 function ctMapComboFilter(query) {
