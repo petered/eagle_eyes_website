@@ -1278,13 +1278,13 @@ document.getElementById('setupCaltopoMapUrl').addEventListener('input', function
     }
 });
 
-// Reset manual URL when user selects from dropdown
+// Reset manual URL when user changes the dropdown — including picking "None".
+// Without this, an URL pre-filled by populateForm() leaks back into the config
+// payload (with mapName=null) when the user explicitly chose "no default map".
 document.getElementById('ctMapDropdown').addEventListener('change', function() {
-    if (this.value) {
-        document.getElementById('setupCaltopoMapUrl').value = '';
-        var preview = document.getElementById('setupMapIdPreview');
-        preview.className = 'setup-status';
-    }
+    document.getElementById('setupCaltopoMapUrl').value = '';
+    document.getElementById('setupMapIdPreview').className = 'setup-status';
+    document.getElementById('setupMapIdPreview').textContent = '';
 });
 
 // --- Intro screen (shown when arriving from activation) ---
