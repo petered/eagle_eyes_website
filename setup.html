@@ -3294,7 +3294,6 @@ async function applyCaltopoCredentials(payload) {
             teamName: result.team_name || '',
             maps: result.maps || []
         };
-        ctLogMapShapeOnce(caltopoVerifiedData.maps);
 
         // Populate the main map dropdown
         populateMapDropdown(caltopoVerifiedData.maps);
@@ -3335,7 +3334,6 @@ async function ctRefreshMaps() {
     var key = document.getElementById('ctKey').value.trim();
     var accessUrlEl = document.getElementById('ctAccessUrl');
     var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
-    console.log('[ctRefreshMaps] entry:', { hasAccount: !!accountId, hasCred: !!credentialId, hasKey: !!key, hasLicense: !!currentLicenseId });
     if (!accountId || !credentialId || !key) return;
 
     var spinner = document.getElementById('ctSummaryMapSpinner');
@@ -3362,8 +3360,7 @@ async function ctRefreshMaps() {
             caltopoVerifiedData.teamAccountId = result.team_account_id || caltopoVerifiedData.teamAccountId;
             caltopoVerifiedData.teamName = result.team_name || caltopoVerifiedData.teamName;
             caltopoVerifiedData.maps = result.maps || [];
-            ctLogMapShapeOnce(caltopoVerifiedData.maps);
-
+    
             populateMapDropdown(caltopoVerifiedData.maps);
             ctMapComboPopulate();
             var count = caltopoVerifiedData.maps.length;
@@ -3510,34 +3507,6 @@ function ctMapRecency(m) {
     return 0;
 }
 
-// One-time diagnostic: log the keys of the first loaded map so we can see
-// which timestamp field CalTopo actually returns, and narrow the helper above
-// once confirmed. Always fires once per page load, even if maps is empty.
-var _ctMapShapeLogged = false;
-function ctLogMapShapeOnce(maps) {
-    if (_ctMapShapeLogged) return;
-    _ctMapShapeLogged = true;
-    try {
-        console.log('[CalTopo maps] loaded count:', maps ? maps.length : 0);
-        if (!maps || !maps.length) {
-            console.log('[CalTopo maps] (no maps to sample)');
-            return;
-        }
-        var sample = maps[0];
-        console.log('[CalTopo maps] sample keys:', Object.keys(sample));
-        console.log('[CalTopo maps] sample:', sample);
-        var found = null;
-        for (var i = 0; i < CT_MAP_RECENCY_CANDIDATES.length; i++) {
-            if (sample[CT_MAP_RECENCY_CANDIDATES[i]] != null) {
-                found = CT_MAP_RECENCY_CANDIDATES[i];
-                break;
-            }
-        }
-        console.log('[CalTopo maps] recency field matched:', found || '(none — sort falls back to alphabetical)');
-    } catch (e) {
-        console.log('[CalTopo maps] log error:', e);
-    }
-}
 
 function ctMapComboFilter(query) {
     var maps = ctMapComboAllMaps();
@@ -3864,8 +3833,7 @@ async function verifyCaltopoServiceAccount() {
                 teamName: result.team_name || '',
                 maps: result.maps || []
             };
-            ctLogMapShapeOnce(caltopoVerifiedData.maps);
-            showCaltopoVerifySuccess(caltopoVerifiedData);
+                showCaltopoVerifySuccess(caltopoVerifiedData);
             populateMapDropdown(caltopoVerifiedData.maps);
             // Advance to map selection sub-step
             setTimeout(function() { showCtSubStep(5); }, 800);
