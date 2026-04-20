@@ -1374,6 +1374,13 @@ noindex: true
                     </div>
                     <div style="font-size: 1.4rem; color: #333; line-height: 1.9;" id="ctExistingDetails"></div>
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
+                        <label for="ctAccessUrlSummary" style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Access URL <span style="font-weight: 400; color: #888;">(optional)</span></label>
+                        <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem; line-height: 1.5;">Unlocks CalTopo's drone integration — your drone appears on the shared map with live position, heading, altitude, and camera field of view, and viewers can click the pin to watch the Eagle Eyes livestream. From CalTopo: admin menu &rarr; Trackable Devices &rarr; Create new Access URL.</div>
+                        <input type="text" id="ctAccessUrlSummary" placeholder="Paste the Access URL from CalTopo" autocomplete="off" style="width: 100%; padding: 8px 10px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.35rem; box-sizing: border-box;">
+                        <div style="font-size: 1.1rem; color: #888; margin-top: 0.3rem;">Double-check the paste &mdash; we can't verify this automatically yet.</div>
+                    </div>
+
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
                         <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Select a Default Map</label>
                         <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem;">This is the map that Eagle Eyes will connect to by default, unless another map is selected.</div>
                         <div class="ct-combobox" id="ctMapCombo">
@@ -3086,6 +3093,17 @@ function setupCtFieldFormatting() {
 
     formatField(accountInput, 6, accountCount);
     formatField(credInput, 12, credCount);
+
+    // Bidirectional sync between the two Access URL inputs (wizard-substep vs
+    // connected-summary view). Only one is visible at a time, but we keep them
+    // in lockstep so every read path sees the same value regardless of which
+    // one the user typed into.
+    var accessUrlInput = document.getElementById('ctAccessUrl');
+    var accessUrlSummary = document.getElementById('ctAccessUrlSummary');
+    if (accessUrlInput && accessUrlSummary) {
+        accessUrlInput.addEventListener('input', function() { accessUrlSummary.value = accessUrlInput.value; });
+        accessUrlSummary.addEventListener('input', function() { accessUrlInput.value = accessUrlSummary.value; });
+    }
 }
 
 // Run formatting setup when DOM is ready
@@ -3176,8 +3194,11 @@ function handleCtPasteField() {
             document.getElementById('ctAccountId').value = data.accountId;
             document.getElementById('ctCredentialId').value = data.credentialId;
             document.getElementById('ctKey').value = data.secretKey;
+            var pastedAccessUrl = data.accessUrl || data.access_url || '';
             var ctAccessUrlEl = document.getElementById('ctAccessUrl');
-            if (ctAccessUrlEl) ctAccessUrlEl.value = data.accessUrl || data.access_url || '';
+            if (ctAccessUrlEl) ctAccessUrlEl.value = pastedAccessUrl;
+            var ctAccessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
+            if (ctAccessUrlSummaryEl) ctAccessUrlSummaryEl.value = pastedAccessUrl;
             ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
                 document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
             });
@@ -3658,6 +3679,8 @@ async function verifyCaltopoServiceAccount() {
     var accessUrlEl = document.getElementById('ctAccessUrl');
     var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
     if (accessUrlEl) accessUrlEl.value = accessUrl;
+    var accessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
+    if (accessUrlSummaryEl) accessUrlSummaryEl.value = accessUrl;
     var resultEl = document.getElementById('ctVerifyResult');
     var btn = document.getElementById('ctVerifyBtn');
 
@@ -3825,9 +3848,13 @@ function populateForm(config) {
         document.getElementById('ctAccountId').value = sa.accountId || '';
         document.getElementById('ctCredentialId').value = sa.credentialId || '';
         document.getElementById('ctKey').value = sa.key || '';
+        // Defensive: accept either camelCase (what we now write) or snake_case
+        // (what we briefly wrote before 2026-04-20 and may sit in old records).
+        var savedAccessUrl = sa.accessUrl || sa.access_url || '';
         var ctAccessUrlEl = document.getElementById('ctAccessUrl');
-        // Defensive: accept either snake_case (backend-preferred) or camelCase
-        if (ctAccessUrlEl) ctAccessUrlEl.value = sa.access_url || sa.accessUrl || '';
+        if (ctAccessUrlEl) ctAccessUrlEl.value = savedAccessUrl;
+        var ctAccessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
+        if (ctAccessUrlSummaryEl) ctAccessUrlSummaryEl.value = savedAccessUrl;
         // Store metadata from saved config so it's included on save
         caltopoVerifiedData = {
             title: sa.title || '',
@@ -3867,6 +3894,8 @@ function clearForm() {
     document.getElementById('ctKey').value = '';
     var ctAccessUrlEl = document.getElementById('ctAccessUrl');
     if (ctAccessUrlEl) ctAccessUrlEl.value = '';
+    var ctAccessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
+    if (ctAccessUrlSummaryEl) ctAccessUrlSummaryEl.value = '';
     caltopoVerifiedData = null;
     var ctResult = document.getElementById('ctVerifyResult');
     ctResult.className = 'caltopo-verify-result';
