@@ -142,24 +142,30 @@ noindex: true
         gap: 0.75rem;
         padding: 1rem 1.25rem;
         background: #f8f9fa;
-        border: 1px solid #e9ecef;
+        border: 1px solid #c4ddf7;
         border-radius: 4px;
         cursor: pointer;
         margin-bottom: 1.5rem;
-        transition: background 0.2s, border-color 0.2s;
+        transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
         user-select: none;
     }
     .optional-toggle:hover {
-        background: #eef1f4;
-        border-color: #dee2e6;
+        background: #eef4fc;
+        border-color: #a0c8f0;
     }
     .optional-toggle.active {
         background: #f0f7ff;
-        border-color: #b3d4fc;
+        border-color: #1e90ff;
+        box-shadow: inset 0 0 0 1px #1e90ff;
     }
     .optional-toggle.filled {
         background: #f0faf2;
         border-color: #a8dab5;
+    }
+    .optional-toggle.filled.active {
+        background: #f0f7ff;
+        border-color: #1e90ff;
+        box-shadow: inset 0 0 0 1px #1e90ff;
     }
     .optional-toggle .toggle-status {
         width: 22px;
@@ -1493,6 +1499,12 @@ noindex: true
                         <label for="ctCredentialId">Credential ID <span class="field-counter" id="ctCredentialIdCount"></span></label>
                         <input type="text" id="ctCredentialId" placeholder="e.g. Q9NVD150H92L" maxlength="12" style="text-transform: uppercase;">
                     </div>
+                </div>
+                <div class="setup-field" style="margin-top: 1rem;">
+                    <label for="ctAccessUrl">Access URL <span style="font-weight: 400; color: #888;">(optional)</span></label>
+                    <p style="font-size: 1.25rem; color: #777; margin: 0 0 0.4rem; line-height: 1.5;">Unlocks CalTopo's drone integration — your drone appears on the shared map with its live position, heading, altitude, and camera field of view, and viewers can click the drone's pin to watch the Eagle Eyes livestream.</p>
+                    <input type="text" id="ctAccessUrl" placeholder="Paste the Access URL from CalTopo" autocomplete="off">
+                    <p style="font-size: 1.2rem; color: #888; margin: 0.3rem 0 0;">From CalTopo: admin menu &rarr; Trackable Devices &rarr; Create new Access URL. We can't auto-verify it yet, so double-check the paste.</p>
                 </div>
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()" disabled>Verify &amp; Connect</button>
@@ -3164,6 +3176,8 @@ function handleCtPasteField() {
             document.getElementById('ctAccountId').value = data.accountId;
             document.getElementById('ctCredentialId').value = data.credentialId;
             document.getElementById('ctKey').value = data.secretKey;
+            var ctAccessUrlEl = document.getElementById('ctAccessUrl');
+            if (ctAccessUrlEl) ctAccessUrlEl.value = data.accessUrl || data.access_url || '';
             ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
                 document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
             });
@@ -3192,12 +3206,15 @@ async function applyCaltopoCredentials(payload) {
     toggle.querySelector('[style*="flex: 1"]').appendChild(loadingEl);
 
     try {
-        var result = await apiCall('verify_caltopo_service_account', {
+        var pasteAccessUrl = normalizeAccessUrl(payload.accessUrl || payload.access_url || '');
+        var verifyBody = {
             license_id: currentLicenseId,
             account_id: payload.accountId,
             credential_id: payload.credentialId,
             credential_secret: payload.secretKey
-        });
+        };
+        if (pasteAccessUrl) verifyBody.access_url = pasteAccessUrl;
+        var result = await apiCall('verify_caltopo_service_account', verifyBody);
 
         if (!result.success) throw new Error('Verification failed');
 
@@ -3255,6 +3272,8 @@ async function ctRefreshMaps() {
     var accountId = document.getElementById('ctAccountId').value.trim();
     var credentialId = document.getElementById('ctCredentialId').value.trim();
     var key = document.getElementById('ctKey').value.trim();
+    var accessUrlEl = document.getElementById('ctAccessUrl');
+    var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
     if (!accountId || !credentialId || !key) return;
 
     var spinner = document.getElementById('ctSummaryMapSpinner');
@@ -3266,12 +3285,14 @@ async function ctRefreshMaps() {
     if (trigger) trigger.disabled = true;
 
     try {
-        var result = await apiCall('verify_caltopo_service_account', {
+        var refreshBody = {
             license_id: currentLicenseId,
             account_id: accountId,
             credential_id: credentialId,
             credential_secret: key
-        });
+        };
+        if (accessUrl) refreshBody.access_url = accessUrl;
+        var result = await apiCall('verify_caltopo_service_account', refreshBody);
 
         if (result.success) {
             caltopoVerifiedData.title = result.title || caltopoVerifiedData.title;
@@ -3595,11 +3616,22 @@ function handleCaltopoQrPayload(text) {
     applyCaltopoCredentials(payload);
 }
 
+// Strip a known CalTopo tracking-URL prefix if the user pasted the full URL
+// instead of the bare token. No other validation — tokens can be any
+// user-renamable string, so we never reject.
+function normalizeAccessUrl(raw) {
+    var v = (raw || '').trim();
+    if (!v) return '';
+    return v.replace(/^https?:\/\/(preview\.)?caltopo\.com\/t\//i, '');
+}
+
 // Build CalTopo service account JSON from form fields + verified data
 function buildCaltopoServiceAccountJson() {
     var accountId = document.getElementById('ctAccountId').value.trim();
     var credentialId = document.getElementById('ctCredentialId').value.trim();
     var key = document.getElementById('ctKey').value.trim();
+    var accessUrlEl = document.getElementById('ctAccessUrl');
+    var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
     // If no key fields are filled, return empty string
     if (!accountId && !credentialId && !key) return '';
     var obj = {
@@ -3612,6 +3644,9 @@ function buildCaltopoServiceAccountJson() {
         teamAccountId: (caltopoVerifiedData && caltopoVerifiedData.teamAccountId) || '',
         teamName: (caltopoVerifiedData && caltopoVerifiedData.teamName) || ''
     };
+    // Store accessUrl (camelCase) to match the surrounding service_account
+    // fields; only when non-empty per omit-when-absent convention.
+    if (accessUrl) obj.accessUrl = accessUrl;
     return JSON.stringify(obj);
 }
 
@@ -3620,6 +3655,9 @@ async function verifyCaltopoServiceAccount() {
     var accountId = document.getElementById('ctAccountId').value.trim();
     var credentialId = document.getElementById('ctCredentialId').value.trim();
     var key = document.getElementById('ctKey').value.trim();
+    var accessUrlEl = document.getElementById('ctAccessUrl');
+    var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
+    if (accessUrlEl) accessUrlEl.value = accessUrl;
     var resultEl = document.getElementById('ctVerifyResult');
     var btn = document.getElementById('ctVerifyBtn');
 
@@ -3635,12 +3673,14 @@ async function verifyCaltopoServiceAccount() {
     resultEl.style.display = 'none';
 
     try {
-        var result = await apiCall('verify_caltopo_service_account', {
+        var verifyBody = {
             license_id: currentLicenseId,
             account_id: accountId,
             credential_id: credentialId,
             credential_secret: key
-        });
+        };
+        if (accessUrl) verifyBody.access_url = accessUrl;
+        var result = await apiCall('verify_caltopo_service_account', verifyBody);
 
         if (result.success) {
             var permission = result.permission || '';
@@ -3785,6 +3825,9 @@ function populateForm(config) {
         document.getElementById('ctAccountId').value = sa.accountId || '';
         document.getElementById('ctCredentialId').value = sa.credentialId || '';
         document.getElementById('ctKey').value = sa.key || '';
+        var ctAccessUrlEl = document.getElementById('ctAccessUrl');
+        // Defensive: accept either snake_case (backend-preferred) or camelCase
+        if (ctAccessUrlEl) ctAccessUrlEl.value = sa.access_url || sa.accessUrl || '';
         // Store metadata from saved config so it's included on save
         caltopoVerifiedData = {
             title: sa.title || '',
@@ -3822,6 +3865,8 @@ function clearForm() {
     document.getElementById('ctAccountId').value = '';
     document.getElementById('ctCredentialId').value = '';
     document.getElementById('ctKey').value = '';
+    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
+    if (ctAccessUrlEl) ctAccessUrlEl.value = '';
     caltopoVerifiedData = null;
     var ctResult = document.getElementById('ctVerifyResult');
     ctResult.className = 'caltopo-verify-result';
