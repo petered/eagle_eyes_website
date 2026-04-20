@@ -906,6 +906,39 @@ noindex: true
         text-decoration: underline;
     }
 
+    /* Access URL chip (filled-state view in the CalTopo edit summary) */
+    .access-url-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        background: #e8f4ff;
+        border: 1px solid #b3d4fc;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 1.3rem;
+        color: #1a1a2e;
+        max-width: calc(100% - 36px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .access-url-clear {
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: transparent;
+        color: #888;
+        font-size: 1.8rem;
+        line-height: 1;
+        cursor: pointer;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+    .access-url-clear:hover {
+        color: #dc3545;
+    }
+
     /* Searchable map combobox */
     .ct-combobox {
         position: relative;
@@ -1374,10 +1407,19 @@ noindex: true
                     </div>
                     <div style="font-size: 1.4rem; color: #333; line-height: 1.9;" id="ctExistingDetails"></div>
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
-                        <label for="ctAccessUrlSummary" style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Access URL <span style="font-weight: 400; color: #888;">(optional)</span> <span style="display: inline-block; background: #1e90ff; color: white; font-size: 1rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 4px; vertical-align: middle; letter-spacing: 0.3px;">NEW</span></label>
+                        <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Access URL <span style="font-weight: 400; color: #888;">(optional)</span> <span style="display: inline-block; background: #1e90ff; color: white; font-size: 1rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 4px; vertical-align: middle; letter-spacing: 0.3px;">NEW</span></label>
                         <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem; line-height: 1.5;">Unlocks CalTopo's dedicated drone integration — your drone appears on the shared map with live position, heading, altitude, and camera field of view, and viewers can click the pin to watch the Eagle Eyes livestream. From CalTopo: admin menu &rarr; Trackable Devices &rarr; Create new Access URL.</div>
-                        <input type="text" id="ctAccessUrlSummary" placeholder="Paste the Access URL from CalTopo" autocomplete="off" style="width: 100%; padding: 8px 10px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.35rem; box-sizing: border-box;">
-                        <div style="font-size: 1.1rem; color: #888; margin-top: 0.3rem;">Double-check the paste &mdash; we can't verify this automatically yet.</div>
+                        <div id="ctAccessUrlEmptyMode" style="display: none;">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="ctAccessUrlSummaryInput" placeholder="Paste the Access URL from CalTopo" autocomplete="off" style="flex: 1; padding: 8px 10px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.35rem; box-sizing: border-box;">
+                                <button type="button" id="ctAccessUrlSaveBtn" onclick="commitAccessUrlFromSummary()" style="padding: 6px 14px; background: #e9ecef; color: #333; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.3rem; cursor: pointer; transition: background 0.15s, border-color 0.15s;" onmouseover="this.style.background='#dee2e6';" onmouseout="this.style.background='#e9ecef';">Save</button>
+                            </div>
+                            <div style="font-size: 1.1rem; color: #888; margin-top: 0.3rem;">Double-check the paste &mdash; we can't verify this automatically yet.</div>
+                        </div>
+                        <div id="ctAccessUrlFilledMode" style="display: none; align-items: center; gap: 0.4rem;">
+                            <span class="access-url-chip" id="ctAccessUrlChip"></span>
+                            <button type="button" class="access-url-clear" onclick="clearAccessUrlFromSummary()" aria-label="Remove access URL" title="Remove">&times;</button>
+                        </div>
                     </div>
 
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
@@ -2817,6 +2859,9 @@ function showAllFormSteps() {
         summaryEl.style.display = 'block';
         noAccountEl.style.display = 'none';
         document.getElementById('ctToggle').classList.add('active');
+        // Fetch fresh maps so the default-map combobox isn't empty when the
+        // user opens it; saved configs don't include the maps list.
+        ctRefreshMaps();
     } else if (sectionExpanded.caltopo) {
         summaryEl.style.display = 'none';
         noAccountEl.style.display = 'block';
@@ -3094,15 +3139,11 @@ function setupCtFieldFormatting() {
     formatField(accountInput, 6, accountCount);
     formatField(credInput, 12, credCount);
 
-    // Bidirectional sync between the two Access URL inputs (wizard-substep vs
-    // connected-summary view). Only one is visible at a time, but we keep them
-    // in lockstep so every read path sees the same value regardless of which
-    // one the user typed into.
+    // Keep the summary's chip vs. empty-input mode in sync with the wizard
+    // input whenever the user types/edits it directly.
     var accessUrlInput = document.getElementById('ctAccessUrl');
-    var accessUrlSummary = document.getElementById('ctAccessUrlSummary');
-    if (accessUrlInput && accessUrlSummary) {
-        accessUrlInput.addEventListener('input', function() { accessUrlSummary.value = accessUrlInput.value; });
-        accessUrlSummary.addEventListener('input', function() { accessUrlInput.value = accessUrlSummary.value; });
+    if (accessUrlInput) {
+        accessUrlInput.addEventListener('input', renderAccessUrlSummaryMode);
     }
 }
 
@@ -3197,8 +3238,7 @@ function handleCtPasteField() {
             var pastedAccessUrl = data.accessUrl || data.access_url || '';
             var ctAccessUrlEl = document.getElementById('ctAccessUrl');
             if (ctAccessUrlEl) ctAccessUrlEl.value = pastedAccessUrl;
-            var ctAccessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
-            if (ctAccessUrlSummaryEl) ctAccessUrlSummaryEl.value = pastedAccessUrl;
+            renderAccessUrlSummaryMode();
             ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
                 document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
             });
@@ -3444,6 +3484,21 @@ function ctMapComboScore(query, name) {
     return score;
 }
 
+// Return a timestamp in ms for sorting; 0 if no recognizable recency field
+// is present on the map. The exact field name from CalTopo's verify response
+// isn't locked in from the backend yet, so try the common shapes.
+function ctMapRecency(m) {
+    if (!m) return 0;
+    var candidates = ['updated', 'updated_at', 'modified', 'last_modified', 'accessed', 'last_accessed', 'timestamp'];
+    for (var i = 0; i < candidates.length; i++) {
+        var v = m[candidates[i]];
+        if (v == null) continue;
+        var t = typeof v === 'number' ? v : Date.parse(v);
+        if (!isNaN(t)) return t;
+    }
+    return 0;
+}
+
 function ctMapComboFilter(query) {
     var maps = ctMapComboAllMaps();
     var scored = [];
@@ -3454,6 +3509,9 @@ function ctMapComboFilter(query) {
     });
     scored.sort(function(a, b) {
         if (b.score !== a.score) return b.score - a.score;
+        var ra = ctMapRecency(a.map);
+        var rb = ctMapRecency(b.map);
+        if (rb !== ra) return rb - ra;
         return (a.map.name || '').localeCompare(b.map.name || '');
     });
     return scored.map(function(x) { return x.map; });
@@ -3646,6 +3704,45 @@ function normalizeAccessUrl(raw) {
     return v.replace(/^https?:\/\/(preview\.)?caltopo\.com\/t\//i, '');
 }
 
+// Access URL chip-vs-input mode toggle inside ctExistingSummary. The source of
+// truth remains ctAccessUrl (in the wizard substep); the summary is a view over
+// it, either a chip with a remove × (when a value is set) or an input + Save
+// button (when empty).
+function renderAccessUrlSummaryMode() {
+    var emptyMode = document.getElementById('ctAccessUrlEmptyMode');
+    var filledMode = document.getElementById('ctAccessUrlFilledMode');
+    if (!emptyMode || !filledMode) return;
+    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
+    var value = ctAccessUrlEl ? ctAccessUrlEl.value.trim() : '';
+    if (value) {
+        var chip = document.getElementById('ctAccessUrlChip');
+        if (chip) chip.textContent = value;
+        filledMode.style.display = 'inline-flex';
+        emptyMode.style.display = 'none';
+        var summaryInput = document.getElementById('ctAccessUrlSummaryInput');
+        if (summaryInput) summaryInput.value = '';
+    } else {
+        filledMode.style.display = 'none';
+        emptyMode.style.display = 'block';
+    }
+}
+
+function commitAccessUrlFromSummary() {
+    var summaryInput = document.getElementById('ctAccessUrlSummaryInput');
+    if (!summaryInput) return;
+    var normalized = normalizeAccessUrl(summaryInput.value);
+    if (!normalized) return;
+    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
+    if (ctAccessUrlEl) ctAccessUrlEl.value = normalized;
+    renderAccessUrlSummaryMode();
+}
+
+function clearAccessUrlFromSummary() {
+    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
+    if (ctAccessUrlEl) ctAccessUrlEl.value = '';
+    renderAccessUrlSummaryMode();
+}
+
 // Build CalTopo service account JSON from form fields + verified data
 function buildCaltopoServiceAccountJson() {
     var accountId = document.getElementById('ctAccountId').value.trim();
@@ -3679,8 +3776,7 @@ async function verifyCaltopoServiceAccount() {
     var accessUrlEl = document.getElementById('ctAccessUrl');
     var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
     if (accessUrlEl) accessUrlEl.value = accessUrl;
-    var accessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
-    if (accessUrlSummaryEl) accessUrlSummaryEl.value = accessUrl;
+    renderAccessUrlSummaryMode();
     var resultEl = document.getElementById('ctVerifyResult');
     var btn = document.getElementById('ctVerifyBtn');
 
@@ -3770,7 +3866,13 @@ function populateMapDropdown(maps) {
     // Clear existing options except the first "None" option
     while (dropdown.options.length > 1) dropdown.remove(1);
     if (maps && maps.length > 0) {
-        maps.forEach(function(map) {
+        var sorted = maps.slice().sort(function(a, b) {
+            var ra = ctMapRecency(a);
+            var rb = ctMapRecency(b);
+            if (rb !== ra) return rb - ra;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+        sorted.forEach(function(map) {
             var opt = document.createElement('option');
             opt.value = map.id;
             opt.textContent = map.name || map.id;
@@ -3853,8 +3955,7 @@ function populateForm(config) {
         var savedAccessUrl = sa.accessUrl || sa.access_url || '';
         var ctAccessUrlEl = document.getElementById('ctAccessUrl');
         if (ctAccessUrlEl) ctAccessUrlEl.value = savedAccessUrl;
-        var ctAccessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
-        if (ctAccessUrlSummaryEl) ctAccessUrlSummaryEl.value = savedAccessUrl;
+        renderAccessUrlSummaryMode();
         // Store metadata from saved config so it's included on save
         caltopoVerifiedData = {
             title: sa.title || '',
@@ -3894,8 +3995,7 @@ function clearForm() {
     document.getElementById('ctKey').value = '';
     var ctAccessUrlEl = document.getElementById('ctAccessUrl');
     if (ctAccessUrlEl) ctAccessUrlEl.value = '';
-    var ctAccessUrlSummaryEl = document.getElementById('ctAccessUrlSummary');
-    if (ctAccessUrlSummaryEl) ctAccessUrlSummaryEl.value = '';
+    renderAccessUrlSummaryMode();
     caltopoVerifiedData = null;
     var ctResult = document.getElementById('ctVerifyResult');
     ctResult.className = 'caltopo-verify-result';
