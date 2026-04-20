@@ -908,8 +908,8 @@ noindex: true
 
     /* Access URL chip (filled-state view in the CalTopo edit summary) */
     .access-url-chip {
-        display: inline-flex;
-        align-items: center;
+        flex: 1;
+        min-width: 0;
         padding: 6px 10px;
         background: #e8f4ff;
         border: 1px solid #b3d4fc;
@@ -917,7 +917,6 @@ noindex: true
         font-family: monospace;
         font-size: 1.3rem;
         color: #1a1a2e;
-        max-width: calc(100% - 36px);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1417,7 +1416,7 @@ noindex: true
                             <div style="font-size: 1.1rem; color: #888; margin-top: 0.3rem;">Double-check the paste &mdash; we can't verify this automatically yet.</div>
                         </div>
                         <div id="ctAccessUrlFilledMode" style="display: none; align-items: center; gap: 0.4rem;">
-                            <span class="access-url-chip" id="ctAccessUrlChip"></span>
+                            <span class="access-url-chip" id="ctAccessUrlChip" title=""></span>
                             <button type="button" class="access-url-clear" onclick="clearAccessUrlFromSummary()" aria-label="Remove access URL" title="Remove">&times;</button>
                         </div>
                     </div>
@@ -3295,6 +3294,7 @@ async function applyCaltopoCredentials(payload) {
             teamName: result.team_name || '',
             maps: result.maps || []
         };
+        ctLogMapShapeOnce(caltopoVerifiedData.maps);
 
         // Populate the main map dropdown
         populateMapDropdown(caltopoVerifiedData.maps);
@@ -3335,6 +3335,7 @@ async function ctRefreshMaps() {
     var key = document.getElementById('ctKey').value.trim();
     var accessUrlEl = document.getElementById('ctAccessUrl');
     var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
+    console.log('[ctRefreshMaps] entry:', { hasAccount: !!accountId, hasCred: !!credentialId, hasKey: !!key, hasLicense: !!currentLicenseId });
     if (!accountId || !credentialId || !key) return;
 
     var spinner = document.getElementById('ctSummaryMapSpinner');
@@ -3361,6 +3362,7 @@ async function ctRefreshMaps() {
             caltopoVerifiedData.teamAccountId = result.team_account_id || caltopoVerifiedData.teamAccountId;
             caltopoVerifiedData.teamName = result.team_name || caltopoVerifiedData.teamName;
             caltopoVerifiedData.maps = result.maps || [];
+            ctLogMapShapeOnce(caltopoVerifiedData.maps);
 
             populateMapDropdown(caltopoVerifiedData.maps);
             ctMapComboPopulate();
@@ -3485,18 +3487,56 @@ function ctMapComboScore(query, name) {
 }
 
 // Return a timestamp in ms for sorting; 0 if no recognizable recency field
-// is present on the map. The exact field name from CalTopo's verify response
-// isn't locked in from the backend yet, so try the common shapes.
+// is present on the map. CalTopo's verify response shape isn't locked in, so
+// try both snake_case and camelCase variants.
+var CT_MAP_RECENCY_CANDIDATES = [
+    'updated', 'updated_at', 'updatedAt', 'lastUpdated', 'lastUpdate', 'updateTime',
+    'modified', 'modified_at', 'modifiedAt', 'last_modified', 'lastModified',
+    'accessed', 'last_accessed', 'lastAccessed', 'accessedAt',
+    'created', 'created_at', 'createdAt', 'createTime',
+    'timestamp', 'time', 'date'
+];
 function ctMapRecency(m) {
     if (!m) return 0;
-    var candidates = ['updated', 'updated_at', 'modified', 'last_modified', 'accessed', 'last_accessed', 'timestamp'];
-    for (var i = 0; i < candidates.length; i++) {
-        var v = m[candidates[i]];
+    for (var i = 0; i < CT_MAP_RECENCY_CANDIDATES.length; i++) {
+        var v = m[CT_MAP_RECENCY_CANDIDATES[i]];
         if (v == null) continue;
         var t = typeof v === 'number' ? v : Date.parse(v);
-        if (!isNaN(t)) return t;
+        if (isNaN(t)) continue;
+        // Normalize epoch seconds to ms if it looks like seconds-since-1970
+        if (t > 0 && t < 1e12) t = t * 1000;
+        return t;
     }
     return 0;
+}
+
+// One-time diagnostic: log the keys of the first loaded map so we can see
+// which timestamp field CalTopo actually returns, and narrow the helper above
+// once confirmed. Always fires once per page load, even if maps is empty.
+var _ctMapShapeLogged = false;
+function ctLogMapShapeOnce(maps) {
+    if (_ctMapShapeLogged) return;
+    _ctMapShapeLogged = true;
+    try {
+        console.log('[CalTopo maps] loaded count:', maps ? maps.length : 0);
+        if (!maps || !maps.length) {
+            console.log('[CalTopo maps] (no maps to sample)');
+            return;
+        }
+        var sample = maps[0];
+        console.log('[CalTopo maps] sample keys:', Object.keys(sample));
+        console.log('[CalTopo maps] sample:', sample);
+        var found = null;
+        for (var i = 0; i < CT_MAP_RECENCY_CANDIDATES.length; i++) {
+            if (sample[CT_MAP_RECENCY_CANDIDATES[i]] != null) {
+                found = CT_MAP_RECENCY_CANDIDATES[i];
+                break;
+            }
+        }
+        console.log('[CalTopo maps] recency field matched:', found || '(none — sort falls back to alphabetical)');
+    } catch (e) {
+        console.log('[CalTopo maps] log error:', e);
+    }
 }
 
 function ctMapComboFilter(query) {
@@ -3716,8 +3756,11 @@ function renderAccessUrlSummaryMode() {
     var value = ctAccessUrlEl ? ctAccessUrlEl.value.trim() : '';
     if (value) {
         var chip = document.getElementById('ctAccessUrlChip');
-        if (chip) chip.textContent = value;
-        filledMode.style.display = 'inline-flex';
+        if (chip) {
+            chip.textContent = value;
+            chip.title = value;
+        }
+        filledMode.style.display = 'flex';
         emptyMode.style.display = 'none';
         var summaryInput = document.getElementById('ctAccessUrlSummaryInput');
         if (summaryInput) summaryInput.value = '';
@@ -3821,6 +3864,7 @@ async function verifyCaltopoServiceAccount() {
                 teamName: result.team_name || '',
                 maps: result.maps || []
             };
+            ctLogMapShapeOnce(caltopoVerifiedData.maps);
             showCaltopoVerifySuccess(caltopoVerifiedData);
             populateMapDropdown(caltopoVerifiedData.maps);
             // Advance to map selection sub-step
