@@ -849,6 +849,174 @@ noindex: true
         border-radius: 6px;
     }
 
+    /* Saved-config cards reuse .optional-toggle with slight tweaks */
+    .optional-toggle.config-card-toggle {
+        position: relative;
+        padding-right: 3rem;
+    }
+    .optional-toggle.config-card-toggle .config-card-delete {
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+    .config-card-summary {
+        font-size: 1.4rem;
+        color: #777;
+        margin-top: 0.25rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .config-card-details {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #dee2e6;
+        font-size: 1.45rem;
+        color: #555;
+        line-height: 1.8;
+    }
+    .config-card-details > div {
+        margin-bottom: 0.25rem;
+    }
+    .config-card-actions {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    .config-card-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        background: white;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        color: #555;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .config-card-icon-btn:hover {
+        background: #f4f6f8;
+        border-color: #b8c1cc;
+        color: #1a1a2e;
+    }
+
+    /* Searchable map combobox */
+    .ct-combobox {
+        position: relative;
+        width: calc(100% - 8px);
+    }
+    .ct-combobox-trigger {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 10px 12px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 1.4rem;
+        color: #333;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+    .ct-combobox-trigger:hover {
+        border-color: #b8c1cc;
+    }
+    .ct-combobox-trigger:disabled {
+        background: #f4f6f8;
+        cursor: not-allowed;
+    }
+    .ct-combobox-trigger.placeholder {
+        color: #999;
+    }
+    .ct-combobox-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ct-combobox-caret {
+        color: #888;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .ct-combobox-panel {
+        position: absolute;
+        top: calc(100% + 2px);
+        left: 0;
+        right: 0;
+        z-index: 20;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        display: none;
+        max-height: 320px;
+        flex-direction: column;
+    }
+    .ct-combobox-panel.open {
+        display: flex;
+    }
+    .ct-combobox-search-wrap {
+        padding: 8px;
+        border-bottom: 1px solid #eef0f2;
+        flex-shrink: 0;
+    }
+    .ct-combobox-search {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 1.35rem;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+    .ct-combobox-search:focus {
+        outline: none;
+        border-color: #1e90ff;
+    }
+    .ct-combobox-list {
+        overflow-y: auto;
+        max-height: 260px;
+        padding: 4px 0;
+    }
+    .ct-combobox-item {
+        padding: 10px 12px;
+        font-size: 1.35rem;
+        cursor: pointer;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ct-combobox-item:hover,
+    .ct-combobox-item.highlight {
+        background: #f0f8ff;
+    }
+    .ct-combobox-item.selected {
+        background: #e8f4ff;
+        font-weight: 500;
+    }
+    .ct-combobox-empty {
+        padding: 12px;
+        font-size: 1.3rem;
+        color: #888;
+        text-align: center;
+    }
+    .ct-combobox-spinner {
+        position: absolute;
+        right: 36px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
@@ -1073,10 +1241,17 @@ noindex: true
                 Store and share your setup — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
             </p>
             <div id="introExistingConfigs"></div>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+            <p style="font-size: 1.25rem; color: #888; line-height: 1.5; margin: 1.25rem 0 0.75rem;">
+                This step is optional — you can also configure later.
+            </p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.25rem;">
                 <button class="setup-btn setup-btn-primary" id="introSetupBtn" onclick="introSetupController()">Set Up Controller</button>
-                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip</button>
+                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip setup</button>
             </div>
+            <p id="introSkipHint" style="font-size: 1.2rem; color: #888; line-height: 1.5; margin: 0.5rem 0 0;">
+                Skipping keeps the controller's existing settings. You can load a saved setup later from the controller.
+            </p>
+            <div id="introStatus" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 4px; font-size: 1.3rem;"></div>
         </div>
     </div>
 
@@ -1202,17 +1377,20 @@ noindex: true
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
                         <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Select a Default Map</label>
                         <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem;">This is the map that Eagle Eyes will connect to by default, unless another map is selected.</div>
-                        <div style="position: relative; margin-bottom: 0.5rem;">
-                            <input type="text" id="ctSummaryMapSearch" placeholder="Search maps by name..." autocomplete="off"
-                                   oninput="ctSummaryMapSearchInput()" onkeydown="ctSummaryMapSearchKey(event)" onfocus="ctSummaryMapSearchFocus()" onblur="ctSummaryMapSearchBlur()" onclick="event.stopPropagation();"
-                                   style="width: calc(100% - 8px); padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 1.4rem; background: white; box-sizing: border-box;">
-                            <div id="ctSummaryMapAutocomplete" style="display: none; position: absolute; top: 100%; left: 0; right: 8px; margin-top: 2px; max-height: 240px; overflow-y: auto; background: white; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10;"></div>
-                        </div>
-                        <div style="position: relative;">
-                            <select id="ctSummaryMapDropdown" onchange="ctSummaryMapDropdownChanged()" onclick="event.stopPropagation();" style="width: calc(100% - 8px); appearance: auto; -webkit-appearance: menulist; background-image: none; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 1.4rem; background: white; cursor: pointer;">
-                                <option value="">None — no default map</option>
-                            </select>
-                            <div id="ctSummaryMapSpinner" style="display: none; position: absolute; right: 40px; top: 50%; transform: translateY(-50%);">
+                        <div class="ct-combobox" id="ctMapCombo">
+                            <button type="button" class="ct-combobox-trigger placeholder" id="ctMapComboTrigger"
+                                    onclick="event.stopPropagation(); ctMapComboToggle();">
+                                <span class="ct-combobox-label" id="ctMapComboLabel">None — no default map</span>
+                                <span class="ct-combobox-caret">&#9662;</span>
+                            </button>
+                            <div class="ct-combobox-panel" id="ctMapComboPanel" onclick="event.stopPropagation();">
+                                <div class="ct-combobox-search-wrap">
+                                    <input type="text" class="ct-combobox-search" id="ctMapComboSearch" placeholder="Search maps&hellip;" autocomplete="off"
+                                           oninput="ctMapComboInput()" onkeydown="ctMapComboKey(event)">
+                                </div>
+                                <div class="ct-combobox-list" id="ctMapComboList"></div>
+                            </div>
+                            <div id="ctSummaryMapSpinner" class="ct-combobox-spinner" style="display: none;">
                                 <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
                             </div>
                         </div>
@@ -1647,8 +1825,15 @@ async function getIdToken() {
 }
 
 // API call helper
-async function apiCall(endpoint, body) {
-    var token = await getIdToken();
+async function apiCall(endpoint, body, opts) {
+    opts = opts || {};
+    var user = firebase.auth().currentUser;
+    if (!user) {
+        var authErr = new Error('Not authenticated');
+        authErr.status = 401;
+        throw authErr;
+    }
+    var token = await user.getIdToken(!!opts.forceRefreshToken);
     var response = await fetch(API_BASE + endpoint, {
         method: 'POST',
         headers: {
@@ -1659,7 +1844,9 @@ async function apiCall(endpoint, body) {
     });
     if (!response.ok) {
         var text = await response.text();
-        throw new Error(text || 'API error: ' + response.status);
+        var err = new Error(text || 'API error: ' + response.status);
+        err.status = response.status;
+        throw err;
     }
     return response.json();
 }
@@ -2047,14 +2234,21 @@ async function introSelectConfig(index) {
     var config = cachedConfigurations[index];
 
     // Show loading on the clicked card
-    var cards = document.querySelectorAll('#introExistingConfigs .config-card');
+    var cards = document.querySelectorAll('#introExistingConfigs .config-card-toggle');
     cards.forEach(function(card, i) {
         card.style.pointerEvents = 'none';
         card.style.opacity = i === index ? '1' : '0.5';
     });
-    if (cards[index]) {
-        var chevron = cards[index].querySelector('div:last-child');
-        if (chevron) chevron.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>';
+    var selectedCard = cards[index];
+    if (selectedCard) {
+        selectedCard.classList.add('filled');
+        var status = selectedCard.querySelector('.toggle-status');
+        if (status) status.innerHTML = '<div class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0;"></div>';
+        var selectBtn = selectedCard.querySelector('.setup-btn-primary');
+        if (selectBtn) {
+            selectBtn.disabled = true;
+            selectBtn.textContent = 'Selecting…';
+        }
     }
 
     // Complete activation if we have a session and license
@@ -2089,48 +2283,94 @@ async function introSelectConfig(index) {
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
+function setIntroStatus(message, type) {
+    var el = document.getElementById('introStatus');
+    if (!el) return;
+    if (!message) {
+        el.style.display = 'none';
+        el.textContent = '';
+        return;
+    }
+    el.textContent = message;
+    el.style.display = 'block';
+    if (type === 'error') {
+        el.style.background = '#f8d7da';
+        el.style.border = '1px solid #f5c6cb';
+        el.style.color = '#721c24';
+    } else {
+        el.style.background = '#e2e3e5';
+        el.style.border = '1px solid #d6d8db';
+        el.style.color = '#383d41';
+    }
+}
+
 async function introSkip() {
     var skipBtn = document.getElementById('introSkipBtn');
     var setupBtn = document.getElementById('introSetupBtn');
-    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip';
+    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip setup';
+    setIntroStatus('', null);
     if (skipBtn) {
         skipBtn.disabled = true;
-        skipBtn.textContent = 'Finishing…';
+        skipBtn.textContent = 'Skipping…';
     }
     if (setupBtn) setupBtn.disabled = true;
 
-    var hadActivation = !!(urlSessionId && currentLicenseId);
+    var hadActivation = !!urlSessionId;
+    var showSkippedSuccess = function() {
+        document.getElementById('setupIntro').style.display = 'none';
+        document.getElementById('activationSuccessBanner').style.display = 'none';
+        document.getElementById('saveSuccessTitle').textContent = hadActivation ? 'Skipped!' : 'Setup complete!';
+        document.getElementById('saveSuccessMessage').innerHTML = hadActivation
+            ? 'Your controller will continue with its existing settings. You can close this window or continue to manage your Controller Setup.'
+            : 'You can close this window or continue to manage your Controller Setup.';
+        document.getElementById('saveSuccessScreen').style.display = 'block';
+        window.scrollTo(0, 0);
+    };
 
-    if (hadActivation) {
-        try {
-            await apiCall('complete_activation', {
-                session_id: urlSessionId,
-                license_id: currentLicenseId
-            });
-        } catch (activationErr) {
-            console.error('Error completing activation on skip:', activationErr);
-            if (skipBtn) {
-                skipBtn.disabled = false;
-                skipBtn.textContent = originalSkipText;
+    if (!hadActivation) {
+        showSkippedSuccess();
+        return;
+    }
+
+    var restoreButtons = function() {
+        if (skipBtn) {
+            skipBtn.disabled = false;
+            skipBtn.textContent = originalSkipText;
+        }
+        if (setupBtn) setupBtn.disabled = false;
+    };
+
+    var callSkip = function(forceRefreshToken) {
+        return apiCall('skip_activation_configuration_endpoint', { session_id: urlSessionId }, { forceRefreshToken: forceRefreshToken });
+    };
+
+    try {
+        await callSkip(false);
+        showSkippedSuccess();
+        return;
+    } catch (err) {
+        console.error('Skip activation configuration failed:', err);
+        if (err && err.status === 401) {
+            try {
+                await callSkip(true);
+                showSkippedSuccess();
+                return;
+            } catch (retryErr) {
+                console.error('Skip retry after token refresh failed:', retryErr);
+                restoreButtons();
+                setIntroStatus('Your sign-in has expired. Please sign in again and try Skip once more.', 'error');
+                return;
             }
-            if (setupBtn) setupBtn.disabled = false;
-            alert('Error completing activation: ' + (activationErr && activationErr.message ? activationErr.message : 'Unknown error'));
+        }
+        if (err && err.status === 404) {
+            if (skipBtn) skipBtn.style.display = 'none';
+            if (setupBtn) setupBtn.style.display = 'none';
+            setIntroStatus('This session has expired.', 'error');
             return;
         }
+        restoreButtons();
+        setIntroStatus('Could not skip setup. Please try again.', 'error');
     }
-
-    document.getElementById('setupIntro').style.display = 'none';
-    document.getElementById('activationSuccessBanner').style.display = 'none';
-
-    if (hadActivation) {
-        document.getElementById('saveSuccessTitle').textContent = 'Activation complete!';
-        document.getElementById('saveSuccessMessage').innerHTML = 'Your license is activated. You can close this window or continue to manage your Controller Setup.';
-    } else {
-        document.getElementById('saveSuccessTitle').textContent = 'Setup complete!';
-        document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window or continue to manage your Controller Setup.';
-    }
-    document.getElementById('saveSuccessScreen').style.display = 'block';
-    window.scrollTo(0, 0);
 }
 
 // --- Configuration list ---
@@ -2199,24 +2439,64 @@ async function loadConfigurations() {
 
 function renderConfigCard(config, index, mode) {
     var cfg = config.config || {};
-    var html = '<div class="config-card" style="position: relative;">';
+    var uniqueId = mode + index;
+    var summary = buildConfigSummary(cfg);
+    var html = '<div class="optional-toggle config-card-toggle" id="configToggle_' + uniqueId + '" onclick="toggleConfigSection(\'' + uniqueId + '\')">';
     html += '<a href="#" onclick="event.stopPropagation(); deleteConfigurationByIndex(' + index + '); return false;" class="config-card-delete" title="Delete">';
     html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
     html += '</a>';
-    html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
-    html += '<div style="font-size: 1.5rem; color: #555; line-height: 2;">';
-    html += renderConfigDetails(cfg, mode + index, false);
+    html += '<div class="toggle-status" id="configStatus_' + uniqueId + '">&#10003;</div>';
+    html += '<div style="flex: 1; min-width: 0;">';
+    html += '<div class="toggle-label">' + escapeHtml(config.label || 'Unnamed') + '</div>';
+    if (summary) {
+        html += '<div class="config-card-summary">' + escapeHtml(summary) + '</div>';
+    }
+    html += '<div class="optional-content" id="configContent_' + uniqueId + '" onclick="event.stopPropagation();">';
+    html += '<div class="config-card-details">';
+    html += renderConfigDetails(cfg, uniqueId, false, true);
     html += '</div>';
-    html += '<div style="margin-top: 0.75rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">';
+    html += '<div class="config-card-actions">';
+    html += '<button class="config-card-icon-btn" onclick="event.stopPropagation(); editConfiguration(' + index + ')" title="Edit" aria-label="Edit">';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>';
+    html += '</button>';
     if (mode === 'activation') {
-        html += '<button class="setup-btn setup-btn-secondary" onclick="editConfiguration(' + index + ')"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
-        html += '<button class="setup-btn setup-btn-primary" onclick="introSelectConfig(' + index + ')">Select</button>';
-    } else {
-        html += '<button class="setup-btn setup-btn-primary" onclick="editConfiguration(' + index + ')"><span style="margin-right: 6px;">&#9998;</span> Edit</button>';
+        html += '<button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')">Select</button>';
     }
     html += '</div>';
     html += '</div>';
+    html += '</div>';
+    html += '</div>';
     return html;
+}
+
+function buildConfigSummary(cfg) {
+    var parts = [];
+    if (cfg.service_account && (cfg.service_account.teamName || cfg.service_account.title)) parts.push('CalTopo');
+    if (cfg.default_map && cfg.default_map.mapName) parts.push('Default Map');
+    if (cfg.procedures_text || cfg.procedures_link) parts.push('Procedures');
+    if (cfg.units || cfg.coordsys) parts.push('Units / Coords');
+    return parts.join(' · ');
+}
+
+function toggleConfigSection(uniqueId) {
+    var toggle = document.getElementById('configToggle_' + uniqueId);
+    var content = document.getElementById('configContent_' + uniqueId);
+    if (!toggle || !content) return;
+    var container = toggle.parentNode;
+    var wasExpanded = toggle.classList.contains('active');
+
+    if (container) {
+        container.querySelectorAll('.config-card-toggle').forEach(function(t) {
+            t.classList.remove('active');
+            var c = t.querySelector('.optional-content');
+            if (c) c.classList.remove('visible');
+        });
+    }
+
+    if (!wasExpanded) {
+        toggle.classList.add('active');
+        content.classList.add('visible');
+    }
 }
 
 function renderConfigList(configs) {
@@ -2232,8 +2512,9 @@ function renderConfigList(configs) {
     listEl.innerHTML = html;
 }
 
-function renderConfigDetails(cfg, uniqueId, selectable) {
+function renderConfigDetails(cfg, uniqueId, selectable, readonly) {
     var html = '';
+    var renderText = readonly ? escapeHtml : linkifyText;
     if (cfg.service_account) {
         if (cfg.service_account.teamName) html += '<div><strong>CalTopo Team:</strong> ' + escapeHtml(cfg.service_account.teamName) + '</div>';
         if (cfg.service_account.title) html += '<div><strong>Service Account:</strong> ' + escapeHtml(cfg.service_account.title) + '</div>';
@@ -2250,17 +2531,17 @@ function renderConfigDetails(cfg, uniqueId, selectable) {
             var hasMore = cfg.procedures_text.indexOf('\n') !== -1 || cfg.procedures_text.length > 100;
             if (hasMore) {
                 var shortText = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
-                html += '<div><strong>Procedures:</strong> ' + linkifyText(shortText);
+                html += '<div><strong>Procedures:</strong> ' + renderText(shortText);
                 html += ' <a href="#" onclick="event.stopPropagation(); toggleProcedures(\'' + uniqueId + '\'); return false;" style="color: #1e90ff; font-size: 1.1rem;" id="procToggle_' + uniqueId + '">Show more</a>';
-                html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + linkifyText(cfg.procedures_text) + '</div>';
+                html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + renderText(cfg.procedures_text) + '</div>';
                 html += '</div>';
             } else {
-                html += '<div><strong>Procedures:</strong> ' + linkifyText(cfg.procedures_text) + '</div>';
+                html += '<div><strong>Procedures:</strong> ' + renderText(cfg.procedures_text) + '</div>';
             }
         }
     }
     if (cfg.procedures_link) {
-        if (selectable) {
+        if (selectable || readonly) {
             html += '<div><strong>Procedures Link:</strong> <span style="color: #888; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</span></div>';
         } else {
             html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
@@ -2828,7 +3109,7 @@ function showCtSubStep(n) {
             var acctId = document.getElementById('ctAccountId').value;
             if (acctId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(acctId) + '</div>';
             document.getElementById('ctExistingDetails').innerHTML = details;
-            ctPopulateSummaryMap();
+            ctMapComboPopulate();
         }
     }
     // Show title in step 4 hint
@@ -2956,7 +3237,7 @@ async function applyCaltopoCredentials(payload) {
         if (caltopoVerifiedData.permission) details += '<div><strong>Permission:</strong> ' + escapeHtml(caltopoVerifiedData.permission) + '</div>';
         if (payload.accountId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(payload.accountId) + '</div>';
         document.getElementById('ctExistingDetails').innerHTML = details;
-        ctPopulateSummaryMap();
+        ctMapComboPopulate();
 
         // Remove loading, show summary
         var loader = document.getElementById('ctVerifyLoading');
@@ -2987,11 +3268,11 @@ async function ctRefreshMaps() {
 
     var spinner = document.getElementById('ctSummaryMapSpinner');
     var statusEl = document.getElementById('ctSummaryMapStatus');
-    var dropdown = document.getElementById('ctSummaryMapDropdown');
+    var trigger = document.getElementById('ctMapComboTrigger');
     spinner.style.display = 'block';
     statusEl.textContent = 'Loading maps from CalTopo...';
     statusEl.style.color = '#888';
-    dropdown.disabled = true;
+    if (trigger) trigger.disabled = true;
 
     try {
         var result = await apiCall('verify_caltopo_service_account', {
@@ -3009,7 +3290,7 @@ async function ctRefreshMaps() {
             caltopoVerifiedData.maps = result.maps || [];
 
             populateMapDropdown(caltopoVerifiedData.maps);
-            ctPopulateSummaryMap();
+            ctMapComboPopulate();
             var count = caltopoVerifiedData.maps.length;
             statusEl.textContent = count ? count + ' map' + (count > 1 ? 's' : '') + ' available' : '';
             statusEl.style.color = '#888';
@@ -3023,171 +3304,222 @@ async function ctRefreshMaps() {
         statusEl.style.color = '#d93025';
     } finally {
         spinner.style.display = 'none';
-        dropdown.disabled = false;
+        if (trigger) trigger.disabled = false;
     }
 }
 
-// Populate the summary map dropdown from caltopoVerifiedData.maps + current selection
-function ctPopulateSummaryMap() {
-    var dropdown = document.getElementById('ctSummaryMapDropdown');
-    while (dropdown.options.length > 1) dropdown.remove(1);
+// --- Searchable map combobox (replaces legacy summary dropdown + autocomplete) ---
+var ctMapComboState = {
+    selectedId: '',
+    selectedName: '',
+    filtered: [],
+    highlightIdx: -1,
+    isOpen: false,
+    docClickHandler: null
+};
 
-    var maps = (caltopoVerifiedData && caltopoVerifiedData.maps) || [];
-    maps.forEach(function(map) {
-        var opt = document.createElement('option');
-        opt.value = map.id;
-        opt.textContent = map.name || map.id;
-        dropdown.appendChild(opt);
-    });
+function ctMapComboAllMaps() {
+    return (caltopoVerifiedData && caltopoVerifiedData.maps) || [];
+}
 
-    // Pre-select current map from the main fields
+function ctMapComboPopulate() {
+    // Sync selection from the authoritative ctMapDropdown <select> or the URL field
     var mainDropdown = document.getElementById('ctMapDropdown');
     var mainUrl = document.getElementById('setupCaltopoMapUrl').value;
-    var currentMapId = (mainDropdown && mainDropdown.value) || extractMapId(mainUrl) || '';
-    if (currentMapId) {
-        for (var i = 0; i < dropdown.options.length; i++) {
-            if (dropdown.options[i].value === currentMapId) {
-                dropdown.selectedIndex = i;
-                break;
-            }
+    var currentId = (mainDropdown && mainDropdown.value) || extractMapId(mainUrl) || '';
+    var name = '';
+    if (currentId) {
+        var maps = ctMapComboAllMaps();
+        for (var i = 0; i < maps.length; i++) {
+            if (maps[i].id === currentId) { name = maps[i].name || maps[i].id; break; }
         }
     }
-
-    var searchInput = document.getElementById('ctSummaryMapSearch');
-    if (searchInput) {
-        searchInput.value = dropdown.value && dropdown.selectedIndex > 0 ? dropdown.options[dropdown.selectedIndex].text : '';
-    }
+    ctMapComboState.selectedId = currentId;
+    ctMapComboState.selectedName = name;
+    ctMapComboUpdateTrigger();
 }
 
-// Sync summary map dropdown → main map fields
-function ctSummaryMapDropdownChanged() {
-    var dropdown = document.getElementById('ctSummaryMapDropdown');
-    var val = dropdown.value;
-    var mainDropdown = document.getElementById('ctMapDropdown');
-    if (mainDropdown) mainDropdown.value = val;
-    var searchInput = document.getElementById('ctSummaryMapSearch');
-    if (searchInput) {
-        searchInput.value = val && dropdown.selectedIndex >= 0 ? dropdown.options[dropdown.selectedIndex].text : '';
-    }
-    // Also set the URL field so buildCaltopoMapJson picks it up
-    if (val) {
-        document.getElementById('setupCaltopoMapUrl').value = '';
+function ctMapComboUpdateTrigger() {
+    var trigger = document.getElementById('ctMapComboTrigger');
+    var label = document.getElementById('ctMapComboLabel');
+    if (!trigger || !label) return;
+    if (ctMapComboState.selectedId && ctMapComboState.selectedName) {
+        label.textContent = ctMapComboState.selectedName;
+        trigger.classList.remove('placeholder');
     } else {
-        document.getElementById('setupCaltopoMapUrl').value = '';
+        label.textContent = 'None — no default map';
+        trigger.classList.add('placeholder');
     }
 }
 
-// --- Summary map search (autocomplete over caltopoVerifiedData.maps) ---
-var ctSummaryMapSearchHighlight = -1;
-var ctSummaryMapSearchFiltered = [];
+function ctMapComboToggle() {
+    if (ctMapComboState.isOpen) ctMapComboClose();
+    else ctMapComboOpen();
+}
 
-function ctSummaryMapSearchInput() {
-    var input = document.getElementById('ctSummaryMapSearch');
-    var term = input.value.toLowerCase().trim();
-    ctSummaryMapSearchHighlight = -1;
+function ctMapComboOpen() {
+    var panel = document.getElementById('ctMapComboPanel');
+    var search = document.getElementById('ctMapComboSearch');
+    if (!panel || !search) return;
+    panel.classList.add('open');
+    search.value = '';
+    ctMapComboState.isOpen = true;
+    ctMapComboState.highlightIdx = -1;
+    ctMapComboRender('');
+    setTimeout(function() { search.focus(); }, 0);
+    ctMapComboState.docClickHandler = function(e) {
+        var combo = document.getElementById('ctMapCombo');
+        if (combo && !combo.contains(e.target)) ctMapComboClose();
+    };
+    document.addEventListener('mousedown', ctMapComboState.docClickHandler);
+}
 
-    if (!term) {
-        ctSummaryMapSearchHideAutocomplete();
+function ctMapComboClose() {
+    var panel = document.getElementById('ctMapComboPanel');
+    if (panel) panel.classList.remove('open');
+    ctMapComboState.isOpen = false;
+    if (ctMapComboState.docClickHandler) {
+        document.removeEventListener('mousedown', ctMapComboState.docClickHandler);
+        ctMapComboState.docClickHandler = null;
+    }
+}
+
+function ctMapComboInput() {
+    var input = document.getElementById('ctMapComboSearch');
+    ctMapComboState.highlightIdx = input.value.trim() ? 0 : -1;
+    ctMapComboRender(input.value);
+}
+
+// Token-based scoring: each whitespace-separated token must appear in the name
+// (order-independent). Prefix > word-start > inner; full-word match earns a bonus.
+function ctMapComboScore(query, name) {
+    if (!query) return 1;
+    var nameL = (name || '').toLowerCase();
+    var tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return 1;
+    var score = 0;
+    for (var i = 0; i < tokens.length; i++) {
+        var t = tokens[i];
+        var pos = nameL.indexOf(t);
+        if (pos === -1) return 0;
+        if (pos === 0) score += 3;
+        else if (/\s/.test(nameL[pos - 1])) score += 2;
+        else score += 1;
+        var endPos = pos + t.length;
+        if (endPos === nameL.length || /\s/.test(nameL[endPos])) score += 1;
+    }
+    return score;
+}
+
+function ctMapComboFilter(query) {
+    var maps = ctMapComboAllMaps();
+    var scored = [];
+    maps.forEach(function(m) {
+        var name = m.name || m.id || '';
+        var s = ctMapComboScore(query, name);
+        if (s > 0) scored.push({ map: m, score: s });
+    });
+    scored.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return (a.map.name || '').localeCompare(b.map.name || '');
+    });
+    return scored.map(function(x) { return x.map; });
+}
+
+function ctMapComboRender(query) {
+    var list = document.getElementById('ctMapComboList');
+    if (!list) return;
+    var trimmed = (query || '').trim();
+    var items = [];
+    if (!trimmed) {
+        items.push({ id: '', name: 'None — no default map' });
+    }
+    ctMapComboState.filtered = ctMapComboFilter(trimmed);
+    ctMapComboState.filtered.forEach(function(m) {
+        items.push({ id: m.id, name: m.name || m.id });
+    });
+    list.innerHTML = '';
+    if (!items.length) {
+        var empty = document.createElement('div');
+        empty.className = 'ct-combobox-empty';
+        empty.textContent = 'No matching maps';
+        list.appendChild(empty);
         return;
     }
-
-    var maps = (caltopoVerifiedData && caltopoVerifiedData.maps) || [];
-    ctSummaryMapSearchFiltered = maps.filter(function(m) {
-        return (m.name || m.id || '').toLowerCase().indexOf(term) !== -1;
+    items.forEach(function(it, idx) {
+        var el = document.createElement('div');
+        el.className = 'ct-combobox-item';
+        if (it.id === ctMapComboState.selectedId) el.classList.add('selected');
+        if (idx === ctMapComboState.highlightIdx) el.classList.add('highlight');
+        el.dataset.mapId = it.id;
+        el.dataset.mapName = it.name;
+        el.textContent = it.name;
+        el.onmousedown = function(ev) { ev.preventDefault(); };
+        el.onclick = function() { ctMapComboSelect(it.id, it.name); };
+        list.appendChild(el);
     });
-
-    ctSummaryMapSearchRenderAutocomplete();
 }
 
-function ctSummaryMapSearchRenderAutocomplete() {
-    var panel = document.getElementById('ctSummaryMapAutocomplete');
-    panel.innerHTML = '';
-
-    if (ctSummaryMapSearchFiltered.length === 0) {
-        var empty = document.createElement('div');
-        empty.style.cssText = 'padding: 12px; font-size: 1.3rem; color: #888;';
-        empty.textContent = 'No matching maps';
-        panel.appendChild(empty);
-    } else {
-        ctSummaryMapSearchFiltered.forEach(function(map) {
-            var item = document.createElement('div');
-            item.className = 'ct-map-autocomplete-item';
-            item.dataset.mapId = map.id;
-            item.dataset.mapName = map.name || map.id;
-            item.style.cssText = 'padding: 12px; font-size: 1.4rem; cursor: pointer; border-bottom: 1px solid #f1f1f1;';
-            item.textContent = map.name || map.id;
-            item.onmousedown = function(ev) { ev.preventDefault(); };
-            item.onclick = function() {
-                ctSelectMapFromSearch(map.id, map.name || map.id);
-            };
-            panel.appendChild(item);
-        });
-    }
-
-    panel.style.display = 'block';
-}
-
-function ctSummaryMapSearchHideAutocomplete() {
-    var panel = document.getElementById('ctSummaryMapAutocomplete');
-    if (panel) panel.style.display = 'none';
-    ctSummaryMapSearchHighlight = -1;
-}
-
-function ctSummaryMapSearchFocus() {
-    var input = document.getElementById('ctSummaryMapSearch');
-    if (input.value.trim()) ctSummaryMapSearchInput();
-}
-
-function ctSummaryMapSearchBlur() {
-    setTimeout(ctSummaryMapSearchHideAutocomplete, 150);
-}
-
-function ctSummaryMapSearchKey(event) {
-    var panel = document.getElementById('ctSummaryMapAutocomplete');
-    var items = panel.querySelectorAll('.ct-map-autocomplete-item');
-    if (!items.length) return;
-
+function ctMapComboKey(event) {
+    var list = document.getElementById('ctMapComboList');
+    var items = list ? list.querySelectorAll('.ct-combobox-item') : [];
     if (event.key === 'ArrowDown') {
         event.preventDefault();
-        ctSummaryMapSearchHighlight = Math.min(ctSummaryMapSearchHighlight + 1, items.length - 1);
-        ctSummaryMapSearchUpdateHighlight(items);
+        if (!items.length) return;
+        ctMapComboState.highlightIdx = Math.min(ctMapComboState.highlightIdx + 1, items.length - 1);
+        ctMapComboUpdateHighlight();
     } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        ctSummaryMapSearchHighlight = Math.max(ctSummaryMapSearchHighlight - 1, 0);
-        ctSummaryMapSearchUpdateHighlight(items);
+        if (!items.length) return;
+        ctMapComboState.highlightIdx = Math.max(ctMapComboState.highlightIdx - 1, 0);
+        ctMapComboUpdateHighlight();
     } else if (event.key === 'Enter') {
         event.preventDefault();
-        var idx = ctSummaryMapSearchHighlight >= 0 ? ctSummaryMapSearchHighlight : 0;
-        var item = items[idx];
-        if (item) ctSelectMapFromSearch(item.dataset.mapId, item.dataset.mapName);
+        var idx = ctMapComboState.highlightIdx >= 0 ? ctMapComboState.highlightIdx : 0;
+        var el = items[idx];
+        if (el) ctMapComboSelect(el.dataset.mapId, el.dataset.mapName);
     } else if (event.key === 'Escape') {
-        ctSummaryMapSearchHideAutocomplete();
+        event.preventDefault();
+        ctMapComboClose();
     }
 }
 
-function ctSummaryMapSearchUpdateHighlight(items) {
+function ctMapComboUpdateHighlight() {
+    var list = document.getElementById('ctMapComboList');
+    var items = list.querySelectorAll('.ct-combobox-item');
     items.forEach(function(el, i) {
-        el.style.background = i === ctSummaryMapSearchHighlight ? '#f0f8ff' : 'white';
+        el.classList.toggle('highlight', i === ctMapComboState.highlightIdx);
     });
-    if (items[ctSummaryMapSearchHighlight]) {
-        items[ctSummaryMapSearchHighlight].scrollIntoView({ block: 'nearest' });
+    if (items[ctMapComboState.highlightIdx]) {
+        items[ctMapComboState.highlightIdx].scrollIntoView({ block: 'nearest' });
     }
 }
 
-function ctSelectMapFromSearch(mapId, mapName) {
-    var input = document.getElementById('ctSummaryMapSearch');
-    var dropdown = document.getElementById('ctSummaryMapDropdown');
+function ctMapComboSelect(mapId, mapName) {
+    ctMapComboState.selectedId = mapId || '';
+    ctMapComboState.selectedName = mapName || '';
+    ctMapComboUpdateTrigger();
 
-    input.value = mapName;
-    for (var i = 0; i < dropdown.options.length; i++) {
-        if (dropdown.options[i].value === mapId) {
-            dropdown.selectedIndex = i;
-            break;
+    // Sync into the authoritative ctMapDropdown <select> so save paths pick it up
+    var mainDropdown = document.getElementById('ctMapDropdown');
+    if (mainDropdown) {
+        var found = false;
+        for (var i = 0; i < mainDropdown.options.length; i++) {
+            if (mainDropdown.options[i].value === (mapId || '')) { found = true; break; }
         }
+        if (!found && mapId) {
+            var opt = document.createElement('option');
+            opt.value = mapId;
+            opt.textContent = mapName || mapId;
+            mainDropdown.appendChild(opt);
+        }
+        mainDropdown.value = mapId || '';
     }
 
-    ctSummaryMapSearchHideAutocomplete();
-    ctSummaryMapDropdownChanged();
+    var urlField = document.getElementById('setupCaltopoMapUrl');
+    if (urlField) urlField.value = '';
+
+    ctMapComboClose();
 }
 
 // --- Mobile CalTopo QR handoff (scans QR emitted by /caltopo/) ---
@@ -3414,19 +3746,19 @@ function preselectSavedMap() {
     }
 }
 
-// Build default CalTopo map JSON from dropdown or URL
+// Build default CalTopo map JSON from dropdown or URL.
+// Returns null when no map is chosen. Callers must gate with `if (mapJson)`
+// and omit default_map entirely — never send null or {} per the
+// web/controller convention (absence = "no default map").
 function buildCaltopoMapJson() {
     var dropdown = document.getElementById('ctMapDropdown');
     var selectedMapId = dropdown ? dropdown.value : '';
     var selectedMapName = selectedMapId ? dropdown.options[dropdown.selectedIndex].text : null;
 
-    // Fallback: check the summary dropdown (used in toggle-based form mode)
-    if (!selectedMapId) {
-        var summaryDropdown = document.getElementById('ctSummaryMapDropdown');
-        if (summaryDropdown && summaryDropdown.value) {
-            selectedMapId = summaryDropdown.value;
-            selectedMapName = summaryDropdown.options[summaryDropdown.selectedIndex].text;
-        }
+    // Fallback: check the searchable map combobox (used in toggle-based form mode)
+    if (!selectedMapId && ctMapComboState && ctMapComboState.selectedId) {
+        selectedMapId = ctMapComboState.selectedId;
+        selectedMapName = ctMapComboState.selectedName || null;
     }
 
     // Fallback: try manual URL
@@ -3434,7 +3766,7 @@ function buildCaltopoMapJson() {
         var url = document.getElementById('setupCaltopoMapUrl').value.trim();
         selectedMapId = extractMapId(url);
         selectedMapName = null;
-        if (!selectedMapId) return '';
+        if (!selectedMapId) return null;
     }
 
     return JSON.stringify({
@@ -3478,15 +3810,13 @@ function populateForm(config) {
         }
     }
 
-    // CalTopo map
-    if (cfg.default_map) {
+    // CalTopo map — gate on .mapId so absent / null / {} / partial all behave as "no map"
+    if (cfg.default_map && cfg.default_map.mapId) {
         var map = cfg.default_map;
-        if (map.mapId) {
-            document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
-            var preview = document.getElementById('setupMapIdPreview');
-            preview.textContent = 'Detected map ID: ' + map.mapId;
-            preview.className = 'setup-status info';
-        }
+        document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
+        var preview = document.getElementById('setupMapIdPreview');
+        preview.textContent = 'Detected map ID: ' + map.mapId;
+        preview.className = 'setup-status info';
     }
 
     document.getElementById('setupProceduresText').value = cfg.procedures_text || '';
@@ -3534,6 +3864,7 @@ function buildConfigBody() {
         var serviceAccountJson = buildCaltopoServiceAccountJson();
         if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
         var mapJson = buildCaltopoMapJson();
+        // convention: omit default_map when no map is selected — never write null or {}
         if (mapJson) body.config.default_map = JSON.parse(mapJson);
     } else if (proceduresOnly) {
         // Procedures-only: text + link
@@ -3558,6 +3889,7 @@ function buildConfigBody() {
             var serviceAccountJson = buildCaltopoServiceAccountJson();
             if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
             var mapJson = buildCaltopoMapJson();
+            // convention: omit default_map when no map is selected — never write null or {}
             if (mapJson) body.config.default_map = JSON.parse(mapJson);
         }
         if (procChecked) {
