@@ -53,7 +53,7 @@ noindex: true
     }
     .ct-container {
         width: 92%;
-        max-width: 900px;
+        max-width: 1000px;
         margin: 0 auto;
         padding: 1rem 1rem 4rem;
     }
@@ -286,6 +286,18 @@ noindex: true
         </div>
     </div>
 
+    <!-- Step 3: Access URL (optional) -->
+    <div class="ct-section">
+        <h2>Step 3: Access URL <span style="font-weight: 400; color: #888;">(optional)</span></h2>
+        <p style="font-size: 1.4rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Paste a CalTopo Access URL to unlock CalTopo's drone integration. Your drone appears on the shared CalTopo map with its live position, heading, altitude, and camera field of view — and anyone following along in CalTopo can click the drone's pin to watch the Eagle Eyes livestream for it, right from the map.</p>
+        <p style="font-size: 1.35rem; color: #777; margin: 0 0 1rem;"><strong>Where to find it:</strong> in CalTopo, open the admin menu &rarr; <strong>Trackable Devices</strong> &rarr; <strong>Create new Access URL</strong>, then paste it here.</p>
+        <div class="ct-field">
+            <label for="ctAccessUrl">Access URL</label>
+            <input type="text" id="ctAccessUrl" placeholder="Paste the Access URL from CalTopo" autocomplete="off">
+            <p style="font-size: 1.2rem; color: #888; margin: 0.4rem 0 0;">Double-check the paste &mdash; we can't verify this automatically yet.</p>
+        </div>
+    </div>
+
     <!-- Verify button -->
     <div style="text-align: center; margin-bottom: 2rem;">
         <p style="font-size: 1.35rem; color: #777; margin-bottom: 1rem;">Once all three credential fields are filled, press the button below to verify the credentials.</p>
@@ -296,7 +308,7 @@ noindex: true
     <!-- Result (hidden until verify succeeds) -->
     <div id="ctResult" style="display: none;">
         <div class="ct-section">
-            <h2>Step 3: Transfer CalTopo Service Account to Eagle Eyes</h2>
+            <h2>Step 4: Transfer CalTopo Service Account to Eagle Eyes</h2>
             <div class="ct-success-box" id="ctVerifiedBox" style="margin-bottom: 1rem;"></div>
             <p style="font-size: 1.4rem; color: #333; margin-bottom: 1.5rem; line-height: 1.6;">Follow the instructions below to transfer the credentials to Eagle Eyes, depending on whether you started this process from a mobile device or from this computer.</p>
 
@@ -392,10 +404,22 @@ noindex: true
         el.className = 'ct-status ' + type;
     }
 
+    // Strip a known CalTopo tracking-URL prefix if the user pasted the full URL
+    // instead of the bare token. No other validation — the token itself can be
+    // any user-renamable string, so we never reject.
+    function normalizeAccessUrl(raw) {
+        var v = (raw || '').trim();
+        if (!v) return '';
+        return v.replace(/^https?:\/\/(preview\.)?caltopo\.com\/t\//i, '');
+    }
+
     window.ctVerify = async function() {
         var accountId = document.getElementById('ctAccountId').value.trim();
         var credentialId = document.getElementById('ctCredentialId').value.trim();
         var secretKey = document.getElementById('ctSecret').value.trim();
+        var accessUrl = normalizeAccessUrl(document.getElementById('ctAccessUrl').value);
+        // Normalize back into the field so the user sees what we're sending
+        document.getElementById('ctAccessUrl').value = accessUrl;
         var btn = document.getElementById('ctVerifyBtn');
 
         // Validate secret format
@@ -435,14 +459,16 @@ noindex: true
         }
 
         try {
+            var verifyBody = {
+                account_id: accountId,
+                credential_id: credentialId,
+                credential_secret: secretKey
+            };
+            if (accessUrl) verifyBody.access_url = accessUrl;
             var resp = await fetch(API_BASE + 'verify_caltopo_service_account', {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify({
-                    account_id: accountId,
-                    credential_id: credentialId,
-                    credential_secret: secretKey
-                })
+                body: JSON.stringify(verifyBody)
             });
 
             if (resp.status === 429) {
@@ -479,7 +505,8 @@ noindex: true
                 teamName: result.team_name || '',
                 accountId: accountId,
                 credentialId: credentialId,
-                secretKey: secretKey
+                secretKey: secretKey,
+                accessUrl: accessUrl
             };
 
             renderSuccess(verifiedData);
@@ -499,12 +526,14 @@ noindex: true
         if (data.permission) html += '<div class="ct-detail-row"><span class="label">Permission:</span><span>' + escapeHtml(data.permission) + '</span></div>';
         box.innerHTML = html;
 
-        var payload = JSON.stringify({
+        var payloadObj = {
             type: 'mirada-caltopo-service-account',
             accountId: data.accountId,
             credentialId: data.credentialId,
             secretKey: data.secretKey
-        });
+        };
+        if (data.accessUrl) payloadObj.accessUrl = data.accessUrl;
+        var payload = JSON.stringify(payloadObj);
 
         var qrBox = document.getElementById('ctQrBox');
         qrBox.innerHTML = '';
@@ -533,12 +562,14 @@ noindex: true
 
     window.ctDownloadJson = function() {
         if (!verifiedData) return;
-        var payload = JSON.stringify({
+        var payloadObj = {
             type: 'mirada-caltopo-service-account',
             accountId: verifiedData.accountId,
             credentialId: verifiedData.credentialId,
             secretKey: verifiedData.secretKey
-        }, null, 2);
+        };
+        if (verifiedData.accessUrl) payloadObj.accessUrl = verifiedData.accessUrl;
+        var payload = JSON.stringify(payloadObj, null, 2);
         var blob = new Blob([payload], { type: 'application/json' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
