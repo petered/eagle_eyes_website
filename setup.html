@@ -1200,6 +1200,12 @@ noindex: true
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
                         <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Select a Default Map</label>
                         <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem;">This is the map that Eagle Eyes will connect to by default, unless another map is selected.</div>
+                        <div style="position: relative; margin-bottom: 0.5rem;">
+                            <input type="text" id="ctSummaryMapSearch" placeholder="Search maps by name..." autocomplete="off"
+                                   oninput="ctSummaryMapSearchInput()" onkeydown="ctSummaryMapSearchKey(event)" onfocus="ctSummaryMapSearchFocus()" onblur="ctSummaryMapSearchBlur()" onclick="event.stopPropagation();"
+                                   style="width: calc(100% - 8px); padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 1.4rem; background: white; box-sizing: border-box;">
+                            <div id="ctSummaryMapAutocomplete" style="display: none; position: absolute; top: 100%; left: 0; right: 8px; margin-top: 2px; max-height: 240px; overflow-y: auto; background: white; border: 1px solid #dee2e6; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10;"></div>
+                        </div>
                         <div style="position: relative;">
                             <select id="ctSummaryMapDropdown" onchange="ctSummaryMapDropdownChanged()" onclick="event.stopPropagation();" style="width: calc(100% - 8px); appearance: auto; -webkit-appearance: menulist; background-image: none; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 6px; font-size: 1.4rem; background: white; cursor: pointer;">
                                 <option value="">None — no default map</option>
@@ -2005,7 +2011,7 @@ function showIntroScreen(configs) {
             html += '<div style="flex: 1;">';
             html += '<h3>' + escapeHtml(config.label || 'Unnamed') + '</h3>';
             html += '<div style="font-size: 1.3rem; color: #666; line-height: 1.8;">';
-            html += renderConfigDetails(cfg, 'intro' + index);
+            html += renderConfigDetails(cfg, 'intro' + index, true);
             html += '</div>';
             html += '</div>';
             html += '<div style="color: #adb5bd; font-size: 2rem; flex-shrink: 0;">&#8250;</div>';
@@ -2192,7 +2198,7 @@ function renderConfigList(configs) {
     listEl.innerHTML = html;
 }
 
-function renderConfigDetails(cfg, uniqueId) {
+function renderConfigDetails(cfg, uniqueId, selectable) {
     var html = '';
     if (cfg.service_account) {
         if (cfg.service_account.teamName) html += '<div><strong>CalTopo Team:</strong> ' + escapeHtml(cfg.service_account.teamName) + '</div>';
@@ -2200,19 +2206,32 @@ function renderConfigDetails(cfg, uniqueId) {
     }
     if (cfg.default_map && cfg.default_map.mapName) html += '<div><strong>Default Map:</strong> ' + escapeHtml(cfg.default_map.mapName) + '</div>';
     if (cfg.procedures_text) {
-        var firstLine = cfg.procedures_text.split('\n')[0];
-        var hasMore = cfg.procedures_text.indexOf('\n') !== -1 || cfg.procedures_text.length > 100;
-        if (hasMore) {
-            var shortText = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
-            html += '<div><strong>Procedures:</strong> ' + linkifyText(shortText);
-            html += ' <a href="#" onclick="event.stopPropagation(); toggleProcedures(\'' + uniqueId + '\'); return false;" style="color: #1e90ff; font-size: 1.1rem;" id="procToggle_' + uniqueId + '">Show more</a>';
-            html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + linkifyText(cfg.procedures_text) + '</div>';
-            html += '</div>';
+        if (selectable) {
+            var firstLine = cfg.procedures_text.split('\n')[0];
+            var preview = firstLine.length > 100 ? firstLine.substring(0, 100) + '…' : firstLine;
+            if (firstLine !== cfg.procedures_text && preview === firstLine) preview += '…';
+            html += '<div><strong>Procedures:</strong> ' + escapeHtml(preview) + '</div>';
         } else {
-            html += '<div><strong>Procedures:</strong> ' + linkifyText(cfg.procedures_text) + '</div>';
+            var firstLine = cfg.procedures_text.split('\n')[0];
+            var hasMore = cfg.procedures_text.indexOf('\n') !== -1 || cfg.procedures_text.length > 100;
+            if (hasMore) {
+                var shortText = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
+                html += '<div><strong>Procedures:</strong> ' + linkifyText(shortText);
+                html += ' <a href="#" onclick="event.stopPropagation(); toggleProcedures(\'' + uniqueId + '\'); return false;" style="color: #1e90ff; font-size: 1.1rem;" id="procToggle_' + uniqueId + '">Show more</a>';
+                html += '<div id="procFull_' + uniqueId + '" style="display: none; white-space: pre-wrap; margin-top: 0.25rem;">' + linkifyText(cfg.procedures_text) + '</div>';
+                html += '</div>';
+            } else {
+                html += '<div><strong>Procedures:</strong> ' + linkifyText(cfg.procedures_text) + '</div>';
+            }
         }
     }
-    if (cfg.procedures_link) html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
+    if (cfg.procedures_link) {
+        if (selectable) {
+            html += '<div><strong>Procedures Link:</strong> <span style="color: #888; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</span></div>';
+        } else {
+            html += '<div><strong>Procedures Link:</strong> <a href="' + escapeHtml(cfg.procedures_link) + '" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; word-break: break-all;">' + escapeHtml(cfg.procedures_link) + '</a></div>';
+        }
+    }
     if (cfg.units) html += '<div><strong>Units:</strong> ' + (cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)') + '</div>';
     if (cfg.coordsys) html += '<div><strong>Coordinates:</strong> ' + escapeHtml(cfg.coordsys) + '</div>';
     return html;
@@ -2995,6 +3014,11 @@ function ctPopulateSummaryMap() {
             }
         }
     }
+
+    var searchInput = document.getElementById('ctSummaryMapSearch');
+    if (searchInput) {
+        searchInput.value = dropdown.value && dropdown.selectedIndex > 0 ? dropdown.options[dropdown.selectedIndex].text : '';
+    }
 }
 
 // Sync summary map dropdown → main map fields
@@ -3003,12 +3027,129 @@ function ctSummaryMapDropdownChanged() {
     var val = dropdown.value;
     var mainDropdown = document.getElementById('ctMapDropdown');
     if (mainDropdown) mainDropdown.value = val;
+    var searchInput = document.getElementById('ctSummaryMapSearch');
+    if (searchInput) {
+        searchInput.value = val && dropdown.selectedIndex >= 0 ? dropdown.options[dropdown.selectedIndex].text : '';
+    }
     // Also set the URL field so buildCaltopoMapJson picks it up
     if (val) {
         document.getElementById('setupCaltopoMapUrl').value = '';
     } else {
         document.getElementById('setupCaltopoMapUrl').value = '';
     }
+}
+
+// --- Summary map search (autocomplete over caltopoVerifiedData.maps) ---
+var ctSummaryMapSearchHighlight = -1;
+var ctSummaryMapSearchFiltered = [];
+
+function ctSummaryMapSearchInput() {
+    var input = document.getElementById('ctSummaryMapSearch');
+    var term = input.value.toLowerCase().trim();
+    ctSummaryMapSearchHighlight = -1;
+
+    if (!term) {
+        ctSummaryMapSearchHideAutocomplete();
+        return;
+    }
+
+    var maps = (caltopoVerifiedData && caltopoVerifiedData.maps) || [];
+    ctSummaryMapSearchFiltered = maps.filter(function(m) {
+        return (m.name || m.id || '').toLowerCase().indexOf(term) !== -1;
+    });
+
+    ctSummaryMapSearchRenderAutocomplete();
+}
+
+function ctSummaryMapSearchRenderAutocomplete() {
+    var panel = document.getElementById('ctSummaryMapAutocomplete');
+    panel.innerHTML = '';
+
+    if (ctSummaryMapSearchFiltered.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'padding: 12px; font-size: 1.3rem; color: #888;';
+        empty.textContent = 'No matching maps';
+        panel.appendChild(empty);
+    } else {
+        ctSummaryMapSearchFiltered.forEach(function(map) {
+            var item = document.createElement('div');
+            item.className = 'ct-map-autocomplete-item';
+            item.dataset.mapId = map.id;
+            item.dataset.mapName = map.name || map.id;
+            item.style.cssText = 'padding: 12px; font-size: 1.4rem; cursor: pointer; border-bottom: 1px solid #f1f1f1;';
+            item.textContent = map.name || map.id;
+            item.onmousedown = function(ev) { ev.preventDefault(); };
+            item.onclick = function() {
+                ctSelectMapFromSearch(map.id, map.name || map.id);
+            };
+            panel.appendChild(item);
+        });
+    }
+
+    panel.style.display = 'block';
+}
+
+function ctSummaryMapSearchHideAutocomplete() {
+    var panel = document.getElementById('ctSummaryMapAutocomplete');
+    if (panel) panel.style.display = 'none';
+    ctSummaryMapSearchHighlight = -1;
+}
+
+function ctSummaryMapSearchFocus() {
+    var input = document.getElementById('ctSummaryMapSearch');
+    if (input.value.trim()) ctSummaryMapSearchInput();
+}
+
+function ctSummaryMapSearchBlur() {
+    setTimeout(ctSummaryMapSearchHideAutocomplete, 150);
+}
+
+function ctSummaryMapSearchKey(event) {
+    var panel = document.getElementById('ctSummaryMapAutocomplete');
+    var items = panel.querySelectorAll('.ct-map-autocomplete-item');
+    if (!items.length) return;
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        ctSummaryMapSearchHighlight = Math.min(ctSummaryMapSearchHighlight + 1, items.length - 1);
+        ctSummaryMapSearchUpdateHighlight(items);
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        ctSummaryMapSearchHighlight = Math.max(ctSummaryMapSearchHighlight - 1, 0);
+        ctSummaryMapSearchUpdateHighlight(items);
+    } else if (event.key === 'Enter') {
+        event.preventDefault();
+        var idx = ctSummaryMapSearchHighlight >= 0 ? ctSummaryMapSearchHighlight : 0;
+        var item = items[idx];
+        if (item) ctSelectMapFromSearch(item.dataset.mapId, item.dataset.mapName);
+    } else if (event.key === 'Escape') {
+        ctSummaryMapSearchHideAutocomplete();
+    }
+}
+
+function ctSummaryMapSearchUpdateHighlight(items) {
+    items.forEach(function(el, i) {
+        el.style.background = i === ctSummaryMapSearchHighlight ? '#f0f8ff' : 'white';
+    });
+    if (items[ctSummaryMapSearchHighlight]) {
+        items[ctSummaryMapSearchHighlight].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function ctSelectMapFromSearch(mapId, mapName) {
+    var input = document.getElementById('ctSummaryMapSearch');
+    var dropdown = document.getElementById('ctSummaryMapDropdown');
+
+    input.value = mapName;
+    for (var i = 0; i < dropdown.options.length; i++) {
+        if (dropdown.options[i].value === mapId) {
+            dropdown.selectedIndex = i;
+            break;
+        }
+    }
+
+    ctSummaryMapSearchHideAutocomplete();
+    ctSummaryMapDropdownChanged();
 }
 
 // --- Mobile CalTopo QR handoff (scans QR emitted by /caltopo/) ---
