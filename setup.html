@@ -3746,7 +3746,10 @@ function preselectSavedMap() {
     }
 }
 
-// Build default CalTopo map JSON from dropdown or URL
+// Build default CalTopo map JSON from dropdown or URL.
+// Returns null when no map is chosen. Callers must gate with `if (mapJson)`
+// and omit default_map entirely — never send null or {} per the
+// web/controller convention (absence = "no default map").
 function buildCaltopoMapJson() {
     var dropdown = document.getElementById('ctMapDropdown');
     var selectedMapId = dropdown ? dropdown.value : '';
@@ -3763,7 +3766,7 @@ function buildCaltopoMapJson() {
         var url = document.getElementById('setupCaltopoMapUrl').value.trim();
         selectedMapId = extractMapId(url);
         selectedMapName = null;
-        if (!selectedMapId) return '';
+        if (!selectedMapId) return null;
     }
 
     return JSON.stringify({
@@ -3807,15 +3810,13 @@ function populateForm(config) {
         }
     }
 
-    // CalTopo map
-    if (cfg.default_map) {
+    // CalTopo map — gate on .mapId so absent / null / {} / partial all behave as "no map"
+    if (cfg.default_map && cfg.default_map.mapId) {
         var map = cfg.default_map;
-        if (map.mapId) {
-            document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
-            var preview = document.getElementById('setupMapIdPreview');
-            preview.textContent = 'Detected map ID: ' + map.mapId;
-            preview.className = 'setup-status info';
-        }
+        document.getElementById('setupCaltopoMapUrl').value = 'https://caltopo.com/m/' + map.mapId;
+        var preview = document.getElementById('setupMapIdPreview');
+        preview.textContent = 'Detected map ID: ' + map.mapId;
+        preview.className = 'setup-status info';
     }
 
     document.getElementById('setupProceduresText').value = cfg.procedures_text || '';
@@ -3863,6 +3864,7 @@ function buildConfigBody() {
         var serviceAccountJson = buildCaltopoServiceAccountJson();
         if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
         var mapJson = buildCaltopoMapJson();
+        // convention: omit default_map when no map is selected — never write null or {}
         if (mapJson) body.config.default_map = JSON.parse(mapJson);
     } else if (proceduresOnly) {
         // Procedures-only: text + link
@@ -3887,6 +3889,7 @@ function buildConfigBody() {
             var serviceAccountJson = buildCaltopoServiceAccountJson();
             if (serviceAccountJson) body.config.service_account = JSON.parse(serviceAccountJson);
             var mapJson = buildCaltopoMapJson();
+            // convention: omit default_map when no map is selected — never write null or {}
             if (mapJson) body.config.default_map = JSON.parse(mapJson);
         }
         if (procChecked) {
