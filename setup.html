@@ -2089,8 +2089,48 @@ async function introSelectConfig(index) {
     document.getElementById('saveSuccessScreen').style.display = 'block';
 }
 
-function introSkip() {
-    window.location.href = '{{ "/account/" | relative_url }}';
+async function introSkip() {
+    var skipBtn = document.getElementById('introSkipBtn');
+    var setupBtn = document.getElementById('introSetupBtn');
+    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip';
+    if (skipBtn) {
+        skipBtn.disabled = true;
+        skipBtn.textContent = 'Finishing…';
+    }
+    if (setupBtn) setupBtn.disabled = true;
+
+    var hadActivation = !!(urlSessionId && currentLicenseId);
+
+    if (hadActivation) {
+        try {
+            await apiCall('complete_activation', {
+                session_id: urlSessionId,
+                license_id: currentLicenseId
+            });
+        } catch (activationErr) {
+            console.error('Error completing activation on skip:', activationErr);
+            if (skipBtn) {
+                skipBtn.disabled = false;
+                skipBtn.textContent = originalSkipText;
+            }
+            if (setupBtn) setupBtn.disabled = false;
+            alert('Error completing activation: ' + (activationErr && activationErr.message ? activationErr.message : 'Unknown error'));
+            return;
+        }
+    }
+
+    document.getElementById('setupIntro').style.display = 'none';
+    document.getElementById('activationSuccessBanner').style.display = 'none';
+
+    if (hadActivation) {
+        document.getElementById('saveSuccessTitle').textContent = 'Activation complete!';
+        document.getElementById('saveSuccessMessage').innerHTML = 'Your license is activated. You can close this window or continue to manage your Controller Setup.';
+    } else {
+        document.getElementById('saveSuccessTitle').textContent = 'Setup complete!';
+        document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window or continue to manage your Controller Setup.';
+    }
+    document.getElementById('saveSuccessScreen').style.display = 'block';
+    window.scrollTo(0, 0);
 }
 
 // --- Configuration list ---
