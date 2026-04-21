@@ -1397,7 +1397,7 @@ noindex: true
                         <div id="ctSummaryMapStatus" style="font-size: 1.2rem; color: #888; margin-top: 0.4rem;"></div>
                     </div>
                     <div style="margin-top: 0.75rem;">
-                        <a href="{{ '/caltopo/' | relative_url }}" target="_blank" onclick="event.stopPropagation();" style="color: #1e90ff; font-size: 1.3rem; text-decoration: none;">Change service account &rarr;</a>
+                        <a href="#" onclick="event.stopPropagation(); showCtChangeFlow(); return false;" style="color: #1e90ff; font-size: 1.3rem; text-decoration: none;">Change service account &rarr;</a>
                     </div>
                 </div>
 
@@ -3668,6 +3668,19 @@ function renderCtExistingDetails() {
     var accessUrlVal = accessUrlEl ? accessUrlEl.value.trim() : '';
     if (accessUrlVal) html += '<div><strong>Access URL:</strong> <span style="font-family: monospace; word-break: break-all;">' + escapeHtml(accessUrlVal) + '</span></div>';
     el.innerHTML = html;
+}
+
+// Swap the connected-summary panel for the "set up / scan QR / paste code"
+// panel so users who want to change their service account have a path back
+// into setup.html with the new credentials. Triggered by the "Change service
+// account →" link. Collapsing and re-expanding the CalTopo toggle flips
+// back to the summary if the user changed their mind, because
+// caltopoVerifiedData is still in memory.
+function showCtChangeFlow() {
+    var summaryEl = document.getElementById('ctExistingSummary');
+    var noAccountEl = document.getElementById('ctNoAccount');
+    if (summaryEl) summaryEl.style.display = 'none';
+    if (noAccountEl) noAccountEl.style.display = 'block';
 }
 
 // Update the CalTopo toggle's description so it's obvious at a glance whether
