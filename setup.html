@@ -1366,7 +1366,8 @@ noindex: true
             <div class="toggle-status">&#10003;</div>
             <div style="flex: 1;">
                 <div class="toggle-label">CalTopo Service Account</div>
-                <div class="toggle-desc" id="ctToggleDesc">Not connected — set up to stay signed in to CalTopo without re-authenticating every few days</div>
+                <div class="toggle-desc">Stay signed in to CalTopo without re-authenticating every few days.</div>
+                <div class="toggle-desc" id="ctToggleStatus" style="margin-top: 0.3rem; font-size: 1.25rem;">Not connected — tap to set up</div>
 
                 <!-- Folds out inside the same container when checked: existing account -->
                 <div id="ctExistingSummary" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
@@ -3691,16 +3692,17 @@ function showCtChangeFlow() {
 // a service account is set up (instead of a generic benefit statement that
 // looks the same in both states).
 function renderCtToggleState() {
-    var desc = document.getElementById('ctToggleDesc');
-    if (!desc) return;
+    var statusEl = document.getElementById('ctToggleStatus');
+    if (!statusEl) return;
     var connected = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName));
     if (!connected) {
         var acctId = (document.getElementById('ctAccountId') || {}).value;
         connected = !!acctId;
     }
-    desc.textContent = connected
+    statusEl.textContent = connected
         ? 'Connected — tap to view or change'
-        : 'Not connected — set up to stay signed in to CalTopo without re-authenticating every few days';
+        : 'Not connected — tap to set up';
+    statusEl.style.color = connected ? '#1e8e3e' : '#c77700';
 }
 
 // Build CalTopo service account JSON from form fields + verified data
