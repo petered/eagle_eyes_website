@@ -906,37 +906,6 @@ noindex: true
         text-decoration: underline;
     }
 
-    /* Access URL chip (filled-state view in the CalTopo edit summary) */
-    .access-url-chip {
-        flex: 1;
-        min-width: 0;
-        padding: 6px 10px;
-        background: #e8f4ff;
-        border: 1px solid #b3d4fc;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 1.3rem;
-        color: #1a1a2e;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .access-url-clear {
-        padding: 0;
-        width: 24px;
-        height: 24px;
-        border: none;
-        background: transparent;
-        color: #888;
-        font-size: 1.8rem;
-        line-height: 1;
-        cursor: pointer;
-        vertical-align: middle;
-        flex-shrink: 0;
-    }
-    .access-url-clear:hover {
-        color: #dc3545;
-    }
 
     /* Searchable map combobox */
     .ct-combobox {
@@ -1397,7 +1366,7 @@ noindex: true
             <div class="toggle-status">&#10003;</div>
             <div style="flex: 1;">
                 <div class="toggle-label">CalTopo Service Account</div>
-                <div class="toggle-desc">Stay connected to CalTopo without logging in every few days</div>
+                <div class="toggle-desc" id="ctToggleDesc">Not connected — set up to stay signed in to CalTopo without re-authenticating every few days</div>
 
                 <!-- Folds out inside the same container when checked: existing account -->
                 <div id="ctExistingSummary" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;" onclick="event.stopPropagation();">
@@ -1405,26 +1374,6 @@ noindex: true
                         <span style="color: #1e8e3e; font-weight: 600; font-size: 1.5rem;">&#10003; Connected</span>
                     </div>
                     <div style="font-size: 1.4rem; color: #333; line-height: 1.9;" id="ctExistingDetails"></div>
-                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
-                        <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Access URL <span style="font-weight: 400; color: #888;">(optional)</span> <span style="display: inline-block; background: #1e90ff; color: white; font-size: 1rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 4px; vertical-align: middle; letter-spacing: 0.3px;">NEW</span></label>
-                        <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem; line-height: 1.5;">Unlocks CalTopo's dedicated drone integration — your drone appears on the shared map with live position, heading, altitude, and camera field of view, and viewers can click the pin to watch the Eagle Eyes livestream.</div>
-                        <div id="ctAccessUrlAddLinkMode" style="display: none;">
-                            <a href="#" onclick="showAccessUrlInputMode(); return false;" style="font-size: 1.3rem; color: #1e90ff; text-decoration: none;">+ Add access URL</a>
-                        </div>
-                        <div id="ctAccessUrlEmptyMode" style="display: none;">
-                            <div style="font-size: 1.15rem; color: #888; margin-bottom: 0.4rem; line-height: 1.5;">On <a href="https://caltopo.com/" target="_blank" rel="noopener" style="color: #1e90ff; text-decoration: none;">caltopo.com</a>: admin menu &rarr; Trackable Devices &rarr; Create new Access URL.</div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <input type="text" id="ctAccessUrlSummaryInput" placeholder="Paste the Access URL from CalTopo" autocomplete="off" style="flex: 1; padding: 8px 10px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.35rem; box-sizing: border-box;">
-                                <button type="button" id="ctAccessUrlSaveBtn" onclick="commitAccessUrlFromSummary()" style="padding: 6px 14px; background: #e9ecef; color: #333; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.3rem; cursor: pointer; transition: background 0.15s, border-color 0.15s;" onmouseover="this.style.background='#dee2e6';" onmouseout="this.style.background='#e9ecef';">Save</button>
-                            </div>
-                            <div style="font-size: 1.1rem; color: #888; margin-top: 0.3rem;">Double-check the paste &mdash; we can't verify this automatically yet.</div>
-                        </div>
-                        <div id="ctAccessUrlFilledMode" style="display: none; align-items: center; gap: 0.4rem;">
-                            <span class="access-url-chip" id="ctAccessUrlChip" title=""></span>
-                            <button type="button" class="access-url-clear" onclick="clearAccessUrlFromSummary()" aria-label="Remove access URL" title="Remove">&times;</button>
-                        </div>
-                    </div>
-
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6;">
                         <label style="font-size: 1.4rem; font-weight: 500; color: #333; display: block; margin-bottom: 0.25rem;">Select a Default Map</label>
                         <div style="font-size: 1.2rem; color: #888; margin-bottom: 0.4rem;">This is the map that Eagle Eyes will connect to by default, unless another map is selected.</div>
@@ -1552,12 +1501,10 @@ noindex: true
                         <input type="text" id="ctCredentialId" placeholder="e.g. Q9NVD150H92L" maxlength="12" style="text-transform: uppercase;">
                     </div>
                 </div>
-                <div class="setup-field" style="margin-top: 1rem;">
-                    <label for="ctAccessUrl">Access URL <span style="font-weight: 400; color: #888;">(optional)</span></label>
-                    <p style="font-size: 1.25rem; color: #777; margin: 0 0 0.4rem; line-height: 1.5;">Unlocks CalTopo's dedicated drone integration — your drone appears on the shared map with its live position, heading, altitude, and camera field of view, and viewers can click the drone's pin to watch the Eagle Eyes livestream.</p>
-                    <input type="text" id="ctAccessUrl" placeholder="Paste the Access URL from CalTopo" autocomplete="off">
-                    <p style="font-size: 1.2rem; color: #888; margin: 0.3rem 0 0;">On <a href="https://caltopo.com/" target="_blank" rel="noopener" style="color: #1e90ff; text-decoration: none;">caltopo.com</a>: admin menu &rarr; Trackable Devices &rarr; Create new Access URL. We can't auto-verify it yet, so double-check the paste.</p>
-                </div>
+                <!-- Access URL is set/changed on caltopo.html, not here.
+                     Hidden input preserves the round-trip through save, verify,
+                     paste-code, and populateForm paths. -->
+                <input type="hidden" id="ctAccessUrl">
                 <div class="form-step-actions">
                     <button class="setup-btn setup-btn-primary" id="ctVerifyBtn" onclick="verifyCaltopoServiceAccount()" disabled>Verify &amp; Connect</button>
                     <a href="#" class="back-link" onclick="showCtSubStep(3); return false;">Back</a>
@@ -2862,6 +2809,7 @@ function showAllFormSteps() {
         summaryEl.style.display = 'block';
         noAccountEl.style.display = 'none';
         document.getElementById('ctToggle').classList.add('active');
+        renderCtExistingDetails();
         // Fetch fresh maps so the default-map combobox isn't empty when the
         // user opens it; saved configs don't include the maps list.
         ctRefreshMaps();
@@ -2873,6 +2821,7 @@ function showAllFormSteps() {
         summaryEl.style.display = 'none';
         noAccountEl.style.display = 'none';
     }
+    renderCtToggleState();
     document.getElementById('formStep3').style.display = 'none';
 
     // Set green states
@@ -3142,12 +3091,6 @@ function setupCtFieldFormatting() {
     formatField(accountInput, 6, accountCount);
     formatField(credInput, 12, credCount);
 
-    // Keep the summary's chip vs. empty-input mode in sync with the wizard
-    // input whenever the user types/edits it directly.
-    var accessUrlInput = document.getElementById('ctAccessUrl');
-    if (accessUrlInput) {
-        accessUrlInput.addEventListener('input', renderAccessUrlSummaryMode);
-    }
 }
 
 // Run formatting setup when DOM is ready
@@ -3163,17 +3106,11 @@ function showCtSubStep(n) {
         var el = document.getElementById('ctSubStep' + i);
         if (el) el.style.display = (i === n) ? 'block' : 'none';
     }
-    // On substep 0, populate the summary details (toggle handles visibility)
+    // On substep 0, refresh the summary details (toggle handles visibility)
     if (n === 0) {
         var hasAccount = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName || document.getElementById('ctAccountId').value));
         if (hasAccount) {
-            var details = '';
-            if (caltopoVerifiedData.teamName) details += '<div><strong>Team:</strong> ' + escapeHtml(caltopoVerifiedData.teamName) + '</div>';
-            if (caltopoVerifiedData.title) details += '<div><strong>Account:</strong> ' + escapeHtml(caltopoVerifiedData.title) + '</div>';
-            if (caltopoVerifiedData.permission) details += '<div><strong>Permission:</strong> ' + escapeHtml(caltopoVerifiedData.permission) + '</div>';
-            var acctId = document.getElementById('ctAccountId').value;
-            if (acctId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(acctId) + '</div>';
-            document.getElementById('ctExistingDetails').innerHTML = details;
+            renderCtExistingDetails();
             ctMapComboPopulate();
         }
     }
@@ -3241,7 +3178,6 @@ function handleCtPasteField() {
             var pastedAccessUrl = data.accessUrl || data.access_url || '';
             var ctAccessUrlEl = document.getElementById('ctAccessUrl');
             if (ctAccessUrlEl) ctAccessUrlEl.value = pastedAccessUrl;
-            renderAccessUrlSummaryMode();
             ['ctAccountId','ctCredentialId','ctKey'].forEach(function(id) {
                 document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
             });
@@ -3303,12 +3239,8 @@ async function applyCaltopoCredentials(payload) {
         populateMapDropdown(caltopoVerifiedData.maps);
 
         // Populate and show the connected summary
-        var details = '';
-        if (caltopoVerifiedData.teamName) details += '<div><strong>Team:</strong> ' + escapeHtml(caltopoVerifiedData.teamName) + '</div>';
-        if (caltopoVerifiedData.title) details += '<div><strong>Account:</strong> ' + escapeHtml(caltopoVerifiedData.title) + '</div>';
-        if (caltopoVerifiedData.permission) details += '<div><strong>Permission:</strong> ' + escapeHtml(caltopoVerifiedData.permission) + '</div>';
-        if (payload.accountId) details += '<div><strong>Account ID:</strong> ' + escapeHtml(payload.accountId) + '</div>';
-        document.getElementById('ctExistingDetails').innerHTML = details;
+        renderCtExistingDetails();
+        renderCtToggleState();
         ctMapComboPopulate();
 
         // Remove loading, show summary
@@ -3364,7 +3296,9 @@ async function ctRefreshMaps() {
             caltopoVerifiedData.teamAccountId = result.team_account_id || caltopoVerifiedData.teamAccountId;
             caltopoVerifiedData.teamName = result.team_name || caltopoVerifiedData.teamName;
             caltopoVerifiedData.maps = result.maps || [];
-    
+            renderCtExistingDetails();
+            renderCtToggleState();
+
             populateMapDropdown(caltopoVerifiedData.maps);
             ctMapComboPopulate();
             var count = caltopoVerifiedData.maps.length;
@@ -3717,69 +3651,39 @@ function normalizeAccessUrl(raw) {
     return v.replace(/^https?:\/\/(preview\.)?caltopo\.com\/t\//i, '');
 }
 
-// Access URL mode toggle inside ctExistingSummary. The source of truth remains
-// ctAccessUrl (in the wizard substep); the summary is a view over it with
-// three mutually-exclusive states:
-//   - Filled (value set): chip + × to remove.
-//   - Add-link (no value, collapsed): just a "+ Add access URL" link — the
-//     default compact state so the edit panel isn't busy when the feature is
-//     unused.
-//   - Empty (no value, expanded): paste input + Save button, with the
-//     caltopo.com-admin-menu location hint revealed.
-var _ctAccessUrlInputExpanded = false;
+// Render the connected-account details panel: Team, Account, Permission,
+// Account ID, and Access URL when set. Called from every path that loads or
+// refreshes caltopoVerifiedData so the summary is always current.
+function renderCtExistingDetails() {
+    var el = document.getElementById('ctExistingDetails');
+    if (!el) return;
+    var d = caltopoVerifiedData || {};
+    var html = '';
+    if (d.teamName) html += '<div><strong>Team:</strong> ' + escapeHtml(d.teamName) + '</div>';
+    if (d.title) html += '<div><strong>Account:</strong> ' + escapeHtml(d.title) + '</div>';
+    if (d.permission) html += '<div><strong>Permission:</strong> ' + escapeHtml(d.permission) + '</div>';
+    var acctId = (document.getElementById('ctAccountId') || {}).value;
+    if (acctId) html += '<div><strong>Account ID:</strong> ' + escapeHtml(acctId) + '</div>';
+    var accessUrlEl = document.getElementById('ctAccessUrl');
+    var accessUrlVal = accessUrlEl ? accessUrlEl.value.trim() : '';
+    if (accessUrlVal) html += '<div><strong>Access URL:</strong> <span style="font-family: monospace; word-break: break-all;">' + escapeHtml(accessUrlVal) + '</span></div>';
+    el.innerHTML = html;
+}
 
-function renderAccessUrlSummaryMode() {
-    var addLinkMode = document.getElementById('ctAccessUrlAddLinkMode');
-    var emptyMode = document.getElementById('ctAccessUrlEmptyMode');
-    var filledMode = document.getElementById('ctAccessUrlFilledMode');
-    if (!addLinkMode || !emptyMode || !filledMode) return;
-    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
-    var value = ctAccessUrlEl ? ctAccessUrlEl.value.trim() : '';
-    if (value) {
-        var chip = document.getElementById('ctAccessUrlChip');
-        if (chip) {
-            chip.textContent = value;
-            chip.title = value;
-        }
-        filledMode.style.display = 'flex';
-        emptyMode.style.display = 'none';
-        addLinkMode.style.display = 'none';
-        var summaryInput = document.getElementById('ctAccessUrlSummaryInput');
-        if (summaryInput) summaryInput.value = '';
-        _ctAccessUrlInputExpanded = false;
-    } else if (_ctAccessUrlInputExpanded) {
-        filledMode.style.display = 'none';
-        addLinkMode.style.display = 'none';
-        emptyMode.style.display = 'block';
-    } else {
-        filledMode.style.display = 'none';
-        emptyMode.style.display = 'none';
-        addLinkMode.style.display = 'block';
+// Update the CalTopo toggle's description so it's obvious at a glance whether
+// a service account is set up (instead of a generic benefit statement that
+// looks the same in both states).
+function renderCtToggleState() {
+    var desc = document.getElementById('ctToggleDesc');
+    if (!desc) return;
+    var connected = !!(caltopoVerifiedData && (caltopoVerifiedData.title || caltopoVerifiedData.teamName));
+    if (!connected) {
+        var acctId = (document.getElementById('ctAccountId') || {}).value;
+        connected = !!acctId;
     }
-}
-
-function showAccessUrlInputMode() {
-    _ctAccessUrlInputExpanded = true;
-    renderAccessUrlSummaryMode();
-    var summaryInput = document.getElementById('ctAccessUrlSummaryInput');
-    if (summaryInput) summaryInput.focus();
-}
-
-function commitAccessUrlFromSummary() {
-    var summaryInput = document.getElementById('ctAccessUrlSummaryInput');
-    if (!summaryInput) return;
-    var normalized = normalizeAccessUrl(summaryInput.value);
-    if (!normalized) return;
-    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
-    if (ctAccessUrlEl) ctAccessUrlEl.value = normalized;
-    renderAccessUrlSummaryMode();
-}
-
-function clearAccessUrlFromSummary() {
-    var ctAccessUrlEl = document.getElementById('ctAccessUrl');
-    if (ctAccessUrlEl) ctAccessUrlEl.value = '';
-    _ctAccessUrlInputExpanded = false;
-    renderAccessUrlSummaryMode();
+    desc.textContent = connected
+        ? 'Connected — tap to view or change'
+        : 'Not connected — set up to stay signed in to CalTopo without re-authenticating every few days';
 }
 
 // Build CalTopo service account JSON from form fields + verified data
@@ -3815,7 +3719,6 @@ async function verifyCaltopoServiceAccount() {
     var accessUrlEl = document.getElementById('ctAccessUrl');
     var accessUrl = accessUrlEl ? normalizeAccessUrl(accessUrlEl.value) : '';
     if (accessUrlEl) accessUrlEl.value = accessUrl;
-    renderAccessUrlSummaryMode();
     var resultEl = document.getElementById('ctVerifyResult');
     var btn = document.getElementById('ctVerifyBtn');
 
@@ -3860,7 +3763,9 @@ async function verifyCaltopoServiceAccount() {
                 teamName: result.team_name || '',
                 maps: result.maps || []
             };
-                showCaltopoVerifySuccess(caltopoVerifiedData);
+            showCaltopoVerifySuccess(caltopoVerifiedData);
+            renderCtExistingDetails();
+            renderCtToggleState();
             populateMapDropdown(caltopoVerifiedData.maps);
             // Advance to map selection sub-step
             setTimeout(function() { showCtSubStep(5); }, 800);
@@ -3994,7 +3899,6 @@ function populateForm(config) {
         var savedAccessUrl = sa.accessUrl || sa.access_url || '';
         var ctAccessUrlEl = document.getElementById('ctAccessUrl');
         if (ctAccessUrlEl) ctAccessUrlEl.value = savedAccessUrl;
-        renderAccessUrlSummaryMode();
         // Store metadata from saved config so it's included on save
         caltopoVerifiedData = {
             title: sa.title || '',
@@ -4006,10 +3910,12 @@ function populateForm(config) {
         };
         // Show stored metadata in the verify result area
         showCaltopoVerifySuccess(caltopoVerifiedData);
+        renderCtExistingDetails();
         if (caltopoVerifiedData.maps.length > 0) {
             populateMapDropdown(caltopoVerifiedData.maps);
         }
     }
+    renderCtToggleState();
 
     // CalTopo map — gate on .mapId so absent / null / {} / partial all behave as "no map"
     if (cfg.default_map && cfg.default_map.mapId) {
@@ -4034,8 +3940,9 @@ function clearForm() {
     document.getElementById('ctKey').value = '';
     var ctAccessUrlEl = document.getElementById('ctAccessUrl');
     if (ctAccessUrlEl) ctAccessUrlEl.value = '';
-    renderAccessUrlSummaryMode();
     caltopoVerifiedData = null;
+    renderCtExistingDetails();
+    renderCtToggleState();
     var ctResult = document.getElementById('ctVerifyResult');
     ctResult.className = 'caltopo-verify-result';
     ctResult.style.display = 'none';
