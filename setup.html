@@ -890,6 +890,26 @@ noindex: true
         justify-content: flex-end;
         flex-wrap: wrap;
     }
+    .config-card-error {
+        margin-top: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 4px;
+        background-color: #fce8e6;
+        color: #8a1a10;
+        font-size: 1.35rem;
+        line-height: 1.5;
+        border: 1px solid #f5c2bc;
+    }
+    .config-card-error .config-card-error-actions {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+    .config-card-error .setup-btn {
+        font-size: 1.3rem;
+        padding: 6px 12px;
+    }
     .config-card-edit-link {
         align-self: center;
         padding: 6px 10px;
@@ -1931,15 +1951,33 @@ function lpCancel() {
 async function lpLoadUserLicenses() {
     document.getElementById('lpLoading').style.display = 'block';
     document.getElementById('lpContainer').style.display = 'none';
+    showStatus('lpStatus', '', null);
+
+    var machineId = document.getElementById('setupMachineId').textContent || '';
+
+    // No device context — the backend's check_available_licenses_and_tokens
+    // endpoint can 500 on empty machine_id / no-license-attached, and we don't
+    // have another endpoint that enumerates a user's licenses from here. Skip
+    // the auto-list and drop straight into manual-entry mode so the user can
+    // attach a license ID directly.
+    if (!machineId) {
+        lpUserLicenses = [];
+        document.getElementById('lpLoading').style.display = 'none';
+        document.getElementById('lpContainer').style.display = 'block';
+        lpDisplayLicenses();
+        revealManualLicenseEntry(
+            'Enter a license ID below to attach one to your account and continue.'
+        );
+        return;
+    }
 
     try {
         var token = await getIdToken();
-        var machineId = document.getElementById('setupMachineId').textContent || '';
         var resp = await fetch(API_BASE + 'check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineId), {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        if (!resp.ok) throw new Error('Failed to load licenses');
+        if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
         var data = await resp.json();
 
         lpUserLicenses = [];
@@ -1968,8 +2006,38 @@ async function lpLoadUserLicenses() {
         lpDisplayLicenses();
     } catch (err) {
         document.getElementById('lpLoading').style.display = 'none';
-        showStatus('lpStatus', 'Error loading licenses: ' + err.message, 'error');
+        document.getElementById('lpContainer').style.display = 'block';
+        lpUserLicenses = [];
+        lpDisplayLicenses();
+        revealManualLicenseEntry(
+            'We couldn\'t load any licenses for your account automatically. ' +
+            'Enter a license ID below to attach one and continue.'
+        );
+        console.warn('lpLoadUserLicenses failed:', err);
     }
+}
+
+function revealManualLicenseEntry(message) {
+    // Expand the "Have a license ID?" section so the input + button are visible.
+    var section = document.getElementById('lpManualSection');
+    var link = document.getElementById('lpManualLink');
+    if (section) section.style.display = 'block';
+    if (link) link.style.display = 'none';
+    // Add a "Don't have a license yet?" link to /get-license/ for users who
+    // arrived here without ever having bought one. Idempotent: re-entering
+    // the picker doesn't duplicate the link.
+    var getLicenseLink = document.getElementById('lpGetLicenseLink');
+    if (!getLicenseLink && section) {
+        getLicenseLink = document.createElement('div');
+        getLicenseLink.id = 'lpGetLicenseLink';
+        getLicenseLink.style.cssText = 'margin-top: 0.75rem; font-size: 1.3rem; text-align: center;';
+        getLicenseLink.innerHTML =
+            'Don\'t have a license yet? ' +
+            '<a href="{{ "/get-license/" | relative_url }}" style="color: #1e90ff;">Get one here &rarr;</a>';
+        section.appendChild(getLicenseLink);
+    }
+    if (getLicenseLink) getLicenseLink.style.display = 'block';
+    if (message) showStatus('lpStatus', message, 'info');
 }
 
 function lpGetSortedLicenses() {
@@ -2340,6 +2408,10 @@ var skipMobileRecommendation = false;
 async function introSelectConfig(index) {
     var config = cachedConfigurations[index];
 
+    // Clear any lingering error banners from a prior attempt or cross-card click.
+    clearAllConfigCardErrors();
+    setIntroStatus('', null);
+
     // Show loading on the clicked card
     var cards = document.querySelectorAll('#introExistingConfigs .config-card-toggle');
     cards.forEach(function(card, i) {
@@ -2375,30 +2447,49 @@ async function introSelectConfig(index) {
 
         var verifyFailed = false;
         var failMsg = '';
+        var label = config.label || 'this configuration';
         try {
             var verifyResult = await apiCall('verify_caltopo_service_account', verifyBody);
             if (!verifyResult || !verifyResult.success) {
                 verifyFailed = true;
-                failMsg = 'The CalTopo credentials stored in "' + (config.label || 'this configuration') +
-                    '" are no longer accepted by CalTopo. Edit the configuration and re-enter the Credential ID and Secret, or pick a different configuration.';
+                failMsg = 'The CalTopo credentials stored in "' + label +
+                    '" were rejected by CalTopo. The service account may have been deleted, ' +
+                    'or the Credential ID or Secret may have been rotated. Edit this configuration ' +
+                    'to re-enter the credential, or create a new configuration.';
             } else if (!verifyResult.permission) {
                 verifyFailed = true;
-                failMsg = 'The CalTopo service account "' + (sa.title || sa.accountId) +
-                    '" in "' + (config.label || 'this configuration') + '" no longer exists in CalTopo — it has likely been deleted. ' +
-                    'Open your CalTopo account settings (Your Account → Credentials) to confirm, then edit this configuration to point at a live service account, or pick a different configuration.';
+                failMsg = 'CalTopo does not report an account "' + (sa.title || sa.accountId) +
+                    '" under the credentials in "' + label + '" — it may have been deleted. ' +
+                    'Open your CalTopo account settings (Your Account → Credentials) to check, ' +
+                    'then edit this configuration to point at a live service account, or create a new configuration.';
             } else {
                 var allowed = ['Update', 'Write', 'Manage', 'Administer'];
                 if (allowed.indexOf(verifyResult.permission) === -1) {
                     verifyFailed = true;
-                    failMsg = 'The CalTopo service account in "' + (config.label || 'this configuration') +
+                    failMsg = 'The CalTopo service account in "' + label +
                         '" now has only "' + verifyResult.permission + '" permission; "Update" or higher is required. ' +
                         'Raise the permission in CalTopo, then try again.';
                 }
             }
         } catch (verifyErr) {
             verifyFailed = true;
-            failMsg = 'Could not reach CalTopo to verify the saved service account for "' +
-                (config.label || 'this configuration') + '". Please check your connection and try again.';
+            var status = verifyErr && verifyErr.status;
+            if (status === 401) {
+                failMsg = 'The CalTopo credentials stored in "' + label +
+                    '" were rejected. The service account may have been deleted, ' +
+                    'or the Credential ID or Secret may have been rotated. Edit this configuration ' +
+                    'to re-enter the credential, or create a new configuration.';
+            } else if (status === 502) {
+                failMsg = 'Could not verify the CalTopo service account for "' + label +
+                    '". CalTopo may be temporarily unavailable, or the service account may have been deleted. ' +
+                    'Try again in a minute; if the problem persists, edit this configuration or create a new one.';
+            } else if (status === 500) {
+                failMsg = 'Our verification service is having trouble checking "' + label +
+                    '". Please try again shortly.';
+            } else {
+                failMsg = 'Could not reach our server to verify "' + label +
+                    '". Please check your connection and try again.';
+            }
         }
 
         if (verifyFailed) {
@@ -2416,20 +2507,7 @@ async function introSelectConfig(index) {
                     selectBtnReset.textContent = 'Select';
                 }
             }
-            // setIntroStatus uses textContent, so set it first to apply styling,
-            // then replace innerHTML to render the action buttons.
-            setIntroStatus(failMsg, 'error');
-            var introStatusEl = document.getElementById('introStatus');
-            if (introStatusEl) {
-                introStatusEl.innerHTML =
-                    '<div>' + escapeHtml(failMsg) + '</div>' +
-                    '<div style="margin-top: 0.75rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">' +
-                        '<button type="button" class="setup-btn setup-btn-primary" ' +
-                            'onclick="editConfiguration(' + index + ')">Edit this configuration</button>' +
-                        '<button type="button" class="setup-btn" ' +
-                            'onclick="deleteConfigurationByIndex(' + index + ')">Delete this configuration</button>' +
-                    '</div>';
-            }
+            showConfigCardError('activation' + index, failMsg, index);
             return;
         }
     }
@@ -2484,6 +2562,33 @@ function setIntroStatus(message, type) {
         el.style.background = '#e2e3e5';
         el.style.border = '1px solid #d6d8db';
         el.style.color = '#383d41';
+    }
+}
+
+function clearAllConfigCardErrors() {
+    var holders = document.querySelectorAll('#introExistingConfigs .config-card-error');
+    holders.forEach(function(el) {
+        el.style.display = 'none';
+        el.innerHTML = '';
+    });
+}
+
+function showConfigCardError(uniqueId, message, index) {
+    var el = document.getElementById('configError_' + uniqueId);
+    if (!el) return;
+    el.innerHTML =
+        '<div>' + escapeHtml(message) + '</div>' +
+        '<div class="config-card-error-actions">' +
+            '<button type="button" class="setup-btn setup-btn-primary" ' +
+                'onclick="event.stopPropagation(); editConfiguration(' + index + ')">Edit</button>' +
+            '<button type="button" class="setup-btn" ' +
+                'onclick="event.stopPropagation(); deleteConfigurationByIndex(' + index + ')">Delete</button>' +
+            '<button type="button" class="setup-btn setup-btn-secondary" ' +
+                'onclick="event.stopPropagation(); introSetupController()">Create new configuration</button>' +
+        '</div>';
+    el.style.display = 'block';
+    if (typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -2644,6 +2749,7 @@ function renderConfigCard(config, index, mode) {
         html += '<button class="setup-btn setup-btn-primary" onclick="event.stopPropagation(); introSelectConfig(' + index + ')">Select</button>';
     }
     html += '</div>';
+    html += '<div class="config-card-error" id="configError_' + uniqueId + '" style="display: none;"></div>';
     html += '</div>';
     html += '</div>';
     html += '</div>';
