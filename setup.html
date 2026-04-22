@@ -1271,7 +1271,7 @@ noindex: true
                 Store and share your setup — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
             </p>
             <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="configListSubtitle"></div>
-            <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"><strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a></div>
+            <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"><strong>License required.</strong> <a href="#" onclick="showLicensePicker('select'); return false;" style="color: #1e90ff;">Select a license</a></div>
             <div id="configListItems"></div>
             <div style="margin-top: 1.5rem;">
                 <button class="setup-btn" onclick="createNewConfiguration()" style="background-color: #28a745; color: white; box-shadow: 0 2px 8px rgba(40,167,69,0.25);">+ New</button>
@@ -1854,19 +1854,58 @@ async function apiCall(endpoint, body, opts) {
     return response.json();
 }
 
-// --- License Picker (for activation flows without a pre-selected license) ---
+// --- License Picker ---
+// Two modes:
+//   'activate' — original activation flow. Shows a confirm step and calls
+//                complete_activation to bind a device to the chosen license.
+//   'select'  — pick a license for a new/edited setup. No confirm, no
+//                activation; sets currentLicenseId and runs a callback.
 
 var lpUserLicenses = [];
 var lpSelectedLicense = null;
+var lpMode = 'activate';
+var lpOnSelectCallback = null;
 
-function showLicensePicker() {
+function showLicensePicker(mode, callback) {
+    lpMode = mode || 'activate';
+    lpOnSelectCallback = callback || null;
     document.getElementById('licensePickerSection').style.display = 'block';
-    document.getElementById('wizardStepper').style.display = 'none';
-    document.getElementById('setupIntro').style.display = 'none';
-    document.getElementById('setupConfigList').style.display = 'none';
-    document.getElementById('setupForm').style.display = 'none';
-    document.getElementById('setupHeader').style.display = 'none';
+    if (lpMode === 'activate') {
+        document.getElementById('wizardStepper').style.display = 'none';
+        document.getElementById('setupIntro').style.display = 'none';
+        document.getElementById('setupConfigList').style.display = 'none';
+        document.getElementById('setupForm').style.display = 'none';
+        document.getElementById('setupHeader').style.display = 'none';
+    } else {
+        document.getElementById('setupConfigList').style.display = 'none';
+        document.getElementById('setupForm').style.display = 'none';
+    }
+    var title = document.querySelector('#licensePickerSection .lp-title');
+    if (title) title.textContent = (lpMode === 'select') ? 'Select a license for this setup' : 'Select a license';
+    ensureLpCancelLink();
     lpLoadUserLicenses();
+}
+
+// Adds a "Cancel" link to the picker section, shown only in 'select' mode.
+function ensureLpCancelLink() {
+    var section = document.getElementById('licensePickerSection');
+    var link = document.getElementById('lpCancelLink');
+    if (!link) {
+        link = document.createElement('div');
+        link.id = 'lpCancelLink';
+        link.style.cssText = 'margin-top: 1rem; text-align: center;';
+        link.innerHTML = '<a href="#" onclick="lpCancel(); return false;" style="color: #888; font-size: 1.3rem;">Cancel</a>';
+        section.appendChild(link);
+    }
+    link.style.display = (lpMode === 'select') ? 'block' : 'none';
+}
+
+function lpCancel() {
+    document.getElementById('licensePickerSection').style.display = 'none';
+    lpOnSelectCallback = null;
+    lpSelectedLicense = null;
+    document.getElementById('lpConfirmArea').innerHTML = '';
+    document.getElementById('setupConfigList').style.display = '';
 }
 
 async function lpLoadUserLicenses() {
@@ -1952,6 +1991,14 @@ function lpRenderPrimary(lic) {
     var cls = 'lp-primary-card';
     var btn = '', status = '';
 
+    if (lpMode === 'select') {
+        btn = '<button class="lp-btn" onclick="lpSelect(\'' + lic.license_id + '\')">Use this license</button>';
+        return '<div class="' + cls + '">' +
+            '<h3>' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</h3>' +
+            '<div class="lp-meta"><span>' + lic.license_id + '</span><span>Expires: ' + expiry + '</span></div>' +
+            '<div class="lp-actions">' + btn + '</div></div>';
+    }
+
     if (lic.has_existing_key) {
         cls += ' reactivate';
         btn = '<button class="lp-btn reactivate" onclick="lpSelect(\'' + lic.license_id + '\')">Reactivate on this license</button>';
@@ -1974,6 +2021,11 @@ function lpRenderPrimary(lic) {
 function lpRenderOtherRow(lic) {
     var expiry = lic.expiry_timestamp ? new Date(lic.expiry_timestamp * 1000).toLocaleDateString() : 'No expiry';
     var btn = '';
+    if (lpMode === 'select') {
+        btn = '<button onclick="lpSelect(\'' + lic.license_id + '\')">Select</button>';
+        return '<div class="lp-other-row"><div><div class="lp-row-name">' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</div>' +
+            '<div class="lp-row-meta">' + lic.license_id + ' &middot; Expires: ' + expiry + '</div></div>' + btn + '</div>';
+    }
     if (lic.has_existing_key) {
         btn = '<button class="reactivate" onclick="lpSelect(\'' + lic.license_id + '\')">Reactivate</button>';
     } else if (lic.remaining_keys <= 0) {
@@ -1986,9 +2038,27 @@ function lpRenderOtherRow(lic) {
 }
 
 function lpSelect(licenseId) {
-    lpSelectedLicense = licenseId;
     var lic = lpUserLicenses.find(function(l) { return l.license_id === licenseId; });
     if (!lic) return;
+
+    if (lpMode === 'select') {
+        currentLicenseId = licenseId;
+        // setupLicenseInput is still read by loadConfigurations as the source
+        // of truth for the current license — keep it in sync.
+        var hiddenInput = document.getElementById('setupLicenseInput');
+        if (hiddenInput) hiddenInput.value = licenseId;
+        document.getElementById('setupLicenseLink').innerHTML =
+            'License: <strong>' + escapeHtml(licenseId) + '</strong>. ' +
+            '<a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Change</a>';
+        document.getElementById('licensePickerSection').style.display = 'none';
+        document.getElementById('lpConfirmArea').innerHTML = '';
+        var cb = lpOnSelectCallback;
+        lpOnSelectCallback = null;
+        if (cb) cb(licenseId); else loadConfigurations();
+        return;
+    }
+
+    lpSelectedLicense = licenseId;
 
     // Make the top card match the selection so the page isn't showing two
     // different licenses at once (old at top, new in the confirm dialog).
@@ -2268,6 +2338,82 @@ async function introSelectConfig(index) {
         }
     }
 
+    // Re-verify the stored CalTopo service account still exists in CalTopo.
+    // Without this, a deleted/revoked account would ship stale credentials to
+    // the controller and only surface later when the user changes default map.
+    var cfg = config && config.config ? config.config : {};
+    var sa = cfg.service_account;
+    if (sa && sa.accountId && sa.credentialId && sa.key) {
+        var verifyBody = {
+            license_id: currentLicenseId,
+            account_id: sa.accountId,
+            credential_id: sa.credentialId,
+            credential_secret: sa.key
+        };
+        var savedAccessUrl = sa.accessUrl || sa.access_url;
+        if (savedAccessUrl) verifyBody.access_url = savedAccessUrl;
+
+        var verifyFailed = false;
+        var failMsg = '';
+        try {
+            var verifyResult = await apiCall('verify_caltopo_service_account', verifyBody);
+            if (!verifyResult || !verifyResult.success) {
+                verifyFailed = true;
+                failMsg = 'The CalTopo credentials stored in "' + (config.label || 'this setup') +
+                    '" are no longer accepted by CalTopo. Edit the setup and re-enter the Credential ID and Secret, or pick a different setup.';
+            } else if (!verifyResult.permission) {
+                verifyFailed = true;
+                failMsg = 'The CalTopo service account "' + (sa.title || sa.accountId) +
+                    '" in "' + (config.label || 'this setup') + '" no longer exists in CalTopo — it has likely been deleted. ' +
+                    'Open your CalTopo account settings (Your Account → Credentials) to confirm, then edit this setup to point at a live service account, or pick a different setup.';
+            } else {
+                var allowed = ['Update', 'Write', 'Manage', 'Administer'];
+                if (allowed.indexOf(verifyResult.permission) === -1) {
+                    verifyFailed = true;
+                    failMsg = 'The CalTopo service account in "' + (config.label || 'this setup') +
+                        '" now has only "' + verifyResult.permission + '" permission; "Update" or higher is required. ' +
+                        'Raise the permission in CalTopo, then try again.';
+                }
+            }
+        } catch (verifyErr) {
+            verifyFailed = true;
+            failMsg = 'Could not reach CalTopo to verify the saved service account for "' +
+                (config.label || 'this setup') + '". Please check your connection and try again.';
+        }
+
+        if (verifyFailed) {
+            cards.forEach(function(card) {
+                card.style.pointerEvents = '';
+                card.style.opacity = '';
+            });
+            if (selectedCard) {
+                selectedCard.classList.remove('filled');
+                var statusReset = selectedCard.querySelector('.toggle-status');
+                if (statusReset) statusReset.innerHTML = '&#10003;';
+                var selectBtnReset = selectedCard.querySelector('.setup-btn-primary');
+                if (selectBtnReset) {
+                    selectBtnReset.disabled = false;
+                    selectBtnReset.textContent = 'Select';
+                }
+            }
+            // setIntroStatus uses textContent, so set it first to apply styling,
+            // then replace innerHTML to render the action buttons.
+            setIntroStatus(failMsg, 'error');
+            var introStatusEl = document.getElementById('introStatus');
+            if (introStatusEl) {
+                introStatusEl.innerHTML =
+                    '<div>' + escapeHtml(failMsg) + '</div>' +
+                    '<div style="margin-top: 0.75rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">' +
+                        '<button type="button" class="setup-btn setup-btn-primary" ' +
+                            'onclick="editConfiguration(' + index + ')">Edit this setup</button>' +
+                        '<button type="button" class="setup-btn" ' +
+                            'onclick="deleteConfigurationByIndex(' + index + ')">Delete this setup</button>' +
+                    '</div>';
+            }
+            return;
+        }
+    }
+
     // Complete activation if we have a session and license
     if (urlSessionId && currentLicenseId) {
         try {
@@ -2425,9 +2571,9 @@ async function loadConfigurations() {
     // Update license link state
     var licenseLinkEl = document.getElementById('setupLicenseLink');
     if (currentLicenseId) {
-        licenseLinkEl.innerHTML = 'License: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Change</a>';
+        licenseLinkEl.innerHTML = 'License: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Change</a>';
     } else {
-        licenseLinkEl.innerHTML = '<strong>License ID required.</strong> <a href="#" onclick="showLicenseDialog(); return false;" style="color: #1e90ff;">Enter license ID</a>';
+        licenseLinkEl.innerHTML = '<strong>License required.</strong> <a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Select a license</a>';
     }
 
     // Show the config list section
@@ -2650,7 +2796,7 @@ function getDefaultName() {
 
 function createNewConfiguration() {
     if (!currentLicenseId) {
-        showLicenseDialog(function() {
+        showLicensePicker('select', function() {
             currentConfigurationId = null;
             currentEditIndex = null;
             clearForm();
