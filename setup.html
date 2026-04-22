@@ -1913,6 +1913,15 @@ async function lpLoadUserLicenses() {
     }
 }
 
+function lpGetSortedLicenses() {
+    return lpUserLicenses.slice().sort(function(a, b) {
+        if (a.has_existing_key && !b.has_existing_key) return -1;
+        if (!a.has_existing_key && b.has_existing_key) return 1;
+        if ((a.remaining_keys > 0) !== (b.remaining_keys > 0)) return (a.remaining_keys > 0) ? -1 : 1;
+        return 0;
+    });
+}
+
 function lpDisplayLicenses() {
     var primaryEl = document.getElementById('lpPrimary');
     var otherToggle = document.getElementById('lpOtherToggle');
@@ -1926,12 +1935,7 @@ function lpDisplayLicenses() {
         return;
     }
 
-    var sorted = lpUserLicenses.slice().sort(function(a, b) {
-        if (a.has_existing_key && !b.has_existing_key) return -1;
-        if (!a.has_existing_key && b.has_existing_key) return 1;
-        if ((a.remaining_keys > 0) !== (b.remaining_keys > 0)) return (a.remaining_keys > 0) ? -1 : 1;
-        return 0;
-    });
+    var sorted = lpGetSortedLicenses();
 
     primaryEl.innerHTML = lpRenderPrimary(sorted[0]);
     if (sorted.length > 1) {
@@ -1986,6 +1990,10 @@ function lpSelect(licenseId) {
     var lic = lpUserLicenses.find(function(l) { return l.license_id === licenseId; });
     if (!lic) return;
 
+    // Make the top card match the selection so the page isn't showing two
+    // different licenses at once (old at top, new in the confirm dialog).
+    document.getElementById('lpPrimary').innerHTML = lpRenderPrimary(lic);
+
     var deviceName = document.getElementById('setupDeviceName').textContent || 'this device';
     var hasKey = lic.has_existing_key;
     var text, warning = '', btnHtml;
@@ -2015,6 +2023,12 @@ function lpSelect(licenseId) {
 function lpCancelConfirm() {
     document.getElementById('lpConfirmArea').innerHTML = '';
     lpSelectedLicense = null;
+    // Restore the original top-sorted primary card (lpSelect swapped it to
+    // the user's pick). Other-list expanded state stays as it was.
+    var sorted = lpGetSortedLicenses();
+    if (sorted.length) {
+        document.getElementById('lpPrimary').innerHTML = lpRenderPrimary(sorted[0]);
+    }
     document.querySelectorAll('#lpPrimary button, .lp-other-row button').forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
     if (lpUserLicenses.length > 1) document.getElementById('lpOtherToggle').style.display = '';
     document.getElementById('lpManualLink').parentElement.style.display = '';
