@@ -1151,24 +1151,28 @@ noindex: true
         <button id="test-user-login" style="background-color: white; color: #4CAF50; border: none; padding: 8px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; margin-left: 10px;">Sign in as Test User</button>
     </div>
 
-    <!-- Code entry landing (shown when accessing /setup/ directly without params) -->
+    <!-- Code entry screen (shown when the user has a 6-digit code from their device) -->
     <div id="setupCodeEntry" style="display: none; text-align: center; padding: 2rem 0;">
-        <h2 style="font-size: 2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Setup</h2>
-        <p style="font-size: 1.4rem; color: #888; margin: 0 0 2rem;">Enter your 6-digit activation code to get started.</p>
+        <div style="text-align: left; margin-bottom: 1.25rem;">
+            <a href="#" onclick="hideCodeEntry(); return false;" style="font-size: 1.3rem; color: #888; text-decoration: none;">&larr; Back</a>
+        </div>
+        <h2 style="font-size: 2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Enter setup code</h2>
+        <p style="font-size: 1.4rem; color: #888; margin: 0 0 2rem;">Enter the 6-digit code shown in the Eagle Eyes app on your device.</p>
         <input type="text" id="setupCodeInput" placeholder="ABC-123" maxlength="7" autocomplete="off" style="width: 100%; max-width: 280px; padding: 14px; font-size: 22px; font-weight: bold; text-align: center; border: 2px solid #dee2e6; border-radius: 4px; letter-spacing: 6px; text-transform: uppercase; font-family: 'Courier New', monospace; margin-bottom: 16px;">
         <div>
             <button class="setup-btn setup-btn-primary" onclick="handleSetupCode()" id="setupCodeBtn" style="min-width: 200px;">Continue</button>
         </div>
         <div id="setupCodeStatus" class="setup-status" style="margin-top: 1rem;"></div>
-        <div style="margin-top: 1.5rem;">
-            <a href="#" onclick="showDirectSignin(); return false;" style="font-size: 1.3rem; color: #1e90ff; text-decoration: none;">Sign in to manage existing setups &rarr;</a>
-        </div>
     </div>
 
     <!-- Sign-in prompt (shown when not authenticated) -->
     <div id="setupSigninSection" class="setup-signin-section" style="display: none;">
-        <p style="margin-bottom: 20px;">Sign in to manage your saved settings.</p>
+        <h2 style="font-size: 2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Eagle Eyes Setup</h2>
+        <p style="font-size: 1.4rem; color: #888; margin: 0 0 1.5rem;">Sign in to manage your saved settings and licenses.</p>
         <button class="setup-signin-btn" onclick="toggleSignIn()">Sign In or Create Account</button>
+        <p style="margin-top: 1.75rem; font-size: 1.3rem; color: #666;">
+            <a href="#" onclick="showCodeEntry(); return false;" style="color: #1e90ff; text-decoration: none;">Have a 6-digit code from your device? &rarr;</a>
+        </p>
     </div>
 
     <!-- Page header -->
@@ -1179,7 +1183,7 @@ noindex: true
     <!-- Mobile recommendation screen (shown before wizard step 1 on mobile) -->
     <div id="mobileRecommendation" style="display: none;">
         <h2 class="form-step-question">Setting up on a small screen?</h2>
-        <p class="form-step-hint">You'll need a laptop, desktop, or tablet to create a new setup.</p>
+        <p class="form-step-hint">You'll need a laptop, desktop, or tablet to create a new configuration.</p>
         <div class="form-step-actions">
             <button class="setup-btn setup-btn-primary" onclick="showLaptopHandoff()">I have a laptop/desktop/tablet ready</button>
             <a href="#" class="back-link" onclick="showConfigList(); return false;">Back</a>
@@ -1241,7 +1245,7 @@ noindex: true
     <div id="setupIntro" style="display: none;">
         <div style="background: #f0f7ff; border: 1px solid #c4ddf7; border-radius: 6px; padding: 2rem; margin-bottom: 2rem;">
             <p style="font-size: 1.4rem; color: #555; line-height: 1.6; margin: 0 0 1.5rem;">
-                Store and share your setup — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
+                Store and share your configuration — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
             </p>
             <div id="introExistingConfigs"></div>
             <p style="font-size: 1.25rem; color: #888; line-height: 1.5; margin: 1.25rem 0 0.75rem;">
@@ -1249,7 +1253,7 @@ noindex: true
             </p>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.25rem;">
                 <button class="setup-btn setup-btn-primary" id="introSetupBtn" onclick="introSetupController()">Create New</button>
-                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip setup</button>
+                <button class="setup-btn setup-btn-secondary" id="introSkipBtn" onclick="introSkip()">Skip configuration</button>
             </div>
             <div id="introStatus" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 4px; font-size: 1.3rem;"></div>
         </div>
@@ -1264,11 +1268,11 @@ noindex: true
         <a href="#" onclick="showConfigListFromSuccess(); return false;" style="font-size: 1.4rem; color: #1e90ff; text-decoration: none;">See all saved settings &rarr;</a>
     </div>
 
-    <!-- Controller Setup list (shown after auth) -->
+    <!-- Configuration list (shown after auth) -->
     <div id="setupConfigList" style="display: none;">
         <div style="background: #f0f7ff; border: 1px solid #c4ddf7; border-radius: 6px; padding: 2rem; margin-bottom: 2rem;">
             <p style="font-size: 1.4rem; color: #555; line-height: 1.6; margin: 0 0 1.5rem;">
-                Store and share your setup — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
+                Store and share your configuration — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
             </p>
             <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="configListSubtitle"></div>
             <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"><strong>License required.</strong> <a href="#" onclick="showLicensePicker('select'); return false;" style="color: #1e90ff;">Select a license</a></div>
@@ -1277,6 +1281,9 @@ noindex: true
                 <button class="setup-btn" onclick="createNewConfiguration()" style="background-color: #28a745; color: white; box-shadow: 0 2px 8px rgba(40,167,69,0.25);">+ New</button>
             </div>
             <div class="setup-status" id="configListStatus"></div>
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dbe7f5;">
+                <a href="#" onclick="showCodeEntry(); return false;" style="font-size: 1.3rem; color: #1e90ff; text-decoration: none;">Have a 6-digit code from a device? Activate it here &rarr;</a>
+            </div>
         </div>
     </div>
 
@@ -1284,7 +1291,7 @@ noindex: true
     <div id="licenseDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1002; justify-content: center; align-items: center;">
         <div style="background: white; border-radius: 6px; padding: 2rem; width: 90%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);">
             <h3 style="font-size: 1.6rem; font-weight: 600; color: #333; margin: 0 0 0.5rem;">Enter License ID</h3>
-            <p style="font-size: 1.3rem; color: #888; margin: 0 0 1.2rem;">Enter a license ID to find or create a setup.</p>
+            <p style="font-size: 1.3rem; color: #888; margin: 0 0 1.2rem;">Enter a license ID to find or create a configuration.</p>
             <input type="text" id="setupLicenseInput" placeholder="e.g. ABC123" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1.5rem; box-sizing: border-box; margin-bottom: 1rem;">
             <div class="setup-status" id="setupLicenseStatus"></div>
             <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
@@ -1308,7 +1315,7 @@ noindex: true
 
         <!-- Step 1: Name -->
         <div class="form-step" id="formStep1">
-            <h2 class="form-step-question">Name this setup</h2>
+            <h2 class="form-step-question">Name this configuration</h2>
             <div class="setup-field" style="margin-bottom: 0;">
                 <input type="text" id="setupName" placeholder='e.g. "Default Team Settings"' required>
             </div>
@@ -1318,7 +1325,7 @@ noindex: true
         </div>
 
         <!-- Label for optional sections (form mode only) -->
-        <div id="optionalSectionsLabel" style="display: none; font-size: 1.5rem; color: #555; margin-bottom: 1rem;">Select what optional settings to include in this setup:</div>
+        <div id="optionalSectionsLabel" style="display: none; font-size: 1.5rem; color: #555; margin-bottom: 1rem;">Select what optional settings to include in this configuration:</div>
 
         <!-- Units & Coordinate System toggle -->
         <div class="optional-toggle" id="unitsToggle" style="display: none;" onclick="toggleSection('units');">
@@ -1557,7 +1564,7 @@ noindex: true
         <!-- Keep formStep4 for wizard mode compatibility -->
         <div class="form-step" id="formStep4" style="display: none;">
             <div class="form-step-actions">
-                <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Setup</button>
+                <button class="setup-btn setup-btn-primary" id="setupSaveBtn" onclick="saveConfiguration()">Save Configuration</button>
                 <a href="#" class="back-link" onclick="prevStep(); return false;">Back</a>
             </div>
         </div>
@@ -1565,11 +1572,11 @@ noindex: true
         <!-- Bottom actions (visible in all-steps form mode) -->
         <div id="formBottomActions" style="display: none; margin-top: 2.5rem; padding-top: 1.5rem;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem;">
-                <button class="setup-btn" id="formSaveAllBtn" onclick="saveConfiguration()" style="min-width: 220px; padding: 12px 32px; font-size: 1.6rem; background-color: #28a745; color: white; box-shadow: 0 2px 8px rgba(40,167,69,0.25);">Save Setup</button>
+                <button class="setup-btn" id="formSaveAllBtn" onclick="saveConfiguration()" style="min-width: 220px; padding: 12px 32px; font-size: 1.6rem; background-color: #28a745; color: white; box-shadow: 0 2px 8px rgba(40,167,69,0.25);">Save Configuration</button>
                 <a href="#" onclick="showConfigList(); return false;" style="color: #888; font-size: 1.4rem; text-decoration: none;">Cancel</a>
             </div>
             <div id="formDeleteAction" style="display: none; text-align: center; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
-                <a href="#" onclick="deleteCurrentConfiguration(); return false;" style="color: #ccc; font-size: 1.2rem; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='#ccc'">Delete this setup</a>
+                <a href="#" onclick="deleteCurrentConfiguration(); return false;" style="color: #ccc; font-size: 1.2rem; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='#ccc'">Delete this configuration</a>
             </div>
         </div>
 
@@ -1614,8 +1621,6 @@ var urlIntegrationType = urlSetupParams.get('integration_type') || '';
 var urlSessionId = urlSetupParams.get('session_id') || '';
 var cameFromActivation = !!urlSetupParams.get('license_id');
 var activationSuccess = urlSetupParams.get('activation_success') || ''; // 'new' or 'resync'
-var directAccess = urlSetupParams.get('direct') === 'true';
-var isDirectAccess = !cameFromActivation && !urlSessionId; // no params = direct
 var caltopoOnly = urlSetupParams.get('caltopo') === 'true';
 var proceduresOnly = urlSetupParams.get('procedures') === 'true';
 // setup_type URL param (new contract) overrides legacy caltopo/procedures URL flags.
@@ -1750,14 +1755,29 @@ async function handleSetupCode() {
     }
 }
 
-function showDirectSignin() {
+// Reveal the 6-digit code entry screen (invoked from the sign-in landing or
+// from the config list via "Have a 6-digit code?" links).
+function showCodeEntry() {
+    document.getElementById('setupSigninSection').style.display = 'none';
+    document.getElementById('setupConfigList').style.display = 'none';
+    document.getElementById('setupHeader').style.display = 'none';
+    document.getElementById('setupForm').style.display = 'none';
+    document.getElementById('setupIntro').style.display = 'none';
+    clearStatus('setupCodeStatus');
+    document.getElementById('setupCodeEntry').style.display = 'block';
+    setTimeout(function() {
+        var inp = document.getElementById('setupCodeInput');
+        if (inp) inp.focus();
+    }, 50);
+}
+
+// Back out of the code entry screen and return to wherever the user came from.
+function hideCodeEntry() {
     document.getElementById('setupCodeEntry').style.display = 'none';
-    directAccess = true;
-    // Show sign-in or config list depending on auth state
     var user = firebase.auth().currentUser;
     if (user) {
         document.getElementById('setupHeader').style.display = '';
-        document.getElementById('setupUserInfo').style.display = 'block';
+        document.getElementById('setupUserInfo').style.display = 'flex';
         loadConfigurations();
     } else {
         document.getElementById('setupSigninSection').style.display = 'block';
@@ -1881,7 +1901,7 @@ function showLicensePicker(mode, callback) {
         document.getElementById('setupForm').style.display = 'none';
     }
     var title = document.querySelector('#licensePickerSection .lp-title');
-    if (title) title.textContent = (lpMode === 'select') ? 'Select a license for this setup' : 'Select a license';
+    if (title) title.textContent = (lpMode === 'select') ? 'Select a license for this configuration' : 'Select a license';
     ensureLpCancelLink();
     lpLoadUserLicenses();
 }
@@ -2359,18 +2379,18 @@ async function introSelectConfig(index) {
             var verifyResult = await apiCall('verify_caltopo_service_account', verifyBody);
             if (!verifyResult || !verifyResult.success) {
                 verifyFailed = true;
-                failMsg = 'The CalTopo credentials stored in "' + (config.label || 'this setup') +
-                    '" are no longer accepted by CalTopo. Edit the setup and re-enter the Credential ID and Secret, or pick a different setup.';
+                failMsg = 'The CalTopo credentials stored in "' + (config.label || 'this configuration') +
+                    '" are no longer accepted by CalTopo. Edit the configuration and re-enter the Credential ID and Secret, or pick a different configuration.';
             } else if (!verifyResult.permission) {
                 verifyFailed = true;
                 failMsg = 'The CalTopo service account "' + (sa.title || sa.accountId) +
-                    '" in "' + (config.label || 'this setup') + '" no longer exists in CalTopo — it has likely been deleted. ' +
-                    'Open your CalTopo account settings (Your Account → Credentials) to confirm, then edit this setup to point at a live service account, or pick a different setup.';
+                    '" in "' + (config.label || 'this configuration') + '" no longer exists in CalTopo — it has likely been deleted. ' +
+                    'Open your CalTopo account settings (Your Account → Credentials) to confirm, then edit this configuration to point at a live service account, or pick a different configuration.';
             } else {
                 var allowed = ['Update', 'Write', 'Manage', 'Administer'];
                 if (allowed.indexOf(verifyResult.permission) === -1) {
                     verifyFailed = true;
-                    failMsg = 'The CalTopo service account in "' + (config.label || 'this setup') +
+                    failMsg = 'The CalTopo service account in "' + (config.label || 'this configuration') +
                         '" now has only "' + verifyResult.permission + '" permission; "Update" or higher is required. ' +
                         'Raise the permission in CalTopo, then try again.';
                 }
@@ -2378,7 +2398,7 @@ async function introSelectConfig(index) {
         } catch (verifyErr) {
             verifyFailed = true;
             failMsg = 'Could not reach CalTopo to verify the saved service account for "' +
-                (config.label || 'this setup') + '". Please check your connection and try again.';
+                (config.label || 'this configuration') + '". Please check your connection and try again.';
         }
 
         if (verifyFailed) {
@@ -2405,9 +2425,9 @@ async function introSelectConfig(index) {
                     '<div>' + escapeHtml(failMsg) + '</div>' +
                     '<div style="margin-top: 0.75rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">' +
                         '<button type="button" class="setup-btn setup-btn-primary" ' +
-                            'onclick="editConfiguration(' + index + ')">Edit this setup</button>' +
+                            'onclick="editConfiguration(' + index + ')">Edit this configuration</button>' +
                         '<button type="button" class="setup-btn" ' +
-                            'onclick="deleteConfigurationByIndex(' + index + ')">Delete this setup</button>' +
+                            'onclick="deleteConfigurationByIndex(' + index + ')">Delete this configuration</button>' +
                     '</div>';
             }
             return;
@@ -2470,7 +2490,7 @@ function setIntroStatus(message, type) {
 async function introSkip() {
     var skipBtn = document.getElementById('introSkipBtn');
     var setupBtn = document.getElementById('introSetupBtn');
-    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip setup';
+    var originalSkipText = skipBtn ? skipBtn.textContent : 'Skip configuration';
     setIntroStatus('', null);
     if (skipBtn) {
         skipBtn.disabled = true;
@@ -2785,7 +2805,7 @@ function submitLicenseDialog() {
 }
 
 function getDefaultName() {
-    var baseName = 'Setup';
+    var baseName = 'Configuration';
     var existingNames = (cachedConfigurations || []).map(function(c) { return c.label || ''; });
     for (var i = 1; i <= 20; i++) {
         var candidate = baseName + ' ' + i;
@@ -3121,7 +3141,7 @@ function nextStep() {
     if (currentFormStep === 1) {
         var name = document.getElementById('setupName').value.trim();
         if (!name) {
-            showStatus('setupFormStatus', 'Please enter a name for this setup.', 'error');
+            showStatus('setupFormStatus', 'Please enter a name for this configuration.', 'error');
             return;
         }
         // Check for duplicate name (exclude current config being edited)
@@ -3129,7 +3149,7 @@ function nextStep() {
             return (c.label || '') === name && c.configuration_id !== currentConfigurationId;
         });
         if (duplicate) {
-            showStatus('setupFormStatus', 'A setup with this name already exists. Please choose a different name.', 'error');
+            showStatus('setupFormStatus', 'A configuration with this name already exists. Please choose a different name.', 'error');
             return;
         }
         clearStatus('setupFormStatus');
@@ -4295,10 +4315,10 @@ async function saveConfiguration() {
         showStatus('setupFormStatus', 'Error saving: ' + err.message, 'error');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Setup';
+        saveBtn.textContent = 'Save Configuration';
         if (formSaveBtn) {
             formSaveBtn.disabled = false;
-            formSaveBtn.textContent = 'Save Setup';
+            formSaveBtn.textContent = 'Save Configuration';
         }
     }
 }
@@ -4355,18 +4375,6 @@ async function deleteConfigurationByIndex(index) {
     setupCodeEntryPage();
 
     firebase.auth().onAuthStateChanged(function(user) {
-        // Show code entry landing if accessing directly (no URL params) and not in direct mode
-        if (isDirectAccess && !directAccess) {
-            document.getElementById('setupCodeEntry').style.display = 'block';
-            signinOverlay.style.display = 'none';
-            if (user) {
-                // Already signed in — code entry can proceed
-                userInfo.style.display = 'flex';
-                userEmail.textContent = user.email;
-            }
-            return;
-        }
-
         if (user) {
             signinOverlay.style.display = 'none';
             signinSection.style.display = 'none';
@@ -4416,7 +4424,7 @@ async function deleteConfigurationByIndex(index) {
                 // Show activation success banner if redirected after activation
                 if (activationSuccess) {
                     var banner = document.getElementById('activationSuccessBanner');
-                    document.getElementById('activationSuccessText').textContent = 'License activation completed! Your license will sync within 10 seconds. Next step: select or create a setup below.';
+                    document.getElementById('activationSuccessText').textContent = 'License activation completed! Your license will sync within 10 seconds. Next step: select or create a configuration below.';
                     banner.style.display = 'block';
                     // Clear activation_success from URL to prevent stale banner on revisit
                     if (window.history && window.history.replaceState) {
