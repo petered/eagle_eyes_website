@@ -1,11 +1,13 @@
 ---
 layout: main
-title: CalTopo Service Account Setup - Eagle Eyes
+title: Eagle Eyes ↔ CalTopo
 permalink: /caltopo/
 noindex: true
 ---
 
+<script>document.title = 'Eagle Eyes ↔ CalTopo';</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
@@ -122,12 +124,12 @@ noindex: true
     .ct-field input[type="text"] {
         width: 100%;
         padding: 11px 14px;
-        border: 1px solid #dee2e6;
+        border: 1px solid #c9dcf2;
         border-radius: 8px;
         font-size: 1.5rem;
         font-family: inherit;
         box-sizing: border-box;
-        background: #fafbfc;
+        background: #eff5ff;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
     .ct-field input[type="text"]:focus {
@@ -230,6 +232,300 @@ noindex: true
         padding: 1.25rem 1.5rem;
         font-size: 1.4rem;
     }
+    .ct-step-layout {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+        margin-top: 0.5rem;
+    }
+    .ct-step-layout > .ct-step-body { flex: 1 1 50%; min-width: 0; }
+    .ct-step-layout > .ct-video-placeholder { flex: 1 1 50%; min-width: 0; }
+    .ct-video-placeholder {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        background: #f2f4f7;
+        border: 1px dashed #c7cdd3;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #98a2b3;
+        font-size: 1.3rem;
+        gap: 0.4rem;
+    }
+    .ct-video-placeholder::before {
+        content: "▶";
+        font-size: 2.4rem;
+        color: #c7cdd3;
+    }
+    .ct-step-video {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        background: #000;
+        display: block;
+    }
+    .ct-step-layout > .ct-step-video { flex: 1 1 50%; min-width: 0; }
+    @media (max-width: 700px) {
+        .ct-step-layout > .ct-step-video { width: 100%; }
+    }
+    @media (max-width: 700px) {
+        .ct-step-layout { flex-direction: column; }
+        .ct-step-layout > .ct-video-placeholder { width: 100%; }
+    }
+    .ct-breadcrumb {
+        font-size: 1.45rem;
+        color: #333;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 0.9rem 1.1rem;
+        line-height: 1.7;
+    }
+    .ct-breadcrumb .sep {
+        color: #adb5bd;
+        margin: 0 0.35rem;
+        font-weight: 500;
+    }
+    .ct-breadcrumb a {
+        color: #1e90ff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .ct-step-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .ct-step-header h2 { margin: 0; }
+    .ct-import-btn {
+        background: transparent;
+        border: 1px solid #dee2e6;
+        color: #6c757d;
+        font-size: 1.25rem;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .ct-import-btn:hover {
+        background: #f1f3f5;
+        color: #1e90ff;
+        border-color: #c4d9f0;
+    }
+    .ct-qr-download-btn {
+        margin-top: 0.75rem;
+        padding: 6px 16px;
+        background: #e9ecef;
+        color: #333;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.3rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .ct-qr-download-btn:hover { background: #dee2e6; }
+    .ct-import-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    .ct-import-modal.open { display: flex; }
+    .ct-import-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
+    .ct-import-panel {
+        position: relative;
+        background: white;
+        border-radius: 10px;
+        max-width: 520px;
+        width: 100%;
+        padding: 1.5rem 1.5rem 1.25rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .ct-import-panel h3 {
+        font-size: 1.7rem;
+        margin: 0 0 0.25rem;
+        color: #1a1a2e;
+    }
+    .ct-import-panel .ct-import-sub {
+        font-size: 1.3rem;
+        color: #777;
+        margin: 0 0 1.25rem;
+    }
+    .ct-import-close {
+        position: absolute;
+        top: 10px;
+        right: 14px;
+        background: transparent;
+        border: none;
+        font-size: 2rem;
+        color: #888;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .ct-import-option {
+        display: block;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .ct-import-option strong {
+        display: block;
+        font-size: 1.4rem;
+        color: #333;
+        margin-bottom: 0.2rem;
+    }
+    .ct-import-option .hint {
+        display: block;
+        font-size: 1.2rem;
+        color: #888;
+        margin-bottom: 0.6rem;
+    }
+    .ct-import-option input[type="file"] { font-size: 1.25rem; }
+    .ct-import-option textarea {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: monospace;
+        font-size: 1.15rem;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        min-height: 70px;
+        resize: vertical;
+    }
+    .ct-import-option button {
+        margin-top: 0.5rem;
+        padding: 6px 14px;
+        background: #1e90ff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.25rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .ct-import-option button:hover { background: #1873cc; }
+    #ctImportStatus {
+        font-size: 1.3rem;
+        margin-top: 0.5rem;
+        padding: 8px 10px;
+        border-radius: 4px;
+        display: none;
+    }
+    #ctImportStatus.error { display: block; background: #fce8e6; color: #d93025; }
+    #ctImportStatus.success { display: block; background: #e6f4ea; color: #1e8e3e; }
+    .ct-caution {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: #fff8e1;
+        border: 1px solid #ffe0a6;
+        color: #7a5200;
+        border-radius: 8px;
+        padding: 0.9rem 1.1rem;
+        font-size: 1.35rem;
+        line-height: 1.5;
+        margin: 1.25rem auto 0;
+        max-width: 720px;
+        text-align: left;
+    }
+    .ct-caution-icon {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        stroke: #d18e00;
+        margin-top: 1px;
+    }
+    .ct-caution strong { color: #6a4700; }
+    .ct-reveal-wrap { position: relative; }
+    .ct-reveal-cover {
+        position: absolute;
+        inset: 0;
+        background: #1a1a2e;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        text-align: center;
+        padding: 10px;
+        font: inherit;
+        font-size: 1.25rem;
+        line-height: 1.35;
+        z-index: 2;
+        transition: opacity 0.18s ease;
+    }
+    .ct-reveal-cover:hover { background: #2a2a40; }
+    .ct-reveal-cover.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .ct-reveal-cover svg {
+        width: 26px;
+        height: 26px;
+        stroke: #e8ecf1;
+        opacity: 0.85;
+    }
+    .ct-reveal-cover .primary { font-weight: 500; }
+    .ct-reveal-cover .secondary { color: #b5b9c4; font-size: 1.1rem; }
+    .ct-reveal-cover--qr { gap: 12px; }
+    .ct-reveal-cover--qr::before {
+        content: "";
+        position: absolute;
+        inset: 10px;
+        border: 2px dashed rgba(255, 255, 255, 0.22);
+        border-radius: 6px;
+        pointer-events: none;
+        transition: border-color 0.15s ease;
+    }
+    .ct-reveal-cover--qr:hover::before { border-color: rgba(255, 255, 255, 0.45); }
+    .ct-reveal-cover--qr .qr-icon {
+        width: 48px;
+        height: 48px;
+        stroke: #e8ecf1;
+        opacity: 0.9;
+    }
+    .ct-reveal-cover--qr .primary {
+        font-weight: 700;
+        font-size: 1.45rem;
+        line-height: 1.35;
+        max-width: 220px;
+    }
+    .ct-reveal-countdown {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        border-radius: 10px;
+        padding: 1px 7px;
+        font-size: 1.05rem;
+        z-index: 3;
+        pointer-events: none;
+        display: none;
+    }
+    .ct-reveal-countdown.show { display: block; }
 </style>
 
 <div class="page-logo">
@@ -238,69 +534,80 @@ noindex: true
 
 <div class="ct-container">
     <div class="ct-header">
-        <h1>CalTopo Service Account Setup</h1>
+        <h1>Eagle Eyes ↔ CalTopo</h1>
         <p>Create a CalTopo service account so Eagle Eyes apps can stay permanently connected to CalTopo without needing to log in again.</p>
+        <div class="ct-caution">
+            <svg class="ct-caution-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span><strong>Caution</strong> - this service account will give read/update access to your CalTopo Teams account, so be careful who you share it with.</span>
+        </div>
     </div>
 
-    <!-- Instructions -->
+    <!-- Step 1 -->
     <div class="ct-section">
         <h2>Step 1: Create a Service Account in CalTopo</h2>
-        <p>To set up a service account, you will need admin access to your CalTopo Teams account.<br>Open a new browser window and go to <a href="https://caltopo.com/" target="_blank" rel="noopener" style="color: #1e90ff; font-weight: 500;">caltopo.com</a>. Put it side by side with this one so you can easily switch back and forth. Then:</p>
-        <div class="ct-instructions-layout" style="display: flex; gap: 2rem; align-items: flex-start;">
-            <div style="flex: 1;">
-                <ol>
-                    <li>Click your username in the top-right</li>
-                    <li>Click <strong>"Administer"</strong> next to your team name</li>
-                    <li>Go to the <strong>"Details"</strong> tab</li>
-                    <li>Scroll to the bottom and click <strong>"Create Service Account"</strong></li>
-                    <li>Enter a title (e.g. "Eagle Eyes"), make sure <strong>Update</strong> is selected as the permission, then click <strong>Create</strong></li>
-                </ol>
+        <div class="ct-step-layout">
+            <div class="ct-step-body">
+                <div class="ct-breadcrumb">
+                    <a href="https://caltopo.com/" target="_blank" rel="noopener">caltopo.com</a><span class="sep">→</span>Your name (top right)<span class="sep">→</span>Administer<span class="sep">→</span>Details<span class="sep">→</span>Create Service Account<span class="sep">→</span>set Update access
+                </div>
             </div>
-            <div class="ct-screenshot" style="flex-shrink: 0; width: 390px; margin-top: 10px;">
-                <img src="{{ '/images/caltopo-create-service-account.png' | relative_url }}" alt="CalTopo Create Service Account dialog" style="width: 100%; border-radius: 8px; border: 1px solid #ddd;">
-            </div>
+            <video class="ct-step-video" src="{{ '/images/caltopo_service_step_1.mp4' | relative_url }}" controls muted playsinline preload="metadata"></video>
         </div>
     </div>
 
-    <!-- Credential fields -->
+    <!-- Step 2: Credential fields -->
     <div class="ct-section">
-        <h2>Step 2: Enter the Credentials</h2>
-
-        <div class="ct-field">
-            <label for="ctSecret">Credential Secret</label>
-            <p style="font-size: 1.35rem; color: #777; margin: 0 0 0.5rem;">After clicking Create, CalTopo shows a secret. Paste it here — it's only shown once!</p>
-            <input type="text" id="ctSecret" placeholder="Paste credential secret here">
+        <div class="ct-step-header">
+            <h2>Step 2: Enter the Credentials</h2>
+            <button type="button" class="ct-import-btn" onclick="ctOpenImportModal()" title="Import credentials from QR code, JSON file, or pasted text">↥ Import</button>
         </div>
-        <div class="ct-status" id="ctSecretStatus"></div>
-
-        <p style="font-size: 1.35rem; color: #777; margin: 1.5rem 0 0.75rem;">Close the credential secret popup. Find the service account you just created in the list and enter the Account ID and Credential ID shown to the right of it.</p>
-        <div class="ct-field-row">
-            <div class="ct-field">
-                <label for="ctAccountId">Account ID <span class="counter" id="ctAccountIdCount"></span></label>
-                <input type="text" id="ctAccountId" placeholder="e.g. R0BNPA" maxlength="6" style="text-transform: uppercase;">
+        <div class="ct-step-layout">
+            <div class="ct-step-body">
+                <div class="ct-field">
+                    <label for="ctSecret">A. Secret Key</label>
+                    <input type="text" id="ctSecret" placeholder="Paste secret key here">
+                </div>
+                <div class="ct-status" id="ctSecretStatus"></div>
+                <div class="ct-field-row">
+                    <div class="ct-field">
+                        <label for="ctAccountId">B. Account ID <span class="counter" id="ctAccountIdCount"></span></label>
+                        <input type="text" id="ctAccountId" placeholder="e.g. R0BNPA" maxlength="6" style="text-transform: uppercase;">
+                    </div>
+                    <div class="ct-field">
+                        <label for="ctCredentialId">C. Credential ID <span class="counter" id="ctCredentialIdCount"></span></label>
+                        <input type="text" id="ctCredentialId" placeholder="e.g. Q9NVD150H92L" maxlength="12" style="text-transform: uppercase;">
+                    </div>
+                </div>
             </div>
-            <div class="ct-field">
-                <label for="ctCredentialId">Credential ID <span class="counter" id="ctCredentialIdCount"></span></label>
-                <input type="text" id="ctCredentialId" placeholder="e.g. Q9NVD150H92L" maxlength="12" style="text-transform: uppercase;">
-            </div>
+            <video class="ct-step-video" src="{{ '/images/caltopo_service_step_2.mp4' | relative_url }}" controls muted playsinline preload="metadata"></video>
         </div>
     </div>
 
-    <!-- Step 3: Access URL (optional) -->
+    <!-- Step 3: Create Access URL [Connect Key] (optional) -->
     <div class="ct-section">
-        <h2>Step 3: Access URL <span style="font-weight: 400; color: #888;">(optional)</span> <span style="display: inline-block; background: #1e90ff; color: white; font-size: 1.1rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 4px; vertical-align: middle; letter-spacing: 0.3px;">NEW</span></h2>
-        <p style="font-size: 1.4rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Paste a CalTopo Access URL to unlock CalTopo's dedicated drone integration. Your drone appears on the shared CalTopo map with its live position, heading, altitude, and camera field of view — and anyone following along in CalTopo can click the drone's pin to watch the Eagle Eyes livestream for it, right from the map.</p>
-        <p style="font-size: 1.35rem; color: #777; margin: 0 0 1rem;"><strong>Where to find it:</strong> on <a href="https://caltopo.com/" target="_blank" rel="noopener" style="color: #1e90ff; text-decoration: none;">caltopo.com</a>, open the admin menu &rarr; <strong>Trackable Devices</strong> &rarr; <strong>Create new Access URL</strong>, then paste it here.</p>
-        <div class="ct-field">
-            <label for="ctAccessUrl">Access URL</label>
-            <input type="text" id="ctAccessUrl" placeholder="Paste the Access URL from CalTopo" autocomplete="off">
-            <p style="font-size: 1.2rem; color: #888; margin: 0.4rem 0 0;">Double-check the paste &mdash; we can't verify this automatically yet.</p>
+        <h2>Step 3: Create Access URL <span style="font-weight: 400; color: #888;">(aka Connect Key)</span> <span style="display: inline-block; background: #1e90ff; color: white; font-size: 1.1rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 4px; vertical-align: middle; letter-spacing: 0.3px;">NEW</span></h2>
+        <p style="font-size: 1.4rem; color: #555; margin: 0 0 0.75rem; line-height: 1.6;">The Connect Key lets your CalTopo team see your drone's heading and livestream from any map when the "Shared Locations" layer is turned on.</p>
+        <div class="ct-step-layout">
+            <div class="ct-step-body">
+                <div class="ct-breadcrumb" style="margin-bottom: 0.75rem;">
+                    <a href="https://caltopo.com/" target="_blank" rel="noopener">caltopo.com</a><span class="sep">→</span>Admin menu<span class="sep">→</span>Trackable Devices<span class="sep">→</span>Create new Access URL
+                </div>
+                <div class="ct-field">
+                    <label for="ctAccessUrl">D. Connect Key</label>
+                    <input type="text" id="ctAccessUrl" placeholder="Paste the Connect Key" autocomplete="off">
+                </div>
+            </div>
+            <video class="ct-step-video" src="{{ '/images/caltopo_service_step_3.mp4' | relative_url }}" controls muted playsinline preload="metadata"></video>
         </div>
     </div>
 
     <!-- Verify button -->
     <div style="text-align: center; margin-bottom: 2rem;">
-        <p style="font-size: 1.35rem; color: #777; margin-bottom: 1rem;">Once the three credential fields above are filled (Access URL is optional), press the button below to verify the credentials.</p>
+        <p style="font-size: 1.35rem; color: #777; margin-bottom: 1rem;">Once the fields above are filled, press the button below to verify the credentials.</p>
         <button class="ct-btn" id="ctVerifyBtn" onclick="ctVerify()" disabled>Verify &amp; Connect</button>
         <div class="ct-status" id="ctVerifyStatus"></div>
     </div>
@@ -315,18 +622,42 @@ noindex: true
             <div class="ct-transfer-layout" style="display: flex; gap: 1.5rem; align-items: flex-start;">
                 <!-- Option A: Phone / QR -->
                 <div style="flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1.25rem;">
-                    <p style="font-size: 1.4rem; margin: 0 0 0.75rem; line-height: 1.5;"><strong>Setting up Eagle Eyes from your phone?</strong></p>
-                    <p style="font-size: 1.35rem; color: #555; margin: 0 0 1rem; line-height: 1.5;">Return to the Eagle Eyes setup tab you had open in <strong>your phone's browser</strong> and tap the blue Scan QR Code button there, then aim at the code below.</p>
+                    <p style="font-size: 1.4rem; margin: 0 0 1rem; line-height: 1.5;"><strong>Setting up Eagle Eyes from your phone?</strong></p>
                     <div style="text-align: center;">
-                        <div class="qr-box" id="ctQrBox" style="display: inline-block; padding: 12px; background: white; border-radius: 4px; border: 1px solid #e9ecef;"></div>
+                        <div class="ct-reveal-wrap" style="display: inline-block;">
+                            <div class="qr-box" id="ctQrBox" style="display: block; padding: 12px; background: white; border-radius: 4px; border: 1px solid #e9ecef;"></div>
+                            <span class="ct-reveal-countdown" data-reveal-for="ctQrBox"></span>
+                            <button type="button" class="ct-reveal-cover ct-reveal-cover--qr" data-reveal-for="ctQrBox" aria-label="Click to reveal CalTopo Credential QR code">
+                                <svg class="qr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="3" width="7" height="7"/>
+                                    <rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/>
+                                    <rect x="14" y="14" width="3" height="3"/>
+                                    <rect x="18" y="14" width="3" height="3"/>
+                                    <rect x="14" y="18" width="3" height="3"/>
+                                    <rect x="18" y="18" width="3" height="3"/>
+                                </svg>
+                                <span class="primary">Click to reveal CalTopo Credential QR code</span>
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="ct-qr-download-btn" onclick="ctDownloadQr()">Download QR code</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Option B: Same computer / paste -->
                 <div style="flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1.25rem;">
-                    <p style="font-size: 1.4rem; margin: 0 0 0.75rem; line-height: 1.5;"><strong>Setting up from another tab on this computer?</strong></p>
-                    <p style="font-size: 1.35rem; color: #555; margin: 0 0 1rem; line-height: 1.5;">Copy the code below and paste it into the credentials field in the other tab.</p>
-                    <textarea id="ctCredentialString" readonly onclick="ctCopyCode()" style="width: 100%; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 1.1rem; border: 1px solid #dee2e6; border-radius: 4px; background: white; resize: none; min-height: 80px; cursor: pointer; color: #555;"></textarea>
+                    <p style="font-size: 1.4rem; margin: 0 0 1rem; line-height: 1.5;"><strong>Setting up from another tab on this computer?</strong></p>
+                    <div class="ct-reveal-wrap" style="display: block;">
+                        <textarea id="ctCredentialString" readonly onclick="ctCopyCode()" style="width: 100%; box-sizing: border-box; padding: 10px; font-family: monospace; font-size: 1.1rem; border: 1px solid #dee2e6; border-radius: 4px; background: white; resize: none; min-height: 80px; cursor: pointer; color: #555;"></textarea>
+                        <span class="ct-reveal-countdown" data-reveal-for="ctCredentialString"></span>
+                        <button type="button" class="ct-reveal-cover" data-reveal-for="ctCredentialString" aria-label="Click to reveal plain text">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            <span class="primary">Plain text hidden</span>
+                            <span class="secondary">click to reveal</span>
+                        </button>
+                    </div>
                     <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
                         <button onclick="ctCopyCode()" style="padding: 6px 16px; background: #e9ecef; color: #333; border: none; border-radius: 4px; font-size: 1.3rem; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.background='#1e90ff'; this.style.color='white';" onmouseup="this.style.background='#e9ecef'; this.style.color='#333';" onmouseleave="this.style.background='#e9ecef'; this.style.color='#333';">Copy code</button>
                         <span id="ctCopyFeedback" style="display: none; color: #1e8e3e; font-size: 1.2rem;">Copied!</span>
@@ -334,14 +665,44 @@ noindex: true
                 </div>
             </div>
 
-            <p style="font-size: 1.3rem; color: #888; text-align: center; margin-top: 1.5rem;">
-                <strong>Keep this safe.</strong> The credential secret cannot be retrieved from CalTopo again.
-            </p>
-            <div style="text-align: center; margin-top: 0.75rem;">
-                <span style="font-size: 1.3rem; color: #888;">Want to store your credentials in a file?</span>
-                <button class="ct-btn ct-btn-secondary" onclick="ctDownloadJson()" style="margin-left: 0.5rem; padding: 6px 16px; font-size: 1.2rem;">Save as file</button>
+            <div style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 1.25rem; margin-top: 1.5rem;">
+                <p style="font-size: 1.4rem; margin: 0 0 0.75rem; line-height: 1.5;"><strong>Keep this safe.</strong></p>
+                <p style="font-size: 1.35rem; color: #555; margin: 0 0 1rem; line-height: 1.5;">The secret key cannot be retrieved from CalTopo again. Save it as a file so you can re-import it later.</p>
+                <button class="ct-btn ct-btn-secondary" onclick="ctDownloadJson()" style="padding: 6px 16px; font-size: 1.3rem;">Save as file</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Import credentials modal -->
+<div id="ctImportModal" class="ct-import-modal" role="dialog" aria-modal="true" aria-labelledby="ctImportTitle">
+    <div class="ct-import-backdrop" onclick="ctCloseImportModal()"></div>
+    <div class="ct-import-panel">
+        <button type="button" class="ct-import-close" aria-label="Close" onclick="ctCloseImportModal()">×</button>
+        <h3 id="ctImportTitle">Import Credentials</h3>
+        <p class="ct-import-sub">Load an existing CalTopo service account from a QR code image, a JSON file, or pasted text.</p>
+
+        <label class="ct-import-option">
+            <strong>Scan QR code from an image</strong>
+            <span class="hint">Select an image file (PNG, JPG) that shows a CalTopo service account QR code.</span>
+            <input type="file" id="ctImportQrFile" accept="image/*" onchange="ctImportQrImage(event)">
+        </label>
+
+        <label class="ct-import-option">
+            <strong>Upload JSON file</strong>
+            <span class="hint">Select a saved <code>caltopo_service_account_*.json</code> file.</span>
+            <input type="file" id="ctImportJsonFile" accept="application/json,.json" onchange="ctImportJsonFile(event)">
+        </label>
+
+        <div class="ct-import-option">
+            <strong>Paste credential code</strong>
+            <span class="hint">Paste the JSON credential code copied from another setup.</span>
+            <textarea id="ctImportPasteArea" placeholder='{"type":"mirada-caltopo-service-account","accountId":"…","credentialId":"…","secretKey":"…"}'></textarea>
+            <button type="button" onclick="ctImportPastedText()">Load from paste</button>
+        </div>
+
+        <div id="ctImportStatus"></div>
+        <div id="ctImportQrScratch" style="display: none;"></div>
     </div>
 </div>
 
@@ -349,6 +710,7 @@ noindex: true
 (function() {
     var API_BASE = 'https://us-central1-eagleeyessearch.cloudfunctions.net/';
     var verifiedData = null;
+    var currentQrCanvas = null;
     var isEmulator = false;
 
     try {
@@ -425,7 +787,7 @@ noindex: true
         // Validate secret format
         if (secretKey.length !== 44 || secretKey[43] !== '=') {
             document.getElementById('ctSecret').classList.add('field-error');
-            showStatus('ctSecretStatus', 'The credential secret should be exactly 44 characters ending with =', 'error');
+            showStatus('ctSecretStatus', 'The secret key should be exactly 44 characters ending with =', 'error');
             return;
         }
         try {
@@ -433,7 +795,7 @@ noindex: true
             if (decoded.length !== 32) throw new Error();
         } catch (e) {
             document.getElementById('ctSecret').classList.add('field-error');
-            showStatus('ctSecretStatus', "This doesn't look like a valid credential secret.", 'error');
+            showStatus('ctSecretStatus', "This doesn't look like a valid secret key.", 'error');
             return;
         }
 
@@ -532,17 +894,14 @@ noindex: true
             credentialId: data.credentialId,
             secretKey: data.secretKey
         };
+        if (data.teamAccountId) payloadObj.teamAccountId = data.teamAccountId;
         if (data.accessUrl) payloadObj.accessUrl = data.accessUrl;
         var payload = JSON.stringify(payloadObj);
 
         var qrBox = document.getElementById('ctQrBox');
         qrBox.innerHTML = '';
-        new QRCode(qrBox, {
-            text: payload,
-            width: 260,
-            height: 260,
-            correctLevel: QRCode.CorrectLevel.M
-        });
+        currentQrCanvas = renderLabeledQrCanvas(payload, data.accountId);
+        qrBox.appendChild(currentQrCanvas);
 
         document.getElementById('ctCredentialString').value = payload;
         document.getElementById('ctResult').style.display = 'block';
@@ -568,6 +927,7 @@ noindex: true
             credentialId: verifiedData.credentialId,
             secretKey: verifiedData.secretKey
         };
+        if (verifiedData.teamAccountId) payloadObj.teamAccountId = verifiedData.teamAccountId;
         if (verifiedData.accessUrl) payloadObj.accessUrl = verifiedData.accessUrl;
         var payload = JSON.stringify(payloadObj, null, 2);
         var blob = new Blob([payload], { type: 'application/json' });
@@ -586,5 +946,208 @@ noindex: true
         div.textContent = str;
         return div.innerHTML;
     }
+
+    // --- Labeled QR rendering + download ---
+    function renderLabeledQrCanvas(payload, accountId) {
+        var qrSize = 260;
+        var hidden = document.createElement('div');
+        hidden.style.position = 'absolute';
+        hidden.style.left = '-10000px';
+        hidden.style.top = '-10000px';
+        document.body.appendChild(hidden);
+        new QRCode(hidden, {
+            text: payload,
+            width: qrSize,
+            height: qrSize,
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        var qrCanvas = hidden.querySelector('canvas');
+
+        var paddingX = 16;
+        var bannerTop = 16;
+        var titleLineHeight = 20;
+        var subtitleLineHeight = 16;
+        var bannerBottomGap = 14;
+        var bottomPadding = 16;
+        var bannerHeight = bannerTop + titleLineHeight + subtitleLineHeight + bannerBottomGap;
+
+        var finalCanvas = document.createElement('canvas');
+        finalCanvas.width = qrSize + paddingX * 2;
+        finalCanvas.height = bannerHeight + qrSize + bottomPadding;
+
+        var ctx = finalCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.font = '600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        var titleText = 'CalTopo service account' + (accountId ? ' (' + accountId + ')' : '');
+        ctx.fillText(titleText, finalCanvas.width / 2, bannerTop);
+        ctx.fillStyle = '#888';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('Do not share outside of your team.', finalCanvas.width / 2, bannerTop + titleLineHeight);
+
+        ctx.drawImage(qrCanvas, paddingX, bannerHeight);
+
+        document.body.removeChild(hidden);
+        return finalCanvas;
+    }
+
+    window.ctDownloadQr = function() {
+        if (!currentQrCanvas) return;
+        var filename = 'caltopo_service_account_qr' + (verifiedData && verifiedData.accountId ? '_' + verifiedData.accountId : '') + '.png';
+        currentQrCanvas.toBlob(function(blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+    };
+
+    // --- Import credentials modal ---
+    function setImportStatus(msg, type) {
+        var el = document.getElementById('ctImportStatus');
+        if (!msg) { el.style.display = 'none'; el.textContent = ''; el.className = ''; return; }
+        el.textContent = msg;
+        el.className = type || '';
+    }
+
+    window.ctOpenImportModal = function() {
+        setImportStatus('', '');
+        var ta = document.getElementById('ctImportPasteArea');
+        if (ta) ta.value = '';
+        ['ctImportQrFile', 'ctImportJsonFile'].forEach(function(id) {
+            var f = document.getElementById(id);
+            if (f) f.value = '';
+        });
+        document.getElementById('ctImportModal').classList.add('open');
+    };
+
+    window.ctCloseImportModal = function() {
+        document.getElementById('ctImportModal').classList.remove('open');
+    };
+
+    function applyImportedPayload(payload) {
+        if (!payload || typeof payload !== 'object') {
+            setImportStatus('Could not read credentials from that source.', 'error');
+            return false;
+        }
+        if (payload.type && payload.type !== 'mirada-caltopo-service-account') {
+            setImportStatus('This file is not an Eagle Eyes CalTopo service account.', 'error');
+            return false;
+        }
+        var accountId = (payload.accountId || '').toString().toUpperCase();
+        var credentialId = (payload.credentialId || '').toString().toUpperCase();
+        var secretKey = (payload.secretKey || '').toString();
+        var accessUrl = (payload.accessUrl || payload.access_url || '').toString();
+        if (!accountId || !credentialId || !secretKey) {
+            setImportStatus('Missing Account ID, Credential ID, or Secret.', 'error');
+            return false;
+        }
+        document.getElementById('ctAccountId').value = accountId;
+        document.getElementById('ctCredentialId').value = credentialId;
+        document.getElementById('ctSecret').value = secretKey;
+        if (accessUrl) document.getElementById('ctAccessUrl').value = accessUrl;
+        ['ctAccountId', 'ctCredentialId', 'ctSecret'].forEach(function(id) {
+            document.getElementById(id).dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        setImportStatus('Credentials loaded. Closing…', 'success');
+        setTimeout(function() {
+            window.ctCloseImportModal();
+            document.getElementById('ctVerifyBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 700);
+        return true;
+    }
+
+    function parseImportText(text) {
+        if (!text) return null;
+        try { return JSON.parse(text); } catch (e) { return null; }
+    }
+
+    window.ctImportPastedText = function() {
+        var ta = document.getElementById('ctImportPasteArea');
+        var parsed = parseImportText((ta.value || '').trim());
+        if (!parsed) {
+            setImportStatus('Pasted text is not valid JSON.', 'error');
+            return;
+        }
+        applyImportedPayload(parsed);
+    };
+
+    window.ctImportJsonFile = function(event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function() {
+            var parsed = parseImportText(reader.result);
+            if (!parsed) {
+                setImportStatus('That file is not valid JSON.', 'error');
+                return;
+            }
+            applyImportedPayload(parsed);
+        };
+        reader.onerror = function() { setImportStatus('Could not read file.', 'error'); };
+        reader.readAsText(file);
+    };
+
+    // --- Reveal covers (QR + plain text credential) ---
+    var REVEAL_SECONDS = 10;
+    document.querySelectorAll('.ct-reveal-cover').forEach(function(cover) {
+        var target = cover.getAttribute('data-reveal-for');
+        var countdown = document.querySelector('.ct-reveal-countdown[data-reveal-for="' + target + '"]');
+        var hideTimer = null;
+        var tickTimer = null;
+        function recover() {
+            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+            if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+            cover.classList.remove('hidden');
+            if (countdown) countdown.classList.remove('show');
+        }
+        cover.addEventListener('click', function() {
+            cover.classList.add('hidden');
+            var remaining = REVEAL_SECONDS;
+            if (countdown) {
+                countdown.textContent = remaining + 's';
+                countdown.classList.add('show');
+            }
+            if (hideTimer) clearTimeout(hideTimer);
+            if (tickTimer) clearInterval(tickTimer);
+            tickTimer = setInterval(function() {
+                remaining -= 1;
+                if (countdown) countdown.textContent = remaining + 's';
+                if (remaining <= 0) recover();
+            }, 1000);
+            hideTimer = setTimeout(recover, REVEAL_SECONDS * 1000);
+        });
+    });
+
+    window.ctImportQrImage = function(event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) return;
+        if (!window.Html5Qrcode) {
+            setImportStatus('QR scanner library failed to load.', 'error');
+            return;
+        }
+        setImportStatus('Scanning image…', '');
+        var scanner = new Html5Qrcode('ctImportQrScratch', /* verbose */ false);
+        scanner.scanFile(file, /* showImage */ false)
+            .then(function(decodedText) {
+                var parsed = parseImportText(decodedText);
+                if (!parsed) {
+                    setImportStatus("QR contents aren't valid JSON.", 'error');
+                    return;
+                }
+                applyImportedPayload(parsed);
+            })
+            .catch(function(err) {
+                setImportStatus('No QR code detected in that image. ' + (err && err.message ? err.message : ''), 'error');
+            });
+    };
 })();
 </script>
