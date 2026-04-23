@@ -2001,17 +2001,19 @@ async function lpLoadUserLicenses() {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
-            var overviewJson = await resp.json();
-            console.log('get_license_overview response:', overviewJson);
-            var overview = (overviewJson && overviewJson.overview) || [];
+            var overview = ((await resp.json()).overview) || [];
+            var nowMs = Date.now();
             lpUserLicenses = overview
-                .filter(function(o) { return o && o.license_id; })
+                .filter(function(o) {
+                    if (!o || !o.license_id || !o.expiry_date) return false;
+                    // Skip inactive (expired) licenses — they can't be used.
+                    return new Date(o.expiry_date).getTime() >= nowMs;
+                })
                 .map(function(o) {
-                    var expMs = o.expiry_date ? new Date(o.expiry_date).getTime() : NaN;
                     return {
                         license_id: o.license_id,
                         license_name: o.license_name || '',
-                        expiry_timestamp: isNaN(expMs) ? null : Math.floor(expMs / 1000),
+                        expiry_timestamp: Math.floor(new Date(o.expiry_date).getTime() / 1000),
                         n_tokens: o.total_keys || 0,
                         remaining_keys: Math.max(0, o.keys_left || 0),
                         has_existing_key: false
@@ -2037,7 +2039,6 @@ async function lpLoadUserLicenses() {
             'We couldn\'t load any licenses for your account automatically. ' +
             'Enter a license ID below to attach one, or get one from the pricing page.'
         );
-        console.warn('lpLoadUserLicenses failed:', err);
     }
 }
 
@@ -2162,6 +2163,10 @@ function lpSelect(licenseId) {
         document.getElementById('setupLicenseLink').innerHTML =
             'License: <strong>' + escapeHtml(licenseId) + '</strong>. ' +
             '<a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Change</a>';
+        // Populate the bottom user-info bar so the license id is visible under
+        // the signed-in email address while editing the configuration.
+        document.getElementById('setupLicenseDisplay').textContent = licenseId;
+        document.getElementById('setupLicenseInfo').style.display = '';
         document.getElementById('licensePickerSection').style.display = 'none';
         document.getElementById('lpConfirmArea').innerHTML = '';
         var cb = lpOnSelectCallback;
