@@ -1995,42 +1995,30 @@ async function lpLoadUserLicenses() {
         } else {
             // Management flow (no device context): get_license_overview lists
             // all licenses for the signed-in user by uid — same endpoint
-            // account.html uses. No machine_id required. Force-refresh the
-            // ID token and match account.html's request shape exactly to rule
-            // out auth-header mismatches.
-            console.log('[lp v3] No machine_id; fetching get_license_overview');
-            var user = firebase.auth().currentUser;
-            if (!user) throw new Error('Not authenticated');
-            var freshToken = await user.getIdToken(true);
+            // account.html uses. No machine_id required.
             var resp = await fetch(API_BASE + 'get_license_overview', {
                 method: 'GET',
-                mode: 'cors',
-                credentials: 'same-origin',
-                headers: {
-                    'Authorization': 'Bearer ' + freshToken,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
+                headers: { 'Authorization': 'Bearer ' + token }
             });
-            console.log('[lp v3] get_license_overview status:', resp.status);
             if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
-            var overviewJson = await resp.json();
-            console.log('[lp v3] get_license_overview body:', overviewJson);
-            var overview = (overviewJson && overviewJson.overview) || [];
+            var overview = ((await resp.json()).overview) || [];
+            var nowMs = Date.now();
             lpUserLicenses = overview
-                .filter(function(o) { return o && o.license_id; })
+                .filter(function(o) {
+                    if (!o || !o.license_id || !o.expiry_date) return false;
+                    // Skip inactive (expired) licenses — they can't be used.
+                    return new Date(o.expiry_date).getTime() >= nowMs;
+                })
                 .map(function(o) {
-                    var expMs = o.expiry_date ? new Date(o.expiry_date).getTime() : NaN;
                     return {
                         license_id: o.license_id,
                         license_name: o.license_name || '',
-                        expiry_timestamp: isNaN(expMs) ? null : Math.floor(expMs / 1000),
+                        expiry_timestamp: Math.floor(new Date(o.expiry_date).getTime() / 1000),
                         n_tokens: o.total_keys || 0,
                         remaining_keys: Math.max(0, o.keys_left || 0),
                         has_existing_key: false
                     };
                 });
-            console.log('[lp v3] mapped lpUserLicenses:', lpUserLicenses);
         }
 
         document.getElementById('lpLoading').style.display = 'none';
@@ -2051,7 +2039,6 @@ async function lpLoadUserLicenses() {
             'We couldn\'t load any licenses for your account automatically. ' +
             'Enter a license ID below to attach one, or get one from the pricing page.'
         );
-        console.warn('lpLoadUserLicenses failed:', err);
     }
 }
 
