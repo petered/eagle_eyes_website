@@ -1959,55 +1959,76 @@ async function lpLoadUserLicenses() {
 
     var machineId = document.getElementById('setupMachineId').textContent || '';
 
-    // No device context — the backend's check_available_licenses_and_tokens
-    // endpoint can 500 on empty machine_id / no-license-attached, and we don't
-    // have another endpoint that enumerates a user's licenses from here. Skip
-    // the auto-list and drop straight into manual-entry mode so the user can
-    // attach a license ID directly.
-    if (!machineId) {
-        lpUserLicenses = [];
-        document.getElementById('lpLoading').style.display = 'none';
-        document.getElementById('lpContainer').style.display = 'block';
-        lpDisplayLicenses();
-        revealManualLicenseEntry(
-            'Enter a license ID below to attach one to your account and continue.'
-        );
-        return;
-    }
-
     try {
         var token = await getIdToken();
-        var resp = await fetch(API_BASE + 'check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineId), {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
-        var data = await resp.json();
 
-        lpUserLicenses = [];
-        var existingKeys = [];
-        if (data.tokens_and_codes) {
-            for (var tid in data.tokens_and_codes) {
-                var tc = data.tokens_and_codes[tid];
-                if (tc && tc.token && tc.token.license_id) existingKeys.push(tc.token.license_id);
+        if (machineId) {
+            // Activation flow (device context): check_available_licenses_and_tokens
+            // returns per-device dispensing info (remaining keys, has_existing_key).
+            var resp = await fetch(API_BASE + 'check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineId), {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
+            var data = await resp.json();
+
+            lpUserLicenses = [];
+            var existingKeys = [];
+            if (data.tokens_and_codes) {
+                for (var tid in data.tokens_and_codes) {
+                    var tc = data.tokens_and_codes[tid];
+                    if (tc && tc.token && tc.token.license_id) existingKeys.push(tc.token.license_id);
+                }
             }
-        }
-        if (data.licenses_and_dispensed) {
-            for (var lid in data.licenses_and_dispensed) {
-                var info = data.licenses_and_dispensed[lid];
-                if (!info || !info.license) continue;
-                var lic = info.license;
-                lic.license_id = lid;
-                lic.remaining_keys = Math.max(0, (lic.n_tokens || 0) - (info.n_tokens_dispensed || 0));
-                lic.has_existing_key = existingKeys.indexOf(lid) !== -1;
-                if (lic.expiry_timestamp === null) continue;
-                lpUserLicenses.push(lic);
+            if (data.licenses_and_dispensed) {
+                for (var lid in data.licenses_and_dispensed) {
+                    var info = data.licenses_and_dispensed[lid];
+                    if (!info || !info.license) continue;
+                    var lic = info.license;
+                    lic.license_id = lid;
+                    lic.remaining_keys = Math.max(0, (lic.n_tokens || 0) - (info.n_tokens_dispensed || 0));
+                    lic.has_existing_key = existingKeys.indexOf(lid) !== -1;
+                    if (lic.expiry_timestamp === null) continue;
+                    lpUserLicenses.push(lic);
+                }
             }
+        } else {
+            // Management flow (no device context): get_license_overview lists
+            // all licenses for the signed-in user by uid — same endpoint
+            // account.html uses. No machine_id required.
+            var resp = await fetch(API_BASE + 'get_license_overview', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
+            var overview = ((await resp.json()).overview) || [];
+            var nowMs = Date.now();
+            lpUserLicenses = overview
+                .filter(function(o) {
+                    return o && o.license_id && o.expiry_date &&
+                        new Date(o.expiry_date).getTime() >= nowMs;
+                })
+                .map(function(o) {
+                    return {
+                        license_id: o.license_id,
+                        license_name: o.license_name || '',
+                        expiry_timestamp: Math.floor(new Date(o.expiry_date).getTime() / 1000),
+                        n_tokens: o.total_keys || 0,
+                        remaining_keys: Math.max(0, o.keys_left || 0),
+                        has_existing_key: false
+                    };
+                });
         }
 
         document.getElementById('lpLoading').style.display = 'none';
         document.getElementById('lpContainer').style.display = 'block';
         lpDisplayLicenses();
+        if (lpUserLicenses.length === 0) {
+            revealManualLicenseEntry(
+                'No active licenses found on your account. ' +
+                'Enter a license ID below to attach one, or get one from the pricing page.'
+            );
+        }
     } catch (err) {
         document.getElementById('lpLoading').style.display = 'none';
         document.getElementById('lpContainer').style.display = 'block';
@@ -2015,7 +2036,7 @@ async function lpLoadUserLicenses() {
         lpDisplayLicenses();
         revealManualLicenseEntry(
             'We couldn\'t load any licenses for your account automatically. ' +
-            'Enter a license ID below to attach one and continue.'
+            'Enter a license ID below to attach one, or get one from the pricing page.'
         );
         console.warn('lpLoadUserLicenses failed:', err);
     }
