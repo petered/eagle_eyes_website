@@ -2001,18 +2001,17 @@ async function lpLoadUserLicenses() {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             if (!resp.ok) throw new Error('Failed to load licenses (HTTP ' + resp.status + ')');
-            var overview = ((await resp.json()).overview) || [];
-            var nowMs = Date.now();
+            var overviewJson = await resp.json();
+            console.log('get_license_overview response:', overviewJson);
+            var overview = (overviewJson && overviewJson.overview) || [];
             lpUserLicenses = overview
-                .filter(function(o) {
-                    return o && o.license_id && o.expiry_date &&
-                        new Date(o.expiry_date).getTime() >= nowMs;
-                })
+                .filter(function(o) { return o && o.license_id; })
                 .map(function(o) {
+                    var expMs = o.expiry_date ? new Date(o.expiry_date).getTime() : NaN;
                     return {
                         license_id: o.license_id,
                         license_name: o.license_name || '',
-                        expiry_timestamp: Math.floor(new Date(o.expiry_date).getTime() / 1000),
+                        expiry_timestamp: isNaN(expMs) ? null : Math.floor(expMs / 1000),
                         n_tokens: o.total_keys || 0,
                         remaining_keys: Math.max(0, o.keys_left || 0),
                         has_existing_key: false
