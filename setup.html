@@ -4124,6 +4124,79 @@ async function verifyCaltopoServiceAccount() {
 }
 
 // Display verified CalTopo account info
+// Re-verify a stored CalTopo service account after populateForm has
+// optimistically shown "Connected successfully!". If CalTopo no longer accepts
+// the credentials or reports that the account doesn't exist, swap the verify
+// result to a clear not-connected error and clear caltopoVerifiedData so the
+// toggle and save-form don't continue to claim "Connected". Ambiguous failures
+// (500, network) are ignored — we keep the stored state rather than raise a
+// false alarm.
+async function verifyStoredCaltopoAccountInBackground(sa) {
+    if (!sa || !sa.accountId || !sa.credentialId || !sa.key) return;
+    var verifyBody = {
+        license_id: currentLicenseId,
+        account_id: sa.accountId,
+        credential_id: sa.credentialId,
+        credential_secret: sa.key
+    };
+    var savedAccessUrl = sa.accessUrl || sa.access_url;
+    if (savedAccessUrl) verifyBody.access_url = savedAccessUrl;
+
+    var showNotConnected = function(message) {
+        var resultEl = document.getElementById('ctVerifyResult');
+        if (resultEl) {
+            resultEl.className = 'caltopo-verify-result error';
+            resultEl.innerHTML = '<strong>Not connected.</strong> ' + escapeHtml(message);
+        }
+        caltopoVerifiedData = null;
+        renderCtExistingDetails();
+        renderCtToggleState();
+    };
+
+    try {
+        var result = await apiCall('verify_caltopo_service_account', verifyBody);
+        if (!result || !result.success) {
+            showNotConnected('The CalTopo credentials were rejected. The service account may have been deleted, or the Credential ID or Secret may have been rotated. Re-enter them below, or change the service account.');
+            return;
+        }
+        if (!result.permission) {
+            showNotConnected('CalTopo does not report an account "' + (sa.title || sa.accountId) + '" under these credentials — it may have been deleted. Change the service account to continue.');
+            return;
+        }
+        var allowed = ['Update', 'Write', 'Manage', 'Administer'];
+        if (allowed.indexOf(result.permission) === -1) {
+            showNotConnected('The service account now has only "' + result.permission + '" permission; "Update" or higher is required. Raise the permission in CalTopo, or change the service account.');
+            return;
+        }
+        // Fresh verification succeeded — refresh the stored metadata so the
+        // summary reflects CalTopo's current view (permission/last_used/maps)
+        // rather than whatever we last saved.
+        caltopoVerifiedData = {
+            title: result.title || sa.title || '',
+            permission: result.permission,
+            lastUsed: result.last_used || sa.lastUsed || null,
+            teamAccountId: result.team_account_id || sa.teamAccountId || '',
+            teamName: result.team_name || sa.teamName || '',
+            maps: result.maps || sa.maps || []
+        };
+        showCaltopoVerifySuccess(caltopoVerifiedData);
+        renderCtExistingDetails();
+        renderCtToggleState();
+        if (caltopoVerifiedData.maps && caltopoVerifiedData.maps.length > 0) {
+            populateMapDropdown(caltopoVerifiedData.maps);
+        }
+    } catch (err) {
+        var status = err && err.status;
+        if (status === 401) {
+            showNotConnected('The CalTopo credentials were rejected. The service account may have been deleted, or the Credential ID or Secret may have been rotated. Re-enter them below, or change the service account.');
+        } else if (status === 502) {
+            showNotConnected('Could not verify with CalTopo. CalTopo may be temporarily unavailable, or the service account may have been deleted. Try again in a minute.');
+        }
+        // 500 or network error: keep the stored "Connected" state — don't
+        // falsely claim the account is gone when we can't tell.
+    }
+}
+
 function showCaltopoVerifySuccess(data) {
     var resultEl = document.getElementById('ctVerifyResult');
     var html = '<strong>Connected successfully!</strong>';
@@ -4251,6 +4324,10 @@ function populateForm(config) {
         if (caltopoVerifiedData.maps.length > 0) {
             populateMapDropdown(caltopoVerifiedData.maps);
         }
+        // Re-verify against CalTopo in the background. If the service account
+        // has been deleted/revoked, replace the optimistic "Connected" state
+        // with a clear not-connected message.
+        verifyStoredCaltopoAccountInBackground(sa);
     }
     renderCtToggleState();
 
