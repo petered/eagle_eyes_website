@@ -33,9 +33,8 @@
           <a href="05-camera-control.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">4</span><span class="nav-title">Camera Control</span></a>
           <a href="07-caltopo.html" class="nav-item active"><span class="nav-check"></span><span class="nav-number">5</span><span class="nav-title">Mapping, CalTopo &amp; Sessions</span></a>
           <a href="09-livestreaming.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">6</span><span class="nav-title">Broadcasting &amp; Livestreaming</span></a>
-          <a href="10-field-operations.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">7</span><span class="nav-title">Field Operations</span></a>
-          <a href="11-flight-missions.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">8</span><span class="nav-title">Flight Missions</span></a>
-          <a href="12-advanced-features.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">9</span><span class="nav-title">Advanced Features</span></a>
+          <a href="11-flight-missions.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">7</span><span class="nav-title">Flight Missions</span></a>
+          <a href="12-advanced-features.html" class="nav-item"><span class="nav-check"></span><span class="nav-number">8</span><span class="nav-title">Advanced Features</span></a>
         </div>
       </div>
       <div class="nav-section">
@@ -93,15 +92,16 @@
         </table>
 
         <h3>Map Markers</h3>
-        <p>The map displays several types of markers that update in real time during flight:</p>
+        <p>The map displays several types of markers that update in real time during flight. Each uses a distinct icon so you can identify them at a glance:</p>
         <table>
-          <tr><th>Marker</th><th>What It Shows</th></tr>
-          <tr><td><strong>✈️ Drone</strong></td><td>Your drone's current GPS position and heading. Updates continuously during flight.</td></tr>
-          <tr><td><strong>✈️ Other Drones</strong></td><td>Other Eagle Eyes drones on the same UDP network. Shows their positions so you can coordinate coverage. (See Module 6: Broadcasting &amp; Livestreaming)</td></tr>
-          <tr><td><strong>H Home</strong></td><td>The drone's takeoff point / Return-to-Home location. Important reference for battery planning.</td></tr>
-          <tr><td><strong>👤 Operator</strong></td><td>Your phone/controller GPS position. Shows where you are relative to the drone.</td></tr>
-          <tr><td><strong>📍 Detection</strong></td><td>AI and manual detections. Each detection is placed on the map at the estimated GPS coordinates of what was detected.</td></tr>
-          <tr><td><strong>⊕ Laser Point</strong></td><td>Laser rangefinder measurement points with distance readings.</td></tr>
+          <tr><th>Icon</th><th>Marker</th><th>What It Shows</th></tr>
+          <tr><td>White chevron</td><td><strong>Drone</strong></td><td>Your drone's current GPS position and heading. Updates continuously during flight.</td></tr>
+          <tr><td>Secondary chevron</td><td><strong>Other Drones</strong></td><td>Other Eagle Eyes drones on the same UDP network. Shows their positions so you can coordinate coverage. (See Module 6: Broadcasting &amp; Livestreaming)</td></tr>
+          <tr><td>House icon</td><td><strong>Home</strong></td><td>The drone's takeoff point / Return-to-Home location. Important reference for battery planning.</td></tr>
+          <tr><td>Operator flyer</td><td><strong>Operator</strong></td><td>Your phone/controller GPS position. Shows where you are relative to the drone.</td></tr>
+          <tr><td>Camera shutter</td><td><strong>Detection</strong></td><td>AI and manual detections. Each detection is placed on the map at the estimated GPS coordinates of what was detected.</td></tr>
+          <tr><td>Red pin</td><td><strong>Laser Point</strong></td><td>Laser rangefinder measurement points with distance readings.</td></tr>
+          <tr><td>Concentric circles</td><td><strong>Team Member</strong></td><td>CalTopo shared locations of other team members (color-coded per person).</td></tr>
         </table>
 
         <div class="callout callout-tip">
@@ -152,48 +152,153 @@
         <ol>
           <li><strong>☰ Menu &rarr; CalTopo Connection</strong></li>
           <li>Tap <strong>Enter Map ID</strong></li>
-          <li>Type the CalTopo map ID</li>
+          <li>Type the CalTopo map ID or the full map link URL</li>
           <li>Enter credentials and connect</li>
         </ol>
 
-        <h3>Connection Status</h3>
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>If the map is not saved in your CalTopo team account, you may need to enter the <strong>full map link URL</strong> instead of just the map ID. The map ID alone only works for maps associated with the connected service account or your CalTopo login.</div>
+        </div>
+
+        <h3>Connection Status Widget</h3>
+        <p>Once connected, a floating status circle appears on the Fly Screen showing your CalTopo connection health at a glance:</p>
         <table>
-          <tr><th>Status</th><th>Meaning</th></tr>
-          <tr><td>🟢 Green</td><td>Connected and syncing</td></tr>
-          <tr><td>🟡 Yellow</td><td>Connected but sync delayed</td></tr>
-          <tr><td>🔴 Red</td><td>Disconnected</td></tr>
+          <tr><th>Indicator</th><th>Meaning</th></tr>
+          <tr><td>🟢 Green</td><td>Connected and syncing normally</td></tr>
+          <tr><td>🟡 Yellow</td><td>Connected but sync delayed or network quality degraded</td></tr>
+          <tr><td>🔴 Red</td><td>Disconnected or error</td></tr>
+        </table>
+
+        <p>Tap the status circle to expand a detailed panel showing:</p>
+        <ul>
+          <li>Current map name and ID</li>
+          <li>Last successful upload time with countdown</li>
+          <li>Network quality badge (Excellent / Good / Fair / Poor) with latency</li>
+          <li>Upload interval and batch size (adjusts automatically based on network quality)</li>
+          <li>Action buttons: <strong>Refresh Map Now</strong>, <strong>Switch Map</strong>, <strong>Start New Track</strong>, <strong>Stop/Resume Tracking</strong>, <strong>Disconnect</strong></li>
+        </ul>
+
+        <h3>Adaptive Sync</h3>
+        <p>Eagle Eyes automatically adjusts how frequently it uploads data based on your network quality:</p>
+        <table>
+          <tr><th>Network Quality</th><th>Sync Interval</th></tr>
+          <tr><td>Excellent</td><td>Every 5 seconds</td></tr>
+          <tr><td>Good</td><td>Every 10 seconds (default)</td></tr>
+          <tr><td>Fair</td><td>Every 30 seconds</td></tr>
+          <tr><td>Poor</td><td>Every 60 seconds</td></tr>
         </table>
       </div>
 
       <!-- ========================================== -->
-      <!-- SECTION 5.4 - WHAT SYNCS                    -->
+      <!-- SECTION 5.4 - MAP SYNCING                    -->
       <!-- ========================================== -->
       <div class="content-section">
-        <h2>5.4 What Syncs</h2>
+        <h2>5.4 Map Syncing</h2>
 
-        <h3>From CalTopo &rarr; Eagle Eyes</h3>
+        <p>Eagle Eyes uses two separate syncing operations to keep your map data current with CalTopo. Understanding the difference helps you know when to trigger a manual refresh vs. relying on automatic sync.</p>
+
+        <h3>Map Sync (Automatic)</h3>
+        <p>Map sync runs automatically in the background on a regular interval. It performs a bidirectional operation:</p>
+        <ul>
+          <li><strong>Pull:</strong> Downloads any new or changed features from CalTopo since the last sync (incremental &mdash; only changes, not the entire map)</li>
+          <li><strong>Push:</strong> Uploads any locally created markers, detections, or edits back to CalTopo</li>
+        </ul>
+        <p>The sync interval adapts to your network quality (see Adaptive Sync in section 5.3). You do not need to trigger this manually &mdash; it happens continuously while connected.</p>
+
+        <h3>Map Refresh (Manual)</h3>
+        <p>A map refresh is a <strong>full pull</strong> of all map features from CalTopo. This is a heavier operation that downloads everything, not just changes since last sync. Use it when:</p>
+        <ul>
+          <li>You suspect the map is out of date or missing features</li>
+          <li>You've just connected and want to ensure you have all current data</li>
+          <li>Someone on the team reports they've made significant changes to the CalTopo map</li>
+        </ul>
+        <p>Trigger a manual refresh by tapping the CalTopo status widget and selecting <strong>Refresh Map Now</strong>.</p>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>In most cases, the automatic sync keeps everything current. Use <strong>Refresh Map Now</strong> only when you need to force a full update &mdash; periodic refreshing would use too much bandwidth, especially in the field.</div>
+        </div>
+
+        <h3>What Syncs</h3>
+
+        <h4>From CalTopo &rarr; Eagle Eyes</h4>
         <ul>
           <li>Markers and points</li>
           <li>Lines and routes</li>
           <li>Polygons and search areas</li>
-          <li>Team member positions</li>
+          <li>Assignments</li>
+          <li>Team member shared locations (live positions of other CalTopo users)</li>
+          <li>Folder structure and organization</li>
         </ul>
 
-        <h3>From Eagle Eyes &rarr; CalTopo</h3>
+        <h4>From Eagle Eyes &rarr; CalTopo</h4>
         <ul>
           <li>Manual markers</li>
           <li>Detection locations</li>
           <li>Detection images</li>
+          <li>Drone position track (AppTrack &mdash; a live line showing the drone's flight path)</li>
         </ul>
 
         <p>This bidirectional sync means your incident commander can draw search areas on CalTopo and they immediately appear on your drone's map. When the AI detects something, the detection location and thumbnail are pushed back to CalTopo where the entire team can see it.</p>
+
+        <h3>Shared Team Locations</h3>
+        <p>When connected to a CalTopo map, Eagle Eyes displays the live positions of other team members who are sharing their location through CalTopo. Each team member appears as a labeled marker on your map with a timestamp showing how recently their position was updated (e.g., "5s ago", "2m ago"). Locations older than 5 minutes are automatically hidden to avoid displaying stale data.</p>
       </div>
 
       <!-- ========================================== -->
-      <!-- SECTION 5.5 - SERVICE ACCOUNTS              -->
+      <!-- SECTION 5.5 - FEATURE FILTERING              -->
       <!-- ========================================== -->
       <div class="content-section">
-        <h2>5.5 Service Account Setup <span class="module-tag" style="font-size: 0.7rem; vertical-align: middle;">New in 1.6.0</span></h2>
+        <h2>5.5 Map Feature Filtering</h2>
+
+        <p>When connected to a CalTopo map with many features, the map can become cluttered. Eagle Eyes provides a hierarchical filter to control what is visible.</p>
+
+        <h3>How It Works</h3>
+        <ul>
+          <li>Open the filter from the map toolbar</li>
+          <li>Features are organized by <strong>CalTopo folders</strong> &mdash; if the CalTopo map uses folders, the same structure appears here</li>
+          <li>Unfoldered features are automatically grouped by type: Markers, Lines &amp; Polygons, App Tracks, Assignments, Media</li>
+          <li>Toggle visibility per-folder or per-individual feature</li>
+          <li>Visibility indicators show: 🌑 (none visible), 🌓 (some visible), 🌕 (all visible)</li>
+          <li>Changes apply instantly on the map</li>
+          <li>Your filter settings are saved per-session and restored when you reopen the app</li>
+        </ul>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>If your CalTopo map has assignment polygons, ground team tracks, and many markers, use the filter to hide everything except what's relevant to your current flight. You can always reset to defaults.</div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.6 - TRACK MANAGEMENT              -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.6 Drone Track Management</h2>
+
+        <p>When CalTopo tracking is enabled, Eagle Eyes uploads the drone's flight path as an <strong>AppTrack</strong> &mdash; a live line on the CalTopo map that shows where the drone has flown. This is visible to everyone viewing the CalTopo map, so your incident commander and team can see the drone's coverage in real time.</p>
+
+        <h3>Starting a New Track</h3>
+        <ul>
+          <li>A track starts automatically when you connect to CalTopo with tracking enabled</li>
+          <li>To start a fresh track (e.g., for a new flight or assignment), tap the CalTopo status widget and select <strong>Start New Track</strong></li>
+          <li>You can enter an <strong>assignment number</strong> when starting a new track to tie the flight to a specific SAR assignment</li>
+        </ul>
+
+        <h3>Track Persistence</h3>
+        <ul>
+          <li>Tracks are organized in a configurable folder on CalTopo (default: "Drone Ops")</li>
+          <li>Track state is preserved for 24 hours &mdash; if the app closes and reopens within that window, the existing track continues rather than starting a new one</li>
+          <li>You can pause and resume tracking at any time from the status widget</li>
+        </ul>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- SECTION 5.6 - SERVICE ACCOUNTS              -->
+      <!-- ========================================== -->
+      <div class="content-section">
+        <h2>5.7 Service Account Setup <span class="module-tag" style="font-size: 0.7rem; vertical-align: middle;">New in 1.6.0</span></h2>
 
         <p>Service accounts allow automatic map connections without scanning QR codes each time. This is ideal for dedicated SAR tablets that stay in team vehicles.</p>
 
@@ -234,7 +339,7 @@
       <!-- SECTION 5.6 - SESSIONS                      -->
       <!-- ========================================== -->
       <div class="content-section">
-        <h2>5.6 Sessions</h2>
+        <h2>5.8 Sessions</h2>
 
         <p>A <strong>session</strong> in Eagle Eyes is a container that groups together all the data from a single mission or operation. Every detection, map feature, and configuration setting is tied to the active session. Understanding sessions helps you keep your operations organized and your data separated.</p>
 
@@ -301,14 +406,65 @@
       <!-- ========================================== -->
       <div class="content-section">
         <h2>Knowledge Check</h2>
-        <div class="knowledge-check">
-          <div class="question">Name four types of markers that appear on the map during flight.</div>
-          <div class="question">Why should you load MBTiles before heading to the field?</div>
-          <div class="question">What are the two methods for connecting Eagle Eyes to a CalTopo map?</div>
-          <div class="question">What data syncs from Eagle Eyes back to CalTopo?</div>
-          <div class="question">What is the advantage of setting up a CalTopo service account?</div>
-          <div class="question">You close the app at 2:00 PM and reopen it at 3:30 PM. Will you be in the same session or a new one? Why?</div>
-          <div class="question">What data is lost when you delete a session?</div>
+        <div id="quiz-form" data-module="07-caltopo">
+          <div class="quiz-question" data-correct="d">
+            <p><strong>1. Which of the following is NOT a marker type that appears on the map during flight?</strong></p>
+            <label><input type="radio" name="q1" value="a"> Drone position</label>
+            <label><input type="radio" name="q1" value="b"> Detection markers</label>
+            <label><input type="radio" name="q1" value="c"> Laser rangefinder points</label>
+            <label><input type="radio" name="q1" value="d"> Weather radar overlay</label>
+          </div>
+
+          <div class="quiz-question" data-correct="c">
+            <p><strong>2. Why should you load MBTiles before heading to the field?</strong></p>
+            <label><input type="radio" name="q2" value="a"> Online maps are not compatible with Eagle Eyes</label>
+            <label><input type="radio" name="q2" value="b"> MBTiles files provide higher resolution than online maps</label>
+            <label><input type="radio" name="q2" value="c"> SAR areas often have limited cellular connectivity, so you need offline maps</label>
+            <label><input type="radio" name="q2" value="d"> The drone requires MBTiles to navigate</label>
+          </div>
+
+          <div class="quiz-question" data-correct="a">
+            <p><strong>3. What are the two methods for connecting Eagle Eyes to a CalTopo map?</strong></p>
+            <label><input type="radio" name="q3" value="a"> QR code scanning and manual map ID entry</label>
+            <label><input type="radio" name="q3" value="b"> USB cable and WiFi direct</label>
+            <label><input type="radio" name="q3" value="c"> Email invitation and NFC tap</label>
+            <label><input type="radio" name="q3" value="d"> Bluetooth pairing and API key</label>
+          </div>
+
+          <div class="quiz-question" data-correct="b">
+            <p><strong>4. What data syncs FROM Eagle Eyes TO CalTopo?</strong></p>
+            <label><input type="radio" name="q4" value="a"> Only the drone's GPS position</label>
+            <label><input type="radio" name="q4" value="b"> Manual markers, detection locations, and detection images</label>
+            <label><input type="radio" name="q4" value="c"> Flight logs and battery data</label>
+            <label><input type="radio" name="q4" value="d"> Video recordings and panoramas</label>
+          </div>
+
+          <div class="quiz-question" data-correct="c">
+            <p><strong>5. What is the main advantage of a CalTopo service account?</strong></p>
+            <label><input type="radio" name="q5" value="a"> It provides faster sync speeds</label>
+            <label><input type="radio" name="q5" value="b"> It allows multiple maps simultaneously</label>
+            <label><input type="radio" name="q5" value="c"> It automatically reconnects on app startup without scanning QR codes each time</label>
+            <label><input type="radio" name="q5" value="d"> It enables offline CalTopo access</label>
+          </div>
+
+          <div class="quiz-question" data-correct="a">
+            <p><strong>6. You close Eagle Eyes at 2:00 PM and reopen it at 3:30 PM. What happens with sessions?</strong></p>
+            <label><input type="radio" name="q6" value="a"> Same session &mdash; only 1.5 hours passed, which is under the 12-hour auto-reuse window</label>
+            <label><input type="radio" name="q6" value="b"> New session &mdash; the app always creates a new session on restart</label>
+            <label><input type="radio" name="q6" value="c"> It asks you to choose</label>
+            <label><input type="radio" name="q6" value="d"> Same session &mdash; sessions never expire</label>
+          </div>
+
+          <div class="quiz-question" data-correct="d">
+            <p><strong>7. What is lost when you delete a session?</strong></p>
+            <label><input type="radio" name="q7" value="a"> Only the session name</label>
+            <label><input type="radio" name="q7" value="b"> Only AI detections from that session</label>
+            <label><input type="radio" name="q7" value="c"> Only map features</label>
+            <label><input type="radio" name="q7" value="d"> All detections, map features, and configuration associated with that session &mdash; permanently</label>
+          </div>
+
+          <button type="button" class="quiz-submit-btn">Submit Answers</button>
+          <div class="quiz-result"></div>
         </div>
       </div>
 
