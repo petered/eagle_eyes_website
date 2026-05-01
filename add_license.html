@@ -178,7 +178,7 @@ permalink: /add_license/
                     </div> -->
                     <div class="form-section" style="width: 80%;">
                         <label for="emails"><b>Emails:</b></label>
-                        <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com"></textarea>
+                        <textarea id="emails" name="emails" rows="2" placeholder="joe@example.com" autocomplete="off"></textarea>
                         <div class="help-text" style="font-size: 0.7em; color: #555; margin-top: 5px; font-style: italic;">Will default to info@eagleeyessearch.com when public license is selected</div>
                     </div>
                     <div class="form-section">
@@ -563,6 +563,13 @@ permalink: /add_license/
 
                         statusSpan.html(statusMessage).removeClass('error-box info-box').addClass('success-box');
                         scrollToStatus();
+
+                        // Clear recipient-specific fields after a successful submission so the
+                        // next user/license processed in the same browser session starts fresh.
+                        $('#emails').val('');
+                        $('#license_name').val('');
+                        $('#domains').val('');
+                        $('#trialRequestId').val('');
                     } catch (error) {
                         console.error("Error parsing response:", error);
                         statusSpan.html('<div class="success-box"><strong>✓ User Status Updated Successfully</strong></div>').removeClass('error-box info-box').addClass('success-box');
@@ -639,6 +646,16 @@ permalink: /add_license/
 
                         statusSpan.html(licenseDataDisplay).removeClass('error-box info-box').addClass('success-box');
                         scrollToStatus();
+
+                        // Clear recipient-specific fields after a successful submission so the
+                        // next trial/license created in the same browser session starts fresh.
+                        // Prevents "stale emails carried over from previous submission" bug
+                        // (which historically created trial licenses with the wrong recipient
+                        // emails because admins processing batches didn't notice the carry-over).
+                        $('#emails').val('');
+                        $('#license_name').val('');
+                        $('#domains').val('');
+                        $('#trialRequestId').val('');
                     } catch (error) {
                         console.error("Error parsing license data:", error);
                         statusSpan.html('<div class="error-box"><strong>✗ Error Displaying License Information</strong><p>License may have been created but there was an error displaying it. Please check the console for details.</p></div>').removeClass('success-box info-box').addClass('error-box');
