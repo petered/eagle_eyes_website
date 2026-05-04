@@ -49,9 +49,44 @@
                                 <button id="buttonCloseVideo" style="position: absolute; top: 10px; right: 30px; cursor: pointer; background-color: lightgray; color: black; z-index:10000; display:none; white-space: nowrap;" onclick="hideVideo()">Close Video</button>
                             </li>
                             <li>
-                                <!-- Replace the sign-in dropdown with a static "Get Eagle Eyes" button -->
-                                <div class="v-align-middle">
-                                    <a href="{{ '/account/' | relative_url }}" class="button small rounded no-page-fade no-margin-bottom" style="border: 1px solid #fff;">Get Eagle Eyes</a>
+                                <!-- Auth-aware control: 'Get Eagle Eyes' for visitors, profile dropdown for signed-in users -->
+                                <div class="v-align-middle nav-auth-controls">
+                                    <a href="{{ '/account/' | relative_url }}"
+                                       id="navGetEagleEyesBtn"
+                                       class="button small rounded no-page-fade no-margin-bottom"
+                                       style="border: 1px solid #fff;">Get Eagle Eyes</a>
+                                    <div id="navProfileMenu" class="nav-profile-menu" style="display: none;">
+                                        <button type="button"
+                                                id="navProfileTrigger"
+                                                class="nav-profile-trigger"
+                                                aria-label="Account menu"
+                                                aria-haspopup="true"
+                                                aria-expanded="false">
+                                            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                                <circle cx="12" cy="8" r="4" fill="currentColor"></circle>
+                                                <path d="M4 20c0-4 4-6 8-6s8 2 8 6v1H4v-1z" fill="currentColor"></path>
+                                            </svg>
+                                        </button>
+                                        <div id="navProfileDropdown" class="nav-profile-dropdown" role="menu">
+                                            <div class="nav-profile-email" id="navProfileEmail"></div>
+                                            <a href="{{ '/profile/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Profile</a>
+                                            <a href="{{ '/account/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Account</a>
+                                            <a href="{{ '/downloads/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Downloads</a>
+                                            <a href="{{ '/support/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Support</a>
+                                            <button type="button"
+                                                    id="navSignOutBtn"
+                                                    class="nav-profile-item nav-profile-signout"
+                                                    role="menuitem">Sign Out</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </li>
                             <li class="aux-navigation">
@@ -80,4 +115,161 @@
         function hideVideo() {
             // Your existing code to hide video
         }
+    </script>
+
+    <style>
+        .nav-auth-controls {
+            position: relative;
+        }
+        .nav-profile-menu {
+            position: relative;
+        }
+        .nav-profile-trigger {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.6);
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+        .nav-profile-trigger:hover,
+        .nav-profile-trigger[aria-expanded="true"] {
+            background: rgba(255,255,255,0.18);
+            border-color: #fff;
+        }
+        .nav-profile-trigger:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(30,144,255,0.35);
+        }
+        .nav-profile-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            min-width: 240px;
+            background: #fff;
+            border: 1px solid #e3e6ea;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 8px 0;
+            display: none;
+            z-index: 1500;
+        }
+        .nav-profile-dropdown.open {
+            display: block;
+        }
+        .nav-profile-email {
+            padding: 10px 16px 12px;
+            font-size: 13px;
+            color: #555;
+            word-break: break-all;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 6px;
+        }
+        .nav-profile-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: #333;
+            text-decoration: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .nav-profile-item:hover {
+            background: #f5f7fa;
+            color: #1e90ff;
+            text-decoration: none;
+        }
+        .nav-profile-signout {
+            color: #c0392b;
+        }
+        .nav-profile-signout:hover {
+            color: #c0392b;
+            background: #fdf2f0;
+        }
+    </style>
+
+    <script>
+        (function() {
+            function applyAuthState(user) {
+                var getBtn = document.getElementById('navGetEagleEyesBtn');
+                var profile = document.getElementById('navProfileMenu');
+                var emailEl = document.getElementById('navProfileEmail');
+                if (!profile) return;
+                if (user) {
+                    if (getBtn) getBtn.style.display = 'none';
+                    profile.style.display = '';
+                    if (emailEl) emailEl.textContent = user.email || '';
+                } else {
+                    if (getBtn) getBtn.style.display = '';
+                    profile.style.display = 'none';
+                    closeProfileDropdown();
+                }
+            }
+
+            function closeProfileDropdown() {
+                var dd = document.getElementById('navProfileDropdown');
+                var trigger = document.getElementById('navProfileTrigger');
+                if (dd) dd.classList.remove('open');
+                if (trigger) trigger.setAttribute('aria-expanded', 'false');
+            }
+
+            function init() {
+                var trigger = document.getElementById('navProfileTrigger');
+                var dd = document.getElementById('navProfileDropdown');
+                var signOutBtn = document.getElementById('navSignOutBtn');
+
+                if (trigger && dd) {
+                    trigger.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        var isOpen = dd.classList.toggle('open');
+                        trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    });
+                    document.addEventListener('click', function(e) {
+                        if (!dd.contains(e.target) && !trigger.contains(e.target)) {
+                            closeProfileDropdown();
+                        }
+                    });
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape') closeProfileDropdown();
+                    });
+                }
+
+                if (signOutBtn) {
+                    signOutBtn.addEventListener('click', function() {
+                        if (typeof firebase === 'undefined' || !firebase.auth) return;
+                        firebase.auth().signOut().then(function() {
+                            window.location.reload();
+                        }).catch(function(err) {
+                            console.error('Sign out error:', err);
+                        });
+                    });
+                }
+
+                // React to subsequent auth changes
+                document.addEventListener('authStateChanged', function(e) {
+                    applyAuthState(e.detail && e.detail.user);
+                });
+
+                // Apply current state if Firebase is already initialized
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    try { applyAuthState(firebase.auth().currentUser); } catch (e) { /* ignore */ }
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
     </script>

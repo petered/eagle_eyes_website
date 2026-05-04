@@ -1,0 +1,487 @@
+---
+layout: account-area
+title: Profile - Eagle Eyes
+permalink: /profile/
+active: profile
+heading: Profile
+---
+<style>
+    .profile-card {
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        padding: 28px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .profile-card h2 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #222;
+        margin: 0 0 6px 0;
+    }
+    .profile-card .profile-card-hint {
+        font-size: 13px;
+        color: #777;
+        margin: 0 0 20px 0;
+    }
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px 24px;
+    }
+    .profile-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .profile-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .profile-field input[type="text"],
+    .profile-field input[type="email"],
+    .profile-field input[type="tel"] {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 15px;
+        border: 1px solid #d8dce0;
+        border-radius: 8px;
+        background: #fff;
+        color: #222;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        box-sizing: border-box;
+    }
+    .profile-field input:focus {
+        outline: none;
+        border-color: #1e90ff;
+        box-shadow: 0 0 0 3px rgba(30,144,255,0.15);
+    }
+    .profile-field input:disabled,
+    .profile-field input[readonly] {
+        background: #f6f7f9;
+        color: #555;
+        cursor: not-allowed;
+    }
+    .profile-readonly-value {
+        font-size: 15px;
+        color: #222;
+        padding: 10px 0;
+    }
+    .profile-readonly-sub {
+        font-size: 12px;
+        color: #888;
+    }
+    .profile-actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .profile-btn {
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.15s;
+    }
+    .profile-btn:hover:not(:disabled) { background: #1873cc; }
+    .profile-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .profile-btn.secondary {
+        background: #fff;
+        color: #333;
+        border: 1px solid #d8dce0;
+    }
+    .profile-btn.secondary:hover:not(:disabled) { background: #f4f6f8; }
+    .profile-status {
+        font-size: 13px;
+    }
+    .profile-status.success { color: #27ae60; }
+    .profile-status.error { color: #c0392b; }
+
+    .profile-orgs-empty {
+        font-size: 14px;
+        color: #777;
+        font-style: italic;
+    }
+    .profile-orgs-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .profile-orgs-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .profile-orgs-list li:last-child { border-bottom: none; }
+    .profile-orgs-name { font-size: 14px; color: #222; font-weight: 500; }
+    .profile-orgs-role-badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: #e9ecef;
+        color: #495057;
+    }
+    .profile-orgs-role-badge.admin { background: #d4edda; color: #155724; }
+
+    .profile-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+        gap: 16px;
+    }
+    .profile-toggle:last-child { border-bottom: none; }
+    .profile-toggle-text { flex: 1 1 auto; min-width: 0; }
+    .profile-toggle-title { font-size: 14px; font-weight: 500; color: #222; margin: 0 0 2px 0; }
+    .profile-toggle-hint { font-size: 13px; color: #777; margin: 0; }
+    .profile-toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 42px;
+        height: 24px;
+        flex: 0 0 auto;
+    }
+    .profile-toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .profile-toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: #ccc;
+        border-radius: 24px;
+        transition: background-color 0.15s;
+    }
+    .profile-toggle-slider:before {
+        content: '';
+        position: absolute;
+        height: 18px; width: 18px;
+        left: 3px; bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.15s;
+    }
+    .profile-toggle-switch input:checked + .profile-toggle-slider { background: #1e90ff; }
+    .profile-toggle-switch input:checked + .profile-toggle-slider:before { transform: translateX(18px); }
+    .profile-toggle-switch input:disabled + .profile-toggle-slider { opacity: 0.6; cursor: not-allowed; }
+    .profile-toggle-switch input:disabled + .profile-toggle-slider:before { background: #f0f0f0; }
+
+    .profile-loading {
+        text-align: center;
+        padding: 40px 0;
+        color: #999;
+    }
+    .profile-signed-out {
+        text-align: center;
+        padding: 60px 20px;
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+    }
+    .profile-signed-out p { color: #555; margin-bottom: 18px; }
+
+    @media (max-width: 600px) {
+        .profile-grid { grid-template-columns: 1fr; gap: 16px; }
+        .profile-card { padding: 20px; }
+    }
+</style>
+
+<div id="profileContent" style="display: none;">
+    <!-- Personal info -->
+    <section class="profile-card">
+        <h2>Personal information</h2>
+        <p class="profile-card-hint">Your name and contact details.</p>
+
+        <form id="profileForm" onsubmit="return profileSave(event);">
+            <div class="profile-grid">
+                <div class="profile-field">
+                    <label for="profileFirstName">First name</label>
+                    <input type="text" id="profileFirstName" autocomplete="given-name" maxlength="80">
+                </div>
+                <div class="profile-field">
+                    <label for="profileLastName">Last name</label>
+                    <input type="text" id="profileLastName" autocomplete="family-name" maxlength="80">
+                </div>
+                <div class="profile-field">
+                    <label for="profileEmail">Email</label>
+                    <input type="email" id="profileEmail" readonly>
+                </div>
+                <div class="profile-field">
+                    <label for="profilePhone">Phone</label>
+                    <input type="tel" id="profilePhone" autocomplete="tel" maxlength="40" placeholder="Optional">
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <button type="submit" class="profile-btn" id="profileSaveBtn">Save changes</button>
+                <button type="button" class="profile-btn secondary" id="profileCancelBtn">Cancel</button>
+                <span class="profile-status" id="profileSaveStatus"></span>
+            </div>
+        </form>
+    </section>
+
+    <!-- Sign-in info -->
+    <section class="profile-card">
+        <h2>Sign-in</h2>
+        <div class="profile-grid">
+            <div class="profile-field">
+                <label>Sign-in method</label>
+                <div class="profile-readonly-value" id="profileSignInMethod">—</div>
+            </div>
+            <div class="profile-field">
+                <label>Account created at</label>
+                <div class="profile-readonly-value" id="profileMemberSince">—</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Organizations -->
+    <section class="profile-card">
+        <h2>Organization memberships</h2>
+        <p class="profile-card-hint">Teams you belong to. Manage members and configurations from <a href="{{ '/account/' | relative_url }}" style="color: #1e90ff;">Account</a>.</p>
+        <div id="profileOrgs">
+            <div class="profile-loading">Loading organizations…</div>
+        </div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="profile-card">
+        <h2>Notifications</h2>
+        <div class="profile-toggle">
+            <div class="profile-toggle-text">
+                <p class="profile-toggle-title">Plan &amp; product information</p>
+                <p class="profile-toggle-hint">Critical messages about your plan, devices, and product updates. Always on.</p>
+            </div>
+            <label class="profile-toggle-switch">
+                <input type="checkbox" id="profileNotifyPlan" checked disabled>
+                <span class="profile-toggle-slider"></span>
+            </label>
+        </div>
+        <div class="profile-toggle">
+            <div class="profile-toggle-text">
+                <p class="profile-toggle-title">Newsletter</p>
+                <p class="profile-toggle-hint">Occasional product news, tips, and SAR community updates.</p>
+            </div>
+            <label class="profile-toggle-switch">
+                <input type="checkbox" id="profileNotifyNewsletter">
+                <span class="profile-toggle-slider"></span>
+            </label>
+        </div>
+        <div class="profile-actions">
+            <span class="profile-status" id="profileNotifyStatus"></span>
+        </div>
+    </section>
+</div>
+
+<div id="profileSignedOut" class="profile-signed-out" style="display: none;">
+    <p>Sign in to view your profile.</p>
+    <a href="{{ '/account/' | relative_url }}" class="profile-btn" style="display: inline-block; text-decoration: none;">Sign In</a>
+</div>
+
+<div id="profileLoading" class="profile-loading">Loading…</div>
+
+<script>
+    (function() {
+        // Local state — backend save endpoints aren't wired yet, so values are
+        // remembered in localStorage as a temporary store until we have an
+        // update_user_profile cloud function.
+        var STORAGE_KEY = 'profileDraft';
+
+        function setStatus(el, message, type) {
+            if (!el) return;
+            el.textContent = message || '';
+            el.className = 'profile-status' + (type ? ' ' + type : '');
+        }
+
+        function readDraft() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+            } catch (e) { return {}; }
+        }
+        function writeDraft(patch) {
+            var current = readDraft();
+            Object.keys(patch).forEach(function(k) { current[k] = patch[k]; });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+        }
+
+        function formatProvider(providerId) {
+            switch (providerId) {
+                case 'google.com': return 'Signed in via Google';
+                case 'apple.com': return 'Signed in via Apple';
+                case 'password': return 'Signed in with email & password';
+                case 'emailLink': return 'Signed in via email link';
+                default: return providerId ? 'Signed in via ' + providerId : 'Signed in';
+            }
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '—';
+            try {
+                var d = new Date(iso);
+                if (isNaN(d.getTime())) return '—';
+                return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+            } catch (e) { return '—'; }
+        }
+
+        function renderProfileForUser(user) {
+            document.getElementById('profileLoading').style.display = 'none';
+            document.getElementById('profileContent').style.display = '';
+
+            // Email (read-only)
+            document.getElementById('profileEmail').value = user.email || '';
+
+            // Name fields — sourced from local draft for now since we don't yet
+            // persist first/last server-side. Fall back to splitting displayName.
+            var draft = readDraft();
+            var first = draft.firstName || '';
+            var last = draft.lastName || '';
+            if (!first && !last && user.displayName) {
+                var parts = user.displayName.trim().split(/\s+/);
+                first = parts[0] || '';
+                last = parts.slice(1).join(' ') || '';
+            }
+            document.getElementById('profileFirstName').value = first;
+            document.getElementById('profileLastName').value = last;
+            document.getElementById('profilePhone').value = draft.phone || (user.phoneNumber || '');
+
+            // Sign-in method
+            var providerId = user.providerData && user.providerData[0] && user.providerData[0].providerId;
+            // Detect email link sign-in (provider is 'password' but no password set is hard to know;
+            // safest fallback is to show "via email" if the only provider is 'password').
+            document.getElementById('profileSignInMethod').textContent = formatProvider(providerId);
+
+            // Member since
+            var created = user.metadata && user.metadata.creationTime;
+            document.getElementById('profileMemberSince').textContent = formatDate(created);
+
+            // Notification preferences
+            var newsletter = draft.newsletter !== false; // default opt-in unless explicitly set false
+            document.getElementById('profileNotifyNewsletter').checked = !!newsletter;
+
+            loadProfileOrgs();
+        }
+
+        async function loadProfileOrgs() {
+            var container = document.getElementById('profileOrgs');
+            try {
+                var user = firebase.auth().currentUser;
+                if (!user) return;
+                var idToken = await user.getIdToken();
+                var hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                var r = await fetch(hostURL + '/get_my_organization', {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
+                });
+                if (!r.ok) throw new Error('Request failed: ' + r.status);
+                var data = await r.json();
+                renderProfileOrgs((data && data.organizations) || []);
+            } catch (err) {
+                console.error('Error loading orgs for profile:', err);
+                container.innerHTML = '<div class="profile-orgs-empty">Couldn\'t load organizations right now.</div>';
+            }
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function renderProfileOrgs(orgs) {
+            var container = document.getElementById('profileOrgs');
+            if (!orgs.length) {
+                container.innerHTML = '<div class="profile-orgs-empty">You\'re not a member of any organization.</div>';
+                return;
+            }
+            var html = '<ul class="profile-orgs-list">';
+            orgs.forEach(function(o) {
+                var roleClass = o.is_admin ? 'admin' : '';
+                var roleLabel = o.is_admin ? 'Admin' : 'Member';
+                html += '<li>'
+                    + '<span class="profile-orgs-name">' + escapeHtml(o.name || 'Organization') + '</span>'
+                    + '<span class="profile-orgs-role-badge ' + roleClass + '">' + roleLabel + '</span>'
+                    + '</li>';
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        window.profileSave = function(event) {
+            event.preventDefault();
+            var first = document.getElementById('profileFirstName').value.trim();
+            var last = document.getElementById('profileLastName').value.trim();
+            var phone = document.getElementById('profilePhone').value.trim();
+            var saveBtn = document.getElementById('profileSaveBtn');
+            var status = document.getElementById('profileSaveStatus');
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+            setStatus(status, '');
+
+            // Backend endpoint isn't wired yet. Persist to localStorage so the
+            // form retains values across reloads, and surface a clear note.
+            writeDraft({ firstName: first, lastName: last, phone: phone });
+
+            setTimeout(function() {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save changes';
+                setStatus(status, 'Saved locally — server-side persistence coming soon.', 'success');
+            }, 250);
+            return false;
+        };
+
+        document.getElementById('profileCancelBtn').addEventListener('click', function() {
+            var user = firebase.auth().currentUser;
+            if (user) renderProfileForUser(user);
+        });
+
+        document.getElementById('profileNotifyNewsletter').addEventListener('change', function(e) {
+            writeDraft({ newsletter: e.target.checked });
+            setStatus(
+                document.getElementById('profileNotifyStatus'),
+                'Preference saved locally — server-side persistence coming soon.',
+                'success'
+            );
+        });
+
+        // Auth gating: show signed-out state when no user, otherwise the form
+        document.addEventListener('authStateChanged', function(e) {
+            var user = e.detail && e.detail.user;
+            applyAuth(user);
+        });
+
+        function applyAuth(user) {
+            var loading = document.getElementById('profileLoading');
+            var content = document.getElementById('profileContent');
+            var signedOut = document.getElementById('profileSignedOut');
+            if (user) {
+                signedOut.style.display = 'none';
+                loading.style.display = '';
+                renderProfileForUser(user);
+            } else {
+                content.style.display = 'none';
+                loading.style.display = 'none';
+                signedOut.style.display = '';
+            }
+        }
+
+        // If Firebase already settled before our listener attached
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            try { applyAuth(firebase.auth().currentUser); } catch (e) {}
+        }
+    })();
+</script>

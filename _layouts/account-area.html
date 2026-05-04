@@ -1,0 +1,228 @@
+---
+layout: main
+---
+<style>
+    .account-area {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        background: #fafbfc;
+        padding-top: 80px;
+    }
+    .account-sidebar {
+        flex: 0 0 240px;
+        background: #fff;
+        border-right: 1px solid #ececec;
+        padding: 28px 16px;
+        position: sticky;
+        top: 80px;
+        align-self: flex-start;
+        height: calc(100vh - 80px);
+        overflow-y: auto;
+    }
+    .account-sidebar-close {
+        display: none;
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: none;
+        border: none;
+        color: #555;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+    }
+    .account-sidebar-close:hover { background: #f3f4f6; }
+    .account-sidebar-nav {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .account-sidebar-nav li { margin: 4px 0; }
+    .account-sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        text-decoration: none;
+        transition: background-color 0.15s, color 0.15s;
+    }
+    .account-sidebar-link svg {
+        flex: 0 0 auto;
+        color: #888;
+        transition: color 0.15s;
+    }
+    .account-sidebar-link:hover {
+        background: #f4f6f8;
+        color: #1e90ff;
+        text-decoration: none;
+    }
+    .account-sidebar-link:hover svg { color: #1e90ff; }
+    .account-sidebar-link.active {
+        background: #e8f3ff;
+        color: #1e90ff;
+    }
+    .account-sidebar-link.active svg { color: #1e90ff; }
+
+    /* Per-org sections injected into the sidebar by JS */
+    .account-sidebar-orgs {
+        list-style: none;
+        margin: 14px 0;
+        padding: 0;
+    }
+    .sidebar-org-section {
+        margin: 0 0 14px 0;
+    }
+    .sidebar-org-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 4px 14px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-top: 8px;
+    }
+    .sidebar-org-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .sidebar-org-badge {
+        flex: 0 0 auto;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: #d4edda;
+        color: #155724;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    .sidebar-org-sublist {
+        list-style: none;
+        margin: 4px 0 0 0;
+        padding: 0;
+    }
+    .sidebar-org-sublist li { margin: 2px 0; }
+    .sidebar-org-sublist .account-sidebar-link {
+        padding-left: 30px;
+        font-size: 13px;
+    }
+
+    .account-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 32px 40px;
+        max-width: 1100px;
+    }
+    .account-content-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .account-menu-toggle {
+        display: none;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+        color: #333;
+    }
+    .account-menu-toggle:hover { background: #f4f6f8; }
+    .account-content h1 {
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+        color: #222;
+    }
+
+    /* Mobile: sidebar becomes a slide-out drawer */
+    @media (max-width: 768px) {
+        .account-area {
+            display: block;
+            padding-top: 70px;
+        }
+        .account-menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+        .account-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 260px;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            z-index: 1400;
+            padding-top: 60px;
+            border-right: none;
+            box-shadow: 4px 0 16px rgba(0,0,0,0.12);
+        }
+        .account-sidebar.open { transform: translateX(0); }
+        .account-sidebar-close { display: inline-flex; align-items: center; justify-content: center; }
+        .account-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1300;
+        }
+        .account-sidebar-backdrop.open { display: block; }
+        .account-content { padding: 20px 18px; }
+        .account-content h1 { font-size: 22px; }
+    }
+</style>
+
+<div class="account-area">
+    <div class="account-sidebar-backdrop" id="accountSidebarBackdrop"></div>
+    {% include account-sidebar.html %}
+    <main class="account-content">
+        <div class="account-content-header">
+            <button type="button" class="account-menu-toggle" id="accountMenuToggle" aria-label="Open menu" aria-controls="accountSidebar" aria-expanded="false">
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+            </button>
+            {% if page.heading %}<h1>{{ page.heading }}</h1>{% endif %}
+        </div>
+        {{ content }}
+    </main>
+</div>
+
+<script>
+    (function() {
+        var sidebar = document.getElementById('accountSidebar');
+        var toggle = document.getElementById('accountMenuToggle');
+        var backdrop = document.getElementById('accountSidebarBackdrop');
+        var closeBtn = document.getElementById('accountSidebarClose');
+        if (!sidebar || !toggle || !backdrop) return;
+
+        function open() {
+            sidebar.classList.add('open');
+            backdrop.classList.add('open');
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+        function close() {
+            sidebar.classList.remove('open');
+            backdrop.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+        toggle.addEventListener('click', function() {
+            sidebar.classList.contains('open') ? close() : open();
+        });
+        backdrop.addEventListener('click', close);
+        if (closeBtn) closeBtn.addEventListener('click', close);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') close();
+        });
+    })();
+</script>
