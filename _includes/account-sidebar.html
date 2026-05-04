@@ -1,11 +1,10 @@
 <!--
   Sidebar shown on signed-in account-area pages.
-  - Top-level static items: Profile, Downloads, Support.
-  - In between: org sections injected by JS once organizations load.
-    Each org section is a header (org name + optional admin badge) followed
-    by sub-items: Licenses / Devices / Members (admin) / Configurations.
-    Personal Account section is injected only when the user has personal
-    licenses outside any org.
+  - Static items at the top: Profile, Downloads, Support.
+  - At the bottom: an Account settings group with one section per organization
+    (and a Personal Account section when applicable). Populated by JS in the
+    layout once orgs/licenses load. Cached in sessionStorage so subsequent
+    navigations within a session render it instantly.
   - {{ page.active }} drives highlighting of static items; the org sub-items
     are highlighted from JS by parsing window.location.hash.
 -->
@@ -27,10 +26,6 @@
                     <span>Profile</span>
                 </a>
             </li>
-
-            <!-- Per-org (and Personal Account) sections injected here by JS in account.html -->
-            <li id="sidebarOrgAnchor" class="account-sidebar-orgs"></li>
-
             <li>
                 <a href="{{ '/downloads/' | relative_url }}"
                    class="account-sidebar-link{% if page.active == 'downloads' %} active{% endif %}">
@@ -51,6 +46,25 @@
                     </svg>
                     <span>Support</span>
                 </a>
+            </li>
+
+            <!-- Account settings: collapsible group. Header + per-org
+                 sections live inside a single group <li>; clicking the
+                 header toggles a class on the wrapper that reveals/hides
+                 the org list and applies a unified light-blue background.
+                 Hidden until the user is signed in. -->
+            <li id="sidebarAccountGroup" class="account-sidebar-group" style="display: none;">
+                <button type="button" id="sidebarAccountHeader" class="account-sidebar-link account-sidebar-group-toggle" aria-expanded="false" aria-controls="sidebarOrgAnchor">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"></path>
+                    </svg>
+                    <span class="account-sidebar-group-label">Account settings</span>
+                    <svg class="account-sidebar-chevron" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+                <div id="sidebarOrgAnchor" class="account-sidebar-orgs"></div>
             </li>
         </ul>
     </nav>

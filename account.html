@@ -1376,11 +1376,11 @@ heading: Account
         const loadingOverlay = document.getElementById('loading-overlay');
 
         // Hash routing — sidebar links update the hash and we re-render in place
-        // (no full reload). Also handles browser back/forward.
+        // (no full reload). Also handles browser back/forward. The layout owns
+        // sidebar highlighting; it has its own hashchange listener.
         window.addEventListener('hashchange', function() {
             applyHashToState();
             renderActiveView();
-            updateSidebarHighlight();
         });
 
         // Enhanced section handling for download sections
@@ -3459,6 +3459,9 @@ heading: Account
             cachedConfigsByOrg = {};
         } finally {
             recomputeAndRender();
+            // Tell the layout's sidebar to refresh — its sessionStorage cache
+            // could otherwise show stale org names / roles after writes.
+            document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
         }
     }
 
@@ -3564,7 +3567,8 @@ heading: Account
     function recomputeAndRender() {
         cachedSources = computeSources(cachedOrganizations, cachedLicenseOverview);
         applyHashToState();
-        renderSidebarOrgSections();
+        // Sidebar injection is owned by the layout (so it works on Profile,
+        // Downloads, Support too). We just render the active view here.
         renderActiveView();
     }
 
@@ -3572,68 +3576,8 @@ heading: Account
         return cachedSources.find(function(s) { return s.id === activeSourceId; }) || null;
     }
 
-    function renderSidebarOrgSections() {
-        const anchor = document.getElementById('sidebarOrgAnchor');
-        if (!anchor) return;
-        if (!cachedSources.length) {
-            anchor.innerHTML = '';
-            return;
-        }
-        let html = '';
-        cachedSources.forEach(function(s) {
-            const sectionLabel = s.kind === 'personal' ? 'Personal Account' : s.name;
-            const adminBadge = (s.kind === 'org' && s.is_admin)
-                ? '<span class="sidebar-org-badge">Admin</span>' : '';
-            html += '<div class="sidebar-org-section" data-source-id="' + escapeAttrOrg(s.id) + '">'
-                + '<div class="sidebar-org-header">'
-                +   '<span class="sidebar-org-name">' + escapeHtmlOrg(sectionLabel) + '</span>'
-                +   adminBadge
-                + '</div>'
-                + '<ul class="sidebar-org-sublist">'
-                + sidebarSubItem(s, 'licenses', 'Licenses')
-                + sidebarSubItem(s, 'devices', 'Devices')
-                + (s.kind === 'org' && s.is_admin ? sidebarSubItem(s, 'members', 'Members') : '')
-                + (s.kind === 'org' ? sidebarSubItem(s, 'configurations', 'Configurations') : '')
-                + '</ul>'
-                + '</div>';
-        });
-        anchor.innerHTML = html;
-
-        // Wire each sub-item to update hash without reload
-        anchor.querySelectorAll('a.account-sidebar-link').forEach(function(a) {
-            a.addEventListener('click', function(e) {
-                const orgId = a.getAttribute('data-source-id');
-                const view = a.getAttribute('data-view');
-                if (!orgId || !view) return;
-                e.preventDefault();
-                activeSourceId = orgId;
-                activeView = view;
-                writeHash(orgId, view, false); // user navigation → push
-                renderActiveView();
-                updateSidebarHighlight();
-            });
-        });
-        updateSidebarHighlight();
-    }
-
-    function sidebarSubItem(source, view, label) {
-        const href = '#org=' + encodeURIComponent(source.id) + '&view=' + encodeURIComponent(view);
-        return '<li>'
-            + '<a href="' + href + '" class="account-sidebar-link"'
-            + ' data-source-id="' + escapeAttrOrg(source.id) + '" data-view="' + view + '">'
-            + escapeHtmlOrg(label)
-            + '</a></li>';
-    }
-
-    function updateSidebarHighlight() {
-        const all = document.querySelectorAll('.sidebar-org-sublist a.account-sidebar-link');
-        all.forEach(function(a) {
-            const match = a.getAttribute('data-source-id') === activeSourceId
-                && a.getAttribute('data-view') === activeView;
-            a.classList.toggle('active', match);
-        });
-    }
-
+    // Accent palette for org sections — cycled by org index. Personal Account
+    // always gets the neutral slate slot at the end.
     function renderActiveView() {
         const source = getActiveSource();
         const empty = document.getElementById('accountEmptyState');
@@ -3662,8 +3606,13 @@ heading: Account
         // View header — shows which org context the page is operating on
         if (viewHeader && viewHeaderOrg) {
             const sourceLabel = source.kind === 'personal' ? 'Personal Account' : source.name;
-            viewHeaderOrg.innerHTML = 'Viewing <strong>' + escapeHtmlOrg(sourceLabel) + '</strong>'
-                + (source.kind === 'org' && source.is_admin ? ' &middot; Admin' : '');
+            let roleSuffix = '';
+            if (source.kind === 'org') {
+                roleSuffix = source.is_admin
+                    ? ' as an <strong>Admin</strong>'
+                    : ' as a <strong>Member</strong>';
+            }
+            viewHeaderOrg.innerHTML = 'Viewing <strong>' + escapeHtmlOrg(sourceLabel) + '</strong>' + roleSuffix;
             viewHeader.style.display = '';
         }
 

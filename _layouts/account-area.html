@@ -67,27 +67,69 @@ layout: main
     }
     .account-sidebar-link.active svg { color: #1e90ff; }
 
-    /* Per-org sections injected into the sidebar by JS */
+    /* Account settings — collapsible group. The whole <li> wraps the toggle
+       header AND the org sub-list, so when expanded the light-blue background
+       extends over everything as one continuous container. */
+    .account-sidebar-group {
+        margin: 6px 0;
+        border-radius: 8px;
+    }
+    .account-sidebar-group.expanded {
+        background: #e8f3ff;
+        padding-bottom: 6px;
+    }
+
+    /* Toggle button looks like a regular sidebar link (so collapsed state is
+       visually consistent with Profile/Downloads/Support). */
+    .account-sidebar-group-toggle {
+        width: 100%;
+        background: transparent;
+        border: none;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .account-sidebar-group-label {
+        flex: 1 1 auto;
+        text-align: left;
+    }
+    .account-sidebar-chevron {
+        flex: 0 0 auto;
+        color: #999;
+        transition: transform 0.18s ease;
+    }
+    .account-sidebar-group.expanded .account-sidebar-group-toggle {
+        color: #1e90ff;
+        font-weight: 600;
+    }
+    .account-sidebar-group.expanded .account-sidebar-group-toggle svg { color: #1e90ff; }
+    .account-sidebar-group.expanded .account-sidebar-chevron {
+        transform: rotate(90deg);
+        color: #1e90ff;
+    }
+
+    /* Org list inside the group — hidden when collapsed. */
     .account-sidebar-orgs {
-        list-style: none;
-        margin: 14px 0;
+        display: none;
+        margin: 4px 0 0 0;
         padding: 0;
     }
+    .account-sidebar-group.expanded .account-sidebar-orgs { display: block; }
+
     .sidebar-org-section {
-        margin: 0 0 14px 0;
+        position: relative;
+        margin: 4px 8px;
+        padding: 4px 0 4px 10px;
+        border-left: 3px solid var(--org-accent, #1e90ff);
     }
     .sidebar-org-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 6px;
-        padding: 4px 14px;
-        font-size: 11px;
+        padding: 4px 6px;
+        font-size: 13px;
         font-weight: 700;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        margin-top: 8px;
+        color: #1a1a2e;
     }
     .sidebar-org-name {
         flex: 1 1 auto;
@@ -100,22 +142,58 @@ layout: main
         flex: 0 0 auto;
         font-size: 10px;
         font-weight: 700;
-        padding: 2px 6px;
+        padding: 2px 7px;
         border-radius: 8px;
-        background: #d4edda;
-        color: #155724;
-        text-transform: none;
-        letter-spacing: 0;
+        background: rgba(0,0,0,0.06);
+        color: #444;
     }
     .sidebar-org-sublist {
         list-style: none;
-        margin: 4px 0 0 0;
+        margin: 2px 0 0 0;
         padding: 0;
     }
-    .sidebar-org-sublist li { margin: 2px 0; }
+    .sidebar-org-sublist li { margin: 1px 0; }
     .sidebar-org-sublist .account-sidebar-link {
-        padding-left: 30px;
+        padding: 6px 12px 6px 12px;
         font-size: 13px;
+        font-weight: 400;
+        border-radius: 6px;
+    }
+    .sidebar-org-sublist .account-sidebar-link:hover {
+        background: rgba(255,255,255,0.6);
+        color: var(--org-accent, #1e90ff);
+    }
+    .sidebar-org-sublist .account-sidebar-link.active {
+        background: var(--org-accent, #1e90ff);
+        color: #fff;
+        font-weight: 600;
+    }
+    .sidebar-org-sublist .account-sidebar-link.active:hover {
+        background: var(--org-accent, #1e90ff);
+        color: #fff;
+    }
+
+    /* Loading state under the Account settings header — shows while orgs/licenses
+       are being fetched (the cache-hit path renders sections directly). */
+    .sidebar-org-loading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        font-size: 12px;
+        color: #777;
+    }
+    .sidebar-org-loading::before {
+        content: '';
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(30,144,255,0.25);
+        border-top-color: #1e90ff;
+        border-radius: 50%;
+        animation: sidebar-spin 0.8s linear infinite;
+    }
+    @keyframes sidebar-spin {
+        to { transform: rotate(360deg); }
     }
 
     .account-content {
@@ -224,5 +302,300 @@ layout: main
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') close();
         });
+    })();
+</script>
+
+<!--
+    Sidebar org-section injector. Runs on every account-area page so the
+    "Account settings" group + per-org sections appear consistently on
+    Profile, Downloads, Support, and Account.
+
+    Sub-item links route to /account/#org=...&view=..., where account.html
+    parses the hash and renders the appropriate section. Active highlighting
+    listens to hashchange globally — any page that changes the hash updates
+    the sidebar in place.
+-->
+<script>
+    (function() {
+        var ORG_PALETTE = [
+            { accent: '#1e90ff', tint: 'rgba(30,144,255,0.08)' },
+            { accent: '#2e9b6e', tint: 'rgba(46,155,110,0.10)' },
+            { accent: '#7e57c2', tint: 'rgba(126,87,194,0.10)' },
+            { accent: '#e67e22', tint: 'rgba(230,126,34,0.10)' },
+            { accent: '#c0392b', tint: 'rgba(192,57,43,0.10)' }
+        ];
+        var PERSONAL_THEME = { accent: '#6c757d', tint: 'rgba(108,117,125,0.08)' };
+        var ACCOUNT_PATH = '{{ "/account/" | relative_url }}';
+
+        function esc(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function getHostUrl() {
+            return window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+        }
+
+        async function callApi(endpoint, method) {
+            var user = firebase.auth().currentUser;
+            if (!user) throw new Error('not signed in');
+            var idToken = await user.getIdToken();
+            var r = await fetch(getHostUrl() + '/' + endpoint, {
+                method: method || 'GET',
+                headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
+            });
+            if (!r.ok) throw new Error(endpoint + ' failed (' + r.status + ')');
+            return r.json();
+        }
+
+        function computeSources(orgs, allLicenses, userEmail) {
+            var sources = (orgs || []).map(function(o) {
+                return {
+                    id: String(o.org_id),
+                    kind: 'org',
+                    name: o.name || 'Organization',
+                    is_admin: !!o.is_admin,
+                    license_ids: (o.licenses || []).map(function(l) { return l.license_id; })
+                };
+            });
+            var orgLicenseIds = new Set();
+            sources.forEach(function(s) {
+                s.license_ids.forEach(function(id) { orgLicenseIds.add(id); });
+            });
+            var personal = (allLicenses || []).filter(function(l) {
+                return l && l.license_id && !orgLicenseIds.has(l.license_id);
+            });
+            if (personal.length > 0) {
+                var onlySource = sources.length === 0;
+                sources.push({
+                    id: '__personal__',
+                    kind: 'personal',
+                    name: onlySource ? 'Individual plan'
+                        : (userEmail ? userEmail + ' — Individual plan' : 'Individual plan'),
+                    is_admin: false,
+                    license_ids: personal.map(function(l) { return l.license_id; })
+                });
+            }
+            return sources;
+        }
+
+        function paletteFor(source, orgIndex) {
+            if (source.kind === 'personal') return PERSONAL_THEME;
+            return ORG_PALETTE[orgIndex % ORG_PALETTE.length];
+        }
+
+        function subItem(source, view, label) {
+            var href = ACCOUNT_PATH + '#org=' + encodeURIComponent(source.id) + '&view=' + encodeURIComponent(view);
+            return '<li>'
+                + '<a href="' + href + '" class="account-sidebar-link"'
+                + ' data-source-id="' + esc(source.id) + '" data-view="' + view + '">'
+                + esc(label)
+                + '</a></li>';
+        }
+
+        function render(sources) {
+            var anchor = document.getElementById('sidebarOrgAnchor');
+            var group = document.getElementById('sidebarAccountGroup');
+            if (!anchor) return;
+            if (!sources.length) {
+                anchor.innerHTML = '';
+                if (group) group.style.display = 'none';
+                return;
+            }
+            if (group) group.style.display = '';
+
+            var html = '';
+            var orgIdx = 0;
+            sources.forEach(function(s) {
+                var label = s.kind === 'personal' ? 'Personal Account' : s.name;
+                var badge = (s.kind === 'org' && s.is_admin)
+                    ? '<span class="sidebar-org-badge">Admin</span>' : '';
+                var theme = paletteFor(s, orgIdx);
+                if (s.kind === 'org') orgIdx += 1;
+                var styleAttr = 'style="--org-accent: ' + theme.accent + '; --org-tint: ' + theme.tint + ';"';
+                html += '<div class="sidebar-org-section" data-source-id="' + esc(s.id) + '" ' + styleAttr + '>'
+                    + '<div class="sidebar-org-header">'
+                    +   '<span class="sidebar-org-name">' + esc(label) + '</span>'
+                    +   badge
+                    + '</div>'
+                    + '<ul class="sidebar-org-sublist">'
+                    + subItem(s, 'licenses', 'Licenses')
+                    + subItem(s, 'devices', 'Devices')
+                    + (s.kind === 'org' && s.is_admin ? subItem(s, 'members', 'Members') : '')
+                    + (s.kind === 'org' ? subItem(s, 'configurations', 'Configurations') : '')
+                    + '</ul>'
+                    + '</div>';
+            });
+            anchor.innerHTML = html;
+            updateActiveHighlight();
+        }
+
+        function parseHash() {
+            var raw = (window.location.hash || '').replace(/^#/, '');
+            var out = {};
+            if (!raw) return out;
+            raw.split('&').forEach(function(p) {
+                var i = p.indexOf('=');
+                if (i > 0) out[decodeURIComponent(p.slice(0, i))] = decodeURIComponent(p.slice(i + 1));
+            });
+            return out;
+        }
+
+        function updateActiveHighlight() {
+            // Only highlight on /account/ — links from Profile/Downloads/Support
+            // would otherwise show stale state pointing to /account/#...
+            var onAccountPage = window.location.pathname.replace(/\/+$/, '')
+                === ACCOUNT_PATH.replace(/\/+$/, '');
+            if (!onAccountPage) return;
+            var params = parseHash();
+            document.querySelectorAll('.sidebar-org-sublist a.account-sidebar-link').forEach(function(a) {
+                var match = a.getAttribute('data-source-id') === params.org
+                    && a.getAttribute('data-view') === params.view;
+                a.classList.toggle('active', match);
+            });
+        }
+
+        // ---- sessionStorage cache (stale-while-revalidate) ----
+        // Cached payload is { orgs, licenses, ts } JSON, keyed by uid so signing
+        // out / signing in as a different user doesn't show stale data.
+        var CACHE_TTL_MS = 5 * 60 * 1000;
+        function cacheKey(uid) { return 'account-sidebar-cache:' + uid; }
+        function readCache(uid) {
+            try {
+                var raw = sessionStorage.getItem(cacheKey(uid));
+                if (!raw) return null;
+                var parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed.ts !== 'number') return null;
+                if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+                return parsed;
+            } catch (e) { return null; }
+        }
+        function writeCache(uid, orgs, licenses) {
+            try {
+                sessionStorage.setItem(cacheKey(uid), JSON.stringify({
+                    orgs: orgs, licenses: licenses, ts: Date.now()
+                }));
+            } catch (e) { /* quota or disabled */ }
+        }
+        function invalidateCache(uid) {
+            try { sessionStorage.removeItem(cacheKey(uid)); } catch (e) {}
+        }
+
+        function showLoadingPlaceholder() {
+            var anchor = document.getElementById('sidebarOrgAnchor');
+            if (anchor && !anchor.innerHTML) {
+                anchor.innerHTML = '<div class="sidebar-org-loading">Loading organizations…</div>';
+            }
+        }
+
+        function showGroup() {
+            var group = document.getElementById('sidebarAccountGroup');
+            if (group) group.style.display = '';
+        }
+
+        var EXPAND_KEY = 'account-sidebar-expanded';
+        var ON_ACCOUNT_PAGE = window.location.pathname.replace(/\/+$/, '')
+            === ACCOUNT_PATH.replace(/\/+$/, '');
+
+        function setExpanded(expanded) {
+            var group = document.getElementById('sidebarAccountGroup');
+            var toggle = document.getElementById('sidebarAccountHeader');
+            if (!group || !toggle) return;
+            group.classList.toggle('expanded', !!expanded);
+            toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            try { sessionStorage.setItem(EXPAND_KEY, expanded ? '1' : '0'); } catch (e) {}
+        }
+
+        function readExpandedPref() {
+            // Auto-expand on /account/ — that's where users actually navigate
+            // between org sections. Elsewhere, honor the saved choice.
+            if (ON_ACCOUNT_PAGE) return true;
+            try {
+                var v = sessionStorage.getItem(EXPAND_KEY);
+                if (v === '1') return true;
+                if (v === '0') return false;
+            } catch (e) {}
+            return false;
+        }
+
+        function wireGroupToggle() {
+            var toggle = document.getElementById('sidebarAccountHeader');
+            if (!toggle || toggle.dataset.wired) return;
+            toggle.dataset.wired = '1';
+            toggle.addEventListener('click', function() {
+                var group = document.getElementById('sidebarAccountGroup');
+                setExpanded(!(group && group.classList.contains('expanded')));
+            });
+        }
+
+        async function fetchFresh(user) {
+            var orgsResp, licResp;
+            try { orgsResp = await callApi('get_my_organization', 'GET'); }
+            catch (e) { console.warn('sidebar: get_my_organization failed', e); orgsResp = { organizations: [] }; }
+            try { licResp = await callApi('get_license_overview', 'GET'); }
+            catch (e) { console.warn('sidebar: get_license_overview failed', e); licResp = { overview: [] }; }
+            var orgs = orgsResp.organizations || [];
+            var licenses = licResp.overview || [];
+            writeCache(user.uid, orgs, licenses);
+            return { orgs: orgs, licenses: licenses };
+        }
+
+        function onAuth(user) {
+            var anchor = document.getElementById('sidebarOrgAnchor');
+            var group = document.getElementById('sidebarAccountGroup');
+            if (!user) {
+                if (anchor) anchor.innerHTML = '';
+                if (group) group.style.display = 'none';
+                return;
+            }
+            // Show the group immediately so the user knows the section exists.
+            showGroup();
+            wireGroupToggle();
+            setExpanded(readExpandedPref());
+
+            // Hit cache first — instant render if fresh.
+            var cached = readCache(user.uid);
+            if (cached) {
+                render(computeSources(cached.orgs, cached.licenses, user.email));
+            } else {
+                showLoadingPlaceholder();
+            }
+
+            // Always revalidate in the background; rerender if data changed
+            // or cache was empty.
+            fetchFresh(user).then(function(fresh) {
+                render(computeSources(fresh.orgs, fresh.licenses, user.email));
+            });
+        }
+
+        // Allow other scripts (e.g. account.html after admin writes) to ask
+        // for a forced refresh.
+        window.refreshAccountSidebar = function() {
+            try {
+                var u = firebase.auth().currentUser;
+                if (!u) return;
+                invalidateCache(u.uid);
+                fetchFresh(u).then(function(fresh) {
+                    render(computeSources(fresh.orgs, fresh.licenses, u.email));
+                });
+            } catch (e) { console.warn('refreshAccountSidebar failed', e); }
+        };
+
+        document.addEventListener('authStateChanged', function(e) {
+            onAuth(e.detail && e.detail.user);
+        });
+        document.addEventListener('accountSidebarRefresh', function() {
+            if (typeof window.refreshAccountSidebar === 'function') window.refreshAccountSidebar();
+        });
+        window.addEventListener('hashchange', updateActiveHighlight);
+
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            try {
+                var current = firebase.auth().currentUser;
+                if (current) onAuth(current);
+            } catch (e) { /* ignore */ }
+        }
     })();
 </script>

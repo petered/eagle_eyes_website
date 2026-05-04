@@ -227,25 +227,10 @@ heading: Profile
 
             <div class="profile-actions">
                 <button type="submit" class="profile-btn" id="profileSaveBtn">Save changes</button>
-                <button type="button" class="profile-btn secondary" id="profileCancelBtn">Cancel</button>
+                <button type="button" class="profile-btn secondary" id="profileCancelBtn" style="display: none;">Cancel</button>
                 <span class="profile-status" id="profileSaveStatus"></span>
             </div>
         </form>
-    </section>
-
-    <!-- Sign-in info -->
-    <section class="profile-card">
-        <h2>Sign-in</h2>
-        <div class="profile-grid">
-            <div class="profile-field">
-                <label>Sign-in method</label>
-                <div class="profile-readonly-value" id="profileSignInMethod">—</div>
-            </div>
-            <div class="profile-field">
-                <label>Account created at</label>
-                <div class="profile-readonly-value" id="profileMemberSince">—</div>
-            </div>
-        </div>
     </section>
 
     <!-- Organizations -->
@@ -282,6 +267,21 @@ heading: Profile
         </div>
         <div class="profile-actions">
             <span class="profile-status" id="profileNotifyStatus"></span>
+        </div>
+    </section>
+
+    <!-- Sign-in info (kept at the bottom — it's reference data, not editable) -->
+    <section class="profile-card">
+        <h2>Sign-in</h2>
+        <div class="profile-grid">
+            <div class="profile-field">
+                <label>Sign-in method</label>
+                <div class="profile-readonly-value" id="profileSignInMethod">—</div>
+            </div>
+            <div class="profile-field">
+                <label>Account created at</label>
+                <div class="profile-readonly-value" id="profileMemberSince">—</div>
+            </div>
         </div>
     </section>
 </div>
@@ -336,6 +336,30 @@ heading: Profile
             } catch (e) { return '—'; }
         }
 
+        // Snapshot of saved values; the Cancel button shows only when the form
+        // diverges from this and reverts to it on click.
+        var profileSavedSnapshot = { firstName: '', lastName: '', phone: '' };
+
+        function captureProfileSnapshot() {
+            profileSavedSnapshot = {
+                firstName: document.getElementById('profileFirstName').value,
+                lastName: document.getElementById('profileLastName').value,
+                phone: document.getElementById('profilePhone').value
+            };
+            updateProfileDirtyUI();
+        }
+
+        function profileIsDirty() {
+            return document.getElementById('profileFirstName').value !== profileSavedSnapshot.firstName
+                || document.getElementById('profileLastName').value !== profileSavedSnapshot.lastName
+                || document.getElementById('profilePhone').value !== profileSavedSnapshot.phone;
+        }
+
+        function updateProfileDirtyUI() {
+            var cancelBtn = document.getElementById('profileCancelBtn');
+            if (cancelBtn) cancelBtn.style.display = profileIsDirty() ? '' : 'none';
+        }
+
         function renderProfileForUser(user) {
             document.getElementById('profileLoading').style.display = 'none';
             document.getElementById('profileContent').style.display = '';
@@ -371,8 +395,17 @@ heading: Profile
             var newsletter = draft.newsletter !== false; // default opt-in unless explicitly set false
             document.getElementById('profileNotifyNewsletter').checked = !!newsletter;
 
+            // Form is now in its saved state; snapshot it so dirty-tracking works.
+            captureProfileSnapshot();
+
             loadProfileOrgs();
         }
+
+        // Show / hide Cancel as the user edits.
+        ['profileFirstName', 'profileLastName', 'profilePhone'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', updateProfileDirtyUI);
+        });
 
         async function loadProfileOrgs() {
             var container = document.getElementById('profileOrgs');
@@ -440,13 +473,19 @@ heading: Profile
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save changes';
                 setStatus(status, 'Saved locally — server-side persistence coming soon.', 'success');
+                // Form is back to "saved" state — snapshot the new values and
+                // hide Cancel until the user edits again.
+                captureProfileSnapshot();
             }, 250);
             return false;
         };
 
         document.getElementById('profileCancelBtn').addEventListener('click', function() {
-            var user = firebase.auth().currentUser;
-            if (user) renderProfileForUser(user);
+            // Revert in-progress edits to the last saved snapshot.
+            document.getElementById('profileFirstName').value = profileSavedSnapshot.firstName;
+            document.getElementById('profileLastName').value = profileSavedSnapshot.lastName;
+            document.getElementById('profilePhone').value = profileSavedSnapshot.phone;
+            updateProfileDirtyUI();
         });
 
         document.getElementById('profileNotifyNewsletter').addEventListener('change', function(e) {

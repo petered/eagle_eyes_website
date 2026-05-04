@@ -6,60 +6,61 @@ active: downloads
 heading: Downloads
 ---
 <style>
-    .downloads-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        margin-bottom: 24px;
+    .download-frame-wrap {
+        width: 100%;
+        margin: 0 auto;
     }
-    .download-product-box {
-        background: #fff;
-        border: 1px solid #ececec;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-    }
-    .download-product-title {
-        font-size: 18px;
-        font-weight: 600;
-        color: #222;
-        margin: 0 0 14px 0;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .download-product-links { display: flex; flex-direction: column; gap: 6px; }
-    .download-product-link {
-        color: #1e90ff;
-        text-decoration: none;
-        font-size: 15px;
-        padding: 6px 0;
+    .download-frame {
         display: block;
+        width: 100%;
+        min-height: 80vh;
+        border: 0;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
-    .download-product-link:hover {
-        color: #1873cc;
-        text-decoration: underline;
-    }
-    @media (max-width: 768px) {
-        .downloads-grid { grid-template-columns: 1fr; gap: 14px; }
-        .download-product-box { padding: 18px; }
+    @media (max-width: 600px) {
+        .download-frame { min-height: 75vh; border-radius: 8px; }
     }
 </style>
 
-<p style="color: #666; margin: 0 0 24px 0;">Download the Eagle Eyes apps for your platform. After installing, sign in with this account to activate a license.</p>
-
-<div class="downloads-grid">
-    <div class="download-product-box">
-        <h3 class="download-product-title">Eagle Eyes Pilot</h3>
-        <div class="download-product-links">
-            <a href="{{ '/download/' | relative_url }}#step2&amp;platform=mobile" class="download-product-link">⬇️ Download for mobile</a>
-            <a href="{{ '/pilot/' | relative_url }}" class="download-product-link">📚 Resources &amp; Support</a>
-        </div>
-    </div>
-    <div class="download-product-box">
-        <h3 class="download-product-title">Eagle Eyes Scan</h3>
-        <div class="download-product-links">
-            <a href="{{ '/download/' | relative_url }}#step2&amp;platform=desktop" class="download-product-link">⬇️ Download for desktop</a>
-            <a href="{{ '/scan/' | relative_url }}" class="download-product-link">📚 Resources &amp; Support</a>
-        </div>
-    </div>
+<div class="download-frame-wrap">
+    <iframe
+        id="downloadFrame"
+        class="download-frame"
+        src="{{ '/download/?embedded=true' | relative_url }}"
+        title="Download Eagle Eyes apps"
+        loading="lazy"
+        referrerpolicy="same-origin"></iframe>
 </div>
+
+<script>
+    // Auto-grow the iframe so its inner page never has its own scrollbar; the
+    // sidebar layout's main scroll area handles overflow instead.
+    (function() {
+        var frame = document.getElementById('downloadFrame');
+        if (!frame) return;
+        function resize() {
+            try {
+                var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+                if (!doc) return;
+                var h = Math.max(
+                    doc.body ? doc.body.scrollHeight : 0,
+                    doc.documentElement ? doc.documentElement.scrollHeight : 0
+                );
+                if (h > 0) frame.style.height = h + 'px';
+            } catch (e) { /* cross-origin shouldn't apply (same site), but be safe */ }
+        }
+        frame.addEventListener('load', function() {
+            resize();
+            // The wizard advances steps without reloading the iframe, so poll
+            // for height changes for a while after load.
+            var ticks = 0;
+            var iv = setInterval(function() {
+                resize();
+                if (++ticks > 60) clearInterval(iv);
+            }, 250);
+        });
+        window.addEventListener('resize', resize);
+    })();
+</script>

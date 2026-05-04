@@ -85,6 +85,19 @@
                                                     id="navSignOutBtn"
                                                     class="nav-profile-item nav-profile-signout"
                                                     role="menuitem">Sign Out</button>
+
+                                            <!-- Site-admin impersonation. Visible only when the current
+                                                 user is in SITE_ADMIN_EMAILS. Server-side enforcement
+                                                 lives in /admin_impersonate_user; the client check is UX. -->
+                                            <div id="navAdminImpersonate" class="nav-admin-impersonate" style="display: none;">
+                                                <div class="nav-admin-divider"></div>
+                                                <div class="nav-admin-label">Site admin tools</div>
+                                                <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
+                                                    <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
+                                                    <button type="submit" class="nav-admin-go">Log in as</button>
+                                                </form>
+                                                <div id="navImpersonateStatus" class="nav-admin-status"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -196,25 +209,151 @@
             color: #c0392b;
             background: #fdf2f0;
         }
+
+        .nav-admin-impersonate {
+            padding: 6px 12px 10px 12px;
+        }
+        .nav-admin-divider {
+            border-top: 1px solid #f0f0f0;
+            margin: 6px -12px 8px -12px;
+        }
+        .nav-admin-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
+        }
+        .nav-admin-form {
+            display: flex;
+            gap: 6px;
+            margin: 0;
+        }
+        .nav-admin-form input {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 6px 9px;
+            border: 1px solid #d8dce0;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .nav-admin-form input:focus {
+            outline: none;
+            border-color: #1e90ff;
+            box-shadow: 0 0 0 2px rgba(30,144,255,0.18);
+        }
+        .nav-admin-go {
+            background: #1e90ff;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .nav-admin-go:hover { background: #1873cc; }
+        .nav-admin-go:disabled { opacity: 0.6; cursor: not-allowed; }
+        .nav-admin-status {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #555;
+            min-height: 14px;
+        }
+        .nav-admin-status.error { color: #c0392b; }
+        .nav-admin-status.success { color: #27ae60; }
     </style>
 
     <script>
+        // Site admins authorized to use the "Log in as" tool. Treated as a UX
+        // gate only — the backend cloud function (admin_impersonate_user) must
+        // independently verify the caller against its own allowlist before
+        // minting a custom token.
+        var SITE_ADMIN_EMAILS = [
+            'joep@eagleeyessearch.com',
+            'peter@eagleeyessearch.com',
+            'patrick@eagleeyessearch.com'
+        ];
+
         (function() {
             function applyAuthState(user) {
                 var getBtn = document.getElementById('navGetEagleEyesBtn');
                 var profile = document.getElementById('navProfileMenu');
                 var emailEl = document.getElementById('navProfileEmail');
+                var adminEl = document.getElementById('navAdminImpersonate');
                 if (!profile) return;
                 if (user) {
                     if (getBtn) getBtn.style.display = 'none';
                     profile.style.display = '';
                     if (emailEl) emailEl.textContent = user.email || '';
+                    if (adminEl) {
+                        var email = (user.email || '').toLowerCase();
+                        adminEl.style.display = SITE_ADMIN_EMAILS.indexOf(email) !== -1 ? '' : 'none';
+                    }
                 } else {
                     if (getBtn) getBtn.style.display = '';
                     profile.style.display = 'none';
+                    if (adminEl) adminEl.style.display = 'none';
                     closeProfileDropdown();
                 }
             }
+
+            // Form submit handler — exposed on window so onsubmit="" can find it.
+            window.navImpersonate = async function(event) {
+                event.preventDefault();
+                var input = document.getElementById('navImpersonateEmail');
+                var status = document.getElementById('navImpersonateStatus');
+                var submitBtn = event.target.querySelector('button[type="submit"]');
+                var target = (input.value || '').trim().toLowerCase();
+                if (!target) return false;
+                if (status) { status.textContent = ''; status.className = 'nav-admin-status'; }
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Working…'; }
+
+                try {
+                    if (typeof firebase === 'undefined' || !firebase.auth) throw new Error('Firebase not loaded');
+                    var user = firebase.auth().currentUser;
+                    if (!user) throw new Error('Not signed in');
+                    var idToken = await user.getIdToken(true);
+                    var hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                    var r = await fetch(hostURL + '/admin_impersonate_user', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: target })
+                    });
+                    var bodyText = await r.text();
+                    var data = {};
+                    try { data = JSON.parse(bodyText); } catch (e) { data = { message: bodyText }; }
+                    if (!r.ok) {
+                        var msg = (data && data.message) ? data.message
+                            : (r.status === 403 ? 'Not authorized to impersonate'
+                            :  r.status === 404 ? 'No user with that email'
+                            :  'Request failed (' + r.status + ')');
+                        throw new Error(msg);
+                    }
+                    if (!data.token) throw new Error('No token in response');
+
+                    await firebase.auth().signInWithCustomToken(data.token);
+                    if (status) {
+                        status.textContent = 'Signed in as ' + target + ' — reloading…';
+                        status.className = 'nav-admin-status success';
+                    }
+                    setTimeout(function() {
+                        // Drop any /account/ hash so we land cleanly on the new identity's view.
+                        window.location.href = '{{ "/account/" | relative_url }}';
+                    }, 350);
+                } catch (err) {
+                    console.error('Impersonate failed:', err);
+                    if (status) {
+                        status.textContent = err.message || 'Failed to log in as that user';
+                        status.className = 'nav-admin-status error';
+                    }
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Log in as'; }
+                }
+                return false;
+            };
 
             function closeProfileDropdown() {
                 var dd = document.getElementById('navProfileDropdown');
