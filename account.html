@@ -1233,6 +1233,48 @@ heading: Account
         margin: 2px 4px 2px 0;
     }
 
+    /* Toast container — floating, transient confirmations after writes
+       (member removed, etc.). Stacks newest-at-bottom in the bottom-right. */
+    .toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 10px;
+        pointer-events: none;
+    }
+    .toast {
+        background: #2ecc71;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+        font-size: 14px;
+        line-height: 1.4;
+        max-width: 360px;
+        transform: translateY(8px);
+        opacity: 0;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        pointer-events: auto;
+    }
+    .toast.toast-visible {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    .toast.toast-error { background: #e74c3c; }
+    .toast.toast-info { background: #3498db; }
+    .toast.toast-warning { background: #f39c12; }
+    @media (max-width: 600px) {
+        .toast-container {
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+        }
+        .toast { max-width: none; }
+    }
+
     @media (max-height: 600px) {
         .section-block.bkg-grey-ultralight {
             padding: 20px 0 10px 0 !important;
@@ -1288,7 +1330,7 @@ heading: Account
             <header class="account-section-header account-section-header-row">
                 <div class="account-section-header-text">
                     <h2 class="account-section-title">My Licenses</h2>
-                    <p class="account-section-hint">To activate Eagle Eyes Scan or Eagle Eyes Pilot on your device, get the application from <a href="{{ '/downloads/' | relative_url }}">Downloads</a> and follow the activation instructions within the app.</p>
+                    <p class="account-section-hint">To activate Eagle Eyes Scan or Eagle Eyes Pilot on your device, get the application from <a href="{{ '/account/downloads/' | relative_url }}">Downloads</a> and follow the activation instructions within the app.</p>
                 </div>
                 <div class="account-section-header-actions" id="verification-status">
                     <a href="{{ '/pricing/' | relative_url }}" class="org-btn primary" style="text-decoration: none; white-space: nowrap;">Purchase a new license</a>
@@ -3814,9 +3856,41 @@ heading: Account
         return false;
     }
 
+    function showToast(message, type, duration) {
+        type = type || 'success';
+        duration = duration || 3500;
+        var container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        var toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.textContent = message;
+        container.appendChild(toast);
+        // Animate in next frame so the transition fires.
+        requestAnimationFrame(function() { toast.classList.add('toast-visible'); });
+        setTimeout(function() {
+            toast.classList.remove('toast-visible');
+            setTimeout(function() {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 250);
+        }, duration);
+    }
+
+    function orgNameById(orgId) {
+        var match = (cachedOrganizations || []).find(function(o) {
+            return String(o.org_id) === String(orgId);
+        });
+        return (match && match.name) || 'the organization';
+    }
+
     async function orgRemoveMember(orgId, email, btn) {
         if (!confirm(`Remove ${email} from the organization?`)) return;
-        await orgWriteAndRefresh('remove_member', { org_id: orgId, value: email }, btn, 'Removing…');
+        var toastMessage = 'Removed ' + email + ' from ' + orgNameById(orgId) + '.';
+        await orgWriteAndRefresh('remove_member', { org_id: orgId, value: email }, btn, 'Removing…', toastMessage);
     }
 
     function orgStartRename(orgId, btn) {
@@ -3901,7 +3975,7 @@ heading: Account
         await orgWriteAndRefresh('remove_admin', { org_id: orgId, value: email }, btn, 'Demoting…');
     }
 
-    async function orgWriteAndRefresh(endpoint, body, btn, busyLabel) {
+    async function orgWriteAndRefresh(endpoint, body, btn, busyLabel, successMessage) {
         const originalLabel = btn ? btn.textContent : '';
         if (btn) {
             btn.disabled = true;
@@ -3910,6 +3984,7 @@ heading: Account
         try {
             await orgApiCall(endpoint, body);
             await fetchMyOrganization();
+            if (successMessage) showToast(successMessage, 'success');
         } catch (err) {
             console.error(`Error in ${endpoint}:`, err);
             alert(err.message || 'Action failed.');

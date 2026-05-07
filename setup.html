@@ -400,6 +400,18 @@ noindex: true
         text-decoration: none;
     }
     .lp-expand:hover { background: #e9ecef; text-decoration: none; }
+    .lp-help {
+        margin-top: 8px;
+        padding: 14px 16px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 1.3rem;
+        line-height: 1.55;
+        color: #555;
+    }
+    .lp-help p { margin: 0; }
+    .lp-help strong { color: #333; }
     .lp-other-row {
         display: flex;
         justify-content: space-between;
@@ -1252,13 +1264,16 @@ noindex: true
                 </a>
                 <div id="lpOtherList" style="display: none;"></div>
             </div>
+            <!-- "License not visible?" — explanation expander. With backend
+                 filtering on the listing endpoint, manual ID entry can't
+                 surface a license the user isn't already authorized for, so
+                 the section is informational rather than an input. -->
             <div>
-                <a href="#" class="lp-expand" onclick="lpToggleManual(); return false;" id="lpManualLink">Have a license ID?</a>
-                <div id="lpManualSection" style="display: none;">
-                    <div class="lp-manual">
-                        <input type="text" id="lpManualInput" placeholder="Enter license ID">
-                        <button class="lp-btn" id="lpAddBtn" style="width: 100%;" onclick="lpAddLicense()">Add License</button>
-                    </div>
+                <a href="#" class="lp-expand" onclick="lpToggleHelp(); return false;" id="lpHelpLink">License not visible?</a>
+                <div id="lpHelpSection" class="lp-help" style="display: none;">
+                    <p style="margin: 0 0 0.6rem;">If a license isn't showing up here, your account isn't authorized to use it yet.</p>
+                    <p style="margin: 0 0 0.6rem;"><strong>Team license:</strong> ask a team admin to add <strong id="lpHelpEmail">your email</strong> to the team. The license will appear here automatically once they do.</p>
+                    <p style="margin: 0;"><strong>Don't have a license yet?</strong> <a href="{{ '/pricing/' | relative_url }}" target="_blank" style="color: #1e90ff;">Get one here &rarr;</a></p>
                 </div>
             </div>
         </div>
@@ -1891,8 +1906,13 @@ async function apiCall(endpoint, body, opts) {
     });
     if (!response.ok) {
         var text = await response.text();
-        var err = new Error(text || 'API error: ' + response.status);
+        var data = null;
+        if (text) {
+            try { data = JSON.parse(text); } catch (e) { /* not JSON */ }
+        }
+        var err = new Error((data && (data.error || data.message)) || text || 'API error: ' + response.status);
         err.status = response.status;
+        err.data = data; // structured payload (e.g. { error: 'not_a_team_member', org_name, admin_emails })
         throw err;
     }
     return response.json();
@@ -2024,45 +2044,19 @@ async function lpLoadUserLicenses() {
         document.getElementById('lpLoading').style.display = 'none';
         document.getElementById('lpContainer').style.display = 'block';
         lpDisplayLicenses();
-        if (lpUserLicenses.length === 0) {
-            revealManualLicenseEntry(
-                'No active licenses found on your account. ' +
-                'Enter a license ID below to attach one, or get one from the pricing page.'
-            );
-        }
+        // Empty-state messaging is rendered by lpDisplayLicenses itself when
+        // lpUserLicenses is empty (it includes a link to /pricing/ and the
+        // "ask an admin to add your email" hint), so no extra prompt is needed.
     } catch (err) {
         document.getElementById('lpLoading').style.display = 'none';
         document.getElementById('lpContainer').style.display = 'block';
         lpUserLicenses = [];
         lpDisplayLicenses();
-        revealManualLicenseEntry(
-            'We couldn\'t load any licenses for your account automatically. ' +
-            'Enter a license ID below to attach one, or get one from the pricing page.'
-        );
+        showStatus('lpStatus',
+            'We couldn\'t load your licenses right now. ' +
+            'Please refresh and try again, or contact support.',
+            'error');
     }
-}
-
-function revealManualLicenseEntry(message) {
-    // Expand the "Have a license ID?" section so the input + button are visible.
-    var section = document.getElementById('lpManualSection');
-    var link = document.getElementById('lpManualLink');
-    if (section) section.style.display = 'block';
-    if (link) link.style.display = 'none';
-    // Add a "Don't have a license yet?" link to /get-license/ for users who
-    // arrived here without ever having bought one. Idempotent: re-entering
-    // the picker doesn't duplicate the link.
-    var getLicenseLink = document.getElementById('lpGetLicenseLink');
-    if (!getLicenseLink && section) {
-        getLicenseLink = document.createElement('div');
-        getLicenseLink.id = 'lpGetLicenseLink';
-        getLicenseLink.style.cssText = 'margin-top: 0.75rem; font-size: 1.3rem; text-align: center;';
-        getLicenseLink.innerHTML =
-            'Don\'t have a license yet? ' +
-            '<a href="{{ "/pricing/" | relative_url }}" style="color: #1e90ff;">Get one here &rarr;</a>';
-        section.appendChild(getLicenseLink);
-    }
-    if (getLicenseLink) getLicenseLink.style.display = 'block';
-    if (message) showStatus('lpStatus', message, 'info');
 }
 
 function lpGetSortedLicenses() {
@@ -2083,7 +2077,14 @@ function lpDisplayLicenses() {
     otherToggle.style.display = 'none';
 
     if (lpUserLicenses.length === 0) {
-        primaryEl.innerHTML = '<p style="color: #888; font-size: 1.4rem; text-align: center;">No active licenses found. Add one below.</p>';
+        var u = (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'this email';
+        primaryEl.innerHTML =
+            '<div style="color: #555; font-size: 1.35rem; line-height: 1.55; padding: 0.4rem;">' +
+              '<p style="margin: 0 0 0.4rem;">No active licenses are linked to <strong>' + escapeHtml(u) + '</strong> yet.</p>' +
+              '<p style="margin: 0; color: #888; font-size: 1.25rem;">If your team already has a license, ask an admin to add this email to the team. ' +
+                'Otherwise, you can <a href="' + '{{ "/pricing/" | relative_url }}' + '" target="_blank" style="color: #1e90ff;">get a license here</a>.' +
+              '</p>' +
+            '</div>';
         return;
     }
 
@@ -2204,7 +2205,6 @@ function lpSelect(licenseId) {
     // Dim license buttons while confirming
     document.querySelectorAll('#lpPrimary button, .lp-other-row button').forEach(function(b) { b.disabled = true; b.style.opacity = '0.5'; });
     document.getElementById('lpOtherToggle').style.display = 'none';
-    document.getElementById('lpManualLink').parentElement.style.display = 'none';
 }
 
 function lpCancelConfirm() {
@@ -2218,7 +2218,6 @@ function lpCancelConfirm() {
     }
     document.querySelectorAll('#lpPrimary button, .lp-other-row button').forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
     if (lpUserLicenses.length > 1) document.getElementById('lpOtherToggle').style.display = '';
-    document.getElementById('lpManualLink').parentElement.style.display = '';
 }
 
 async function lpConfirmActivation() {
@@ -2255,11 +2254,51 @@ async function lpConfirmActivation() {
     } catch (err) {
         document.getElementById('lpActivationLoading').style.display = 'none';
         document.querySelector('#lpConfirmArea .lp-confirm-actions').style.display = 'flex';
+
+        // Structured 403 from the team-membership gate. Match on multiple
+        // possible error codes the backend has used, and fall back to a
+        // shape-based check (org_name / admin_emails present) so a renamed
+        // code doesn't silently degrade to a generic error string.
+        var bodyHtml = lpIsTeamMembershipError(err && err.data)
+            ? lpFormatTeamMembershipError(err.data)
+            : escapeHtml(err.message);
+
         document.getElementById('lpActivationResult').innerHTML =
-            '<div style="background: #fce8e6; border: 1px solid #f5c6cb; color: #d93025; padding: 12px; border-radius: 6px; margin-top: 0.75rem; text-align: center; font-size: 1.3rem;">' +
-            '<strong>Activation failed:</strong> ' + escapeHtml(err.message) + '</div>';
+            '<div style="background: #fce8e6; border: 1px solid #f5c6cb; color: #8a1a10; padding: 12px; border-radius: 6px; margin-top: 0.75rem; text-align: left; font-size: 1.3rem; line-height: 1.55;">' +
+            '<strong>Activation failed:</strong> ' + bodyHtml + '</div>';
         document.getElementById('lpActivationResult').style.display = 'block';
     }
+}
+
+function lpIsTeamMembershipError(data) {
+    if (!data) return false;
+    var code = data.error || data.error_code || '';
+    if (code === 'not_a_team_member'
+        || code === 'not_authorized'
+        || code === 'team_member_required') return true;
+    // Shape-based fallback.
+    if (data.org_name || (Array.isArray(data.admin_emails) && data.admin_emails.length)) return true;
+    return false;
+}
+
+function lpFormatTeamMembershipError(data) {
+    var orgName = escapeHtml(data.org_name || 'this organization');
+    var userEmail = (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
+    var admins = Array.isArray(data.admin_emails) ? data.admin_emails : [];
+    var html = ' This license belongs to <strong>' + orgName + '</strong>, and ';
+    html += userEmail
+        ? '<strong>' + escapeHtml(userEmail) + '</strong> is not a member of that team yet.'
+        : 'you\'re not a member of that team yet.';
+    if (admins.length) {
+        var links = admins.map(function(e) {
+            var safe = escapeHtml(e);
+            return '<a href="mailto:' + safe + '" style="color: #1e90ff;">' + safe + '</a>';
+        }).join(', ');
+        html += ' Ask an admin to add your email to the team: ' + links + '.';
+    } else {
+        html += ' Ask an admin to add your email to the team.';
+    }
+    return html;
 }
 
 function lpToggleOthers() {
@@ -2274,63 +2313,21 @@ function lpToggleOthers() {
     }
 }
 
-function lpToggleManual() {
-    var section = document.getElementById('lpManualSection');
-    var link = document.getElementById('lpManualLink');
+function lpToggleHelp() {
+    var section = document.getElementById('lpHelpSection');
+    var link = document.getElementById('lpHelpLink');
+    if (!section || !link) return;
     if (section.style.display === 'none') {
+        // Fill in the user's email so the "ask an admin to add ___" hint
+        // is concrete instead of just saying "your email".
+        var emailEl = document.getElementById('lpHelpEmail');
+        var email = (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'your email';
+        if (emailEl) emailEl.textContent = email;
         section.style.display = 'block';
         link.textContent = 'Hide';
     } else {
         section.style.display = 'none';
-        link.textContent = 'Have a license ID?';
-    }
-}
-
-async function lpAddLicense() {
-    var licenseId = document.getElementById('lpManualInput').value.trim();
-    if (!licenseId) return;
-    var btn = document.getElementById('lpAddBtn');
-    btn.textContent = 'Adding...';
-    btn.disabled = true;
-    try {
-        var token = await getIdToken();
-        var machineId = document.getElementById('setupMachineId').textContent || '';
-        var resp = await fetch(API_BASE + 'check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineId) + '&license_id=' + encodeURIComponent(licenseId), {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!resp.ok) throw new Error('License not found');
-        var data = await resp.json();
-
-        // Re-parse all licenses from response
-        lpUserLicenses = [];
-        var existingKeys = [];
-        if (data.tokens_and_codes) {
-            for (var tid in data.tokens_and_codes) {
-                var tc = data.tokens_and_codes[tid];
-                if (tc && tc.token && tc.token.license_id) existingKeys.push(tc.token.license_id);
-            }
-        }
-        if (data.licenses_and_dispensed) {
-            for (var lid in data.licenses_and_dispensed) {
-                var info = data.licenses_and_dispensed[lid];
-                if (!info || !info.license) continue;
-                var lic = info.license;
-                lic.license_id = lid;
-                lic.remaining_keys = Math.max(0, (lic.n_tokens || 0) - (info.n_tokens_dispensed || 0));
-                lic.has_existing_key = existingKeys.indexOf(lid) !== -1;
-                if (lic.expiry_timestamp === null) continue;
-                lpUserLicenses.push(lic);
-            }
-        }
-
-        document.getElementById('lpManualInput').value = '';
-        lpDisplayLicenses();
-    } catch (err) {
-        showStatus('lpStatus', 'Error adding license: ' + err.message, 'error');
-    } finally {
-        btn.textContent = 'Add License';
-        btn.disabled = false;
+        link.textContent = 'License not visible?';
     }
 }
 

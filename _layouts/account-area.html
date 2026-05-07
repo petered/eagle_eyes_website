@@ -97,11 +97,9 @@ layout: main
         color: #999;
         transition: transform 0.18s ease;
     }
-    .account-sidebar-group.expanded .account-sidebar-group-toggle {
-        color: #1e90ff;
-        font-weight: 600;
-    }
-    .account-sidebar-group.expanded .account-sidebar-group-toggle svg { color: #1e90ff; }
+    /* Expanded state: only the chevron rotates and tints blue. The label
+       stays at the same weight/color as Profile/Downloads/Support so the
+       header reads as a peer of the other sidebar items. */
     .account-sidebar-group.expanded .account-sidebar-chevron {
         transform: rotate(90deg);
         color: #1e90ff;
@@ -495,7 +493,6 @@ layout: main
             if (group) group.style.display = '';
         }
 
-        var EXPAND_KEY = 'account-sidebar-expanded';
         var ON_ACCOUNT_PAGE = window.location.pathname.replace(/\/+$/, '')
             === ACCOUNT_PATH.replace(/\/+$/, '');
 
@@ -505,19 +502,15 @@ layout: main
             if (!group || !toggle) return;
             group.classList.toggle('expanded', !!expanded);
             toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            try { sessionStorage.setItem(EXPAND_KEY, expanded ? '1' : '0'); } catch (e) {}
         }
 
         function readExpandedPref() {
-            // Auto-expand on /account/ — that's where users actually navigate
-            // between org sections. Elsewhere, honor the saved choice.
-            if (ON_ACCOUNT_PAGE) return true;
-            try {
-                var v = sessionStorage.getItem(EXPAND_KEY);
-                if (v === '1') return true;
-                if (v === '0') return false;
-            } catch (e) {}
-            return false;
+            // Auto-expand only on /account/ (where the org sub-items are the
+            // current navigation target). Elsewhere — Profile, Downloads,
+            // Support — start collapsed, since another item is the active one.
+            // The user can still click to fold out for that page only; we
+            // intentionally don't persist that across pages.
+            return ON_ACCOUNT_PAGE;
         }
 
         function wireGroupToggle() {

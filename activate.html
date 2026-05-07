@@ -343,6 +343,20 @@ noindex: true
         background: #e9ecef;
         text-decoration: none;
     }
+    .license-help {
+        margin-top: 8px;
+        padding: 14px 16px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: #555;
+    }
+    .license-help p { margin: 0 0 8px; }
+    .license-help p:last-child { margin: 0; }
+    .license-help strong { color: #333; }
+    .license-help a { color: #1e90ff; }
 
     /* Compact other-license rows */
     .other-license-row {
@@ -607,16 +621,16 @@ noindex: true
                     <div id="otherLicensesList" style="display: none;"></div>
                 </div>
 
-                <!-- Manual entry (collapsed) -->
+                <!-- "License not visible?" — explanation expander -->
                 <div>
-                    <a href="#" class="expand-toggle" onclick="toggleManualEntry(); return false;" id="manualEntryLink">Have a license ID?</a>
-                    <div id="manualEntrySection" style="display: none;">
-                        <div class="manual-entry-section">
-                            <input type="text" id="manualLicenseId" placeholder="Enter license ID">
-                            <button id="addLicenseBtn" class="btn-select-license" style="width: 100%;">Add License</button>
-                        </div>
+                    <a href="#" class="expand-toggle" onclick="toggleLicenseHelp(); return false;" id="licenseHelpLink">License not visible?</a>
+                    <div id="licenseHelpSection" class="license-help" style="display: none;">
+                        <p>If a license isn't showing up here, your account isn't authorized to use it yet.</p>
+                        <p><strong>Team license:</strong> ask a team admin to add <strong id="licenseHelpEmail">your email</strong> to the team. The license will appear here automatically once they do.</p>
+                        <p><strong>Don't have a license yet?</strong> <a href="{{ '/pricing/' | relative_url }}" target="_blank">Get one here &rarr;</a></p>
                     </div>
                 </div>
+
             </div>
             <!-- Device summary at bottom -->
             <div class="device-summary" id="deviceSummary" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f1f3f4;">
@@ -771,18 +785,6 @@ noindex: true
             }
         });
 
-        // Manual license addition
-        $(document).on('click', '#addLicenseBtn', function() {
-            const licenseId = $('#manualLicenseId').val().trim();
-            if (!licenseId) {
-                const errorMsg = $('<div class="error-message-inline" style="margin-top: 8px; font-size: 13px; padding: 8px;">Please enter a license ID</div>');
-                $('#addLicenseBtn').after(errorMsg);
-                setTimeout(() => errorMsg.fadeOut(), 3000);
-                return;
-            }
-            $('#addLicenseBtn').siblings('.success-message, .error-message-inline').remove();
-            addLicenseToAccount(licenseId);
-        });
     });
 
     function showAuthRequired() {
@@ -1046,7 +1048,15 @@ noindex: true
         otherToggle.hide();
 
         if (userLicenses.length === 0) {
-            primaryEl.html('<p style="color: #888; font-size: 14px;">No active licenses found. Add one below.</p>');
+            const userEmail = (firebase.auth().currentUser && firebase.auth().currentUser.email) || 'this email';
+            primaryEl.html(
+                '<div style="color: #555; font-size: 14px; line-height: 1.6; padding: 12px 4px;">' +
+                  '<p style="margin: 0 0 8px;">No active licenses are linked to <strong>' + userEmail + '</strong> yet.</p>' +
+                  '<p style="margin: 0; color: #888;">If your team already has a license, ask an admin to add this email to the team. ' +
+                    'Otherwise, you can <a href="' + '{{ "/pricing/" | relative_url }}' + '" target="_blank" style="color: #1e90ff;">get a license here</a>.' +
+                  '</p>' +
+                '</div>'
+            );
             return;
         }
 
@@ -1152,14 +1162,19 @@ noindex: true
         }
     }
 
-    function toggleManualEntry() {
-        const section = $('#manualEntrySection');
-        const link = $('#manualEntryLink');
+    function toggleLicenseHelp() {
+        const section = $('#licenseHelpSection');
+        const link = $('#licenseHelpLink');
         if (section.is(':visible')) {
-            section.slideUp(200);
-            link.text('Have a license ID?');
+            section.slideUp(150);
+            link.text('License not visible?');
         } else {
-            section.slideDown(200);
+            // Fill in the user's email so the "ask an admin to add ___" hint
+            // is concrete instead of just saying "your email".
+            const user = firebase.auth().currentUser;
+            const email = (user && user.email) || 'your email';
+            $('#licenseHelpEmail').text(email);
+            section.slideDown(150);
             link.text('Hide');
         }
     }
@@ -1211,7 +1226,7 @@ noindex: true
         $('#primaryLicense button').prop('disabled', true).css('opacity', '0.5');
         $('.other-license-row button').prop('disabled', true).css('opacity', '0.5');
         $('#otherLicensesToggle').hide();
-        $('#manualEntryLink').parent().hide();
+        $('#licenseHelpLink').parent().hide();
 
         // Scroll to confirmation
         setTimeout(() => {
@@ -1229,7 +1244,7 @@ noindex: true
         if ($('#otherLicensesCount').text() !== '0') {
             $('#otherLicensesToggle').show();
         }
-        $('#manualEntryLink').parent().show();
+        $('#licenseHelpLink').parent().show();
     }
 
     function confirmActivation() {
@@ -1345,7 +1360,13 @@ noindex: true
         let errorMessage = 'Failed to activate device. ';
         try {
             const errorResponse = JSON.parse(xhr.responseText);
-            if (errorResponse.error) {
+            // Structured 403 from the team-membership gate. The backend has
+            // gone back and forth on the exact `error` string ("not_a_team_member"
+            // vs "not_authorized"), so detect either code OR fall back to the
+            // payload shape (org_name + admin_emails present).
+            if (isTeamMembershipError(errorResponse)) {
+                errorMessage = formatTeamMembershipError(errorResponse);
+            } else if (errorResponse.error) {
                 errorMessage = errorResponse.error;
             } else if (errorResponse.message) {
                 errorMessage = errorResponse.message;
@@ -1356,6 +1377,43 @@ noindex: true
             errorMessage = getGenericErrorMessage(xhr, status, error, errorMessage);
         }
         showActivationError(errorMessage, hasExistingKey);
+    }
+
+    function isTeamMembershipError(data) {
+        if (!data) return false;
+        const code = data.error || data.error_code || '';
+        if (code === 'not_a_team_member'
+            || code === 'not_authorized'
+            || code === 'team_member_required') return true;
+        // Shape-based fallback — if the server included org context, treat as
+        // a membership rejection even if the code string is different.
+        if (data.org_name || (Array.isArray(data.admin_emails) && data.admin_emails.length)) return true;
+        return false;
+    }
+
+    function escapeHtmlForActivation(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function formatTeamMembershipError(resp) {
+        const orgName = escapeHtmlForActivation(resp.org_name || 'this organization');
+        const userEmail = (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
+        const admins = Array.isArray(resp.admin_emails) ? resp.admin_emails : [];
+        let html = 'This license belongs to <strong>' + orgName + '</strong>, and ';
+        html += userEmail ? '<strong>' + escapeHtmlForActivation(userEmail) + '</strong> is not a member of that team yet.' : 'you\'re not a member of that team yet.';
+        if (admins.length) {
+            const links = admins.map(function(e) {
+                const safe = escapeHtmlForActivation(e);
+                return '<a href="mailto:' + safe + '">' + safe + '</a>';
+            }).join(', ');
+            html += ' Ask an admin to add your email to the team: ' + links + '.';
+        } else {
+            html += ' Ask an admin to add your email to the team.';
+        }
+        return html;
     }
 
     function getGenericErrorMessage(xhr, status, error, defaultMessage) {
@@ -1415,60 +1473,6 @@ noindex: true
 
     function showError(message) {
         $('#errorMessage').text(message).show();
-    }
-
-    function addLicenseToAccount(licenseId) {
-        const globalUser = firebase.auth().currentUser;
-        if (!globalUser) return;
-
-        $('#addLicenseBtn').text('Adding...').prop('disabled', true);
-        $('#addLicenseBtn').siblings('.success-message, .error-message-inline').remove();
-
-        globalUser.getIdToken(true).then(function(idToken) {
-            var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + $('#machineId').text() + '&license_id=' + licenseId;
-            $.ajax({
-                url: fetch_url,
-                method: 'GET',
-                headers: { 'Authorization': 'Bearer ' + idToken },
-                success: function(response) {
-                    let responseData;
-                    try {
-                        if (typeof response === 'string') {
-                            responseData = sanitizeAndParseResponse(response);
-                        } else {
-                            responseData = response;
-                        }
-                    } catch (e) {
-                        console.error('Error parsing add license response:', e);
-                    }
-
-                    $('#manualLicenseId').val('');
-                    $('#addLicenseBtn').text('Add License').prop('disabled', false);
-                    processLicenseResponse(responseData);
-
-                    const successMsg = $('<div class="success-message" style="margin-top: 8px; font-size: 13px; padding: 8px;">License added!</div>');
-                    $('#addLicenseBtn').after(successMsg);
-                    setTimeout(() => successMsg.fadeOut(), 3000);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error adding license:', error);
-                    $('#addLicenseBtn').text('Add License').prop('disabled', false);
-
-                    let errorMessage = 'Failed to add license. ';
-                    if (xhr.status === 500 && xhr.responseText && xhr.responseText.includes("'NoneType' object has no attribute 'expiry_timestamp'")) {
-                        errorMessage = `License ID "${licenseId}" was not found.`;
-                    } else if (xhr.responseText) {
-                        errorMessage += xhr.responseText;
-                    } else {
-                        errorMessage += 'Please check the ID and try again.';
-                    }
-
-                    const errorMsg = $(`<div class="error-message-inline" style="margin-top: 8px; font-size: 13px; padding: 8px;">${errorMessage}</div>`);
-                    $('#addLicenseBtn').after(errorMsg);
-                    setTimeout(() => errorMsg.fadeOut(), 5000);
-                }
-            });
-        });
     }
 
     function processLicenseResponse(responseData) {
