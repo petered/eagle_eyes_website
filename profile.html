@@ -291,7 +291,10 @@ heading: Profile
     <a href="{{ '/account/' | relative_url }}" class="profile-btn" style="display: inline-block; text-decoration: none;">Sign In</a>
 </div>
 
-<div id="profileLoading" class="profile-loading">Loading…</div>
+<div id="profileLoading" class="profile-loading" style="text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
+    <div class="spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e90ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+    <p style="margin-top: 16px; color: #888;">Loading your profile…</p>
+</div>
 
 <script>
     (function() {
@@ -367,19 +370,80 @@ heading: Profile
             // Email (read-only)
             document.getElementById('profileEmail').value = user.email || '';
 
-            // Name fields — sourced from local draft for now since we don't yet
-            // persist first/last server-side. Fall back to splitting displayName.
+            // Name + phone — priority order, most-authoritative first:
+            //   1. localStorage draft (unsaved edits from this device)
+            //   2. dashboard form_data.first_name / .last_name (explicit
+            //      saves via update_user_profile)
+            //   3. firebase user.displayName (current OAuth identity —
+            //      regularly updated by the user via their identity provider)
+            //   4. dashboard form_data.name (legacy signup form value —
+            //      often years old; last resort)
+            // Bumping displayName above fd.name avoids regressing users
+            // whose signup said "David" but who have since updated their
+            // Google account to "Dave".
             var draft = readDraft();
             var first = draft.firstName || '';
             var last = draft.lastName || '';
+            var phone = draft.phone || '';
+
+            if (!first && !last) {
+                try {
+                    var dash = window.eeDashboard && window.eeDashboard.read(user.uid);
+                    var fd = dash && dash.user_account_info && dash.user_account_info.form_data;
+                    if (fd && (fd.first_name || fd.last_name)) {
+                        first = (fd.first_name || '').trim();
+                        last = (fd.last_name || '').trim();
+                    }
+                    if (fd && !phone && fd.phone) phone = String(fd.phone);
+                } catch (e) { /* dashboard not cached — fall through */ }
+            }
+
             if (!first && !last && user.displayName) {
                 var parts = user.displayName.trim().split(/\s+/);
                 first = parts[0] || '';
                 last = parts.slice(1).join(' ') || '';
             }
+
+            if (!first && !last) {
+                try {
+                    var dash2 = window.eeDashboard && window.eeDashboard.read(user.uid);
+                    var fd2 = dash2 && dash2.user_account_info && dash2.user_account_info.form_data;
+                    if (fd2 && fd2.name) {
+                        var fdParts = String(fd2.name).trim().split(/\s+/);
+                        first = fdParts[0] || '';
+                        last = fdParts.slice(1).join(' ') || '';
+                    }
+                } catch (e) { /* nothing to fall back to */ }
+            }
+
             document.getElementById('profileFirstName').value = first;
             document.getElementById('profileLastName').value = last;
-            document.getElementById('profilePhone').value = draft.phone || (user.phoneNumber || '');
+            document.getElementById('profilePhone').value = phone || (user.phoneNumber || '');
+
+            // If the dashboard wasn't cached, kick off a fetch and only
+            // upgrade the form when fresh form_data has an *explicit*
+            // first_name / last_name (set via update_user_profile). We
+            // never overwrite with fd.name here — displayName already
+            // beats it in the priority chain above, and overwriting with
+            // a stale legacy name is the regression we're avoiding.
+            if (!draft.firstName && !draft.lastName && window.eeDashboard) {
+                var hadCache = !!window.eeDashboard.read(user.uid);
+                if (!hadCache) {
+                    window.eeDashboard.fetch(user).then(function(fresh) {
+                        if (!fresh || !fresh.user_account_info) return;
+                        var fd2 = fresh.user_account_info.form_data;
+                        if (!fd2 || (!fd2.first_name && !fd2.last_name)) return;
+                        if (profileIsDirty()) return;
+                        var f = (fd2.first_name || '').trim();
+                        var l = (fd2.last_name || '').trim();
+                        if (f || l) {
+                            document.getElementById('profileFirstName').value = f;
+                            document.getElementById('profileLastName').value = l;
+                            captureProfileSnapshot();
+                        }
+                    }).catch(function() { /* keep current fallback */ });
+                }
+            }
 
             // Sign-in method
             var providerId = user.providerData && user.providerData[0] && user.providerData[0].providerId;
@@ -391,8 +455,23 @@ heading: Profile
             var created = user.metadata && user.metadata.creationTime;
             document.getElementById('profileMemberSince').textContent = formatDate(created);
 
-            // Notification preferences
-            var newsletter = draft.newsletter !== false; // default opt-in unless explicitly set false
+            // Notification preferences. Read order: localStorage draft
+            // (in-flight) → dashboard form_data.newsletter_subscribed
+            // (server truth) → default opt-in.
+            var newsletter;
+            if (Object.prototype.hasOwnProperty.call(draft, 'newsletter')) {
+                newsletter = draft.newsletter !== false;
+            } else {
+                try {
+                    var dashN = window.eeDashboard && window.eeDashboard.read(user.uid);
+                    var fdN = dashN && dashN.user_account_info && dashN.user_account_info.form_data;
+                    if (fdN && Object.prototype.hasOwnProperty.call(fdN, 'newsletter_subscribed')) {
+                        newsletter = fdN.newsletter_subscribed !== false;
+                    } else {
+                        newsletter = true; // default opt-in
+                    }
+                } catch (e) { newsletter = true; }
+            }
             document.getElementById('profileNotifyNewsletter').checked = !!newsletter;
 
             // Form is now in its saved state; snapshot it so dirty-tracking works.
@@ -453,7 +532,7 @@ heading: Profile
             container.innerHTML = html;
         }
 
-        window.profileSave = function(event) {
+        window.profileSave = async function(event) {
             event.preventDefault();
             var first = document.getElementById('profileFirstName').value.trim();
             var last = document.getElementById('profileLastName').value.trim();
@@ -465,18 +544,66 @@ heading: Profile
             saveBtn.textContent = 'Saving…';
             setStatus(status, '');
 
-            // Backend endpoint isn't wired yet. Persist to localStorage so the
-            // form retains values across reloads, and surface a clear note.
-            writeDraft({ firstName: first, lastName: last, phone: phone });
+            try {
+                var user = firebase.auth().currentUser;
+                if (!user) throw new Error('Not signed in');
+                var idToken = await user.getIdToken();
+                var hostURL = window.getHostUrl
+                    ? window.getHostUrl()
+                    : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                // Backend update_user_profile allowlist: name, first_name,
+                // last_name, phone, newsletter_subscribed. We send the three
+                // fields the form owns; the backend merges into form_data.
+                // Also send `name` derived from first + last so old consumers
+                // that read form_data.name (the trigger label fallback,
+                // marketing emails, etc.) get a consistent value.
+                var body = {
+                    first_name: first,
+                    last_name: last,
+                    phone: phone,
+                    name: [first, last].filter(Boolean).join(' ')
+                };
+                var r = await fetch(hostURL + '/update_user_profile', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                if (!r.ok) {
+                    var text = await r.text();
+                    throw new Error(text || 'Request failed (' + r.status + ')');
+                }
 
-            setTimeout(function() {
+                // Keep the localStorage draft in sync — pickTriggerLabel
+                // in the navbar reads it as a fast pre-paint hint before
+                // the dashboard re-fetches.
+                writeDraft({ firstName: first, lastName: last, phone: phone });
+
+                // Invalidate the dashboard cache so the navbar trigger,
+                // page-title, and every other consumer pick up the new
+                // first_name on next read. The shared eeDashboard helper
+                // re-fetches in the background.
+                try {
+                    if (window.eeDashboard) window.eeDashboard.invalidate(user.uid);
+                } catch (e) {}
+                // Also refresh the navbar's cached trigger label immediately
+                // so the user sees their new name without a page reload.
+                try { localStorage.setItem('eeTriggerName', first); } catch (e) {}
+                var nameEl = document.getElementById('navProfileTriggerName');
+                if (nameEl && first) nameEl.textContent = first;
+
+                setStatus(status, 'Saved.', 'success');
+                captureProfileSnapshot();
+            } catch (err) {
+                console.error('update_user_profile failed:', err);
+                setStatus(status, err.message || 'Could not save changes. Try again.', 'error');
+            } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save changes';
-                setStatus(status, 'Saved locally — server-side persistence coming soon.', 'success');
-                // Form is back to "saved" state — snapshot the new values and
-                // hide Cancel until the user edits again.
-                captureProfileSnapshot();
-            }, 250);
+            }
             return false;
         };
 
@@ -488,13 +615,47 @@ heading: Profile
             updateProfileDirtyUI();
         });
 
-        document.getElementById('profileNotifyNewsletter').addEventListener('change', function(e) {
-            writeDraft({ newsletter: e.target.checked });
-            setStatus(
-                document.getElementById('profileNotifyStatus'),
-                'Preference saved locally — server-side persistence coming soon.',
-                'success'
-            );
+        document.getElementById('profileNotifyNewsletter').addEventListener('change', async function(e) {
+            var checked = !!e.target.checked;
+            var toggle = e.target;
+            var statusEl = document.getElementById('profileNotifyStatus');
+            // Optimistic local persistence; reconciled server-side below.
+            writeDraft({ newsletter: checked });
+            setStatus(statusEl, 'Saving…', '');
+            toggle.disabled = true;
+            try {
+                var user = firebase.auth().currentUser;
+                if (!user) throw new Error('Not signed in');
+                var idToken = await user.getIdToken();
+                var hostURL = window.getHostUrl
+                    ? window.getHostUrl()
+                    : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                var r = await fetch(hostURL + '/update_user_profile', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ newsletter_subscribed: checked })
+                });
+                if (!r.ok) {
+                    var text = await r.text();
+                    throw new Error(text || 'Request failed (' + r.status + ')');
+                }
+                try {
+                    if (window.eeDashboard) window.eeDashboard.invalidate(user.uid);
+                } catch (e2) {}
+                setStatus(statusEl, checked ? 'Subscribed.' : 'Unsubscribed.', 'success');
+            } catch (err) {
+                console.error('newsletter update failed:', err);
+                // Revert the toggle so the UI reflects the actual server state.
+                toggle.checked = !checked;
+                writeDraft({ newsletter: !checked });
+                setStatus(statusEl, err.message || 'Could not save preference. Try again.', 'error');
+            } finally {
+                toggle.disabled = false;
+            }
         });
 
         // Auth gating: show signed-out state when no user, otherwise the form
