@@ -427,6 +427,114 @@
             }
         }
 
+        /* Canadian Airspace sub-layer list — same shape as FAA list */
+        .can-sublayer-list {
+            margin-left: 16px;
+            padding-left: 8px;
+            border-left: 1px solid rgba(255,255,255,0.15);
+        }
+        .can-sublayer-list .can-sublayer {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .can-sublayer-list .can-sublayer label {
+            font-size: 12px;
+        }
+        .can-sublayer-list .can-sublayer:hover label {
+            color: #fff;
+        }
+        .can-sublayer-list .can-sublayer input[type="checkbox"] {
+            margin-right: 6px;
+        }
+        .can-sublayer-list .can-toggle-all {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 4px;
+        }
+        .can-sublayer-list .can-toggle-all label {
+            font-style: italic;
+        }
+        @media (max-width: 768px) {
+            .can-sublayer-list {
+                margin-left: 12px;
+                padding-left: 6px;
+            }
+            .can-sublayer-list .can-sublayer {
+                padding: 3px 6px;
+                font-size: 11px;
+            }
+            .can-sublayer-list .can-sublayer input[type="checkbox"] {
+                margin-right: 4px;
+            }
+            .can-sublayer-list .can-sublayer label {
+                font-size: 11px;
+            }
+        }
+
+        /* Canadian Airspace disclaimer modal */
+        .can-disclaimer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 100010;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .can-disclaimer-overlay.visible { display: flex; }
+        .can-disclaimer-card {
+            background: #1a1a1a;
+            border: 1px solid #4a7c59;
+            border-radius: 8px;
+            padding: 22px 26px;
+            max-width: 460px;
+            max-height: 85vh;
+            overflow-y: auto;
+            color: #e6e6e6;
+            font-size: 13px;
+            line-height: 1.5;
+            text-align: left;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .can-disclaimer-card ul {
+            text-align: left;
+            list-style-position: outside;
+        }
+        .can-disclaimer-card ul li {
+            text-align: left;
+            padding-left: 0;
+        }
+        .can-disclaimer-card h3 {
+            margin: 0 0 10px;
+            color: #d4a574;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .can-disclaimer-card p { margin: 0 0 10px; }
+        .can-disclaimer-card .can-disclaimer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+        }
+        .can-disclaimer-card .can-disclaimer-dontshow {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .can-disclaimer-card button {
+            background: #4a7c59;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .can-disclaimer-card button:hover { background: #5a8c69; }
+
         /* EDS-B tooltip: shown on hover and click */
         .edsb-tooltip-popover {
             position: fixed;
@@ -3102,6 +3210,60 @@
                     <input type="checkbox" id="toggleDetectedAircraftCheckbox" checked title="Show or hide detected manned aircraft on the map">
                     <label for="toggleDetectedAircraftCheckbox">Detected manned aircraft <span style="white-space: nowrap;">(ADS-B)</span></label>
                 </div>
+                <div class="base-map-option base-map-toggle" id="toggleCanadianAirspaceOption">
+                    <input type="checkbox" id="toggleCanadianAirspaceCheckbox" title="Show or hide Canadian airspace, protected areas, and weather layers" onchange="setCanadianAirspaceVisibility(this.checked)">
+                    <label for="toggleCanadianAirspaceCheckbox">Canadian Airspace</label>
+                </div>
+                <div id="canSubLayerList" class="can-sublayer-list" style="display:none;">
+                    <div class="base-map-option base-map-toggle can-sublayer can-toggle-all">
+                        <input type="checkbox" id="canSubToggleAll" onchange="toggleAllCanSubLayers(this.checked)">
+                        <label for="canSubToggleAll">Toggle all</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubAirspaceDrone" checked onchange="setCanSubLayerVisibility('airspaceDrone', this.checked)">
+                        <label for="canSubAirspaceDrone">Drone-restrictive airspace</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubAirspaceAll" onchange="setCanSubLayerVisibility('airspaceAll', this.checked)">
+                        <label for="canSubAirspaceAll">Aviation airspace (all DAH)</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubProtectedAreas" checked onchange="setCanSubLayerVisibility('protectedAreas', this.checked)">
+                        <label for="canSubProtectedAreas">Protected areas</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubParksCanada" checked onchange="setCanSubLayerVisibility('parksCanada', this.checked)">
+                        <label for="canSubParksCanada">National parks</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubAerodromes" checked onchange="setCanSubLayerVisibility('aerodromes', this.checked)">
+                        <label for="canSubAerodromes">Aerodromes</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubBuffersMajor" checked onchange="setCanSubLayerVisibility('buffersMajor', this.checked)">
+                        <label for="canSubBuffersMajor">Airport buffers (3 NM)</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubBuffersMinor" checked onchange="setCanSubLayerVisibility('buffersMinor', this.checked)">
+                        <label for="canSubBuffersMinor">Heliport buffers (1 NM)</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubNotams" checked onchange="setCanSubLayerVisibility('notams', this.checked)">
+                        <label for="canSubNotams">NOTAMs</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubPopulationCentres" onchange="setCanSubLayerVisibility('populationCentres', this.checked)">
+                        <label for="canSubPopulationCentres">Population centres</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubMetars" onchange="setCanSubLayerVisibility('metars', this.checked)">
+                        <label for="canSubMetars">METARs</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubTafs" onchange="setCanSubLayerVisibility('tafs', this.checked)">
+                        <label for="canSubTafs">TAFs</label>
+                    </div>
+                </div>
                 <div class="base-map-option base-map-toggle" id="toggleFaaAirspaceOption">
                     <input type="checkbox" id="toggleFaaAirspaceCheckbox" title="Show or hide FAA UAS airspace layers" onchange="setFaaAirspaceVisibility(this.checked)">
                     <label for="toggleFaaAirspaceCheckbox">FAA drone airspace</label>
@@ -3152,6 +3314,41 @@
 
     <!-- Map Container -->
     <div id="map"></div>
+
+    <!-- Canadian Airspace disclaimer (shown on first toggle-on) -->
+    <div id="canDisclaimerOverlay" class="can-disclaimer-overlay" aria-hidden="true">
+        <div class="can-disclaimer-card" role="dialog" aria-modal="true" aria-labelledby="canDisclaimerTitle">
+            <h3 id="canDisclaimerTitle" style="display:flex;align-items:center;gap:10px;font-size:15px;"><span style="color:#f97316;font-size:28px;line-height:1;">⚠</span> Canadian Drone Airspace — Beta</h3>
+            <p>This layer brings together everything you need to plan and operate drone missions in Canada — restricted airspace, control zones, aerodromes (airports, heliports, seaplane bases) with regulatory buffers, NOTAMs, current weather (METARs/TAFs), protected areas, and national parks — all in one place.</p>
+            <p>It's currently in <strong>beta</strong> and may contain errors, omissions, or stale information. For mission-critical decisions, cross-reference with authoritative sources:</p>
+            <ul style="margin:0 0 12px 0;padding-left:22px;line-height:1.7;text-align:left;list-style-position:outside;">
+                <li style="text-align:left;display:list-item;"><a href="https://nrc.canada.ca/en/drone-tool/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NAV Drone Map (NAV CANADA)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://nrc.canada.ca/en/drone-tool/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NRC Drone Site Selection Tool</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides/designated-airspace-handbook.aspx" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NAV CANADA's Designated Airspace Handbook (DAH)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://plan.navcanada.ca/wxrecall/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">Current NOTAMs (NAV CANADA CFPS)</a></li>
+            </ul>
+            <details style="margin: 0 0 12px 0; font-size: 12px; color: #ccc;">
+                <summary style="cursor: pointer; color: #d4a574; font-weight: 600;">Data sources &amp; vintages</summary>
+                <ul style="margin-top: 8px; padding-left: 20px; line-height: 1.6; list-style: disc;">
+                    <li>Airspace: <a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides/designated-airspace-handbook.aspx" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA Designated Airspace Handbook (DAH)</a>, Issue 319, eff. 22 Jan 2026</li>
+                    <li>Aerodromes: <a href="https://ourairports.com/" target="_blank" rel="noopener" style="color:#60a5fa;">OurAirports</a> (community, public domain)</li>
+                    <li>Aerodrome operator/phone/customs: <a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides/canada-flight-supplement.aspx" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA Canada Flight Supplement (CFS)</a> — <strong>sample edition (Dec 2020)</strong>. Current CFS data requires a paid NAV CANADA subscription.
+                        <div style="margin-top: 4px; color: #aaa; font-size: 11px;">If access to up-to-date CFS information matters for your operations, we'd love to hear from you — drop us a line at <a href="mailto:info@eagleeyessearch.com" style="color:#60a5fa;">info@eagleeyessearch.com</a> and let us know how you'd use it.</div>
+                    </li>
+                    <li>Protected areas: ECCC <a href="https://www.canada.ca/en/environment-climate-change/services/national-wildlife-areas/protected-conserved-areas-database.html" target="_blank" rel="noopener" style="color:#60a5fa;">CPCAD '24</a></li>
+                    <li>National Parks: <a href="https://open.canada.ca/data/en/organization/pc" target="_blank" rel="noopener" style="color:#60a5fa;">Parks Canada Places</a></li>
+                    <li>Populated areas: <a href="https://www12.statcan.gc.ca/census-recensement/2021/geo/index-eng.cfm" target="_blank" rel="noopener" style="color:#60a5fa;">Statistics Canada 2021 Census population centres</a></li>
+                    <li>NOTAMs: live from <a href="https://plan.navcanada.ca/wxrecall/" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA CFPS</a>, refreshed every 10 min</li>
+                    <li>METARs / TAFs: live from <a href="https://plan.navcanada.ca/wxrecall/" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA CFPS</a>, refreshed every 30 min</li>
+                </ul>
+                <p style="margin: 10px 0 0; font-size: 11px; color: #888;">Contains information licensed under the <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener" style="color:#60a5fa;">Open Government Licence – Canada</a> (CPCAD, Parks Canada, Statistics Canada). Aviation data sourced from publicly available NAV CANADA publications; OurAirports data is community-contributed and in the public domain.</p>
+            </details>
+            <p style="font-size:12px;color:#bbb;margin:0 0 14px;">For planning and situational awareness only. Pilot-in-command must verify against authoritative sources before flight; Eagle Eyes Search accepts no liability for operational decisions made using this data.</p>
+            <div class="can-disclaimer-actions" style="justify-content:flex-end;">
+                <button id="canDisclaimerAck" type="button">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Search: expandable input + button, bottom-right above fullscreen -->
     <div id="searchContainer" class="search-container">
@@ -3251,6 +3448,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Esri Leaflet (for FAA ArcGIS FeatureServer layers) -->
     <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+    <!-- protomaps-leaflet (for Canadian Airspace PMTiles vector layers) -->
+    <script src="https://unpkg.com/protomaps-leaflet@4.1.0/dist/protomaps-leaflet.js"></script>
 
     <!-- Paho MQTT JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
@@ -3291,6 +3490,14 @@
         let faaAirspaceLayer = null; // Esri FeatureLayer instance
         // FAA sub-layers (created in initMap, toggled independently)
         let faaSubLayers = {}; // key -> { layer, visible, name }
+
+        // Canadian Airspace state (master toggle off by default, populated in initMap)
+        let showCanadianAirspace = false;
+        let canSubLayers = {}; // key -> { layer, visible, checkboxId, _loaded }
+        const CAN_AIRSPACE_BASE = 'https://mirada-airspace.patrick-e20.workers.dev';
+        const CAN_AIRSPACE_VERSION = 'eagleeyes-v1';
+        const CAN_DISCLAIMER_KEY = 'ee_can_airspace_disclaimer_acked';
+        const CAN_SUB_PREF_KEY = 'ee_can_airspace_sublayers';
         let hasShownConnectedToast = false; // Show "Connected to drone telemetry stream" only once per connection
 
         // Target drone tracking (from URL query parameter drone_public_id)
@@ -3579,6 +3786,10 @@
                     visible: false, checkboxId: 'faaSubRecSites'
                 };
                 // All FAA sub-layers start OFF — added to map only when parent toggle is checked
+
+                // ---- Canadian Airspace Sub-Layers ----
+                initCanadianAirspaceLayers();
+                map.on('click', function(e) { handleCanadianMapClick(e.latlng, e.originalEvent); });
 
                 // Close base map menu when clicking outside
                 document.addEventListener('click', function(event) {
@@ -4241,6 +4452,697 @@
             });
             var ta = document.getElementById('faaSubToggleAll');
             if (ta) ta.checked = allOn;
+        }
+
+        // ==================== Canadian Airspace ====================
+        // Data source: https://mirada-airspace.patrick-e20.workers.dev (Cloudflare Worker)
+        // Attribution: NAV CANADA (airspace, NOTAMs, METARs, TAFs), ECCC CPCAD (protected areas),
+        // Parks Canada (parks), Statistics Canada (population centres).
+
+        function canPopup(title, lines, rawText) {
+            var html = '<div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.5;color:#222;">' +
+                '<b>' + title + '</b><br>' + lines.join('<br>');
+            if (rawText) {
+                html += '<details style="margin-top:6px;"><summary style="cursor:pointer;color:#555;font-size:11px;">Raw</summary>' +
+                    '<pre style="white-space:pre-wrap;font-size:11px;margin:4px 0 0;color:#333;">' +
+                    String(rawText).replace(/[<>&]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}) +
+                    '</pre></details>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        var CAN_AIRSPACE_TYPE_LABELS = {
+            CYR: 'Restricted Area', CYD: 'Danger Area', CYA: 'Advisory Area',
+            CTR: 'Control Zone', TCA: 'Terminal Control Area', CTA: 'Control Area',
+            TA: 'Transition Area', TRA: 'Transponder Area'
+        };
+        function canAirspaceClassLine(p) {
+            var typeLabel = CAN_AIRSPACE_TYPE_LABELS[p.type] || p.type || '';
+            if (p['class'] && typeLabel) return 'Class ' + p['class'] + ' ' + typeLabel;
+            if (p['class']) return 'Class ' + p['class'];
+            return typeLabel || 'Airspace';
+        }
+        var CAN_DRONE_LEVEL_LABELS = {
+            prohibited: 'Prohibited',
+            authorization_required: 'Authorization required',
+            caution: 'Caution',
+            open: 'Open'
+        };
+
+        function canUrl(path) {
+            return CAN_AIRSPACE_BASE + path + '?v=' + CAN_AIRSPACE_VERSION;
+        }
+
+        function loadCanSubPrefs() {
+            try {
+                var raw = localStorage.getItem(CAN_SUB_PREF_KEY);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch(e) { return null; }
+        }
+        function saveCanSubPrefs() {
+            try {
+                var prefs = {};
+                Object.keys(canSubLayers).forEach(function(key){ prefs[key] = canSubLayers[key].visible; });
+                localStorage.setItem(CAN_SUB_PREF_KEY, JSON.stringify(prefs));
+            } catch(e) {}
+        }
+
+        // Color helpers
+        var CAN_PROTECTED_FILL = function(p) {
+            var t = p.OWNER_TYPE;
+            if (t === 1 || t === '1') return '#dc2626';
+            if (t === 4 || t === '4') return '#84cc16';
+            return '#16a34a';
+        };
+        var CAN_AIRSPACE_TYPE_COLORS = {
+            CYR: '#dc2626', CYD: '#ea580c', CYA: '#ca8a04',
+            CTR: '#2563eb', TCA: '#1d4ed8', CTA: '#3b82f6',
+            TA:  '#60a5fa', TRA: '#a855f7'
+        };
+        var CAN_DRONE_LEVEL_STYLE = {
+            prohibited: { color: '#dc2626', fillOpacity: 0.40 },
+            authorization_required: { color: '#ea580c', fillOpacity: 0.30 },
+            caution: { color: '#facc15', fillOpacity: 0.30, dashArray: '4,4' },
+            open: { color: '#22c55e', fillOpacity: 0.10 }
+        };
+
+        // Tracks which PMTiles feature is currently highlighted. PolygonSymbolizer
+        // paint rules check this per feature and paint the matched feature in cyan.
+        // Updated by the stacked-popup click/cycle handler; protomaps re-paints
+        // via layer.rerenderTiles() when this changes.
+        var canSelectedRef = { defKey: null, key: null };
+        function canFeatureSelectKey(defKey, props) {
+            props = props || {};
+            switch (defKey) {
+                case 'protectedAreas': return (props.NAME_E || '') + '|' + (props.O_AREA_HA || '') + '|' + (props.OWNER_E || '');
+                case 'parksCanada':    return String(props.BAID || props.OBJECTID || props.DESC_EN || '');
+                case 'airspaceDrone':
+                case 'airspaceAll':    return String(props.id || props.name || '');
+                default: return JSON.stringify(props);
+            }
+        }
+        function canIsSelected(defKey, props) {
+            return canSelectedRef.defKey === defKey
+                && canSelectedRef.key !== null
+                && canSelectedRef.key === canFeatureSelectKey(defKey, props);
+        }
+
+        function buildPmtilesLayer(file, sourceLayerName, paintRulesFactory) {
+            if (typeof protomapsL === 'undefined') {
+                console.error('protomaps-leaflet not loaded; cannot build PMTiles layer for ' + file);
+                return null;
+            }
+            return protomapsL.leafletLayer({
+                url: canUrl('/tiles/' + file),
+                maxDataZoom: 12,
+                paintRules: paintRulesFactory(sourceLayerName)
+            });
+        }
+
+        function initCanadianAirspaceLayers() {
+            if (!map) return;
+
+            // ---- PMTiles vector layers (4) ----
+
+            canSubLayers.protectedAreas = {
+                kind: 'pmtiles', source: 'protected_areas', sourceLabel: 'Protected area',
+                visible: true, checkboxId: 'canSubProtectedAreas',
+                layer: buildPmtilesLayer('protected-areas.pmtiles', 'protected_areas', function(layerName) {
+                    return [{
+                        dataLayer: layerName,
+                        symbolizer: new protomapsL.PolygonSymbolizer({
+                            perFeature: true,
+                            fill: function(z, f) { return canIsSelected('protectedAreas', f && f.props) ? CAN_HIGHLIGHT_STYLE.color : CAN_PROTECTED_FILL((f && f.props) || {}); },
+                            opacity: function(z, f) { return canIsSelected('protectedAreas', f && f.props) ? CAN_HIGHLIGHT_FILL.fillOpacity : 0.35; },
+                            stroke: function(z, f) { return canIsSelected('protectedAreas', f && f.props) ? CAN_HIGHLIGHT_STYLE.color : CAN_PROTECTED_FILL((f && f.props) || {}); },
+                            width: function(z, f) { return canIsSelected('protectedAreas', f && f.props) ? CAN_HIGHLIGHT_STYLE.weight : 1.5; }
+                        })
+                    }];
+                }),
+                buildPopup: function(p) {
+                    var ownerLabel = p.OWNER_TYPE === 1 ? 'Federal'
+                        : p.OWNER_TYPE === 4 ? 'Indigenous-stewarded'
+                        : 'Provincial / Territorial';
+                    return canPopup(p.NAME_E || 'Protected Area', [
+                        'Owner: ' + ownerLabel,
+                        'Type: ' + (p.TYPE_E || 'N/A'),
+                        'Area: ' + (p.O_AREA_HA ? (Number(p.O_AREA_HA) / 100).toFixed(1) + ' km²' : 'N/A')
+                    ]);
+                }
+            };
+
+            canSubLayers.parksCanada = {
+                kind: 'pmtiles', source: 'parks_canada', sourceLabel: 'National park',
+                visible: true, checkboxId: 'canSubParksCanada',
+                layer: buildPmtilesLayer('parks-canada.pmtiles', 'parks_canada', function(layerName) {
+                    return [{
+                        dataLayer: layerName,
+                        symbolizer: new protomapsL.PolygonSymbolizer({
+                            perFeature: true,
+                            fill: function(z, f) { return canIsSelected('parksCanada', f && f.props) ? CAN_HIGHLIGHT_STYLE.color : '#14532d'; },
+                            opacity: function(z, f) { return canIsSelected('parksCanada', f && f.props) ? CAN_HIGHLIGHT_FILL.fillOpacity : 0.55; },
+                            stroke: function(z, f) { return canIsSelected('parksCanada', f && f.props) ? CAN_HIGHLIGHT_STYLE.color : '#052e16'; },
+                            width: function(z, f) { return canIsSelected('parksCanada', f && f.props) ? CAN_HIGHLIGHT_STYLE.weight : 2.5; }
+                        })
+                    }];
+                }),
+                buildPopup: function(p) {
+                    return canPopup(p.DESC_EN || 'Parks Canada Place', [
+                        'Type: ' + (p.PLACE_TYPE_E || 'N/A'),
+                        '<i>Parks Canada permit required for drone operations.</i>'
+                    ]);
+                }
+            };
+
+            canSubLayers.airspaceDrone = {
+                kind: 'pmtiles', source: 'airspace_drone', sourceLabel: 'Drone-restrictive airspace',
+                visible: true, checkboxId: 'canSubAirspaceDrone',
+                layer: buildPmtilesLayer('airspace-drone.pmtiles', 'airspace_drone', function(layerName) {
+                    return [{
+                        dataLayer: layerName,
+                        symbolizer: new protomapsL.PolygonSymbolizer({
+                            perFeature: true,
+                            fill: function(z, f) {
+                                if (canIsSelected('airspaceDrone', f && f.props)) return CAN_HIGHLIGHT_STYLE.color;
+                                return (CAN_DRONE_LEVEL_STYLE[(f && f.props && f.props.droneRestrictionLevel) || 'open'] || CAN_DRONE_LEVEL_STYLE.open).color;
+                            },
+                            opacity: function(z, f) {
+                                if (canIsSelected('airspaceDrone', f && f.props)) return CAN_HIGHLIGHT_FILL.fillOpacity;
+                                return (CAN_DRONE_LEVEL_STYLE[(f && f.props && f.props.droneRestrictionLevel) || 'open'] || CAN_DRONE_LEVEL_STYLE.open).fillOpacity;
+                            },
+                            stroke: function(z, f) {
+                                if (canIsSelected('airspaceDrone', f && f.props)) return CAN_HIGHLIGHT_STYLE.color;
+                                return (CAN_DRONE_LEVEL_STYLE[(f && f.props && f.props.droneRestrictionLevel) || 'open'] || CAN_DRONE_LEVEL_STYLE.open).color;
+                            },
+                            width: function(z, f) { return canIsSelected('airspaceDrone', f && f.props) ? CAN_HIGHLIGHT_STYLE.weight : 1; }
+                        })
+                    }];
+                }),
+                buildPopup: function(p) {
+                    var lvl = p.droneRestrictionLevel;
+                    var lvlColor = (CAN_DRONE_LEVEL_STYLE[lvl] || {}).color || '#6b7280';
+                    return canPopup(p.name || 'Airspace', [
+                        '<b>' + canAirspaceClassLine(p) + '</b>',
+                        'Floor: ' + (p.lowerAltitude || 'N/A'),
+                        'Ceiling: ' + (p.upperAltitude || 'N/A'),
+                        'Drone: <span style="color:' + lvlColor + ';font-weight:600">' + (CAN_DRONE_LEVEL_LABELS[lvl] || 'Unknown') + '</span>'
+                    ]);
+                }
+            };
+
+            canSubLayers.airspaceAll = {
+                kind: 'pmtiles', source: 'airspace', sourceLabel: 'Aviation airspace',
+                visible: false, checkboxId: 'canSubAirspaceAll',
+                layer: buildPmtilesLayer('airspace.pmtiles', 'airspace', function(layerName) {
+                    return [{
+                        dataLayer: layerName,
+                        symbolizer: new protomapsL.PolygonSymbolizer({
+                            perFeature: true,
+                            fill: function(z, f) { return canIsSelected('airspaceAll', f && f.props) ? CAN_HIGHLIGHT_STYLE.color : (CAN_AIRSPACE_TYPE_COLORS[f && f.props && f.props.type] || '#60a5fa'); },
+                            opacity: function(z, f) { return canIsSelected('airspaceAll', f && f.props) ? CAN_HIGHLIGHT_FILL.fillOpacity : 0.12; },
+                            stroke: function(z, f) { return canIsSelected('airspaceAll', f && f.props) ? CAN_HIGHLIGHT_STYLE.color : (CAN_AIRSPACE_TYPE_COLORS[f && f.props && f.props.type] || '#60a5fa'); },
+                            width: function(z, f) { return canIsSelected('airspaceAll', f && f.props) ? CAN_HIGHLIGHT_STYLE.weight : 1; }
+                        })
+                    }];
+                }),
+                buildPopup: function(p) {
+                    return canPopup(p.name || 'Airspace', [
+                        '<b>' + canAirspaceClassLine(p) + '</b>',
+                        'Floor: ' + (p.lowerAltitude || 'N/A'),
+                        'Ceiling: ' + (p.upperAltitude || 'N/A')
+                    ]);
+                }
+            };
+
+            // ---- GeoJSON layers (7) — lazy-loaded on first show ----
+
+            canSubLayers.aerodromes = {
+                kind: 'geojson', path: '/data/aerodromes.geojson', sourceLabel: 'Aerodrome',
+                visible: true, checkboxId: 'canSubAerodromes',
+                layer: L.geoJSON(null, {
+                    pointToLayer: function(feature, latlng) {
+                        var t = (feature.properties && feature.properties.type) || '';
+                        var color = '#2563eb', r = 6;
+                        if (/helipad|heliport/i.test(t)) { color = '#eab308'; r = 4; }
+                        else if (/seaplane|water/i.test(t)) { color = '#06b6d4'; r = 5; }
+                        return L.circleMarker(latlng, { radius: r, color: color, fillColor: color, fillOpacity: 0.85, weight: 1 });
+                    }
+                }),
+                buildPopup: function(p) {
+                    var lines = [
+                        'Type: ' + (p.type || 'N/A'),
+                        'Ident: ' + (p.ident || p.icao || 'N/A'),
+                        'Municipality: ' + (p.municipality || 'N/A'),
+                        'Elevation: ' + (p.elevation_ft != null ? p.elevation_ft + ' ft' : (p.elevationFt != null ? p.elevationFt + ' ft' : 'N/A'))
+                    ];
+                    if (p.cfs_operator) lines.push('', '<b>Operator:</b> ' + p.cfs_operator);
+                    if (p.cfs_phones_all) lines.push('<b>Phone:</b> ' + p.cfs_phones_all);
+                    if (p.cfs_customs_phone) lines.push('<b>Customs:</b> ' + p.cfs_customs_phone);
+                    if (p.cfs_rwy) lines.push('<b>Runway:</b> ' + String(p.cfs_rwy).substring(0, 140));
+                    if (p.ident) {
+                        var sv = 'https://skyvector.com/airport/' + encodeURIComponent(p.ident);
+                        lines.push('<a href="' + sv + '" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline">' + p.ident + ' on SkyVector</a>');
+                    }
+                    return canPopup(p.name || 'Aerodrome', lines);
+                }
+            };
+
+            canSubLayers.buffersMajor = {
+                kind: 'geojson', path: '/data/buffers-major.geojson', sourceLabel: '3 NM airport buffer',
+                visible: true, checkboxId: 'canSubBuffersMajor',
+                layer: L.geoJSON(null, { style: { color: '#dc2626', weight: 1, fillColor: '#dc2626', fillOpacity: 0.06 } }),
+                buildPopup: function(p) {
+                    return canPopup(p.name || 'Airport Buffer', [
+                        'Ident: ' + (p.ident || p.icao || 'N/A'),
+                        'Buffer: <b>3 NM</b> (CARs 901.47(2))',
+                        '<i>RPAS operations require authorization.</i>'
+                    ]);
+                }
+            };
+
+            canSubLayers.buffersMinor = {
+                kind: 'geojson', path: '/data/buffers-minor.geojson', sourceLabel: '1 NM heliport buffer',
+                visible: true, checkboxId: 'canSubBuffersMinor',
+                layer: L.geoJSON(null, { style: { color: '#dc2626', weight: 1, fillColor: '#dc2626', fillOpacity: 0.06, dashArray: '3,3' } }),
+                buildPopup: function(p) {
+                    return canPopup(p.name || 'Heliport Buffer', [
+                        'Ident: ' + (p.ident || p.icao || 'N/A'),
+                        'Buffer: <b>1 NM</b> (CARs 901.47(3))',
+                        '<i>RPAS operations require authorization.</i>'
+                    ]);
+                }
+            };
+
+            var notamStyle = { high: { color: '#dc2626', r: 8 }, medium: { color: '#ea580c', r: 6 }, low: { color: '#9ca3af', r: 5 } };
+            canSubLayers.notams = {
+                kind: 'geojson', path: '/data/notams.geojson', sourceLabel: 'NOTAM',
+                visible: true, checkboxId: 'canSubNotams',
+                layer: L.geoJSON(null, {
+                    pointToLayer: function(feature, latlng) {
+                        var sev = (feature.properties && feature.properties.severity) || 'low';
+                        var s = notamStyle[sev] || notamStyle.low;
+                        return L.circleMarker(latlng, { radius: s.r, color: s.color, fillColor: s.color, fillOpacity: 0.75, weight: 1 });
+                    }
+                }),
+                buildPopup: function(p) {
+                    return canPopup('NOTAM', [
+                        'Severity: ' + (p.severity || 'N/A'),
+                        'Summary: ' + (p.summary || 'N/A'),
+                        'Valid: ' + (p.startValidity || '?') + ' → ' + (p.endValidity || '?')
+                    ], p.raw);
+                }
+            };
+
+            canSubLayers.populationCentres = {
+                kind: 'geojson', path: '/data/population-centres.geojson', sourceLabel: 'Population centre',
+                visible: false, checkboxId: 'canSubPopulationCentres',
+                layer: L.geoJSON(null, { style: { color: '#6b7280', weight: 0.5, fillColor: '#6b7280', fillOpacity: 0.15 } }),
+                buildPopup: function(p) {
+                    return canPopup('Population centre', [
+                        'Name: ' + (p.name || p.PCNAME || 'N/A'),
+                        'Reference: CARs 901.27'
+                    ]);
+                }
+            };
+
+            var metarColors = { VFR: '#16a34a', MVFR: '#2563eb', IFR: '#dc2626', LIFR: '#a855f7' };
+            canSubLayers.metars = {
+                kind: 'geojson', path: '/data/metars.geojson', sourceLabel: 'METAR',
+                visible: false, checkboxId: 'canSubMetars',
+                layer: L.geoJSON(null, {
+                    pointToLayer: function(feature, latlng) {
+                        var p = feature.properties || {};
+                        var cat = p.category || 'VFR';
+                        var color = metarColors[cat] || '#2563eb';
+                        var icon = L.divIcon({
+                            className: 'can-metar-chip',
+                            html: '<div style="background:' + color + ';color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">' + cat + '</div>',
+                            iconSize: null, iconAnchor: [40, 8]
+                        });
+                        return L.marker(latlng, { icon: icon, interactive: true });
+                    }
+                }),
+                buildPopup: function(p) {
+                    return canPopup('METAR · ' + (p.station || ''), [
+                        'Category: ' + (p.category || 'N/A'),
+                        'Wind: ' + (p.windDirDeg != null ? p.windDirDeg + '° @ ' + p.windKt + 'kt' : 'N/A') + (p.windGustKt ? ' G' + p.windGustKt : ''),
+                        'Visibility: ' + (p.visibilitySm != null ? p.visibilitySm + ' SM' : 'N/A'),
+                        'Ceiling: ' + (p.ceilingFt != null ? p.ceilingFt + ' ft' : 'N/A'),
+                        'Temp/Dewpoint: ' + (p.tempC != null ? p.tempC + '°C / ' + p.dewpointC + '°C' : 'N/A'),
+                        'Altimeter: ' + (p.altimeterInHg != null ? p.altimeterInHg + ' inHg' : 'N/A'),
+                        'Observed: ' + (p.observedAt || 'N/A')
+                    ], p.raw);
+                }
+            };
+
+            canSubLayers.tafs = {
+                kind: 'geojson', path: '/data/tafs.geojson', sourceLabel: 'TAF',
+                visible: false, checkboxId: 'canSubTafs',
+                layer: L.geoJSON(null, {
+                    pointToLayer: function(feature, latlng) {
+                        var icon = L.divIcon({
+                            className: 'can-taf-chip',
+                            html: '<div style="background:#0ea5e9;color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">TAF</div>',
+                            iconSize: null, iconAnchor: [-12, 8]
+                        });
+                        return L.marker(latlng, { icon: icon, interactive: true });
+                    }
+                }),
+                buildPopup: function(p) {
+                    return canPopup('TAF · ' + (p.station || ''), [
+                        'Valid: ' + (p.startValidity || '?') + ' → ' + (p.endValidity || '?')
+                    ], p.raw);
+                }
+            };
+        }
+
+        // Fetch + populate a GeoJSON sub-layer on first show
+        function loadCanGeoJsonIfNeeded(key) {
+            var sub = canSubLayers[key];
+            if (!sub || sub.kind !== 'geojson' || sub._loaded) return;
+            sub._loaded = true;
+            fetch(canUrl(sub.path))
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function(geo) {
+                    if (geo && geo.features) sub.layer.addData(geo);
+                })
+                .catch(function(err) {
+                    console.error('Failed to load Canadian Airspace ' + sub.path + ':', err);
+                    sub._loaded = false; // allow retry next toggle
+                });
+        }
+
+        function showCanDisclaimerIfNeeded(onProceed) {
+            try {
+                if (localStorage.getItem(CAN_DISCLAIMER_KEY) === '1') { onProceed(); return; }
+            } catch(e) {}
+            var overlay = document.getElementById('canDisclaimerOverlay');
+            if (!overlay) { onProceed(); return; }
+            overlay.classList.add('visible');
+            var ackBtn = document.getElementById('canDisclaimerAck');
+            ackBtn.onclick = function() {
+                try { localStorage.setItem(CAN_DISCLAIMER_KEY, '1'); } catch(e) {}
+                overlay.classList.remove('visible');
+                onProceed();
+            };
+        }
+
+        function setCanadianAirspaceVisibility(visible) {
+            var checkbox = document.getElementById('toggleCanadianAirspaceCheckbox');
+            var subList = document.getElementById('canSubLayerList');
+
+            if (visible) {
+                showCanDisclaimerIfNeeded(function() {
+                    showCanadianAirspace = true;
+                    if (checkbox) checkbox.checked = true;
+                    if (subList) subList.style.display = 'block';
+                    if (!map) return;
+                    var prefs = loadCanSubPrefs();
+                    Object.keys(canSubLayers).forEach(function(key) {
+                        var sub = canSubLayers[key];
+                        if (!sub || !sub.layer) return;
+                        if (prefs && prefs.hasOwnProperty(key)) sub.visible = prefs[key];
+                        var cb = document.getElementById(sub.checkboxId);
+                        if (cb) cb.checked = sub.visible;
+                        if (sub.visible) {
+                            if (sub.kind === 'geojson') loadCanGeoJsonIfNeeded(key);
+                            sub.layer.addTo(map);
+                        } else {
+                            map.removeLayer(sub.layer);
+                        }
+                    });
+                    syncCanToggleAllCheckbox();
+                });
+            } else {
+                showCanadianAirspace = false;
+                if (checkbox) checkbox.checked = false;
+                if (subList) subList.style.display = 'none';
+                if (!map) return;
+                Object.keys(canSubLayers).forEach(function(key) {
+                    var sub = canSubLayers[key];
+                    if (sub && sub.layer) map.removeLayer(sub.layer);
+                });
+            }
+        }
+
+        function setCanSubLayerVisibility(key, visible) {
+            var sub = canSubLayers[key];
+            if (!sub) return;
+            sub.visible = visible;
+            var cb = document.getElementById(sub.checkboxId);
+            if (cb) cb.checked = visible;
+            if (!map) return;
+            if (showCanadianAirspace && visible) {
+                if (sub.kind === 'geojson') loadCanGeoJsonIfNeeded(key);
+                if (sub.layer) sub.layer.addTo(map);
+            } else {
+                if (sub.layer) map.removeLayer(sub.layer);
+            }
+            syncCanToggleAllCheckbox();
+            saveCanSubPrefs();
+        }
+
+        function toggleAllCanSubLayers(on) {
+            Object.keys(canSubLayers).forEach(function(key) {
+                var sub = canSubLayers[key];
+                if (!sub) return;
+                sub.visible = on;
+                var cb = document.getElementById(sub.checkboxId);
+                if (cb) cb.checked = on;
+                if (map) {
+                    if (showCanadianAirspace && on) {
+                        if (sub.kind === 'geojson') loadCanGeoJsonIfNeeded(key);
+                        if (sub.layer) sub.layer.addTo(map);
+                    } else {
+                        if (sub.layer) map.removeLayer(sub.layer);
+                    }
+                }
+            });
+            var ta = document.getElementById('canSubToggleAll');
+            if (ta) ta.checked = on;
+            saveCanSubPrefs();
+        }
+
+        function syncCanToggleAllCheckbox() {
+            var allOn = Object.keys(canSubLayers).every(function(key) { return canSubLayers[key].visible; });
+            var ta = document.getElementById('canSubToggleAll');
+            if (ta) ta.checked = allOn;
+        }
+
+        // ==================== Canadian Airspace: stacked click popup ====================
+        // Single popup that cycles through all features overlapping the click point.
+        // The popup stays fixed at the click latlng; only its content + the highlighted
+        // map feature change as the user clicks prev/next.
+
+        var canActivePopup = null;
+        var canActiveFeatures = [];
+        var canActiveIndex = 0;
+        var canActiveHighlightCleanup = null;
+        var CAN_HIGHLIGHT_STYLE = { color: '#06b6d4', weight: 4, opacity: 1 };
+        var CAN_HIGHLIGHT_FILL = { fillColor: '#06b6d4', fillOpacity: 0.18 };
+
+        function handleCanadianMapClick(latlng, origEvt) {
+            if (!showCanadianAirspace || !map) return;
+            // Ignore clicks that originated inside a Leaflet popup (e.g. the
+            // prev/next nav buttons). stopPropagation on those buttons usually
+            // catches this, but Leaflet sometimes still forwards the event.
+            if (origEvt && origEvt.target && typeof origEvt.target.closest === 'function') {
+                if (origEvt.target.closest('.leaflet-popup')) return;
+            }
+            var features = collectCanadianFeatures(latlng);
+            cleanupCanHighlight();
+            if (!features.length) {
+                if (canActivePopup) { map.closePopup(canActivePopup); }
+                return;
+            }
+            canActiveFeatures = features;
+            canActiveIndex = 0;
+            if (canActivePopup) {
+                map.closePopup(canActivePopup);
+            }
+            canActivePopup = L.popup({ closeButton: true, maxWidth: 340, minWidth: 220, autoPan: true })
+                .setLatLng(latlng)
+                .on('remove', function() {
+                    cleanupCanHighlight();
+                    canActiveFeatures = [];
+                    canActiveIndex = 0;
+                    canActivePopup = null;
+                });
+            canActivePopup.openOn(map);
+            renderCanPopupContent();
+        }
+
+        function renderCanPopupContent() {
+            if (!canActivePopup || !canActiveFeatures.length) return;
+            cleanupCanHighlight();
+            var feat = canActiveFeatures[canActiveIndex];
+            var total = canActiveFeatures.length;
+            // Compact footer nav (matches scan2v2 Mirada pattern): single row at the
+            // bottom, prev / counter+label / next. Buttons stop propagation so the
+            // click doesn't bubble up to the map's click handler.
+            var navHtml;
+            if (total > 1) {
+                navHtml = '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;margin-top:6px;padding-top:6px;font-size:11px;color:#6b7280;font-family:system-ui,-apple-system,sans-serif;">'
+                    + '<button type="button" onclick="event.stopPropagation();cycleCanPopup(-1)" style="border:1px solid #d1d5db;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4;">← prev</button>'
+                    + '<span><b>' + (canActiveIndex + 1) + ' of ' + total + '</b> · ' + feat.sourceLabel + '</span>'
+                    + '<button type="button" onclick="event.stopPropagation();cycleCanPopup(1)" style="border:1px solid #d1d5db;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4;">next →</button>'
+                    + '</div>';
+            } else {
+                navHtml = '<div style="font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:6px;padding-top:4px;font-family:system-ui,-apple-system,sans-serif;">' + feat.sourceLabel + '</div>';
+            }
+            canActivePopup.setContent(feat.contentHtml + navHtml);
+            if (typeof feat.applyHighlight === 'function') {
+                canActiveHighlightCleanup = feat.applyHighlight();
+            }
+        }
+
+        window.cycleCanPopup = function(delta) {
+            if (!canActiveFeatures.length) return;
+            canActiveIndex = (canActiveIndex + delta + canActiveFeatures.length) % canActiveFeatures.length;
+            renderCanPopupContent();
+        };
+
+        function cleanupCanHighlight() {
+            if (typeof canActiveHighlightCleanup === 'function') {
+                try { canActiveHighlightCleanup(); } catch(e) {}
+                canActiveHighlightCleanup = null;
+            }
+        }
+
+        function collectCanadianFeatures(latlng) {
+            var out = [];
+            var clickPoint = map.latLngToContainerPoint(latlng);
+            Object.keys(canSubLayers).forEach(function(key) {
+                var sub = canSubLayers[key];
+                if (!sub || !sub.visible || !sub.layer) return;
+                if (sub.kind === 'pmtiles') {
+                    if (typeof sub.layer.queryTileFeaturesDebug !== 'function') return;
+                    try {
+                        var result = sub.layer.queryTileFeaturesDebug(latlng.lng, latlng.lat, 8);
+                        if (result && typeof result.forEach === 'function') {
+                            result.forEach(function(features) {
+                                if (!features || !features.length) return;
+                                features.forEach(function(f) {
+                                    if (f && f.layerName && sub.source && f.layerName !== sub.source) return;
+                                    var rawFeature = (f && f.feature) || f;
+                                    var props = (rawFeature && (rawFeature.props || rawFeature.properties)) || {};
+                                    out.push({
+                                        sourceLabel: sub.sourceLabel,
+                                        contentHtml: sub.buildPopup(props),
+                                        applyHighlight: makePmtilesHighlight(key, props)
+                                    });
+                                });
+                            });
+                        }
+                    } catch(e) {
+                        console.warn('Canadian PMTiles query failed for ' + key, e);
+                    }
+                } else if (sub.kind === 'geojson') {
+                    sub.layer.eachLayer(function(fl) {
+                        if (!fl.feature) return;
+                        var hit = false;
+                        if (typeof fl.getLatLngs === 'function') {
+                            if (fl.getBounds && fl.getBounds().contains(latlng) && pointInLeafletPolygon(fl, latlng)) hit = true;
+                        } else if (typeof fl.getLatLng === 'function') {
+                            var p = map.latLngToContainerPoint(fl.getLatLng());
+                            if (clickPoint.distanceTo(p) < 18) hit = true;
+                        }
+                        if (hit) {
+                            out.push({
+                                sourceLabel: sub.sourceLabel,
+                                contentHtml: sub.buildPopup(fl.feature.properties || {}),
+                                applyHighlight: makeGeoJsonHighlight(fl)
+                            });
+                        }
+                    });
+                }
+            });
+            return out;
+        }
+
+        // PMTiles highlight uses the per-feature symbolizer approach (matches scan2v2 Mirada):
+        // set canSelectedRef, then call layer.rerenderTiles() so protomaps repaints
+        // with the matched feature in cyan. No tile-coord-to-latlng conversion needed —
+        // the renderer already knows where each polygon lives.
+        function makePmtilesHighlight(defKey, props) {
+            return function() {
+                canSelectedRef.defKey = defKey;
+                canSelectedRef.key = canFeatureSelectKey(defKey, props);
+                var sub = canSubLayers[defKey];
+                if (sub && sub.layer && typeof sub.layer.rerenderTiles === 'function') {
+                    try { sub.layer.rerenderTiles(); } catch(e) {}
+                }
+                return function() {
+                    canSelectedRef.defKey = null;
+                    canSelectedRef.key = null;
+                    if (sub && sub.layer && typeof sub.layer.rerenderTiles === 'function') {
+                        try { sub.layer.rerenderTiles(); } catch(e) {}
+                    }
+                };
+            };
+        }
+
+        function makeGeoJsonHighlight(fl) {
+            return function() {
+                if (typeof fl.setStyle !== 'function') return function() {};
+                var orig = {
+                    color: fl.options.color,
+                    weight: fl.options.weight,
+                    opacity: fl.options.opacity,
+                    fillColor: fl.options.fillColor,
+                    fillOpacity: fl.options.fillOpacity,
+                    dashArray: fl.options.dashArray
+                };
+                fl.setStyle(CAN_HIGHLIGHT_STYLE);
+                if (typeof fl.bringToFront === 'function') {
+                    try { fl.bringToFront(); } catch(e) {}
+                }
+                return function() {
+                    if (fl && fl._map) {
+                        try { fl.setStyle(orig); } catch(e) {}
+                    }
+                };
+            };
+        }
+
+        // Point-in-polygon ray-cast against Leaflet polygon (handles single + multipolygon)
+        function pointInLeafletPolygon(polyLayer, latlng) {
+            var latlngs = polyLayer.getLatLngs();
+            if (!latlngs || !latlngs.length) return false;
+            var rings = flattenRings(latlngs);
+            for (var i = 0; i < rings.length; i++) {
+                if (rayCastLatLng(rings[i], latlng)) return true;
+            }
+            return false;
+        }
+        function flattenRings(latlngs) {
+            // Leaflet polygons can be:
+            //   [latlng, ...]                  — single ring
+            //   [[latlng, ...], ...]           — polygon with holes
+            //   [[[latlng, ...], ...], ...]    — multipolygon
+            var rings = [];
+            function walk(arr) {
+                if (!arr.length) return;
+                if (typeof arr[0].lat === 'number') {
+                    rings.push(arr);
+                } else {
+                    for (var i = 0; i < arr.length; i++) walk(arr[i]);
+                }
+            }
+            walk(latlngs);
+            return rings;
+        }
+        function rayCastLatLng(ring, latlng) {
+            var x = latlng.lng, y = latlng.lat, inside = false;
+            for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                var xi = ring[i].lng, yi = ring[i].lat;
+                var xj = ring[j].lng, yj = ring[j].lat;
+                var intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
         }
 
         // ==================== Share Map View ====================
