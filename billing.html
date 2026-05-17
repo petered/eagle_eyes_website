@@ -1,0 +1,491 @@
+---
+layout: account-area
+title: Billing - Eagle Eyes
+permalink: /account/billing/
+heading: Billing
+active: billing
+---
+<style>
+    .billing-page { max-width: 820px; }
+    .billing-intro {
+        color: #555;
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0 0 24px 0;
+    }
+    .billing-card {
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+    }
+    .billing-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .billing-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #222;
+        margin: 0;
+    }
+    .billing-card-sub {
+        font-size: 13px;
+        color: #777;
+        margin: 2px 0 0 0;
+    }
+    .billing-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        margin-top: 6px;
+    }
+    .billing-meta-item .label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #888;
+    }
+    .billing-meta-item .value {
+        font-size: 14px;
+        color: #222;
+        margin-top: 2px;
+    }
+    .billing-owner-line {
+        display: block;
+        line-height: 1.6;
+    }
+    .billing-you-pill {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #1077dc;
+        background: #e8f3ff;
+        border-radius: 999px;
+    }
+    .billing-account-picker-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+        font-size: 13px;
+        color: #555;
+    }
+    .billing-account-picker-row select {
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: #fff;
+        font: inherit;
+    }
+    .billing-balance {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 4px 0 6px 0;
+    }
+    .billing-balance-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+    .billing-balance-meta {
+        font-size: 13px;
+        color: #777;
+    }
+    .billing-pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(46, 155, 110, 0.12);
+        color: #1f7a52;
+    }
+    .billing-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(30, 144, 255, 0.10);
+        color: #1565c0;
+    }
+    .billing-btn {
+        display: inline-block;
+        padding: 10px 18px;
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .billing-btn:hover { background: #1077dc; color: #fff; text-decoration: none; }
+    .billing-btn.secondary {
+        background: #fff;
+        color: #1e90ff;
+        border: 1px solid #1e90ff;
+    }
+    .billing-btn.secondary:hover { background: #e8f3ff; }
+    .billing-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+    .billing-empty {
+        font-size: 13px;
+        color: #888;
+        font-style: italic;
+        padding: 10px 0;
+    }
+    .billing-loading { color: #777; font-size: 14px; padding: 30px 0; }
+    .billing-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
+</style>
+
+<div class="billing-page">
+    <div id="billingLoading" class="billing-loading" style="text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
+        <div class="spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e90ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <p style="margin-top: 16px; color: #888;">Loading your billing details…</p>
+    </div>
+
+    <div id="billingSignedOut" class="billing-signed-out" style="display: none;">
+        Sign in to view your billing details.
+    </div>
+
+    <div id="billingContent" style="display: none;">
+
+        <!-- Account-owners + funds info has moved to /account/ (Overview).
+             Billing keeps just the actual billing surfaces: streaming
+             credits, payment method, invoices. -->
+
+        <!-- Streaming credits -->
+        <div class="billing-card">
+            <div class="billing-card-header">
+                <div>
+                    <h3 class="billing-card-title">Streaming credits</h3>
+                    <p class="billing-card-sub">Used when streaming from Eagle Eyes Pilot to other viewers.</p>
+                </div>
+                <a href="{{ '/account/purchase/?mode=streaming' | relative_url }}" class="billing-btn">Buy credits</a>
+            </div>
+            <div id="billingCreditsBody">
+                <div class="billing-balance">
+                    <div class="billing-balance-value" id="billingBalanceValue">—</div>
+                    <div class="billing-balance-meta" id="billingBalanceMeta"></div>
+                </div>
+                <div id="billingBalanceBadges" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;"></div>
+            </div>
+        </div>
+
+        <!-- Payment method -->
+        <div class="billing-card">
+            <div class="billing-card-header">
+                <div>
+                    <h3 class="billing-card-title">Payment method</h3>
+                    <p class="billing-card-sub">Manage your card on file via Stripe's secure portal.</p>
+                </div>
+                <button type="button" id="billingPortalBtn" class="billing-btn secondary" disabled>Manage payment method</button>
+            </div>
+            <div class="billing-empty" id="billingPortalStatus">Available after your first purchase.</div>
+        </div>
+
+        <!-- Invoices -->
+        <div class="billing-card">
+            <div class="billing-card-header">
+                <div>
+                    <h3 class="billing-card-title">Invoices &amp; receipts</h3>
+                    <p class="billing-card-sub">Stripe emails receipts to the account owner after every charge.</p>
+                </div>
+            </div>
+            <div class="billing-empty">
+                A history of charges will appear here once the invoices endpoint ships.
+                In the meantime, search your inbox for "Stripe" or the account-owner email
+                for receipts.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var state = {
+        accounts: [],
+        organizations: [],
+        licenses: [],
+        activeAccountId: null,
+        credits: null
+    };
+
+    function $(id) { return document.getElementById(id); }
+
+    function getHostUrl() {
+        return window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+    }
+
+    async function apiCall(endpoint, body, method) {
+        var user = firebase.auth().currentUser;
+        if (!user) throw new Error('Not signed in');
+        var idToken = await user.getIdToken();
+        var m = method || (body ? 'POST' : 'GET');
+        var init = {
+            method: m,
+            headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
+        };
+        if (m !== 'GET' && m !== 'HEAD') {
+            init.headers['Content-Type'] = 'application/json';
+            init.body = JSON.stringify(body || {});
+        }
+        var r = await fetch(getHostUrl() + '/' + endpoint, init);
+        var text = await r.text();
+        var data = {};
+        if (text) { try { data = JSON.parse(text); } catch (e) { data = { message: text }; } }
+        if (!r.ok) {
+            var err = new Error((data && (data.message || data.error)) || ('Request failed (' + r.status + ')'));
+            err.status = r.status;
+            err.data = data;
+            err.bodyText = text;
+            throw err;
+        }
+        return data;
+    }
+
+    // Shared sessionStorage key for the user's selected active account, so the
+    // picker stays consistent between /account/billing/ and /account/streaming/.
+    function activeAccountStorageKey(uid) { return 'ee-active-account:' + uid; }
+    function readActiveAccount(uid) {
+        try { return sessionStorage.getItem(activeAccountStorageKey(uid)); } catch (e) { return null; }
+    }
+    function writeActiveAccount(uid, id) {
+        try { sessionStorage.setItem(activeAccountStorageKey(uid), String(id)); } catch (e) {}
+    }
+
+    async function loadDashboard(user) {
+        if (window.eeDashboard) {
+            var cached = window.eeDashboard.read(user.uid);
+            if (cached) {
+                window.eeDashboard.fetch(user).catch(function() {}); // revalidate
+                return cached;
+            }
+            return window.eeDashboard.fetch(user);
+        }
+        return apiCall('get_account_dashboard');
+    }
+
+    async function loadCredits(accountId) {
+        try {
+            return await apiCall('get_streaming_credits', { account_id: accountId });
+        } catch (err) {
+            console.warn('get_streaming_credits failed:', err);
+            return null;
+        }
+    }
+
+    function accountIdOf(a) {
+        return (a.account_id != null) ? a.account_id : a.id;
+    }
+
+    // Normalize expiry_date into epoch milliseconds. Tolerates ISO strings,
+    // epoch seconds, epoch ms, or null. Returns null for missing/invalid.
+    function expiryToTs(expiry) {
+        if (expiry == null || expiry === '') return null;
+        if (typeof expiry === 'number') {
+            return expiry < 1e12 ? expiry * 1000 : expiry;
+        }
+        var d = new Date(expiry);
+        var t = d.getTime();
+        return isNaN(t) ? null : t;
+    }
+
+    // Best license-expiry timestamp across all licenses funded by `account`.
+    // Used to pick the "freshest" account as the default — almost always the
+    // one the user is actively managing.
+    function maxExpiryForAccount(account) {
+        var orgIds = (account && account.organization_ids) || [];
+        var licIdsForThisAccount = {};
+        // Collect license_ids from orgs this account funds.
+        state.organizations.forEach(function(o) {
+            if (orgIds.indexOf(o.org_id) === -1) return;
+            (o.licenses || []).forEach(function(l) {
+                if (l && l.license_id) licIdsForThisAccount[l.license_id] = true;
+            });
+        });
+        var bestTs = null;
+        state.licenses.forEach(function(lic) {
+            if (!licIdsForThisAccount[lic.license_id]) return;
+            var t = expiryToTs(lic.expiry_date);
+            if (t != null && (bestTs == null || t > bestTs)) bestTs = t;
+        });
+        return bestTs;
+    }
+
+    function pickDefaultAccountId() {
+        if (!state.accounts.length) return null;
+        if (state.accounts.length === 1) return accountIdOf(state.accounts[0]);
+        var bestAcc = null;
+        var bestTs = null;
+        state.accounts.forEach(function(a) {
+            var ts = maxExpiryForAccount(a);
+            if (ts != null && (bestTs == null || ts > bestTs)) {
+                bestTs = ts;
+                bestAcc = a;
+            }
+        });
+        return bestAcc ? accountIdOf(bestAcc) : accountIdOf(state.accounts[0]);
+    }
+
+    function findActiveAccount() {
+        if (!state.accounts.length) return null;
+        return state.accounts.find(function(a) {
+            return String(accountIdOf(a)) === String(state.activeAccountId);
+        }) || state.accounts[0];
+    }
+
+    function orgNamesForAccount(account) {
+        var ids = (account && account.organization_ids) || [];
+        if (!ids.length) return [];
+        return state.organizations
+            .filter(function(o) { return ids.indexOf(o.org_id) !== -1; })
+            .map(function(o) { return o.name || 'Organization'; });
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Account-owner + funds info moved to /account/ (Overview). Billing now
+    // only renders billing-specific surfaces (credits, payment, invoices).
+    function renderAccountSummary() { /* no-op */ }
+
+    function renderCreditsCard() {
+        var valEl = $('billingBalanceValue');
+        var metaEl = $('billingBalanceMeta');
+        var badgesEl = $('billingBalanceBadges');
+        badgesEl.innerHTML = '';
+        if (!state.credits) {
+            valEl.textContent = '—';
+            metaEl.textContent = 'Balance unavailable.';
+            return;
+        }
+        var c = state.credits;
+        if (c.unlimited_active) {
+            valEl.textContent = 'Annual Unlimited';
+            var until = c.unlimited_until ? new Date(c.unlimited_until * 1000).toLocaleDateString() : '';
+            metaEl.textContent = until ? 'Active until ' + until : 'Active';
+            badgesEl.innerHTML = '<span class="billing-pill">Active</span>';
+            return;
+        }
+        var dollars = (c.streaming_credits_dollars || 0).toFixed(2);
+        var minutes = Math.floor(c.streaming_credits_minutes || 0);
+        var rate = (typeof c.per_minute_rate_usd === 'number') ? c.per_minute_rate_usd : 0.05;
+        valEl.textContent = '$' + dollars;
+        metaEl.textContent = minutes.toLocaleString() + ' minutes · $' + rate.toFixed(2) + ' / minute';
+        if (c.free_first_hour_available) {
+            badgesEl.innerHTML = '<span class="billing-badge">First hour free</span>';
+        }
+    }
+
+    // The account picker lives in the page-title dropdown (see
+    // account-page-title.html). It writes to sessionStorage and dispatches
+    // `accountScopeChanged`; we listen below and re-fetch credits.
+    async function applyActiveAccount(user, newId) {
+        if (!newId) return;
+        state.activeAccountId = String(newId);
+        renderAccountSummary();
+        state.credits = await loadCredits(state.activeAccountId);
+        renderCreditsCard();
+    }
+
+    async function initSignedIn(user) {
+        $('billingLoading').style.display = '';
+        $('billingSignedOut').style.display = 'none';
+        $('billingContent').style.display = 'none';
+
+        var dash;
+        try {
+            dash = await loadDashboard(user);
+        } catch (err) {
+            console.error('Dashboard load failed:', err);
+            // Replace the spinner with an error message; innerHTML wipes the
+            // spinner markup so we don't leave it spinning behind text.
+            $('billingLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">Couldn\'t load your billing details. Please refresh.</p>';
+            return;
+        }
+        state.accounts = (dash && dash.accounts) || [];
+        state.organizations = (dash && dash.organizations) || [];
+        state.licenses = (dash && dash.license_overview) || [];
+
+        if (!state.accounts.length) {
+            $('billingLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">No account found — visit <a href="/account/" style="color: #1e90ff;">/account/</a> to set up.</p>';
+            $('billingLoading').style.display = '';
+            $('billingContent').style.display = 'none';
+            return;
+        }
+
+        // Prefer the previously selected account from sessionStorage so the
+        // billing and streaming pages stay in sync. Otherwise default to the
+        // account whose licenses have the latest expiry — that's almost
+        // always the one the user is actively managing.
+        var stored = readActiveAccount(user.uid);
+        var storedMatches = stored && state.accounts.some(function(a) {
+            return String(accountIdOf(a)) === String(stored);
+        });
+        var defaultId = pickDefaultAccountId();
+        state.activeAccountId = storedMatches ? stored : String(defaultId);
+        writeActiveAccount(user.uid, state.activeAccountId);
+
+        // Reuse credits from the dashboard if it matches the active account;
+        // otherwise fetch. The dashboard's streaming_credits is for the
+        // backend-picked "primary" account (usually accounts[0]), which may
+        // differ from our latest-expiry pick — so check both.
+        var dashAccountId = accountIdOf(state.accounts[0]);
+        if (dash.streaming_credits && String(state.activeAccountId) === String(dashAccountId)) {
+            state.credits = dash.streaming_credits;
+        } else {
+            state.credits = await loadCredits(state.activeAccountId);
+        }
+
+        $('billingLoading').style.display = 'none';
+        $('billingContent').style.display = '';
+        renderAccountSummary();
+        renderCreditsCard();
+    }
+
+    function initSignedOut() {
+        $('billingLoading').style.display = 'none';
+        $('billingContent').style.display = 'none';
+        $('billingSignedOut').style.display = '';
+    }
+
+    function applyAuth(user) {
+        if (user) initSignedIn(user);
+        else initSignedOut();
+    }
+
+    document.addEventListener('authStateChanged', function(e) {
+        applyAuth(e.detail && e.detail.user);
+    });
+
+    // Page-title dropdown changes the active account — refresh credits + summary.
+    document.addEventListener('accountScopeChanged', function(e) {
+        if (!e.detail || e.detail.scope !== 'account') return;
+        try {
+            var u = firebase.auth().currentUser;
+            if (u) applyActiveAccount(u, e.detail.id);
+        } catch (err) { /* ignore */ }
+    });
+
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+            var current = firebase.auth().currentUser;
+            if (current) applyAuth(current);
+        } catch (e) { /* ignore */ }
+    }
+})();
+</script>
