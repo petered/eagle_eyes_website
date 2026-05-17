@@ -909,21 +909,33 @@
             this.style.display = 'none'; // Hide only the Purchase License button
         });
         
-        // Paid plan button (after device selection)
+        // Paid plan button (after device selection).
+        // Signed-in users → /account/purchase/?mode=new&device_count=N
+        //   (shows the new unified purchase page with Buy now / Invoice / Quote).
+        // Signed-out users → /account/?reason=purchase&device_count=N
+        //   (existing legacy path: sign-in overlay, then Stripe Checkout).
         paidButton.addEventListener('click', function() {
-                        const deviceCount = this.getAttribute('data-device-count');
-                        
-                        // Create a URL that includes device count information
-                        const url = new URL(getUrlWithEmulatorParam('{{ "/account/?reason=purchase" | relative_url }}'), window.location.origin);
-                        url.searchParams.set('device_count', deviceCount);
-                        
-                        // Add machine_id if present in current URL
-                        const currentMachineId = new URLSearchParams(window.location.search).get('machine_id');
-                        if (currentMachineId) {
-                            url.searchParams.set('machine_id', currentMachineId);
-                        }
-                        
-                        window.location.href = url.toString();
+            const deviceCount = this.getAttribute('data-device-count');
+            let signedIn = false;
+            try {
+                signedIn = !!(typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+            } catch (e) { /* firebase not initialised on this page */ }
+
+            const target = signedIn
+                ? '{{ "/account/purchase/" | relative_url }}'
+                : '{{ "/account/?reason=purchase" | relative_url }}';
+            const url = new URL(getUrlWithEmulatorParam(target), window.location.origin);
+            if (signedIn) {
+                url.searchParams.set('mode', 'new');
+                url.searchParams.set('device_count', deviceCount);
+            } else {
+                url.searchParams.set('device_count', deviceCount);
+            }
+
+            const currentMachineId = new URLSearchParams(window.location.search).get('machine_id');
+            if (currentMachineId) url.searchParams.set('machine_id', currentMachineId);
+
+            window.location.href = url.toString();
         });
     });
     

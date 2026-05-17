@@ -1,0 +1,778 @@
+---
+layout: account-area
+title: Streaming Credits - Eagle Eyes
+permalink: /account/streaming/
+heading: Streaming credits
+active: billing
+---
+<style>
+    .streaming-intro {
+        max-width: 720px;
+        color: #555;
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0 0 22px 0;
+    }
+    .streaming-current {
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .streaming-current-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #888;
+        font-weight: 600;
+    }
+    .streaming-current-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #222;
+    }
+    .streaming-current-meta { font-size: 13px; color: #666; }
+    .streaming-current-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: #fff3cd;
+        color: #8a6d3b;
+    }
+    .streaming-current-pill {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 14px;
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .account-picker-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+    .account-picker-row label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+    }
+    .account-picker-row select {
+        padding: 8px 30px 8px 12px;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        font-size: 14px;
+        background: #fff;
+        min-width: 240px;
+    }
+
+    .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+    .pricing-card {
+        background: #fff;
+        border: 1px solid #e3e6ea;
+        border-radius: 12px;
+        padding: 24px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        position: relative;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .pricing-card:hover {
+        border-color: #d0d7de;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }
+    .pricing-card.featured {
+        border: 2px solid #1e90ff;
+        box-shadow: 0 4px 18px rgba(30,144,255,0.10);
+    }
+    .pricing-card-badge {
+        position: absolute;
+        top: -10px;
+        right: 18px;
+        background: #1e90ff;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 10px;
+        letter-spacing: 0.4px;
+    }
+    .pricing-card-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #444;
+        margin: 0;
+    }
+    .pricing-card-price {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a1a2e;
+        line-height: 1.1;
+    }
+    .pricing-card-price-sub {
+        font-size: 13px;
+        color: #666;
+        margin-top: -4px;
+    }
+    .pricing-card-desc {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.55;
+        margin: 6px 0 0 0;
+        flex: 1 1 auto;
+    }
+    .pricing-card-cta {
+        margin-top: 14px;
+    }
+    .pricing-amount-input {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .pricing-amount-input .dollar {
+        font-size: 18px;
+        font-weight: 700;
+        color: #444;
+    }
+    .pricing-amount-input input {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 8px 10px;
+        font-size: 16px;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    .pricing-amount-input input:focus {
+        outline: none;
+        border-color: #1e90ff;
+        box-shadow: 0 0 0 3px rgba(30,144,255,0.15);
+    }
+    .pricing-cta-btn {
+        width: 100%;
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        padding: 12px 16px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background-color 0.15s;
+    }
+    .pricing-cta-btn:hover:not(:disabled) { background: #1873cc; }
+    .pricing-cta-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .pricing-cta-btn.secondary {
+        background: #fff;
+        color: #1e90ff;
+        border: 1.5px solid #1e90ff;
+    }
+    .pricing-cta-btn.secondary:hover:not(:disabled) { background: #f0f7ff; }
+
+    .pricing-card-status {
+        margin-top: 8px;
+        font-size: 13px;
+        min-height: 16px;
+    }
+    .pricing-card-status.error { color: #c0392b; }
+    .pricing-card-status.success { color: #27ae60; }
+
+    .streaming-no-license {
+        background: #fff8e7;
+        border: 1px solid #f5d99b;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 18px;
+        font-size: 14px;
+        color: #6b4f00;
+    }
+    .streaming-no-license strong { color: #6b4f00; }
+    .streaming-no-license a { color: #1e90ff; font-weight: 600; }
+
+    .streaming-loading {
+        padding: 40px 0;
+        text-align: center;
+        color: #999;
+    }
+    .streaming-signed-out {
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        padding: 40px 24px;
+        text-align: center;
+    }
+
+    @media (max-width: 900px) {
+        .pricing-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<p class="streaming-intro">
+    Streaming credits are deducted at <strong>$<span data-rate-per-minute>0.05</span> / minute</strong> while you stream from Eagle Eyes Pilot to other viewers.
+    Pick a top-up that fits how you fly — pay only for what you stream, or get a 20% bonus on the Pro bundle.
+</p>
+
+<div id="streamingLoading" class="streaming-loading">Loading your account…</div>
+
+<div id="streamingSignedOut" class="streaming-signed-out" style="display: none;">
+    <p style="color: #555; margin-bottom: 18px;">Sign in to buy streaming credits.</p>
+    <a href="{{ '/account/' | relative_url }}" class="pricing-cta-btn" style="display: inline-block; max-width: 240px; text-decoration: none;">Sign In</a>
+</div>
+
+<div id="streamingContent" style="display: none;">
+    <div id="streamingNoLicense" class="streaming-no-license" style="display: none;">
+        <strong>Buying credits requires an active Eagle Eyes license on this account.</strong>
+        Renew or purchase a license first, then come back here.
+        <a href="{{ '/pricing/' | relative_url }}">Get a license &rarr;</a>
+    </div>
+
+    <div id="streamingCurrent" class="streaming-current" style="display: none;">
+        <div>
+            <div class="streaming-current-label">Current balance</div>
+            <div class="streaming-current-value" id="streamingCurrentValue">$0.00</div>
+            <div class="streaming-current-meta" id="streamingCurrentMeta">0 minutes available</div>
+        </div>
+        <div id="streamingCurrentBadges" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+    </div>
+
+    <!-- Active account is shown in the page-title dropdown above (managed
+         by _includes/account-page-title.html). The confirm() dialog before
+         Stripe redirect echoes the active account name for one last sanity
+         check. -->
+
+
+    <div class="pricing-grid">
+        <!-- Pay-As-You-Go -->
+        <div class="pricing-card">
+            <h3 class="pricing-card-name">Pay as you go</h3>
+            <div class="pricing-card-price">$<span data-rate-per-minute>0.05</span><span style="font-size: 13px; font-weight: 400; color: #666;"> / minute</span></div>
+            <p class="pricing-card-desc">Top up any amount you'd like. Credits never expire as long as you have an active license. Minimum $<span data-package-payg-min>25</span>.</p>
+            <div class="pricing-card-cta">
+                <form id="paygForm" onsubmit="return buyPayg(event)">
+                    <div class="pricing-amount-input">
+                        <span class="dollar">$</span>
+                        <input type="number" id="paygAmount" min="25" step="1" value="50" required>
+                    </div>
+                    <button type="submit" class="pricing-cta-btn" id="paygSubmit">
+                        Buy <span id="paygAmountLabel">$50</span> in credits
+                    </button>
+                </form>
+                <div id="paygStatus" class="pricing-card-status"></div>
+            </div>
+        </div>
+
+        <!-- Pro Bundle -->
+        <div class="pricing-card featured">
+            <span class="pricing-card-badge" data-package-bundle-bonus-label>20% bonus</span>
+            <h3 class="pricing-card-name">Pro Bundle</h3>
+            <div class="pricing-card-price">$<span data-package-bundle-price>500</span></div>
+            <div class="pricing-card-price-sub">→ $<span data-package-bundle-credits>600</span> in credits</div>
+            <p class="pricing-card-desc">Best value for active users. Save <span data-package-bundle-bonus-label>20%</span> over pay-as-you-go. Same minute rate, more minutes.</p>
+            <div class="pricing-card-cta">
+                <button type="button" class="pricing-cta-btn" id="bundleSubmit" onclick="buyProBundle()">Buy Pro Bundle</button>
+                <div id="bundleStatus" class="pricing-card-status"></div>
+            </div>
+        </div>
+
+        <!-- Annual Unlimited -->
+        <div class="pricing-card">
+            <h3 class="pricing-card-name">Annual Unlimited</h3>
+            <div class="pricing-card-price">$<span data-package-unlimited-price>1,200</span><span style="font-size: 13px; font-weight: 400; color: #666;"> / year</span></div>
+            <div class="pricing-card-price-sub">aligned to your license</div>
+            <p class="pricing-card-desc">Unlimited streaming for the rest of your license term. Great for SAR teams that stream often.</p>
+            <div class="pricing-card-cta">
+                <button type="button" class="pricing-cta-btn secondary" id="unlimitedSubmit" onclick="subscribeUnlimited()">Subscribe</button>
+                <div id="unlimitedStatus" class="pricing-card-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <p style="font-size: 12px; color: #888; text-align: center; margin: 12px 0 0 0;">
+        Secure payments via Stripe. Credits are added to your account immediately after checkout completes.
+    </p>
+</div>
+
+<script>
+    (function() {
+        var API_BASE = (window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net') + '/';
+
+        // Cached state populated after auth + dashboard load.
+        var state = {
+            accounts: [],
+            organizations: [],
+            licenses: [],
+            activeAccountId: null,
+            credits: null  // get_streaming_credits response
+        };
+
+        function $(id) { return document.getElementById(id); }
+
+        function setStatus(id, msg, type) {
+            var el = $(id);
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = 'pricing-card-status' + (type ? ' ' + type : '');
+        }
+
+        function getIdToken(force) {
+            var user = firebase.auth().currentUser;
+            if (!user) return Promise.reject(new Error('Not signed in'));
+            return user.getIdToken(!!force);
+        }
+
+        async function apiCall(endpoint, body, method) {
+            var token = await getIdToken();
+            var httpMethod = method || 'POST';
+            var init = {
+                method: httpMethod,
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+            };
+            if (httpMethod !== 'GET' && httpMethod !== 'HEAD') {
+                init.body = JSON.stringify(body || {});
+            }
+            var r = await fetch(API_BASE + endpoint, init);
+            var text = await r.text();
+            var data = null;
+            if (text) { try { data = JSON.parse(text); } catch (e) { /* not JSON */ } }
+            if (!r.ok) {
+                var err = new Error((data && (data.error || data.message)) || text || 'Request failed');
+                err.status = r.status;
+                err.data = data;
+                err.bodyText = text;
+                throw err;
+            }
+            return data;
+        }
+
+        // Try the bundled get_account_dashboard first (one round-trip for
+        // accounts + license_overview + everything else). Uses the shared
+        // sessionStorage cache (window.eeDashboard) so navigation from
+        // /account/* renders instantly. Fall back to the parallel legacy
+        // endpoints if it fails for any reason.
+        async function loadAccountAndLicenses() {
+            try {
+                var user = firebase.auth().currentUser;
+                var dash;
+                if (user && window.eeDashboard) {
+                    // Use cache if fresh, otherwise fetch (dedupes in-flight).
+                    dash = window.eeDashboard.read(user.uid)
+                        || await window.eeDashboard.fetch(user);
+                } else {
+                    dash = await apiCall('get_account_dashboard', null, 'GET');
+                }
+                if (dash) {
+                    state._initialCredits = dash.streaming_credits || null;
+                    // Forward-compat: if/when the dashboard returns the
+                    // package config, stash it so applyPackageConfig can
+                    // render dynamic prices without a separate roundtrip.
+                    state._initialPackages = dash.streaming_packages || null;
+                    return {
+                        accounts: dash.accounts || [],
+                        organizations: dash.organizations || [],
+                        licenses: dash.license_overview || []
+                    };
+                }
+            } catch (err) {
+                console.warn('get_account_dashboard failed, falling back', err);
+            }
+            // Legacy fallback.
+            var accountsP = apiCall('get_my_accounts', null, 'GET').catch(function() { return { accounts: [] }; });
+            var licP = apiCall('get_license_overview', null, 'GET').catch(function() { return { overview: [] }; });
+            var orgsP = apiCall('get_my_organization', null, 'GET').catch(function() { return { organizations: [] }; });
+            var results = await Promise.all([accountsP, licP, orgsP]);
+            return {
+                accounts: (results[0] && results[0].accounts) || [],
+                licenses: (results[1] && results[1].overview) || [],
+                organizations: (results[2] && results[2].organizations) || []
+            };
+        }
+
+        // Pick the account whose licenses have the latest expiry — almost
+        // always the one the user is actively managing. Mirrors the same
+        // logic on /account/billing/. Called when sessionStorage has no
+        // prior selection.
+        function expiryToTs(expiry) {
+            if (expiry == null || expiry === '') return null;
+            if (typeof expiry === 'number') {
+                return expiry < 1e12 ? expiry * 1000 : expiry;
+            }
+            var d = new Date(expiry);
+            var t = d.getTime();
+            return isNaN(t) ? null : t;
+        }
+        function accountIdOf(a) {
+            return (a.account_id != null) ? a.account_id : a.id;
+        }
+        function maxExpiryForAccount(account) {
+            var orgIds = (account && account.organization_ids) || [];
+            var licIds = {};
+            state.organizations.forEach(function(o) {
+                if (orgIds.indexOf(o.org_id) === -1) return;
+                (o.licenses || []).forEach(function(l) {
+                    if (l && l.license_id) licIds[l.license_id] = true;
+                });
+            });
+            var bestTs = null;
+            state.licenses.forEach(function(lic) {
+                if (!licIds[lic.license_id]) return;
+                var t = expiryToTs(lic.expiry_date);
+                if (t != null && (bestTs == null || t > bestTs)) bestTs = t;
+            });
+            return bestTs;
+        }
+        function pickDefaultAccountId() {
+            if (!state.accounts.length) return null;
+            if (state.accounts.length === 1) return accountIdOf(state.accounts[0]);
+            var bestAcc = null, bestTs = null;
+            state.accounts.forEach(function(a) {
+                var ts = maxExpiryForAccount(a);
+                if (ts != null && (bestTs == null || ts > bestTs)) {
+                    bestTs = ts;
+                    bestAcc = a;
+                }
+            });
+            return bestAcc ? accountIdOf(bestAcc) : accountIdOf(state.accounts[0]);
+        }
+
+        async function loadCredits(accountId) {
+            try {
+                return await apiCall('get_streaming_credits', { account_id: accountId });
+            } catch (err) {
+                console.warn('get_streaming_credits failed:', err);
+                return null;
+            }
+        }
+
+        // Package config is keyed by package id. Expected shape:
+        //   { payg:        { min_amount_usd },
+        //     pro_bundle:  { price_usd, credits_usd },
+        //     unlimited:   { annual_price_usd } }
+        // Falls through silently if no source provides it; the hardcoded
+        // markup remains the visible default.
+        async function loadPackageConfig() {
+            // 1. Forward-compat: dashboard may include `streaming_packages`.
+            if (state._initialPackages) return state._initialPackages;
+            // 2. Dedicated endpoint, if/when it ships. Silently swallow any
+            //    error (including 404) so a missing endpoint is invisible.
+            try {
+                var resp = await apiCall('get_streaming_packages', null, 'GET');
+                if (resp && resp.packages) return resp.packages;
+                if (resp && (resp.payg || resp.pro_bundle || resp.unlimited)) return resp;
+            } catch (e) { /* endpoint not deployed yet — ignore */ }
+            return null;
+        }
+
+        function formatUsd(v) {
+            if (typeof v !== 'number' || isNaN(v)) return null;
+            // Integer dollars: no decimals; fractional: 2 decimals.
+            return Math.abs(v - Math.round(v)) < 1e-9
+                ? Math.round(v).toLocaleString()
+                : v.toFixed(2);
+        }
+
+        function setBinding(attr, value) {
+            if (value == null) return;
+            document.querySelectorAll('[' + attr + ']').forEach(function(el) {
+                el.textContent = value;
+            });
+        }
+
+        function applyPackageConfig(pkgs) {
+            if (!pkgs) return;
+            var payg = pkgs.payg || {};
+            var bundle = pkgs.pro_bundle || pkgs.bundle || {};
+            var unlim = pkgs.unlimited || pkgs.annual_unlimited || {};
+
+            // PAYG minimum top-up. Drives both the displayed text and the
+            // <input min=""> so users can't type a sub-minimum amount.
+            if (typeof payg.min_amount_usd === 'number') {
+                var minStr = formatUsd(payg.min_amount_usd);
+                setBinding('data-package-payg-min', minStr);
+                var paygInput = $('paygAmount');
+                if (paygInput) {
+                    paygInput.min = String(payg.min_amount_usd);
+                    if (parseFloat(paygInput.value) < payg.min_amount_usd) {
+                        paygInput.value = String(payg.min_amount_usd);
+                        updatePaygLabel();
+                    }
+                }
+            }
+
+            // Pro Bundle price + credits + computed bonus label ("20%").
+            var price = bundle.price_usd;
+            var credits = bundle.credits_usd;
+            setBinding('data-package-bundle-price', formatUsd(price));
+            setBinding('data-package-bundle-credits', formatUsd(credits));
+            if (typeof price === 'number' && typeof credits === 'number' && price > 0) {
+                var bonusPct = Math.round((credits - price) / price * 100);
+                if (bonusPct > 0) setBinding('data-package-bundle-bonus-label', bonusPct + '% bonus');
+            }
+
+            // Annual Unlimited yearly price.
+            setBinding('data-package-unlimited-price', formatUsd(unlim.annual_price_usd));
+        }
+
+        function renderCurrentBalance() {
+            var box = $('streamingCurrent');
+            var valEl = $('streamingCurrentValue');
+            var metaEl = $('streamingCurrentMeta');
+            var badgesEl = $('streamingCurrentBadges');
+            badgesEl.innerHTML = '';
+            if (!state.credits) {
+                box.style.display = 'none';
+                return;
+            }
+            var c = state.credits;
+            // Update any element bound to the per-minute rate (intro paragraph
+            // + PAYG card price) — rate lives in configurations/streaming_policy
+            // and can change without a redeploy.
+            if (typeof c.per_minute_rate_usd === 'number') {
+                var rateStr = c.per_minute_rate_usd.toFixed(2);
+                document.querySelectorAll('[data-rate-per-minute]').forEach(function(el) {
+                    el.textContent = rateStr;
+                });
+            }
+            if (c.unlimited_active) {
+                valEl.textContent = 'Annual Unlimited';
+                var until = c.unlimited_until ? new Date(c.unlimited_until * 1000).toLocaleDateString() : '';
+                metaEl.textContent = until ? 'Active until ' + until : 'Active';
+                badgesEl.innerHTML = '<span class="streaming-current-pill">Active</span>';
+            } else {
+                var dollars = (c.streaming_credits_dollars || 0).toFixed(2);
+                var minutes = Math.floor(c.streaming_credits_minutes || 0);
+                valEl.textContent = '$' + dollars;
+                metaEl.textContent = minutes.toLocaleString() + ' minutes available · $' + (c.per_minute_rate_usd || 0.05).toFixed(2) + ' / minute';
+                if (c.free_first_hour_available) {
+                    badgesEl.innerHTML = '<span class="streaming-current-badge">First hour free</span>';
+                }
+            }
+            box.style.display = '';
+        }
+
+        function activeAccountHasLicense() {
+            // license_overview doesn't expose account_id per license, so we
+            // can only check the coarse "does this user have ANY licenses"
+            // signal. If yes, assume the buy attempt is reasonable; the
+            // server enforces account-level checks and returns 403 with a
+            // friendly message if the account itself has no active license.
+            return (state.licenses || []).length > 0;
+        }
+
+        function renderNoLicenseWarning() {
+            var warning = $('streamingNoLicense');
+            var hasLicense = activeAccountHasLicense();
+            warning.style.display = hasLicense ? 'none' : 'block';
+            // Disable buy buttons if no active license.
+            ['paygSubmit', 'bundleSubmit', 'unlimitedSubmit'].forEach(function(id) {
+                var b = $(id);
+                if (b) b.disabled = !hasLicense;
+            });
+        }
+
+        // Page-title dropdown is the picker; nothing to render here.
+        function renderAccountPicker() { /* no-op */ }
+
+        // When the page-title dropdown switches the active account, refresh
+        // credits for the new account.
+        async function applyActiveAccount(newId) {
+            if (!newId) return;
+            state.activeAccountId = String(newId);
+            state.credits = await loadCredits(state.activeAccountId);
+            renderCurrentBalance();
+            renderNoLicenseWarning();
+        }
+
+        function updatePaygLabel() {
+            var input = $('paygAmount');
+            var label = $('paygAmountLabel');
+            var v = parseFloat(input.value);
+            label.textContent = isNaN(v) ? '$0' : '$' + Math.floor(v);
+        }
+
+        // ---- Buy flows ----
+
+        window.buyPayg = async function(event) {
+            event.preventDefault();
+            var amt = parseFloat($('paygAmount').value);
+            if (isNaN(amt) || amt < 25) {
+                setStatus('paygStatus', 'Minimum top-up is $25.', 'error');
+                return false;
+            }
+            return doBuy('paygSubmit', 'paygStatus', 'top_up_streaming_credits',
+                { account_id: state.activeAccountId, package_id: 'payg', amount_usd: amt });
+        };
+
+        window.buyProBundle = function() {
+            return doBuy('bundleSubmit', 'bundleStatus', 'top_up_streaming_credits',
+                { account_id: state.activeAccountId, package_id: 'pro_bundle' });
+        };
+
+        window.subscribeUnlimited = function() {
+            return doBuy('unlimitedSubmit', 'unlimitedStatus', 'subscribe_to_unlimited',
+                { account_id: state.activeAccountId });
+        };
+
+        function activeAccountName() {
+            if (!state.accounts || !state.accounts.length) return null;
+            var a = state.accounts.find(function(x) {
+                return (x.account_id || x.id) === state.activeAccountId;
+            }) || state.accounts[0];
+            return a && a.name ? a.name : null;
+        }
+
+        async function doBuy(btnId, statusId, endpoint, body) {
+            var btn = $(btnId);
+            var originalLabel = btn ? btn.textContent : '';
+            setStatus(statusId, '');
+
+            // Confirm which account is being credited before redirecting to
+            // Stripe — important for users with more than one funding account
+            // so they don't accidentally charge the wrong one.
+            var name = activeAccountName();
+            if (name && !window.confirm('Crediting "' + name + '". Continue to checkout?')) {
+                return;
+            }
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+
+            try {
+                if (!state.activeAccountId) throw new Error('No account selected');
+                var resp = await apiCall(endpoint, body);
+                if (!resp || !resp.checkout_url) throw new Error('No checkout URL returned');
+                window.location.href = resp.checkout_url;
+            } catch (err) {
+                console.error(endpoint + ' failed:', err);
+                var msg = friendlyError(err);
+                setStatus(statusId, msg, 'error');
+                if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
+            }
+        }
+
+        function friendlyError(err) {
+            var body = (err && err.bodyText) || '';
+            var code = err && err.status;
+            if (code === 403 && /no active license/i.test(body)) {
+                return 'Renew your Eagle Eyes license before buying streaming credits.';
+            }
+            if (code === 403 && /owner only|not the owner/i.test(body)) {
+                return 'Only the account owner can purchase streaming credits.';
+            }
+            if (code === 409 && /already_subscribed|already subscribed/i.test(body)) {
+                return 'This account is already on Annual Unlimited.';
+            }
+            if (code === 400) {
+                return (err.data && (err.data.message || err.data.error)) || err.message || 'Bad request.';
+            }
+            return err.message || 'Something went wrong. Please try again.';
+        }
+
+        async function initSignedIn(user) {
+            $('streamingLoading').style.display = '';
+            $('streamingSignedOut').style.display = 'none';
+            $('streamingContent').style.display = 'none';
+
+            var bundle;
+            try {
+                bundle = await loadAccountAndLicenses();
+            } catch (err) {
+                console.error('Account/license load failed:', err);
+                $('streamingLoading').textContent = 'Couldn\'t load your account. Please refresh.';
+                return;
+            }
+            state.accounts = bundle.accounts;
+            state.organizations = bundle.organizations || [];
+            state.licenses = bundle.licenses;
+
+            if (!state.accounts.length) {
+                $('streamingLoading').style.display = 'none';
+                $('streamingContent').style.display = '';
+                $('streamingNoLicense').style.display = 'block';
+                $('streamingNoLicense').innerHTML =
+                    '<strong>No account found.</strong> ' +
+                    'Visit <a href="{{ "/account/" | relative_url }}">your account</a> first.';
+                return;
+            }
+            // Pick active account, preferring the one the user previously
+            // selected on /account/billing/ so the two surfaces stay in sync.
+            // Otherwise default to the account whose licenses have the latest
+            // expiry — almost always the one the user is actively managing.
+            var dashAccountId = accountIdOf(state.accounts[0]);
+            var stored = null;
+            try { stored = sessionStorage.getItem('ee-active-account:' + user.uid); } catch (e) {}
+            var storedMatches = stored && state.accounts.some(function(a) {
+                return String(accountIdOf(a)) === String(stored);
+            });
+            var defaultId = pickDefaultAccountId();
+            state.activeAccountId = storedMatches ? stored : String(defaultId);
+            try { sessionStorage.setItem('ee-active-account:' + user.uid, String(state.activeAccountId)); } catch (e) {}
+
+            // The bundled dashboard's streaming_credits is for accounts[0]
+            // (backend-picked primary). Reuse only if that's also our pick;
+            // otherwise fetch for the actual active account.
+            if (state._initialCredits && String(state.activeAccountId) === String(dashAccountId)) {
+                state.credits = state._initialCredits;
+            } else {
+                state.credits = await loadCredits(state.activeAccountId);
+            }
+            state._initialCredits = null;
+
+            $('streamingLoading').style.display = 'none';
+            $('streamingContent').style.display = '';
+            renderAccountPicker();
+            renderCurrentBalance();
+            renderNoLicenseWarning();
+
+            // Live update the PAYG button label.
+            var paygInput = $('paygAmount');
+            if (paygInput) {
+                paygInput.addEventListener('input', updatePaygLabel);
+                updatePaygLabel();
+            }
+
+            // Background: fetch package config and rewrite prices. If no
+            // source is available, the hardcoded fallbacks stay rendered.
+            loadPackageConfig().then(applyPackageConfig);
+        }
+
+        function applyAuth(user) {
+            if (user) {
+                initSignedIn(user);
+            } else {
+                $('streamingLoading').style.display = 'none';
+                $('streamingContent').style.display = 'none';
+                $('streamingSignedOut').style.display = '';
+            }
+        }
+
+        document.addEventListener('authStateChanged', function(e) {
+            applyAuth(e.detail && e.detail.user);
+        });
+        document.addEventListener('accountScopeChanged', function(e) {
+            if (!e.detail || e.detail.scope !== 'account') return;
+            applyActiveAccount(e.detail.id);
+        });
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            try { applyAuth(firebase.auth().currentUser); } catch (e) {}
+        }
+    })();
+</script>

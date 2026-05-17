@@ -1,0 +1,243 @@
+<!--
+  Public streaming-credits pricing section. Shown on /pricing/ below the
+  license tiers. Cards mirror the visual style of /account/streaming/
+  (which is the signed-in-only buy page).
+
+  CTAs route to /account/purchase/?mode=streaming&package=X — if the user
+  is signed in, they land directly on the consolidated purchase page; if
+  signed out, /account/ shows the sign-in overlay first and the URL params
+  carry through so the streaming pick is preserved.
+
+  Defaults: PAYG min $25, Pro Bundle $500 → $600 (20% bonus), Annual
+  Unlimited $1,200 / year, per-minute rate $0.06. When the dashboard
+  exposes streaming_packages or per_minute_rate_usd at runtime, the
+  data-attributes below get overwritten with the live values (the
+  authenticated /account/purchase/ page already does this).
+-->
+
+<style>
+    .streaming-pricing-section {
+        width: 80%;
+        margin: 0 auto 4em auto;
+        padding-top: 2em;
+        border-top: 1px solid #ececec;
+    }
+    .streaming-pricing-header {
+        text-align: center;
+        max-width: 720px;
+        margin: 0 auto 28px auto;
+    }
+    .streaming-pricing-header h2 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin: 0 0 10px 0;
+    }
+    .streaming-pricing-header p {
+        font-size: 15px;
+        color: #555;
+        line-height: 1.6;
+        margin: 0;
+    }
+    .streaming-pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+    @media (max-width: 900px) {
+        .streaming-pricing-grid { grid-template-columns: 1fr; }
+        .streaming-pricing-section { width: 92%; }
+    }
+    .sp-card {
+        background: #fff;
+        border: 1px solid #e3e6ea;
+        border-radius: 12px;
+        padding: 26px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        position: relative;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .sp-card:hover {
+        border-color: #d0d7de;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    }
+    .sp-card.featured {
+        border: 2px solid #1e90ff;
+        box-shadow: 0 4px 22px rgba(30,144,255,0.12);
+        transform: translateY(-4px);
+    }
+    .sp-card-badge {
+        position: absolute;
+        top: -11px;
+        right: 18px;
+        background: #1e90ff;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 10px;
+        letter-spacing: 0.4px;
+    }
+    .sp-card-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #444;
+        margin: 0;
+    }
+    .sp-card-price {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a1a2e;
+        line-height: 1.1;
+    }
+    .sp-card-price-sub {
+        font-size: 13px;
+        color: #666;
+        margin-top: -4px;
+    }
+    .sp-card-desc {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.55;
+        margin: 6px 0 0 0;
+        flex: 1 1 auto;
+    }
+    .sp-card-cta {
+        margin-top: 14px;
+    }
+    .sp-cta-btn {
+        display: inline-block;
+        width: 100%;
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        padding: 12px 16px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: inherit;
+        text-decoration: none;
+        text-align: center;
+        transition: background-color 0.15s;
+        box-sizing: border-box;
+    }
+    .sp-cta-btn:hover { background: #1873cc; color: #fff; text-decoration: none; }
+    .sp-cta-btn.secondary {
+        background: #fff;
+        color: #1e90ff;
+        border: 1.5px solid #1e90ff;
+    }
+    .sp-cta-btn.secondary:hover { background: #f0f7ff; color: #1077dc; }
+    .sp-footnote {
+        max-width: 760px;
+        margin: 22px auto 0 auto;
+        text-align: center;
+        font-size: 12px;
+        color: #888;
+        line-height: 1.6;
+    }
+    .sp-footnote a { color: #1e90ff; }
+</style>
+
+<section class="streaming-pricing-section" id="streamingPricing">
+    <div class="streaming-pricing-header">
+        <h2>Streaming credits</h2>
+        <p>
+            Stream live drone footage from Eagle Eyes Pilot to other viewers (incident command, SAR HQ, partner agencies).
+            Pay only for the minutes you stream, or get a bonus on the Pro bundle, or stream unlimited for a year.
+        </p>
+    </div>
+
+    <div class="streaming-pricing-grid">
+        <!-- Pay as you go -->
+        <div class="sp-card">
+            <div class="sp-card-name">Pay as you go</div>
+            <div class="sp-card-price">$<span data-rate-per-minute>0.06</span><span style="font-size: 14px; font-weight: 500; color: #666;"> / minute</span></div>
+            <div class="sp-card-price-sub">No expiry while you have an active license</div>
+            <p class="sp-card-desc">
+                Top up any amount you'd like — pay for exactly the minutes you stream and nothing more.
+                Minimum $<span data-package-payg-min>25</span> per top-up.
+            </p>
+            <div class="sp-card-cta">
+                <a href="#" class="sp-cta-btn" data-streaming-pkg="payg">Buy credits</a>
+            </div>
+        </div>
+
+        <!-- Pro Bundle (featured) -->
+        <div class="sp-card featured">
+            <span class="sp-card-badge" data-package-bundle-bonus-label>20% bonus</span>
+            <div class="sp-card-name">Pro Bundle</div>
+            <div class="sp-card-price">$<span data-package-bundle-price>500</span></div>
+            <div class="sp-card-price-sub">→ $<span data-package-bundle-credits>600</span> in credits</div>
+            <p class="sp-card-desc">
+                The best value for SAR teams that stream regularly. Save <span data-package-bundle-bonus-label>20%</span>
+                over Pay-as-you-go. Same per-minute rate — just more minutes for your money.
+            </p>
+            <div class="sp-card-cta">
+                <a href="#" class="sp-cta-btn" data-streaming-pkg="pro_bundle">Buy Pro Bundle</a>
+            </div>
+        </div>
+
+        <!-- Annual Unlimited -->
+        <div class="sp-card">
+            <div class="sp-card-name">Annual Unlimited</div>
+            <div class="sp-card-price">$<span data-package-unlimited-price>1,200</span><span style="font-size: 14px; font-weight: 500; color: #666;"> / year</span></div>
+            <div class="sp-card-price-sub">Aligned to your license term</div>
+            <p class="sp-card-desc">
+                Stream as much as you want — perfect for teams that fly real missions weekly.
+                Locks in your rate for the rest of your license term.
+            </p>
+            <div class="sp-card-cta">
+                <a href="#" class="sp-cta-btn secondary" data-streaming-pkg="unlimited">Subscribe</a>
+            </div>
+        </div>
+    </div>
+
+    <p class="sp-footnote">
+        Buying streaming credits requires an active Eagle Eyes license on your account.
+        Need a quote, invoice, or NET-30 terms for a department? <a href="mailto:info@eagleeyessearch.com">Get in touch</a>.
+    </p>
+</section>
+
+<script>
+(function() {
+    // Route streaming CTAs to /account/purchase/ with mode=streaming and the
+    // chosen package preselected. Signed-in users land directly on the buy
+    // form; signed-out users go through /account/ first and the params
+    // carry through.
+    var PURCHASE_PATH = '{{ "/account/purchase/" | relative_url }}';
+    var ACCOUNT_PATH = '{{ "/account/" | relative_url }}';
+
+    function isSignedIn() {
+        try {
+            return !!(typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+        } catch (e) { return false; }
+    }
+
+    document.querySelectorAll('[data-streaming-pkg]').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            var pkg = a.getAttribute('data-streaming-pkg');
+            var target;
+            if (isSignedIn()) {
+                target = PURCHASE_PATH + '?mode=streaming&package=' + encodeURIComponent(pkg);
+            } else {
+                // Land on /account/ to sign in; preserve the streaming intent
+                // in the URL so post-signin we know what they were trying to buy.
+                target = ACCOUNT_PATH + '?reason=signin&intent=streaming-' + encodeURIComponent(pkg);
+            }
+            // Preserve emulator / machine_id params if present.
+            var cur = new URLSearchParams(window.location.search);
+            ['is_emulator', 'machine_id'].forEach(function(k) {
+                if (cur.has(k)) target += '&' + k + '=' + encodeURIComponent(cur.get(k));
+            });
+            window.location.href = target;
+        });
+    });
+})();
+</script>
