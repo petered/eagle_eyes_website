@@ -93,6 +93,69 @@ noindex: true
         padding-left: 0.75rem;
         border-left: 3px solid #1e90ff;
     }
+
+    /* Save-target picker for the new org-based config model. */
+    .config-save-picker {
+        margin: 1.5rem 0;
+        padding: 1.4rem 1.5rem;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    .config-save-picker-label {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 1rem;
+    }
+    .config-save-picker-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .config-save-pick-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.8rem 1rem;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    .config-save-pick-row:hover { border-color: #c8d0d6; }
+    .config-save-pick-row.is-active { border-color: #1e90ff; background: #f3f9ff; }
+    .config-save-pick-row input[type="radio"] {
+        flex: 0 0 auto;
+        margin-top: 4px !important;
+        width: auto !important;
+        padding: 0 !important;
+        -webkit-appearance: auto;
+        appearance: auto;
+    }
+    .config-save-pick-row-body { flex: 1 1 auto; min-width: 0; }
+    .config-save-pick-row-name {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        line-height: 1.3;
+    }
+    .config-save-pick-row-hint {
+        font-size: 1.2rem;
+        color: #777;
+        margin-top: 0.2rem;
+    }
+    .config-save-picker-warning {
+        margin-top: 1rem;
+        padding: 0.8rem 1rem;
+        background: #fff8e7;
+        border: 1px solid #f5d99b;
+        color: #6b4f00;
+        font-size: 1.3rem;
+        line-height: 1.45;
+        border-radius: 6px;
+    }
+    .config-save-picker-warning strong { color: #6b4f00; }
     /* Form mode: each section matches the toggle container style */
     .setup-form.form-mode .form-step {
         background: #f8f9fa;
@@ -888,6 +951,12 @@ noindex: true
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    .config-card-org {
+        font-size: 1.25rem;
+        margin-top: 0.4rem;
+    }
+    .config-card-org-team { color: #1077dc; }
+    .config-card-org-personal { color: #888; font-style: italic; }
     .config-card-details {
         margin-top: 1rem;
         padding-top: 0.75rem;
@@ -1211,9 +1280,10 @@ noindex: true
         </p>
     </div>
 
-    <!-- Page header -->
+    <!-- Page header. Title swaps to "Edit configuration" when the user
+         arrives via an edit-config deep link from /account/. -->
     <div class="setup-header" id="setupHeader" style="display: none;">
-        <h1>Saved Configurations</h1>
+        <h1 id="setupHeaderTitle">Saved Configurations</h1>
     </div>
 
     <!-- Mobile recommendation screen (shown before wizard step 1 on mobile) -->
@@ -1314,7 +1384,10 @@ noindex: true
                 Store and share your configuration — like CalTopo map connections, coordinate systems, and procedures — across your devices and teams.
             </p>
             <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="configListSubtitle"></div>
-            <div style="font-size: 12px; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"><strong>License required.</strong> <a href="#" onclick="showLicensePicker('select'); return false;" style="color: #1e90ff;">Select a license</a></div>
+            <!-- License link — populated by loadConfigurations(). Hidden
+                 by default; only shown when the user came from an
+                 activation flow and we have a license_id in hand. -->
+            <div style="display: none; font-size: 12px; color: #999; margin-bottom: 1rem;" id="setupLicenseLink"></div>
             <div id="configListItems"></div>
             <div style="margin-top: 1.5rem;">
                 <button class="setup-btn" onclick="createNewConfiguration()" style="background-color: #28a745; color: white; box-shadow: 0 2px 8px rgba(40,167,69,0.25);">+ New</button>
@@ -1360,6 +1433,19 @@ noindex: true
             </div>
             <div class="form-step-actions">
                 <button class="setup-btn setup-btn-primary" onclick="nextStep()">Next</button>
+            </div>
+        </div>
+
+        <!-- Save-target picker: which organization does this configuration
+             belong to? Configs are team assets now; survive license churn
+             and auto-grant access to new teammates. Populated by
+             renderConfigSavePicker() based on the user's admin-org list. -->
+        <div id="configSavePicker" class="config-save-picker" style="display: none;">
+            <div class="config-save-picker-label">Who can use this configuration?</div>
+            <div id="configSavePickerOptions" class="config-save-picker-options"></div>
+            <div id="configSavePickerWarning" class="config-save-picker-warning" style="display: none;">
+                <strong>Heads up:</strong> anyone on the selected team will be able to use this configuration,
+                including any credentials it contains (CalTopo API keys, TAK creds, etc.).
             </div>
         </div>
 
@@ -1653,12 +1739,33 @@ var caltopoVerifiedData = null; // Stores fetched CalTopo metadata after verific
 var cachedConfigurations = []; // Cached list of user configurations
 var cameFromActivationIntro = false; // True when user reached the form via the activation intro screen
 
+// Org metadata for the save-target picker (new model: configs belong to orgs).
+// Populated by ensureOrgsLoaded() the first time the picker needs them.
+var cachedOrgsForPicker = null;          // [{ org_id, name, is_admin, licenses: [...] }]
+var cachedLicenseOverviewForPicker = null; // [{ license_id, ... }]
+// Org selected in the save picker. null = not yet decided, [] = "Just me",
+// [orgId] = save to that org.
+var configSaveOrgIds = null;
+
 // URL parameters from app
 var urlSetupParams = new URLSearchParams(window.location.search);
 var urlClientAppVersion = urlSetupParams.get('client_app_version') || '';
 var urlIntegrationType = urlSetupParams.get('integration_type') || '';
 var urlSessionId = urlSetupParams.get('session_id') || '';
-var cameFromActivation = !!urlSetupParams.get('license_id');
+
+// Deep-link from /account/ → edit an existing configuration. Suppresses the
+// activation wizard (no "you just activated" stepper) and lands the user
+// straight on the prefilled config form. After Save, we redirect to
+// `returnUrl` (typically `/account/#org=X&view=configurations`) instead of
+// showing the standalone "Settings saved!" success screen.
+var urlEditConfigId = urlSetupParams.get('edit_config_id') || '';
+var urlReturnTo = urlSetupParams.get('return') || '';
+var isEditConfigDeepLink = !!urlEditConfigId;
+
+// cameFromActivation should NOT be true for the edit-from-account flow,
+// even though we pass a license_id, because we want to skip the activation
+// wizard entirely.
+var cameFromActivation = !isEditConfigDeepLink && !!urlSetupParams.get('license_id');
 var activationSuccess = urlSetupParams.get('activation_success') || ''; // 'new' or 'resync'
 var caltopoOnly = urlSetupParams.get('caltopo') === 'true';
 var proceduresOnly = urlSetupParams.get('procedures') === 'true';
@@ -2689,13 +2796,47 @@ async function introSkip() {
 
 // --- Configuration list ---
 
+// Deep-link from /account/ (?edit_config_id=X). Fetches the user's configs,
+// finds the one matching configId, and drops the user directly on the
+// prefilled edit form. Falls back to the regular config list if the
+// requested config isn't found (e.g., stale link, or user doesn't have
+// access to that config anymore).
+async function loadConfigurationsAndEditOne(configId) {
+    cameFromActivationIntro = false;
+    var body = currentLicenseId ? { license_id: currentLicenseId } : {};
+    try {
+        var orgsPromise = ensureOrgsLoaded();
+        var result = await apiCall('get_configuration', body);
+        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
+        cachedConfigurations = configs;
+        await orgsPromise;
+        var idx = configs.findIndex(function(c) {
+            var cid = c.configuration_id || c.configurationId || c.id;
+            return cid && String(cid) === String(configId);
+        });
+        if (idx !== -1) {
+            editConfiguration(idx);
+        } else {
+            // Config not found — show the regular list with a note.
+            console.warn('Deep-link config_id not found in user configs:', configId);
+            renderConfigList(configs);
+            document.getElementById('setupConfigList').style.display = '';
+        }
+    } catch (err) {
+        console.error('loadConfigurationsAndEditOne failed:', err);
+        loadConfigurations();
+    }
+}
+
 // Load configs specifically for the intro screen (no flash of config list)
 async function loadConfigurationsForIntro() {
     var body = currentLicenseId ? { license_id: currentLicenseId } : {};
     try {
+        var orgsPromise = ensureOrgsLoaded();
         var result = await apiCall('get_configuration', body);
         var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
         cachedConfigurations = configs;
+        await orgsPromise;
         showIntroScreen(configs);
     } catch (err) {
         console.error('Error loading configurations for intro:', err);
@@ -2719,12 +2860,17 @@ async function loadConfigurations() {
         subtitleEl.textContent = '';
     }
 
-    // Update license link state
+    // License link is informational only. New model: configs belong to
+    // orgs (team) or to the caller's email (individual). License is shown
+    // when present so users coming from the activation flow can still see
+    // what they activated, but it's not required.
     var licenseLinkEl = document.getElementById('setupLicenseLink');
     if (currentLicenseId) {
-        licenseLinkEl.innerHTML = 'License: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Change</a>';
+        licenseLinkEl.innerHTML = 'Activating license: <strong>' + escapeHtml(currentLicenseId) + '</strong>. <a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Change</a>';
+        licenseLinkEl.style.display = '';
     } else {
-        licenseLinkEl.innerHTML = '<strong>License required.</strong> <a href="#" onclick="showLicensePicker(\'select\'); return false;" style="color: #1e90ff;">Select a license</a>';
+        licenseLinkEl.innerHTML = '';
+        licenseLinkEl.style.display = 'none';
     }
 
     // Show the config list section
@@ -2739,9 +2885,13 @@ async function loadConfigurations() {
     var body = currentLicenseId ? { license_id: currentLicenseId } : {};
 
     try {
+        // Kick off org load in parallel with config load so the org-name
+        // labels on each card resolve as quickly as possible.
+        var orgsPromise = ensureOrgsLoaded();
         var result = await apiCall('get_configuration', body);
         var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
         cachedConfigurations = configs;
+        await orgsPromise;
         renderConfigList(configs);
     } catch (err) {
         console.error('Error loading Controller Setups:', err);
@@ -2749,6 +2899,22 @@ async function loadConfigurations() {
         statusEl.textContent = 'Error loading saved configurations: ' + err.message;
         statusEl.className = 'setup-status error';
     }
+}
+
+// Render the small "🏢 Org Name" line on a config card. Empty
+// organization_ids → "Private to your account". If the org name isn't
+// loaded yet (cachedOrgsForPicker still null), shows the id as a fallback
+// so the card doesn't flash empty.
+function buildConfigOrgLabel(config) {
+    var orgIds = (config && config.organization_ids) || [];
+    if (!orgIds.length) {
+        return '<span class="config-card-org-personal">🔒 Private to your account</span>';
+    }
+    var names = orgIds.map(function(oid) {
+        var o = (cachedOrgsForPicker || []).find(function(x) { return x.org_id === oid; });
+        return o && o.name ? o.name : 'Organization ' + oid;
+    });
+    return '<span class="config-card-org-team">🏢 Owned by ' + escapeHtml(names.join(', ')) + '</span>';
 }
 
 function renderConfigCard(config, index, mode) {
@@ -2765,6 +2931,10 @@ function renderConfigCard(config, index, mode) {
     if (summary) {
         html += '<div class="config-card-summary">' + escapeHtml(summary) + '</div>';
     }
+    // Org ownership label — "team this config belongs to" or "Just me" for
+    // personal configs. Helps users distinguish team configs (shared) from
+    // private ones in the mixed list.
+    html += '<div class="config-card-org">' + buildConfigOrgLabel(config) + '</div>';
     html += '<div class="optional-content" id="configContent_' + uniqueId + '" onclick="event.stopPropagation();">';
     html += '<div class="config-card-details">';
     html += renderConfigDetails(cfg, uniqueId, false, true);
@@ -2947,16 +3117,9 @@ function getDefaultName() {
 }
 
 function createNewConfiguration() {
-    if (!currentLicenseId) {
-        showLicensePicker('select', function() {
-            currentConfigurationId = null;
-            currentEditIndex = null;
-            clearForm();
-            document.getElementById('setupName').value = getDefaultName();
-            showConfigForm();
-        });
-        return;
-    }
+    // License is no longer required to create a config — the backend
+    // auths via the Firebase token's email (individual) or org-admin
+    // status (team). Skip the license picker and go straight to the form.
     currentConfigurationId = null;
     currentEditIndex = null;
     clearForm();
@@ -2981,6 +3144,19 @@ function showSaveSuccess() {
     document.getElementById('activationSuccessBanner').style.display = 'none';
     document.getElementById('setupDeviceInfo').style.display = 'none';
     document.getElementById('wizardStepper').style.display = 'none';
+
+    // Edit-from-account deep-link: hop back to /account/ instead of showing
+    // the standalone "Settings saved!" success screen. Brief delay so the
+    // backend has a moment to commit before /account/ refetches the config
+    // list on landing.
+    if (isEditConfigDeepLink && urlReturnTo) {
+        document.getElementById('saveSuccessTitle').textContent = 'Configuration saved!';
+        document.getElementById('saveSuccessMessage').innerHTML = 'Returning you to your account…';
+        document.getElementById('saveSuccessScreen').style.display = 'block';
+        setTimeout(function() { window.location.href = urlReturnTo; }, 900);
+        return;
+    }
+
     document.getElementById('saveSuccessTitle').textContent = 'Setup complete!';
     document.getElementById('saveSuccessMessage').innerHTML = 'You can close this window.<br><br><span style="font-size: 1.2rem; color: #888;">The configuration will sync within 10 seconds.</span>';
     document.getElementById('saveSuccessScreen').style.display = 'block';
@@ -3077,6 +3253,19 @@ function showConfigForm() {
 
     document.getElementById('setupForm').style.display = 'block';
     showAllFormSteps();
+
+    // Render the org-target picker. If we're editing an existing config,
+    // preselect its org (looked up from cachedConfigurations by id).
+    var existing = null;
+    if (currentEditIndex !== null && cachedConfigurations[currentEditIndex]) {
+        existing = cachedConfigurations[currentEditIndex];
+    } else if (currentConfigurationId && cachedConfigurations) {
+        existing = cachedConfigurations.find(function(c) {
+            return (c.configuration_id || c.configurationId || c.id) === currentConfigurationId;
+        }) || null;
+    }
+    renderConfigSavePicker(existing);
+
     window.scrollTo(0, 0);
 }
 
@@ -4352,6 +4541,8 @@ function clearForm() {
     var ctAccessUrlEl = document.getElementById('ctAccessUrl');
     if (ctAccessUrlEl) ctAccessUrlEl.value = '';
     caltopoVerifiedData = null;
+    // Reset the save-target picker so it re-picks a default for the next config.
+    configSaveOrgIds = null;
     renderCtExistingDetails();
     renderCtToggleState();
     var ctResult = document.getElementById('ctVerifyResult');
@@ -4369,15 +4560,148 @@ function clearForm() {
 }
 
 // Build the configuration request body from current form state
+// ---- New model: configs belong to organizations, not licenses ----
+// We fetch the user's orgs once via get_account_dashboard and reuse them
+// for both the save-target picker and for labeling existing config cards.
+async function ensureOrgsLoaded() {
+    if (cachedOrgsForPicker !== null) return;
+    try {
+        var data = await apiCall('get_account_dashboard');
+        cachedOrgsForPicker = (data && data.organizations) || [];
+        cachedLicenseOverviewForPicker = (data && data.license_overview) || [];
+    } catch (err) {
+        console.warn('ensureOrgsLoaded: dashboard fetch failed', err);
+        cachedOrgsForPicker = [];
+        cachedLicenseOverviewForPicker = [];
+    }
+}
+
+// Find the org that owns currentLicenseId (if any), to preselect in the
+// picker for new configs.
+function findOrgForCurrentLicense() {
+    if (!currentLicenseId || !cachedOrgsForPicker) return null;
+    for (var i = 0; i < cachedOrgsForPicker.length; i++) {
+        var o = cachedOrgsForPicker[i];
+        var lics = o.licenses || [];
+        for (var j = 0; j < lics.length; j++) {
+            var lid = lics[j] && lics[j].license_id;
+            if (lid === currentLicenseId) return o;
+        }
+    }
+    return null;
+}
+
+// Returns the organization_ids array to send on save. Reads from
+// configSaveOrgIds (set by the picker); if the user hasn't touched the
+// picker, picks a sensible default from the org owning the current license.
+function computeConfigSaveOrgIds() {
+    if (Array.isArray(configSaveOrgIds)) return configSaveOrgIds;
+    // No explicit pick. Default to the org owning the current license IF
+    // the user is admin of it; otherwise default to "Just me".
+    var owningOrg = findOrgForCurrentLicense();
+    if (owningOrg && owningOrg.is_admin) return [owningOrg.org_id];
+    return [];
+}
+
+// Render the save-target picker. Called by showConfigForm() (after we know
+// whether we're editing an existing config and we have orgs loaded).
+// existingConfig = the config being edited, or null for a new one.
+async function renderConfigSavePicker(existingConfig) {
+    await ensureOrgsLoaded();
+    var picker = document.getElementById('configSavePicker');
+    var optsEl = document.getElementById('configSavePickerOptions');
+    var warnEl = document.getElementById('configSavePickerWarning');
+    if (!picker || !optsEl) return;
+
+    var adminOrgs = (cachedOrgsForPicker || []).filter(function(o) { return o.is_admin; });
+
+    // 0 admin orgs → no picker, save as personal silently.
+    if (adminOrgs.length === 0) {
+        configSaveOrgIds = [];
+        picker.style.display = 'none';
+        return;
+    }
+
+    // Decide the initially-selected option:
+    //   - For an existing config with organization_ids, preselect that.
+    //   - For a new config, preselect the org owning the current license
+    //     (if the user is admin), else "Just me".
+    var preselectOrgId;
+    if (existingConfig && Array.isArray(existingConfig.organization_ids) && existingConfig.organization_ids.length) {
+        preselectOrgId = existingConfig.organization_ids[0];
+        // Make sure that org is still in the admin list; if not, fall back.
+        if (!adminOrgs.some(function(o) { return o.org_id === preselectOrgId; })) {
+            preselectOrgId = null;
+        }
+    }
+    if (preselectOrgId == null) {
+        var owning = findOrgForCurrentLicense();
+        if (owning && owning.is_admin) preselectOrgId = owning.org_id;
+    }
+    // null preselectOrgId means "Just me".
+    configSaveOrgIds = preselectOrgId != null ? [preselectOrgId] : [];
+
+    var html = '';
+    adminOrgs.forEach(function(o) {
+        var isSel = configSaveOrgIds[0] === o.org_id;
+        html += '<label class="config-save-pick-row' + (isSel ? ' is-active' : '') + '">'
+            +   '<input type="radio" name="configSaveTarget" value="org:' + o.org_id + '"' + (isSel ? ' checked' : '') + '>'
+            +   '<div class="config-save-pick-row-body">'
+            +     '<div class="config-save-pick-row-name">' + escapeHtml(o.name || 'Organization') + '</div>'
+            +     '<div class="config-save-pick-row-hint">You\'re an admin of this team — they\'ll all see this configuration.</div>'
+            +   '</div>'
+            + '</label>';
+    });
+    var personalIsSel = configSaveOrgIds.length === 0;
+    html += '<label class="config-save-pick-row' + (personalIsSel ? ' is-active' : '') + '">'
+        +   '<input type="radio" name="configSaveTarget" value="personal"' + (personalIsSel ? ' checked' : '') + '>'
+        +   '<div class="config-save-pick-row-body">'
+        +     '<div class="config-save-pick-row-name">Private to your account</div>'
+        +     '<div class="config-save-pick-row-hint">Only you will see this configuration. It follows your account, not a specific license.</div>'
+        +   '</div>'
+        + '</label>';
+
+    optsEl.innerHTML = html;
+    picker.style.display = '';
+    warnEl.style.display = configSaveOrgIds.length > 0 ? '' : 'none';
+
+    // Wire change handler — debounced to a delegated listener to avoid
+    // rebinding per option on each render.
+    optsEl.onchange = function(e) {
+        if (!e.target || e.target.name !== 'configSaveTarget') return;
+        if (e.target.value === 'personal') {
+            configSaveOrgIds = [];
+        } else if (e.target.value.indexOf('org:') === 0) {
+            configSaveOrgIds = [Number(e.target.value.slice(4))];
+        }
+        // Toggle active class on rows
+        optsEl.querySelectorAll('.config-save-pick-row').forEach(function(row) {
+            var radio = row.querySelector('input[type="radio"]');
+            row.classList.toggle('is-active', !!radio && radio.checked);
+        });
+        warnEl.style.display = configSaveOrgIds.length > 0 ? '' : 'none';
+    };
+}
+
 function buildConfigBody() {
     var name = document.getElementById('setupName').value.trim();
     var body = {
-        license_id: currentLicenseId,
-        licenses: [currentLicenseId],
         label: name || getDefaultName(),
         integration_type: urlIntegrationType || 'caltopo',
         config: {}
     };
+
+    // license_id is now optional. Send it only when we have one so legacy
+    // license-auth paths still work; otherwise the backend auths via the
+    // Firebase token's email (org-member or org-admin path).
+    if (currentLicenseId) body.license_id = currentLicenseId;
+
+    // New model: configs belong to org(s), not license(s). When the user
+    // has picked an org in the configSaveOrgPicker (or we've resolved it
+    // from currentLicenseId → owning org), send organization_ids.
+    // Empty array == "Just me (private)" — backend uses email-fallback.
+    body.organization_ids = computeConfigSaveOrgIds();
+
     if (urlClientAppVersion) body.client_app_version = urlClientAppVersion;
 
     // Only include fields the user actually saw during setup
@@ -4425,9 +4749,17 @@ function buildConfigBody() {
     if (currentConfigurationId) {
         body.configuration_id = currentConfigurationId;
     } else if (cachedConfigurations && cachedConfigurations.length > 0) {
+        // Match an existing config to update. Prefer the new organization_ids
+        // path (one of the chosen save-orgs is already on the config); fall
+        // back to the legacy licenses[] match for any pre-migration configs
+        // that haven't yet been resaved.
+        var saveOrgIds = body.organization_ids || [];
         var existing = cachedConfigurations.find(function(c) {
-            var ids = c.licenses || [];
-            return ids.indexOf(currentLicenseId) !== -1;
+            var cOrgIds = c.organization_ids || [];
+            var orgMatch = saveOrgIds.some(function(oid) { return cOrgIds.indexOf(oid) !== -1; });
+            if (orgMatch) return true;
+            var legacyLic = c.licenses || [];
+            return legacyLic.indexOf(currentLicenseId) !== -1;
         });
         if (existing && existing.configuration_id) {
             body.configuration_id = existing.configuration_id;
@@ -4438,9 +4770,10 @@ function buildConfigBody() {
     return body;
 }
 
-// Save current step's settings quietly in the background
+// Save current step's settings quietly in the background. License is no
+// longer required by the backend (configs belong to orgs / email-fallback);
+// just need a name to have something worth saving.
 async function saveCurrentStep() {
-    if (!currentLicenseId) return;
     var name = document.getElementById('setupName').value.trim();
     if (!name) return; // nothing to save yet
     try {
@@ -4454,12 +4787,10 @@ async function saveCurrentStep() {
     }
 }
 
-// Save configuration (final save with full UI feedback)
+// Save configuration (final save with full UI feedback). License is no
+// longer required — the new config model means the backend auths via
+// org-admin or email-in-org-emails instead.
 async function saveConfiguration() {
-    if (!currentLicenseId) {
-        showStatus('setupFormStatus', 'License ID is required.', 'error');
-        return;
-    }
     var name = document.getElementById('setupName').value.trim();
     if (!name) {
         showStatus('setupFormStatus', 'Name is required.', 'error');
@@ -4609,6 +4940,22 @@ async function deleteConfigurationByIndex(index) {
                 document.getElementById('setupLicenseLink').textContent = 'License: ' + urlLicenseId + ' (change)';
                 document.getElementById('setupLicenseDisplay').textContent = urlLicenseId;
                 document.getElementById('setupLicenseInfo').style.display = '';
+            }
+
+            // Edit-from-account deep-link: ?edit_config_id=X[&license_id=Y].
+            // Skip the activation wizard entirely and land the user on the
+            // prefilled config form. After Save, redirect back to urlReturnTo
+            // (set on the originating /account/ link).
+            if (isEditConfigDeepLink && !introShown) {
+                introShown = true;
+                document.getElementById('wizardStepper').style.display = 'none';
+                document.getElementById('activationSuccessBanner').style.display = 'none';
+                headerEl.style.display = '';
+                var titleEl = document.getElementById('setupHeaderTitle');
+                if (titleEl) titleEl.textContent = 'Edit configuration';
+                document.title = 'Edit configuration - Eagle Eyes';
+                loadConfigurationsAndEditOne(urlEditConfigId);
+                return;
             }
 
             // New Android contract: URL has only session_id (no license_id). Auto-run the
