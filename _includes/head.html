@@ -213,4 +213,180 @@
 		}
 	</script>
 
+	<!--
+		Synchronous auth-hint pre-paint. Reads localStorage flags written
+		once Firebase + the dashboard have resolved, and applies classes to
+		<html> before any body content paints. The CSS block below uses
+		those classes to show/hide the navbar profile icon and the sidebar
+		Account / Organization groups at first paint, so navigating between
+		account-area pages doesn't flash:
+		  - "Get Eagle Eyes" briefly while the profile icon resolves
+		  - The sidebar Account/Organization groups briefly empty
+	-->
+	<script>
+		(function() {
+			try {
+				if (localStorage.getItem('eeAuthHint') === 'signed_in') {
+					document.documentElement.classList.add('ee-auth-hint-signed-in');
+				}
+				if (localStorage.getItem('eeHasOrgs') === 'true') {
+					document.documentElement.classList.add('ee-auth-hint-has-orgs');
+				}
+			} catch (e) { /* localStorage disabled — accept the flash */ }
+		})();
+	</script>
+	<style>
+		/* Always reserve room for the vertical scrollbar on the document so
+		   the navbar doesn't shift between pages where content does/doesn't
+		   overflow the viewport. The legacy theme already sets
+		   `body { overflow-y: scroll }` which is the universal fallback;
+		   `scrollbar-gutter: stable` is the modern macOS-friendly version
+		   (no permanent visible bar on overlay-scrollbar systems). Apply
+		   to both html + body to cover every browser path. */
+		html, body {
+			scrollbar-gutter: stable;
+		}
+
+		/* Default (no auth hint = signed out or first-ever load):
+		   hide profile icon + sidebar groups, show "Get Eagle Eyes". */
+		#navProfileMenu,
+		#sidebarAccountSection,
+		#sidebarAccountGroup,
+		#sidebarBillingItem { display: none; }
+		#sidebarOrgSection { display: none; }
+
+		/* Signed in: show profile icon + Account scope; hide Get Eagle Eyes. */
+		html.ee-auth-hint-signed-in #navGetEagleEyesBtn { display: none !important; }
+		html.ee-auth-hint-signed-in #navProfileMenu { display: inline-block !important; }
+		html.ee-auth-hint-signed-in #sidebarAccountSection { display: block !important; }
+		html.ee-auth-hint-signed-in #sidebarAccountGroup { display: block !important; }
+		html.ee-auth-hint-signed-in #sidebarBillingItem { display: block !important; }
+
+		/* Has at least one org: show the Organization scope sidebar group. */
+		html.ee-auth-hint-has-orgs #sidebarOrgSection { display: block !important; }
+
+		/* On /account/ specifically: if the user was signed in last time,
+		   hide the sign-in prompt and show a loading spinner instead while
+		   Firebase restores the session. JS hides the spinner once
+		   onAuthStateChanged fires. Stops the "Sign in to manage your
+		   account" panel from flashing for ~3s on the common case. */
+		html.ee-auth-hint-signed-in #signinButtonSection { display: none !important; }
+		html.ee-auth-hint-signed-in #accountAuthChecking { display: block !important; }
+
+		/* Shared spinner keyframes — used by the account-area loading panels
+		   on /account/, /account/profile/, /account/billing/, /account/purchase/
+		   so they all show an identical spinner instead of a "Loading…" text flash.
+		   Named `spin` to match account.html's existing local definition. */
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+	</style>
+
+	<!--
+		Shared sessionStorage cache + in-flight dedupe for the bundled
+		get_account_dashboard endpoint. Both the account-area sidebar and
+		/account/ itself consume this so:
+		  1. Navigating between /account/profile, /account/downloads,
+		     /account/#... renders instantly from cache (no cold-start wait).
+		  2. Two components mounting on the same page share a single
+		     in-flight fetch instead of double-firing the endpoint.
+	-->
+	<script>
+		(function() {
+			var TTL_MS = 5 * 60 * 1000;
+			function key(uid) { return 'account-dashboard-cache:' + uid; }
+			function tokensKey(uid) { return 'account-tokens-cache:' + uid; }
+
+			function readCache(k) {
+				try {
+					var raw = sessionStorage.getItem(k);
+					if (!raw) return null;
+					var p = JSON.parse(raw);
+					if (!p || typeof p.ts !== 'number') return null;
+					if (Date.now() - p.ts > TTL_MS) return null;
+					return p.data;
+				} catch (e) { return null; }
+			}
+			function writeCache(k, data) {
+				try { sessionStorage.setItem(k, JSON.stringify({ data: data, ts: Date.now() })); } catch (e) {}
+			}
+			function clearCache(k) {
+				try { sessionStorage.removeItem(k); } catch (e) {}
+			}
+
+			window.eeDashboard = {
+				_inflight: null,
+				read: function(uid) { return readCache(key(uid)); },
+				write: function(uid, data) { writeCache(key(uid), data); },
+				invalidate: function(uid) { clearCache(key(uid)); },
+				fetch: async function(user) {
+					if (this._inflight) return this._inflight;
+					var self = this;
+					this._inflight = (async function() {
+						try {
+							var idToken = await user.getIdToken();
+							var host = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+							var r = await fetch(host + '/get_account_dashboard', {
+								method: 'GET',
+								headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
+							});
+							if (!r.ok) throw new Error('get_account_dashboard failed (' + r.status + ')');
+							var data = await r.json();
+							self.write(user.uid, data);
+							return data;
+						} finally {
+							self._inflight = null;
+						}
+					})();
+					return this._inflight;
+				}
+			};
+
+			window.eeTokens = {
+				_inflight: null,
+				read: function(uid) { return readCache(tokensKey(uid)); },
+				write: function(uid, data) { writeCache(tokensKey(uid), data); },
+				invalidate: function(uid) { clearCache(tokensKey(uid)); },
+				fetch: async function(user) {
+					if (this._inflight) return this._inflight;
+					var self = this;
+					this._inflight = (async function() {
+						try {
+							var idToken = await user.getIdToken();
+							var host = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+							var r = await fetch(host + '/get_license_tokens_overview', {
+								method: 'GET',
+								headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
+							});
+							if (!r.ok) throw new Error('get_license_tokens_overview failed (' + r.status + ')');
+							var data = await r.json();
+							self.write(user.uid, data);
+							return data;
+						} finally {
+							self._inflight = null;
+						}
+					})();
+					return this._inflight;
+				}
+			};
+
+			// Sign-out clears the caches so the next user doesn't see stale data.
+			document.addEventListener('authStateChanged', function(e) {
+				if (!e.detail || !e.detail.user) {
+					try {
+						for (var i = sessionStorage.length - 1; i >= 0; i--) {
+							var k = sessionStorage.key(i);
+							if (k && (k.indexOf('account-dashboard-cache:') === 0
+								|| k.indexOf('account-tokens-cache:') === 0
+								|| k.indexOf('account-sidebar-cache:') === 0)) {
+								sessionStorage.removeItem(k);
+							}
+						}
+					} catch (err) { /* ignore */ }
+				}
+			});
+		})();
+	</script>
+
 </head>

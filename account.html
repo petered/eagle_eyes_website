@@ -3,7 +3,6 @@ layout: account-area
 title: Account Management - Eagle Eyes
 permalink: /account/
 active: account
-heading: Account
 ---
 <style>
     .table {
@@ -522,6 +521,81 @@ heading: Account
     }
 
 
+    /* Streaming credits widget — sits at the top of /account/ to surface the
+       account-level balance and link to /account/streaming/ for top-ups. */
+    .streaming-credits-widget {
+        background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+        border: 1px solid #c4ddf7;
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .streaming-credits-left { flex: 1 1 auto; min-width: 0; }
+    .streaming-credits-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #1e90ff;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 4px;
+    }
+    .streaming-credits-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1a1a2e;
+        line-height: 1.1;
+    }
+    .streaming-credits-meta {
+        font-size: 13px;
+        color: #555;
+        margin-top: 4px;
+    }
+    .streaming-credits-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    .streaming-credits-badges {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .streaming-credits-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: #fff3cd;
+        color: #8a6d3b;
+    }
+    .streaming-credits-badge.unlimited {
+        background: #d4edda;
+        color: #155724;
+    }
+    .streaming-credits-cta {
+        background: #1e90ff;
+        color: #fff;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background-color 0.15s;
+        white-space: nowrap;
+    }
+    .streaming-credits-cta:hover { background: #1873cc; color: #fff; text-decoration: none; }
+
+    @media (max-width: 600px) {
+        .streaming-credits-widget { padding: 14px 16px; }
+        .streaming-credits-value { font-size: 19px; }
+    }
+
     /* View header — sits above the active section to confirm the org context */
     .view-header {
         margin-bottom: 18px;
@@ -570,6 +644,32 @@ heading: Account
     .plan-primary-card .plan-meta-strong { font-weight: 600; color: #222; }
     .plan-primary-card .plan-meta-warn { color: #c0392b; font-weight: 600; }
     .plan-primary-card .plan-meta-expired { color: #888; font-style: italic; }
+
+    /* Surfaces the account-vs-org relationship on each license card.
+       "Accounts pay, Organizations use" — this is the one place users see
+       both edges of that data model. */
+    .plan-primary-card .plan-relationship {
+        font-size: 12px;
+        color: #666;
+        margin-top: 6px;
+        padding-top: 8px;
+        border-top: 1px dashed #ececec;
+    }
+    .plan-primary-card .plan-relationship strong { color: #222; font-weight: 600; }
+    .plan-primary-card .plan-renew-link {
+        display: inline-block;
+        margin-top: 10px;
+        font-size: 13px;
+        color: #1e90ff;
+        text-decoration: none;
+    }
+    .plan-primary-card .plan-renew-link:hover { text-decoration: underline; }
+    .plan-other-row .plan-row-relationship {
+        font-size: 11px;
+        color: #777;
+        margin-top: 3px;
+    }
+    .plan-other-row .plan-row-relationship strong { color: #333; font-weight: 600; }
 
     .plan-eye-toggle {
         position: absolute;
@@ -878,6 +978,318 @@ heading: Account
         pointer-events: none;
     }
 
+    /* Account info — owner email shown at the top of Overview. */
+    .account-info-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        padding: 12px 16px;
+        background: #fafbfc;
+        border: 1px solid #ececec;
+        border-radius: 8px;
+        margin-bottom: 14px;
+    }
+    .account-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .account-info-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #888;
+    }
+    .account-info-value {
+        font-size: 14px;
+        color: #1a1a2e;
+    }
+    .account-info-owner-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.6;
+    }
+    .account-info-owner-email { color: #1a1a2e; }
+    .account-info-remove {
+        background: none;
+        border: none;
+        color: #b0b0b0;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 6px;
+        border-radius: 4px;
+        font-family: inherit;
+    }
+    .account-info-remove:hover {
+        color: #c0392b;
+        background: #fdf2f0;
+    }
+    .account-info-remove:disabled { opacity: 0.3; cursor: not-allowed; }
+    .account-info-add {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    .account-info-add input[type="email"] {
+        flex: 1 1 220px;
+        padding: 7px 10px !important;
+        border: 1px solid #cfd6dc !important;
+        border-radius: 6px !important;
+        font: inherit !important;
+        font-size: 13px !important;
+        margin: 0 !important;
+        width: auto !important;
+        background: #fff !important;
+    }
+    .account-info-add button {
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .account-info-add button:hover { background: #1077dc; }
+    .account-info-add button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .account-info-status {
+        margin-top: 8px;
+        font-size: 12px;
+        min-height: 14px;
+    }
+    .account-info-status.success { color: #1f7a52; }
+    .account-info-status.error { color: #c0392b; }
+    .account-info-you {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #1077dc;
+        background: #e8f3ff;
+        border-radius: 999px;
+    }
+    .account-info-help {
+        margin-left: auto;
+        font-size: 13px;
+        color: #1e90ff;
+        text-decoration: none;
+        align-self: center;
+    }
+    .account-info-help:hover { text-decoration: underline; }
+
+    /* Account-owner help modal — explains the role + has an add-another-owner form. */
+    .account-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .account-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
+    .account-modal-dialog {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        max-width: 520px;
+        width: 100%;
+        padding: 26px 28px 24px 28px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+    .account-modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: none;
+        border: none;
+        color: #888;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        line-height: 1;
+    }
+    .account-modal-close:hover { background: #f3f4f6; color: #333; }
+    .account-modal-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin: 0 0 12px 0;
+    }
+    .account-modal-intro {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.55;
+        margin: 0 0 18px 0;
+    }
+    .account-modal-perms {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 18px;
+    }
+    .account-modal-perms-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #777;
+        margin-bottom: 6px;
+    }
+    .account-modal-perms ul {
+        margin: 0;
+        padding-left: 18px;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.65;
+    }
+    .account-modal-add-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 6px;
+    }
+    .account-modal-add-hint {
+        font-size: 12px;
+        color: #777;
+        margin: 0 0 10px 0;
+        line-height: 1.5;
+    }
+    .account-modal-add-form {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .account-modal-add-form input[type="email"] {
+        flex: 1 1 200px;
+        padding: 8px 12px !important;
+        border: 1px solid #cfd6dc !important;
+        border-radius: 6px !important;
+        font: inherit !important;
+        font-size: 14px !important;
+        margin: 0 !important;
+        width: auto !important;
+        background: #fff !important;
+    }
+    .account-modal-status {
+        margin-top: 10px;
+        font-size: 13px;
+        min-height: 16px;
+    }
+    .account-modal-status.success { color: #1f7a52; }
+    .account-modal-status.error { color: #c0392b; }
+
+    /* Overview sub-section headers. Lighter than the section h2 (which is
+       "Overview"); these label "Streaming credits" and "Active licenses". */
+    .overview-subhead-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 18px 0 10px 0;
+    }
+    .overview-subhead {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin: 0;
+    }
+    .overview-subhead-cta {
+        font-size: 13px;
+        color: #1e90ff;
+        text-decoration: none;
+    }
+    .overview-subhead-cta:hover { text-decoration: underline; }
+    .overview-empty {
+        padding: 16px 18px;
+        border: 1px dashed #d8dde2;
+        border-radius: 8px;
+        color: #777;
+        font-size: 14px;
+    }
+    .overview-empty a { color: #1e90ff; text-decoration: none; }
+    .overview-empty a:hover { text-decoration: underline; }
+
+    /* Roles & permissions disclosure — collapsed link at the top of the
+       Members section; expands to a three-column panel of who-can-do-what
+       (Owner, Admin, Member). */
+    .roles-disclosure { margin: 0 0 18px 0; }
+    .roles-trigger {
+        display: inline-block;
+        font-size: 14px;
+        color: #1e90ff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .roles-trigger:hover { text-decoration: underline; }
+    .roles-trigger::before {
+        content: '▸ ';
+        font-size: 11px;
+        margin-right: 2px;
+        color: #1e90ff;
+        display: inline-block;
+        transition: transform 0.15s;
+    }
+    .roles-trigger.is-open::before {
+        content: '▾ ';
+    }
+    .roles-panel {
+        margin-top: 12px;
+        padding: 18px 20px;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    .roles-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+    @media (max-width: 720px) {
+        .roles-grid { grid-template-columns: 1fr; gap: 14px; }
+    }
+    .roles-col-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+    }
+    .roles-col-scope {
+        font-weight: 400;
+        color: #777;
+        font-size: 12px;
+    }
+    .roles-col ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: #444;
+        line-height: 1.55;
+    }
+    .roles-col ul li { margin-bottom: 4px; }
+    .roles-footnote {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed #e0e6ec;
+        font-size: 12px;
+        color: #777;
+        line-height: 1.5;
+    }
+
     /* Members tab header — org name + admin actions */
     .members-header {
         display: flex;
@@ -915,50 +1327,51 @@ heading: Account
         border: 1px dashed #ddd;
         border-radius: 8px;
     }
-    .config-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 16px;
-    }
-    .config-card {
-        display: block;
-        padding: 16px;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        background: #fff;
+    /* Configuration rows — same shell as the People + Devices lists
+       (.people-list container, .people-row per item). Each row is an <a>
+       so the whole card is clickable (opens the config in /setup/ for
+       editing). */
+    .config-row.people-row {
         text-decoration: none;
         color: inherit;
-        transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        cursor: pointer;
     }
-    .config-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-        border-color: #1e90ff;
-        color: inherit;
+    .config-row.people-row:hover {
         text-decoration: none;
+        color: inherit;
     }
-    .config-card-title {
-        font-size: 15px;
-        font-weight: 600;
-        margin: 0 0 8px 0;
-        color: #222;
+    .config-row-orgtag {
+        color: #1077dc;
     }
-    .config-card-meta {
-        font-size: 13px;
-        color: #666;
-        margin: 4px 0;
+    .config-row-orgtag-personal {
+        color: #888;
+        font-style: italic;
     }
-    .config-card-integration {
-        display: inline-block;
+    /* License sub-rows below the meta line — name + monospaced id. */
+    .config-row-licenses {
+        flex: 1 1 100%;
+        margin: 10px 0 0 48px; /* indent past the avatar */
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .config-row-license {
+        font-size: 12px;
+        line-height: 1.35;
+        color: #555;
+    }
+    .config-row-license code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
         font-size: 11px;
-        font-weight: 600;
-        padding: 3px 9px;
-        border-radius: 10px;
-        background: #e8f3ff;
-        color: #1e90ff;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
+        color: #999;
+        margin-left: 6px;
     }
+    .config-edit-affordance {
+        font-size: 12px;
+        font-weight: 500;
+        color: #1e90ff;
+    }
+    .config-row.people-row:hover .config-edit-affordance { text-decoration: underline; }
 
     /* Organization Settings tab (legacy class names still used by member rendering) */
     .org-switcher {
@@ -1168,6 +1581,276 @@ heading: Account
     }
     .org-status-msg.error { color: #c0392b; }
     .org-status-msg.success { color: #27ae60; }
+
+    /* People list — redesigned card-style rows with circular avatars,
+       role badges, and compact action buttons. The current user's row gets
+       a subtle blue tint so it's easy to find. */
+    .people-list {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .people-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 16px;
+        border-bottom: 1px solid #f4f4f4;
+        background: #fff;
+        transition: background-color 0.12s;
+    }
+    .people-row:last-child { border-bottom: none; }
+    .people-row:hover { background: #fafbfc; }
+    .people-row.is-you { background: #f3f9ff; }
+    .people-row.is-you:hover { background: #e9f3ff; }
+    .people-row-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .people-avatar {
+        flex: 0 0 auto;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #5b8def;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+    }
+    .people-row-body {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .people-row-email {
+        font-size: 14px;
+        font-weight: 500;
+        color: #1a1a2e;
+        word-break: break-all;
+        line-height: 1.3;
+    }
+    .people-row-meta {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+    }
+    .people-role-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+    }
+    .people-role-badge.admin { background: #fde8c6; color: #8a5a00; }
+    .people-role-badge.member { background: #ececec; color: #555; }
+    .people-role-badge.owner { background: #d6e9ff; color: #0a5fb8; }
+
+    /* "?" help icon — clickable on both desktop and mobile (hover-tooltip
+       would silently fail on touch). Opens the owner-role modal. */
+    .account-owner-help-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #e8f3ff;
+        color: #1077dc;
+        border: 1px solid #c8e1ff;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        font-family: inherit;
+        margin-left: 4px;
+        transition: background-color 0.15s, border-color 0.15s;
+    }
+    .account-owner-help-icon:hover {
+        background: #1e90ff;
+        color: #fff;
+        border-color: #1e90ff;
+    }
+    .account-owner-help-icon:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.25);
+    }
+
+    /* Add-owner toggle — collapsed link by default; expands to show the
+       form + hint when clicked. Sits beneath the owners list. */
+    .account-owners-add-toggle {
+        display: inline-block;
+        margin-top: 12px;
+        font-size: 14px;
+        color: #1e90ff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .account-owners-add-toggle:hover { text-decoration: underline; }
+    .account-owners-add-toggle::before {
+        /* Reuses the disclosure-style chevron we have elsewhere. */
+        content: '';
+    }
+    .account-owners-add-panel {
+        margin-top: 12px;
+        padding: 14px 16px;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    .account-owners-add-hint {
+        font-size: 13px;
+        color: #555;
+        line-height: 1.5;
+        margin: 0 0 10px 0;
+    }
+
+    /* Footer line in the account-owner help modal (the modal is info-only
+       now — the actual Add/Remove controls live on the Overview page). */
+    .account-modal-footer {
+        margin: 0;
+        padding-top: 14px;
+        border-top: 1px solid #ececec;
+        font-size: 13px;
+        color: #777;
+        line-height: 1.5;
+    }
+    .people-you-pill {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #e8f3ff;
+        color: #1077dc;
+    }
+    .people-row-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .people-icon-btn {
+        background: #fff;
+        border: 1px solid #d8dde2;
+        color: #555;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .people-icon-btn:hover:not(:disabled) {
+        background: #f4f6f8;
+        border-color: #b8c0c8;
+        color: #1a1a2e;
+    }
+    .people-icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .people-icon-btn.danger { color: #c0392b; border-color: #f0c4be; }
+    .people-icon-btn.danger:hover:not(:disabled) {
+        background: #fdf2f0;
+        border-color: #e58075;
+        color: #a02919;
+    }
+
+    /* "Add someone" card sits below the list as a distinct card. */
+    .people-add-card {
+        background: #fff;
+        border: 1px dashed #d8dde2;
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-top: 4px;
+    }
+    .people-add-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 4px;
+    }
+    .people-add-card-hint {
+        font-size: 12px;
+        color: #777;
+        margin-bottom: 10px;
+    }
+    @media (max-width: 600px) {
+        .people-row { flex-wrap: wrap; }
+        .people-row-actions { width: 100%; justify-content: flex-end; }
+    }
+
+    /* Device rows reuse .people-row + .people-list, with one extra: a
+       compact metadata line (user · machine-id · key count) under the
+       device name, and an expandable per-key sub-list for multi-key
+       devices. */
+    .device-row { flex-wrap: wrap; }
+    .device-row-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #888;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+    .device-row-meta code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 11px;
+        color: #555;
+    }
+    .device-row-sep { color: #ccc; }
+    .device-row-machineid {
+        max-width: 320px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .device-row-keys {
+        flex: 1 1 100%;
+        margin-top: 10px;
+        padding: 12px 14px;
+        background: #fafbfc;
+        border: 1px solid #ececec;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .device-row-key {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px dashed #ececec;
+    }
+    .device-row-key:last-child { border-bottom: none; }
+    .device-row-key-info { flex: 1 1 auto; min-width: 0; }
+    .device-row-key-name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+    .device-row-key-meta {
+        font-size: 11px;
+        color: #888;
+        margin-top: 2px;
+    }
+    .device-row-key-meta code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
     .org-license-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1304,7 +1987,19 @@ heading: Account
     <button id="close-notification" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
 </div>
 
-<!-- Sign-in prompt -->
+<!-- Auth-checking loading state. Shown by the pre-paint CSS when the
+     `ee-auth-hint-signed-in` localStorage hint is set, so users who were
+     signed in last time see a spinner immediately instead of the
+     sign-in prompt flashing for the few seconds Firebase needs to
+     restore the session. Hidden by JS once onAuthStateChanged fires. -->
+<div id="accountAuthChecking" style="display: none; text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
+    <div class="spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1e90ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+    <p style="margin-top: 16px; color: #888;">Loading your account…</p>
+</div>
+
+<!-- Sign-in prompt. Default state when there's no signed-in hint (first-time
+     visitors / signed-out users). When the hint *is* set we hide this in
+     pre-paint CSS so signed-in returners never see it flash. -->
 <div id="signinButtonSection" style="display: block; text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
     <p style="margin-bottom: 20px; color: #555;">Sign in to manage your account.</p>
     <button id="accountSignInButton" class="button rounded" style="background-color: #1e90ff; color: white; padding: 12px 30px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer;" onclick="toggleSignIn()">Sign In or Create Account</button>
@@ -1320,35 +2015,141 @@ heading: Account
 
     <!-- Empty state when user has no orgs and no personal licenses -->
     <div id="accountEmptyState" class="empty-card" style="display: none; padding: 40px 24px; text-align: center;">
-        You don't have any licenses yet. <a href="{{ '/pricing/' | relative_url }}" style="color: #1e90ff;">Get started</a>.
+        You don't have any licenses yet. <a href="{{ '/account/purchase/' | relative_url }}" style="color: #1e90ff;">Get started</a>.
     </div>
 
     <!-- Sections (one is shown at a time, controlled by hash routing) -->
     <div class="account-sections">
-        <!-- PLANS SECTION -->
+        <!-- OVERVIEW SECTION (account-scoped) — account info on top, then
+             a "Streaming credits" subsection and a "Licenses" subsection.
+             The Licenses subsection surfaces the top 3 actives with the
+             latest expiry date; the rest hide behind a "Show other active
+             licenses (N)" toggle. Hash: #view=overview. -->
         <section id="plansSection" class="account-section">
             <header class="account-section-header account-section-header-row">
                 <div class="account-section-header-text">
-                    <h2 class="account-section-title">My Licenses</h2>
-                    <p class="account-section-hint">To activate Eagle Eyes Scan or Eagle Eyes Pilot on your device, get the application from <a href="{{ '/account/downloads/' | relative_url }}">Downloads</a> and follow the activation instructions within the app.</p>
+                    <h2 class="account-section-title" id="plansSectionTitle">Overview</h2>
                 </div>
                 <div class="account-section-header-actions" id="verification-status">
-                    <a href="{{ '/pricing/' | relative_url }}" class="org-btn primary" style="text-decoration: none; white-space: nowrap;">Purchase a new license</a>
+                    <a href="{{ '/account/purchase/' | relative_url }}"
+                       id="overviewPurchaseCta"
+                       class="org-btn primary owner-only-cta"
+                       style="text-decoration: none; white-space: nowrap; display: none;">Purchase / Renew</a>
                 </div>
             </header>
-                                        
+
+            <!-- Account owners — same visual treatment as the People list
+                 on the Organization view (card list of rows with avatar +
+                 role + remove). Populated by renderAccountInfo() after the
+                 dashboard lands. The "?" icon next to the title opens a
+                 modal explaining the account-owner role. -->
+            <div id="accountInfoRow" style="display: none;">
+                <div class="members-header" style="margin-bottom: 12px;">
+                    <div class="members-header-left">
+                        <h4 class="members-header-name" id="accountOwnersHeading">Account owners</h4>
+                        <button type="button" id="accountOwnerHelpLink" class="account-owner-help-icon"
+                                aria-label="What does an account owner do?"
+                                title="What does an account owner do?">?</button>
+                    </div>
+                </div>
+                <div class="people-list" id="accountOwnersList"></div>
+                <div class="account-info-status" id="accountOwnerActionStatus"></div>
+
+                <!-- Add-owner UI starts collapsed: just a blue link beneath
+                     the owners list. Clicking it expands the form (hint +
+                     email input + Add button). Only shown when the current
+                     user is themselves an owner. -->
+                <div id="accountOwnersAddWrap" style="display: none;">
+                    <a href="#" id="accountOwnersAddToggle" class="account-owners-add-toggle">+ Add another account owner</a>
+                    <div id="accountOwnersAddPanel" class="account-owners-add-panel" style="display: none;">
+                        <p class="account-owners-add-hint">
+                            Enter the email of the person you want to promote. They must already have an Eagle Eyes
+                            account at that address — they get owner powers immediately (purchase, billing, add /
+                            remove other owners).
+                        </p>
+                        <form class="org-add-member-form" id="accountOwnersAddForm" onsubmit="return onAddAccountOwnerSubmit(event)">
+                            <input type="email" name="newOwnerEmail" placeholder="new-owner@example.com" autocomplete="off" required>
+                            <button type="submit" class="org-btn primary">Add owner</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account-owner help modal. Hidden by default; opens when the
+                 user clicks the "What's this?" link. Lists owner-specific
+                 powers and provides a "Add another account owner" form
+                 that emails the request to info@eagleeyessearch.com (no
+                 backend endpoint exists for owner-add yet). -->
+            <div id="accountOwnerModal" class="account-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="accountOwnerModalTitle">
+                <div class="account-modal-backdrop"></div>
+                <div class="account-modal-dialog">
+                    <button type="button" class="account-modal-close" id="accountOwnerModalClose" aria-label="Close">
+                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                            <path d="M6 6 L18 18 M6 18 L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"></path>
+                        </svg>
+                    </button>
+                    <h3 id="accountOwnerModalTitle" class="account-modal-title">About the account owner</h3>
+                    <p class="account-modal-intro">
+                        The <strong>account owner</strong> is responsible for everything financial on this Eagle Eyes account.
+                        Account ownership is independent of organization roles (admin / member).
+                    </p>
+                    <div class="account-modal-perms">
+                        <div class="account-modal-perms-label">Account owners can:</div>
+                        <ul>
+                            <li>Purchase and renew licenses</li>
+                            <li>Buy streaming credits and subscribe to Annual Unlimited</li>
+                            <li>Add and remove organizations from the account</li>
+                            <li>See billing history and manage payment method</li>
+                            <li>Add another account owner</li>
+                        </ul>
+                    </div>
+                    <!-- The actual "Add owner" control lives on the Overview
+                         page (next to the owners list). The modal stays
+                         info-only — explains the role, doesn't duplicate
+                         the form. -->
+                    <p class="account-modal-footer">
+                        To add or remove account owners, use the controls next to the owners list on this page.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Streaming credits subsection. -->
+            <div class="overview-subhead-row">
+                <h3 class="overview-subhead">Streaming credits</h3>
+                <a class="overview-subhead-cta owner-only-cta" id="streamingBuyCreditsCta"
+                   href="{{ '/account/purchase/?mode=streaming' | relative_url }}"
+                   style="display: none;">Buy credits &rarr;</a>
+            </div>
+            <div id="streamingCreditsWidget" class="streaming-credits-widget" style="display: none;">
+                <div class="streaming-credits-left">
+                    <div class="streaming-credits-label">Streaming credits</div>
+                    <div class="streaming-credits-value" id="streamingCreditsValue">—</div>
+                    <div class="streaming-credits-meta" id="streamingCreditsMeta"></div>
+                </div>
+                <div class="streaming-credits-right">
+                    <div class="streaming-credits-badges" id="streamingCreditsBadges"></div>
+                </div>
+            </div>
+            <div id="streamingCreditsEmpty" class="overview-empty" style="display: none;">
+                No streaming credits yet. <a href="{{ '/account/purchase/?mode=streaming' | relative_url }}">Buy your first top-up &rarr;</a>
+            </div>
+
+            <!-- Active licenses subsection. -->
+            <div class="overview-subhead-row" style="margin-top: 24px;">
+                <h3 class="overview-subhead">Active licenses</h3>
+            </div>
             <div id="plansSpinner" class="loading-spinner"><div class="spinner"></div></div>
             <div id="plansError" class="empty-card" style="display: none; border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">Error loading licenses. Please try again later.</div>
-            <div id="plansEmpty" class="empty-card" style="display: none;">No licenses yet.</div>
+            <div id="plansEmpty" class="empty-card" style="display: none;">No active licenses.<a class="owner-only-cta" id="plansEmptyBuyCta" href="{{ '/account/purchase/' | relative_url }}" style="display: none; margin-left: 6px;">Buy one &rarr;</a></div>
             <div id="plansPrimary"></div>
-            <a id="plansExpandLink" class="plan-expand" href="#" style="display: none;">Show more licenses</a>
+            <a id="plansExpandLink" class="plan-expand" href="#" style="display: none;">Show other active licenses</a>
             <div id="plansOtherList" class="plan-other-list" style="display: none;"></div>
         </section>
 
         <!-- DEVICES SECTION -->
         <section id="devicesSection" class="account-section">
             <header class="account-section-header">
-                <h2 class="account-section-title">My Devices</h2>
+                <h2 class="account-section-title" id="devicesSectionTitle">Devices</h2>
                 <p class="account-section-hint">Devices activated on this organization's licenses. Device-specific license keys are available here if you need to reinstall or reactivate. A key is specific to a device and cannot be used on another device. If you run into trouble, contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>.</p>
             </header>
             <div id="deviceTokensContainer">
@@ -1369,12 +2170,54 @@ heading: Account
             </div>
         </section>
 
-        <!-- MEMBERS SECTION (admin-only when active source is a real org) -->
+        <!-- PEOPLE SECTION (admin-only when active source is a real org).
+             The DOM id 'membersSection' is kept for backward-compat with
+             existing JS hooks; the user-facing label is now "People". -->
         <section id="membersSection" class="account-section" style="display: none;">
             <header class="account-section-header">
-                <h2 class="account-section-title">Members</h2>
-                <p class="account-section-hint">Add, remove, promote, and demote members of this organization.</p>
+                <h2 class="account-section-title">People</h2>
+                <p class="account-section-hint">Add, remove, promote, and demote people on this organization.</p>
             </header>
+
+            <!-- Inline disclosure: who can do what on the account vs the
+                 organization. Clicking the link toggles the panel below. -->
+            <div class="roles-disclosure">
+                <a href="#" id="rolesTrigger" class="roles-trigger" aria-expanded="false" aria-controls="rolesPanel">View roles and permissions</a>
+                <div id="rolesPanel" class="roles-panel" style="display: none;">
+                    <div class="roles-grid">
+                        <div class="roles-col">
+                            <div class="roles-col-title">Owner <span class="roles-col-scope">on the account</span></div>
+                            <ul>
+                                <li>Purchase &amp; renew (licenses, streaming credits, Unlimited subscriptions)</li>
+                                <li>Add and remove organizations to/from the account</li>
+                            </ul>
+                        </div>
+                        <div class="roles-col">
+                            <div class="roles-col-title">Admin <span class="roles-col-scope">on an organization</span></div>
+                            <ul>
+                                <li>See billing history</li>
+                                <li>Purchase license / credits / Unlimited</li>
+                                <li>Add member domains</li>
+                                <li>Add or demote admins; remove members</li>
+                                <li>See token / credit usage</li>
+                                <li>Add member, activate license, rotate license, add/delete configuration</li>
+                            </ul>
+                        </div>
+                        <div class="roles-col">
+                            <div class="roles-col-title">Member <span class="roles-col-scope">on an organization</span></div>
+                            <ul>
+                                <li>See token / credit usage</li>
+                                <li>Add member, activate license, rotate license, add/delete configuration</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="roles-footnote">
+                        Account ownership and organization role are independent — a user can be an
+                        account owner without being on any organization, and vice versa.
+                    </div>
+                </div>
+            </div>
+
             <div id="membersContent"></div>
         </section>
 
@@ -1423,6 +2266,16 @@ heading: Account
         window.addEventListener('hashchange', function() {
             applyHashToState();
             renderActiveView();
+        });
+
+        // Page-title dropdown announces the active account/org changing.
+        // For account changes, re-render so the Licenses view refilters.
+        // For org changes, the page-title also writes the URL hash and fires
+        // hashchange — which is handled above.
+        document.addEventListener('accountScopeChanged', function(e) {
+            if (e.detail && e.detail.scope === 'account' && activeScope === 'account') {
+                renderActiveView();
+            }
         });
 
         // Enhanced section handling for download sections
@@ -1486,37 +2339,51 @@ heading: Account
         
         // Use Firebase's built-in auth state observer instead of our custom events
         firebase.auth().onAuthStateChanged(function(user) {
+            const authChecking = document.getElementById('accountAuthChecking');
+
             if (user) {
-                // User is signed in - always hide the signin overlay
                 signinOverlay.style.display = 'none';
                 signinButtonSection.style.display = 'none';
 
-                // Show loading overlay during redirect check
-                loadingOverlay.style.display = 'block';
+                // Keep the pre-paint auth-checking spinner visible through the
+                // whole load (auth → dashboard fetch → redirectOrNot) instead
+                // of hiding it now and showing the fullscreen #loading-overlay
+                // a few hundred ms later. That two-spinner chain is what
+                // produced the visible flicker when navigating to /account/.
+                // The spinner is hidden by redirectOrNot when it shows
+                // #accountContent — see hideAccountAuthChecking() below.
 
-                // Kick off the organization fetch in parallel with the account-status
-                // check. The loading overlay won't lift until both have resolved, so
-                // the org tab's visibility is settled before the page is shown.
-                window._orgFetchPromise = fetchMyOrganization();
+                // Kick off the account-page data fetches in parallel with
+                // the account-status check. fetchAccountDashboard internally
+                // runs get_my_organization + get_license_overview + get_my_accounts
+                // concurrently and triggers the streaming-credits balance fetch.
+                window._orgFetchPromise = fetchAccountDashboard();
 
                 // Check if the user should be on this page
                 try {
                     redirectOrNot(user);
                 } catch (error) {
                     console.error("Error in redirectOrNot:", error);
-                    // Hide loading overlay on error
-                    loadingOverlay.style.display = 'none';
+                    if (authChecking) authChecking.style.setProperty('display', 'none', 'important');
                     // Still show content on error, but don't show sign-in again
                     $("#accountContent").show();
                 }
             } else {
-                // User is signed out
+                // User is signed out — drop the auth-check spinner, show the
+                // sign-in panel. loadingOverlay never got shown in this flow.
+                if (authChecking) authChecking.style.setProperty('display', 'none', 'important');
                 signinButtonSection.style.display = 'block';
                 accountContent.style.display = 'none';
-                // Make sure loading overlay is hidden when logged out
                 loadingOverlay.style.display = 'none';
             }
         });
+
+        // Centralized helper so every redirectOrNot exit path can dismiss the
+        // pre-paint spinner without re-stating the !important dance.
+        window.hideAccountAuthChecking = function() {
+            var el = document.getElementById('accountAuthChecking');
+            if (el) el.style.setProperty('display', 'none', 'important');
+        };
 
         // Replace the signInComplete listener to explicitly hide the overlay
         document.addEventListener('signInComplete', function(e) {
@@ -1683,10 +2550,11 @@ heading: Account
                 if (!document.hidden) {
                     // Wait for the in-flight organization fetch (kicked off at
                     // sign-in) so the org tab's visibility is decided before
-                    // we lift the loading overlay. fetchMyOrganization swallows
+                    // we reveal the content. fetchMyOrganization swallows
                     // its own errors, so this is safe to await.
                     Promise.resolve(window._orgFetchPromise).finally(() => {
                         document.getElementById('loading-overlay').style.display = 'none';
+                        if (window.hideAccountAuthChecking) window.hideAccountAuthChecking();
                         $("#accountContent").show();
 
                         // Apply section ordering before showing downloads
@@ -1704,23 +2572,26 @@ heading: Account
                             }, 100);
                         }
 
-                        fetchAvailableDownloads();
-                        console.log("Fetching license overview");
-                        fetchLicenseOverview();
+                        // Downloads lives at /account/downloads/ now; no need
+                        // to fetch the file listing on /account/.
                         fetchLicenseTokensOverview();
+                        // If the user is returning from Stripe Checkout, show
+                        // the success toast and start polling for the balance
+                        // update from the webhook.
+                        handleStripeReturnParams();
                     });
                 }
             } catch (error) {
                 // Error handling...
-                // Hide loading overlay on error
                 document.getElementById('loading-overlay').style.display = 'none';
+                if (window.hideAccountAuthChecking) window.hideAccountAuthChecking();
             }
         })
         .catch(function(error) {
-            // Handle API failure - always hide loading overlay
             console.error("Error checking user account status:", error);
             document.getElementById('loading-overlay').style.display = 'none';
-            
+            if (window.hideAccountAuthChecking) window.hideAccountAuthChecking();
+
             // Show the account content anyway, but with a warning
             $("#accountContent").show();
             
@@ -2620,6 +3491,10 @@ heading: Account
     }
 
     // Render My Plans — primary card + show-more list (setup.html-style).
+    // Overview's Active-licenses view: render the top 3 actives (sorted by
+     // latest expiry first) as full cards, then everything else behind a
+     // "Show other active licenses (N)" toggle. Expired licenses are
+     // intentionally hidden — they aren't actionable from this view.
     function renderLicenseCards(overview) {
         const primaryEl = document.getElementById('plansPrimary');
         const expandLink = document.getElementById('plansExpandLink');
@@ -2646,30 +3521,53 @@ heading: Account
                 _isExpired: !isNaN(t) && t < now
             });
         });
-        // Active first (latest expiry first), then expired (latest first).
+        // Active only, sorted by latest expiry first (the most-runway licenses
+        // surface first).
         const active = annotated.filter(function(l) { return !l._isExpired; })
             .sort(function(a, b) { return b._expiryMs - a._expiryMs; });
-        const expired = annotated.filter(function(l) { return l._isExpired; })
-            .sort(function(a, b) { return b._expiryMs - a._expiryMs; });
-        const sorted = active.concat(expired);
 
-        primaryEl.appendChild(buildPlanPrimaryCard(sorted[0]));
-        if (sorted.length > 1) {
-            const otherCount = sorted.length - 1;
-            expandLink.textContent = 'Show ' + otherCount + ' more ' + (otherCount === 1 ? 'license' : 'licenses');
+        if (active.length === 0) {
+            emptyEl.style.display = 'block';
+            return;
+        }
+
+        const TOP_N = 3;
+        const top = active.slice(0, TOP_N);
+        const rest = active.slice(TOP_N);
+
+        top.forEach(function(l) {
+            primaryEl.appendChild(buildPlanPrimaryCard(l));
+        });
+
+        if (rest.length > 0) {
+            const otherCount = rest.length;
+            const collapseLabel = 'Show other active license' + (otherCount === 1 ? '' : 's') + ' (' + otherCount + ')';
+            const expandLabel = 'Hide other ' + (otherCount === 1 ? 'license' : 'licenses');
+            expandLink.textContent = collapseLabel;
             expandLink.style.display = 'block';
-            sorted.slice(1).forEach(function(l) {
+            rest.forEach(function(l) {
                 otherList.appendChild(buildPlanOtherRow(l));
             });
             expandLink.onclick = function(e) {
                 e.preventDefault();
                 const open = otherList.style.display !== 'none';
                 otherList.style.display = open ? 'none' : 'block';
-                expandLink.textContent = open
-                    ? 'Show ' + otherCount + ' more ' + (otherCount === 1 ? 'license' : 'licenses')
-                    : 'Hide other ' + (otherCount === 1 ? 'license' : 'licenses');
+                expandLink.textContent = open ? collapseLabel : expandLabel;
             };
         }
+    }
+
+    // Account-scope license cards surface which org uses each license, so
+    // a user with multiple orgs can see at a glance which team consumes
+    // which license. Personal licenses (not assigned to any org) get the
+    // "Personal" call-out instead.
+    function buildLicenseRelationshipLine(license) {
+        if (!license || !license.license_id) return null;
+        const org = findOrgForLicense(license.license_id);
+        if (org) {
+            return 'Used by <strong>' + planEscape(org.name || 'Organization') + '</strong> organization';
+        }
+        return 'Personal — not assigned to a team';
     }
 
     function planEyeIconHtml() {
@@ -2710,11 +3608,30 @@ heading: Account
             metaHtml += '<span><span class="' + remainCls + '">' + remainText + '</span></span>';
         }
 
+        const relationshipLine = buildLicenseRelationshipLine(license);
+        const relationshipHtml = relationshipLine
+            ? '<div class="plan-relationship">' + relationshipLine + '</div>'
+            : '';
+
+        // Renew / add-devices CTA only when the license isn't expired AND has
+        // headroom under the 12-device cap (backend rejects extensions that
+        // would exceed 12).
+        let purchaseCtaHtml = '';
+        if (!isExpired && license.license_id) {
+            const currentTotal = (typeof totalKeys === 'number') ? totalKeys : 0;
+            if (currentTotal < 12) {
+                const url = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id=' + encodeURIComponent(license.license_id);
+                purchaseCtaHtml = '<a class="plan-renew-link" href="' + url + '">Renew / add devices →</a>';
+            }
+        }
+
         card.innerHTML =
             '<button type="button" class="plan-eye-toggle" aria-expanded="false" aria-label="Toggle details">'
                 + planEyeIconHtml() + '</button>'
             + '<h3>' + planEscape(license.license_name || 'Eagle Eyes License') + '</h3>'
             + '<div class="plan-meta">' + metaHtml + '</div>'
+            + relationshipHtml
+            + purchaseCtaHtml
             + buildPlanDetailsHtml(license);
 
         wirePlanEyeToggle(card);
@@ -2739,10 +3656,16 @@ heading: Account
             metaParts.push(keysLeft + ' ' + (keysLeft === 1 ? 'device' : 'devices') + ' left');
         }
 
+        const relationshipLine = buildLicenseRelationshipLine(license);
+        const relationshipHtml = relationshipLine
+            ? '<div class="plan-row-relationship">' + relationshipLine + '</div>'
+            : '';
+
         row.innerHTML =
             '<div style="flex: 1 1 auto; min-width: 0;">' +
               '<div class="plan-row-name">' + planEscape(license.license_name || 'Eagle Eyes License') + '</div>' +
               '<div class="plan-row-meta">' + planEscape(metaParts.join(' · ')) + '</div>' +
+              relationshipHtml +
             '</div>' +
             '<div class="plan-row-actions">' +
               '<button type="button" class="plan-eye-toggle" aria-expanded="false" aria-label="Toggle details">'
@@ -2864,207 +3787,233 @@ heading: Account
     
     
     // Fetch device tokens overview
+    function applyTokensData(data) {
+        cachedTokens = (data && data.tokens) || [];
+        tokensLoaded = true;
+        const spinner = document.getElementById('tokensSpinner');
+        if (spinner) spinner.style.display = 'none';
+        // Diagnostic — surfaces in the console so we can tell whether tokens
+        // loaded and how the org-scope filter ends up.
+        console.info('[tokens] loaded', {
+            count: cachedTokens.length,
+            sampleLicenseIds: cachedTokens.slice(0, 5).map(function(t) { return t.license_id; }),
+            sampleEmails: cachedTokens.slice(0, 5).map(function(t) { return t.user_email || t.email; })
+        });
+        recomputeAndRender();
+    }
+
     async function fetchLicenseTokensOverview() {
-      try {
-        // Show spinner, hide cards initially
-        document.getElementById('tokensSpinner').style.display = 'block';
-        document.getElementById('tokensGrid').style.display = 'none';
-        document.getElementById('tokensError').style.display = 'none';
-        document.getElementById('tokensEmpty').style.display = 'none';
-        
         const user = firebase.auth().currentUser;
         if (!user) {
-          console.error('User is not logged in.');
-          return;
+            console.error('User is not logged in.');
+            return;
         }
-        const idToken = await user.getIdToken(true);
-        const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
-        
-        const response = await fetch(`${hostURL}/get_license_tokens_overview`, {
-          method: 'GET',
-          mode: 'cors',
-          credentials: 'same-origin',
-                headers: {
-            'Authorization': 'Bearer ' + idToken,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          console.error('Error fetching tokens overview:', response.statusText);
-          document.getElementById('tokensSpinner').style.display = 'none';
-          document.getElementById('tokensError').style.display = 'block';
-          return;
-        }
-        const data = await response.json();
-        
-        // Log the received token data for debugging
-        console.log('License tokens response:', data);
-        console.log('License tokens received:', data.tokens);
-        if (data.tokens && data.tokens.length > 0) {
-          console.log('Sample token data:', data.tokens[0]);
-          
-          // Group tokens by machine_id for easier debugging
-          const tokensByMachine = {};
-          data.tokens.forEach(token => {
-            if (!tokensByMachine[token.machine_id]) {
-              tokensByMachine[token.machine_id] = [];
+
+        // Cache hit → render immediately, then revalidate in the background.
+        if (window.eeTokens) {
+            const cached = window.eeTokens.read(user.uid);
+            if (cached) {
+                applyTokensData(cached);
+                window.eeTokens.fetch(user).then(function(fresh) {
+                    if (fresh) applyTokensData(fresh);
+                }).catch(function(err) {
+                    console.warn('Tokens background revalidate failed:', err);
+                });
+                return;
             }
-            tokensByMachine[token.machine_id].push(token);
-          });
-          console.log('Tokens grouped by machine:', tokensByMachine);
         }
-        
-        // Cache + re-render via the source-aware pipeline so Devices is
-        // filtered to the active source's licenses.
-        cachedTokens = data.tokens || [];
-        tokensLoaded = true;
-        document.getElementById('tokensSpinner').style.display = 'none';
-        recomputeAndRender();
-      } catch (error) {
-        console.error('Error in fetchLicenseTokensOverview:', error);
-        cachedTokens = [];
-        tokensLoaded = true;
-        document.getElementById('tokensSpinner').style.display = 'none';
-        document.getElementById('tokensError').style.display = 'block';
-      }
+
+        try {
+            const spinner = document.getElementById('tokensSpinner');
+            const grid = document.getElementById('tokensGrid');
+            const err = document.getElementById('tokensError');
+            const empty = document.getElementById('tokensEmpty');
+            if (spinner) spinner.style.display = 'block';
+            if (grid) grid.style.display = 'none';
+            if (err) err.style.display = 'none';
+            if (empty) empty.style.display = 'none';
+
+            const data = window.eeTokens
+                ? await window.eeTokens.fetch(user)
+                : await (async function() {
+                    const idToken = await user.getIdToken();
+                    const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                    const r = await fetch(`${hostURL}/get_license_tokens_overview`, {
+                        method: 'GET',
+                        headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
+                    });
+                    if (!r.ok) throw new Error('get_license_tokens_overview failed (' + r.status + ')');
+                    return r.json();
+                })();
+            applyTokensData(data);
+        } catch (error) {
+            console.error('Error in fetchLicenseTokensOverview:', error);
+            cachedTokens = [];
+            tokensLoaded = true;
+            const spinner = document.getElementById('tokensSpinner');
+            const errEl = document.getElementById('tokensError');
+            if (spinner) spinner.style.display = 'none';
+            if (errEl) errEl.style.display = 'block';
+        }
     }
     
     // Render device token cards from data
     function renderTokenCards(tokensOverview) {
       const tokensGrid = document.getElementById('tokensGrid');
-      tokensGrid.innerHTML = ''; // Clear existing cards
-      
+      tokensGrid.innerHTML = '';
+
       if (!tokensOverview || tokensOverview.length === 0) {
         document.getElementById('tokensEmpty').style.display = 'block';
         document.getElementById('tokensGrid').style.display = 'none';
         return;
       }
-      
-      // Group tokens by machine_id
+
+      // Reveal the list + hide the empty state.
+      document.getElementById('tokensEmpty').style.display = 'none';
+      tokensGrid.style.display = '';
+
+      // Switch the container to the people-list look (it had grid styling
+      // baked in for the old card grid — we now want a vertical list with
+      // dividers between rows).
+      tokensGrid.className = 'people-list';
+
+      // Group tokens by machine_id — one row per device, multiple licenses
+      // (tokens) shown inside the row.
       const tokensByMachine = {};
-      tokensOverview.forEach(token => {
+      const machineOrder = [];
+      tokensOverview.forEach(function(token) {
         if (!tokensByMachine[token.machine_id]) {
           tokensByMachine[token.machine_id] = [];
+          machineOrder.push(token.machine_id);
         }
         tokensByMachine[token.machine_id].push(token);
       });
-      
-      // Counter for unnamed devices
-      let unnamedDeviceCounter = 0;
-      
-      // Create a card for each machine_id
-      Object.entries(tokensByMachine).forEach(([machineId, tokens]) => {
-        // Increment the counter for each device without a name
-        unnamedDeviceCounter++;
-        
-        // Get device name from the first token or use default
-        const deviceName = tokens.length > 0 && tokens[0].device_name ? 
-                           tokens[0].device_name : 
-                           `Device ${unnamedDeviceCounter}`;
-        
-        // Create token card container
-        const card = document.createElement('div');
-        card.className = 'token-card';
-        
-        // Create header
-        const header = document.createElement('div');
-        header.className = 'token-header';
-        
-        // Left section - Device name and Machine ID
-        const headerLeft = document.createElement('div');
-        headerLeft.className = 'token-header-left';
-        
-        const title = document.createElement('h4');
-        title.className = 'token-title';
-        title.textContent = deviceName;
-        
-        const subtitle = document.createElement('p');
-        subtitle.className = 'token-subtitle';
-        subtitle.textContent = `Machine ID: ${machineId}`;
-        
-        headerLeft.appendChild(title);
-        headerLeft.appendChild(subtitle);
-        
-        // Assemble the header
-        header.appendChild(headerLeft);
-        card.appendChild(header);
-        
-        // Card body - list each license with its token
-        const body = document.createElement('div');
-        body.className = 'token-body';
-        
-        if (tokens.length > 0) {
-          tokens.forEach(token => {
-            const licenseItem = document.createElement('div');
-            licenseItem.className = 'token-license-item';
-            
-            // License info
-            const licenseInfo = document.createElement('div');
-            licenseInfo.className = 'token-license-info';
-            
-            const licenseName = document.createElement('div');
-            licenseName.className = 'token-license-id';
-            licenseName.textContent = token.license_name;
-            
-            const licenseId = document.createElement('div');
-            licenseId.className = 'token-license-expiry';
-            licenseId.textContent = `License ID: ${token.license_id}`;
-            
-            const licenseExpiry = document.createElement('div');
-            licenseExpiry.className = 'token-license-expiry';
-            licenseExpiry.textContent = `Expires: ${token.expiry_date}`;
-            
-            licenseInfo.appendChild(licenseName);
-            licenseInfo.appendChild(licenseId);
-            licenseInfo.appendChild(licenseExpiry);
-            
-            // Copy button
-            const copyButton = document.createElement('button');
-            copyButton.className = 'copy-button';
-            copyButton.textContent = 'Copy Key';
-            copyButton.onclick = function() {
-              copyToClipboard(token.token_key, copyButton);
-            };
-            
-            licenseItem.appendChild(licenseInfo);
-            licenseItem.appendChild(copyButton);
-            
-            body.appendChild(licenseItem);
-          });
+
+      let unnamedCounter = 0;
+      machineOrder.forEach(function(machineId) {
+        const tokens = tokensByMachine[machineId];
+        const first = tokens[0] || {};
+        const userEmail = first.user_email || first.email || '';
+
+        // Device name — fall back to "Device N" when the app hasn't
+        // reported one yet.
+        let deviceName;
+        if (first.device_name) {
+          deviceName = first.device_name;
         } else {
-          // Show empty state message
-          body.innerHTML = '<div class="token-empty">No devices registered for this license</div>';
+          unnamedCounter += 1;
+          deviceName = 'Device ' + unnamedCounter;
         }
-        
-        card.appendChild(body);
-        tokensGrid.appendChild(card);
+
+        const initial = (deviceName.charAt(0) || '?').toUpperCase();
+        // Color the avatar by the *user* email so all devices belonging to
+        // the same teammate share a color — easy to scan visually.
+        const avatarColor = userEmail ? colorForEmail(userEmail) : '#888';
+
+        const machineIdShort = String(machineId || '');
+        const machineIdEsc = escapeHtmlOrg(machineIdShort);
+
+        const row = document.createElement('div');
+        row.className = 'people-row device-row';
+
+        const left = document.createElement('div');
+        left.className = 'people-row-left';
+        left.innerHTML =
+          '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>' +
+          '<div class="people-row-body">' +
+            '<div class="people-row-email">' + escapeHtmlOrg(deviceName) + '</div>' +
+            '<div class="device-row-meta">' +
+              (userEmail ? '<span>' + escapeHtmlOrg(userEmail) + '</span>' : '') +
+              (userEmail ? '<span class="device-row-sep">·</span>' : '') +
+              '<span class="device-row-machineid" title="' + machineIdEsc + '">' +
+                'Machine ID: <code>' + machineIdEsc + '</code>' +
+              '</span>' +
+              '<span class="device-row-sep">·</span>' +
+              '<span>' + tokens.length + ' key' + (tokens.length === 1 ? '' : 's') + '</span>' +
+            '</div>' +
+          '</div>';
+        row.appendChild(left);
+
+        // Right side — for single-license devices, a single inline Copy Key
+        // button. For multi-license devices, an expand toggle that reveals
+        // a per-license list with its own Copy buttons.
+        const actions = document.createElement('div');
+        actions.className = 'people-row-actions device-row-actions';
+        if (tokens.length === 1) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'people-icon-btn';
+          btn.textContent = '⧉ Copy key';
+          btn.onclick = function() { copyToClipboard(tokens[0].token_key, btn); };
+          actions.appendChild(btn);
+        } else {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'people-icon-btn';
+          btn.textContent = 'Show keys';
+          btn.setAttribute('aria-expanded', 'false');
+          actions.appendChild(btn);
+
+          // License sublist (collapsed by default).
+          const sub = document.createElement('div');
+          sub.className = 'device-row-keys';
+          sub.style.display = 'none';
+          tokens.forEach(function(t) {
+            const item = document.createElement('div');
+            item.className = 'device-row-key';
+            const licName = escapeHtmlOrg(t.license_name || 'License');
+            const expiry = escapeHtmlOrg(t.expiry_date || '—');
+            const licId = escapeHtmlOrg(t.license_id || '');
+            item.innerHTML =
+              '<div class="device-row-key-info">' +
+                '<div class="device-row-key-name">' + licName + '</div>' +
+                '<div class="device-row-key-meta">expires ' + expiry +
+                  ' · <code>' + licId + '</code></div>' +
+              '</div>';
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'people-icon-btn';
+            copy.textContent = '⧉ Copy';
+            copy.onclick = function() { copyToClipboard(t.token_key, copy); };
+            item.appendChild(copy);
+            sub.appendChild(item);
+          });
+
+          btn.onclick = function() {
+            const open = sub.style.display !== 'none';
+            sub.style.display = open ? 'none' : '';
+            btn.textContent = open ? 'Show keys' : 'Hide keys';
+            btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+          };
+
+          row.appendChild(actions);
+          row.appendChild(sub);
+          tokensGrid.appendChild(row);
+          return;
+        }
+        row.appendChild(actions);
+        tokensGrid.appendChild(row);
       });
     }
     
-    // Copy text to clipboard with visual feedback
+    // Copy text to clipboard with visual feedback. Preserves the button's
+    // original label so callers can use any text ("Copy Key", "⧉ Copy",
+    // etc.) — we don't hardcode it back to "Copy Key" on reset.
     function copyToClipboard(text, button) {
+      var original = button.textContent;
       navigator.clipboard.writeText(text).then(
         function() {
-          // Success - show visual feedback
-          button.textContent = 'Copied!';
+          button.textContent = '✓ Copied';
           button.classList.add('copied');
-          
-          // Reset button after 2 seconds
           setTimeout(function() {
-            button.textContent = 'Copy Key';
+            button.textContent = original;
             button.classList.remove('copied');
           }, 2000);
         },
         function(err) {
           console.error('Could not copy text: ', err);
           button.textContent = 'Error';
-          
-          // Reset button after 2 seconds
-          setTimeout(function() {
-            button.textContent = 'Copy Key';
-          }, 2000);
+          setTimeout(function() { button.textContent = original; }, 2000);
         }
       );
     }
@@ -3278,6 +4227,62 @@ heading: Account
 
     // Replace with a global event listener approach
     document.addEventListener('DOMContentLoaded', function() {
+        // Roles & permissions disclosure — toggle the panel on click.
+        const rolesTrigger = document.getElementById('rolesTrigger');
+        const rolesPanel = document.getElementById('rolesPanel');
+        if (rolesTrigger && rolesPanel) {
+            rolesTrigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                const open = rolesPanel.style.display !== 'none';
+                rolesPanel.style.display = open ? 'none' : '';
+                rolesTrigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+                rolesTrigger.classList.toggle('is-open', !open);
+            });
+        }
+
+        // Account-owner help modal — open from the "What's this?" link
+        // next to the account owner row.
+        const ownerHelpLink = document.getElementById('accountOwnerHelpLink');
+        const ownerModal = document.getElementById('accountOwnerModal');
+        const ownerModalClose = document.getElementById('accountOwnerModalClose');
+        const ownerModalBackdrop = ownerModal && ownerModal.querySelector('.account-modal-backdrop');
+        function openOwnerModal(e) {
+            if (e) e.preventDefault();
+            if (ownerModal) ownerModal.style.display = '';
+            document.body.style.overflow = 'hidden';
+        }
+        function closeOwnerModal() {
+            if (ownerModal) ownerModal.style.display = 'none';
+            document.body.style.overflow = '';
+            const status = document.getElementById('addOwnerStatus');
+            if (status) { status.textContent = ''; status.className = 'account-modal-status'; }
+        }
+        if (ownerHelpLink) ownerHelpLink.addEventListener('click', openOwnerModal);
+        if (ownerModalClose) ownerModalClose.addEventListener('click', closeOwnerModal);
+        if (ownerModalBackdrop) ownerModalBackdrop.addEventListener('click', closeOwnerModal);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && ownerModal && ownerModal.style.display !== 'none') {
+                closeOwnerModal();
+            }
+        });
+
+        // "+ Add another account owner" toggle on the Overview page.
+        // Collapsed by default; expands to reveal the form when clicked.
+        const addOwnerToggle = document.getElementById('accountOwnersAddToggle');
+        const addOwnerPanel = document.getElementById('accountOwnersAddPanel');
+        if (addOwnerToggle && addOwnerPanel) {
+            addOwnerToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const isOpen = addOwnerPanel.style.display !== 'none';
+                addOwnerPanel.style.display = isOpen ? 'none' : '';
+                addOwnerToggle.textContent = isOpen ? '+ Add another account owner' : '– Cancel';
+                if (!isOpen) {
+                    const input = addOwnerPanel.querySelector('input[type="email"]');
+                    if (input) setTimeout(function() { input.focus(); }, 0);
+                }
+            });
+        }
+
         // Check if we're in emulator mode
         const isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
         
@@ -3427,7 +4432,6 @@ heading: Account
     let activeSourceId = null;
     let licensesLoaded = false;
     let tokensLoaded = false;
-    const PERSONAL_SOURCE_ID = '__personal__';
 
     function orgApiUrl(endpoint) {
         const hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
@@ -3472,48 +4476,277 @@ heading: Account
         return data;
     }
 
-    async function fetchMyOrganization() {
-        try {
-            const data = await orgApiCall('get_my_organization', null, false, 'GET');
-            const orgs = (data && data.organizations) || [];
-            cachedOrganizations = orgs;
-            // Reset the configs cache so we don't show stale entries from a
-            // previous fetch while the new ones are in flight.
-            cachedConfigsByOrg = {};
 
-            // Fire get_team_configurations for each org without awaiting — they
-            // only feed the Configurations tab, so we don't want to block the
-            // initial page render on them. Each one that returns re-renders.
-            orgs.forEach(function(o) {
-                orgApiCall('get_team_configurations', { org_id: o.org_id })
-                    .then(function(cfg) {
-                        cachedConfigsByOrg[o.org_id] = (cfg && cfg.configurations) || [];
-                        renderActiveConfigurations(getActiveSource());
-                    })
-                    .catch(function(e) {
-                        console.warn('get_team_configurations failed for', o.org_id, e);
-                        cachedConfigsByOrg[o.org_id] = [];
-                    });
-            });
+    // Cache the raw dashboard.accounts so we can pick a default account_id
+    // for streaming-credits lookups.
+    let cachedAccounts = [];
+
+    // Bundled page-load fetch. Single round-trip to get_account_dashboard,
+    // which parallelizes 4 server-side queries (user_account_info +
+    // accounts + organizations + license_overview) and bundles
+    // streaming_credits for the first account.
+    //
+    // Reads sessionStorage cache for instant render (no cold-start wait)
+    // and revalidates in the background. Falls back to the legacy fan-out
+    // (get_my_organization + get_license_overview + get_my_accounts +
+    // get_streaming_credits) if the bundled endpoint is unreachable.
+    function applyDashboardData(data) {
+        cachedOrganizations = (data && data.organizations) || [];
+        kickOffConfigurationsFetches(cachedOrganizations);
+        cachedLicenseOverview = (data && data.license_overview) || [];
+        licensesLoaded = true;
+        cachedAccounts = (data && data.accounts) || [];
+        cachedStreamingCredits = (data && data.streaming_credits) || null;
+        renderStreamingCreditsWidget();
+        window._cachedUserAccountInfo = (data && data.user_account_info) || null;
+        const plansSpinner = document.getElementById('plansSpinner');
+        if (plansSpinner) plansSpinner.style.display = 'none';
+    }
+
+    async function fetchAccountDashboard() {
+        const user = firebase.auth().currentUser;
+
+        // Cache hit → instant render. Revalidate in the background so a
+        // stale cache is corrected without blocking the overlay.
+        if (user && window.eeDashboard) {
+            const cached = window.eeDashboard.read(user.uid);
+            if (cached) {
+                applyDashboardData(cached);
+                recomputeAndRender();
+                document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
+                window.eeDashboard.fetch(user).then(function(fresh) {
+                    if (!fresh) return;
+                    applyDashboardData(fresh);
+                    recomputeAndRender();
+                    document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
+                }).catch(function(err) {
+                    console.warn('Dashboard background revalidate failed:', err);
+                });
+                return;
+            }
+        }
+
+        try {
+            const data = user && window.eeDashboard
+                ? await window.eeDashboard.fetch(user)
+                : await orgApiCall('get_account_dashboard', null, false, 'GET');
+            applyDashboardData(data);
         } catch (err) {
-            console.error('Error in fetchMyOrganization:', err);
-            cachedOrganizations = [];
-            cachedConfigsByOrg = {};
+            console.warn('get_account_dashboard failed; falling back to per-endpoint fetches:', err);
+            try {
+                await Promise.all([
+                    fetchMyOrganizationLegacy(),
+                    fetchLicenseOverview().catch(function(e) {
+                        console.warn('fetchLicenseOverview failed:', e);
+                    }),
+                    fetchMyAccounts().catch(function(e) {
+                        console.warn('get_my_accounts failed:', e);
+                        cachedAccounts = [];
+                    })
+                ]);
+                kickOffStreamingCreditsFetch();
+            } catch (e2) {
+                console.error('Fallback dashboard fetch also failed:', e2);
+            }
         } finally {
             recomputeAndRender();
-            // Tell the layout's sidebar to refresh — its sessionStorage cache
-            // could otherwise show stale org names / roles after writes.
             document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
         }
     }
 
-    // ---- Source model ----
-    // A "source" is the scope tabs (Plans, Devices, Members, Configurations)
-    // operate on. Either a real organization or a synthetic "Individual plan"
-    // for the user's licenses that aren't on any org.
+    async function fetchMyAccounts() {
+        const data = await orgApiCall('get_my_accounts', null, false, 'GET');
+        cachedAccounts = (data && data.accounts) || [];
+    }
 
-    function computeSources(orgs, allLicenses) {
-        const sources = (orgs || []).map(function(o) {
+    let cachedStreamingCredits = null;
+    let streamingCreditsPollHandle = null;
+
+    function getActiveAccountId() {
+        if (!cachedAccounts || !cachedAccounts.length) return null;
+        // get_my_accounts returns account_id (not id); be tolerant of both.
+        return cachedAccounts[0].account_id != null
+            ? cachedAccounts[0].account_id
+            : cachedAccounts[0].id;
+    }
+
+    async function kickOffStreamingCreditsFetch() {
+        const accountId = getActiveAccountId();
+        if (!accountId) return;
+        try {
+            cachedStreamingCredits = await orgApiCall('get_streaming_credits',
+                { account_id: accountId }, false, 'POST');
+        } catch (err) {
+            console.warn('get_streaming_credits failed:', err);
+            cachedStreamingCredits = null;
+        }
+        renderStreamingCreditsWidget();
+    }
+
+    // Handle Stripe Checkout return params (?topup=success|cancelled,
+    // ?unlimited=success). Shows a toast immediately and polls
+    // get_streaming_credits until the webhook-applied balance lands.
+    function handleStripeReturnParams() {
+        const params = new URLSearchParams(window.location.search);
+        const topup = params.get('topup');
+        const unlimited = params.get('unlimited');
+        if (!topup && !unlimited) return;
+
+        if (topup === 'cancelled') {
+            showToast('Top-up cancelled — no charge was made.', 'info', 4500);
+            cleanStripeReturnParams();
+            return;
+        }
+
+        const wantsUnlimited = unlimited === 'success';
+        const wantsTopup = topup === 'success';
+        if (!wantsUnlimited && !wantsTopup) {
+            cleanStripeReturnParams();
+            return;
+        }
+
+        showToast(
+            wantsUnlimited
+                ? 'Subscription confirmed — applying Annual Unlimited…'
+                : 'Payment received — adding credits to your account…',
+            'success',
+            5000
+        );
+
+        cleanStripeReturnParams();
+        pollStreamingCredits(wantsUnlimited);
+    }
+
+    function cleanStripeReturnParams() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('topup');
+        url.searchParams.delete('unlimited');
+        url.searchParams.delete('account_id');
+        url.searchParams.delete('session_id');
+        history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+    }
+
+    function pollStreamingCredits(expectingUnlimited) {
+        if (streamingCreditsPollHandle) clearInterval(streamingCreditsPollHandle);
+        const start = Date.now();
+        const before = cachedStreamingCredits || {};
+        const beforeDollars = before.streaming_credits_dollars || 0;
+        const beforeUnlimited = !!before.unlimited_active;
+        streamingCreditsPollHandle = setInterval(async function() {
+            const elapsed = Date.now() - start;
+            await kickOffStreamingCreditsFetch();
+            const c = cachedStreamingCredits || {};
+            const landed = expectingUnlimited
+                ? (c.unlimited_active && !beforeUnlimited)
+                : ((c.streaming_credits_dollars || 0) > beforeDollars);
+            if (landed) {
+                clearInterval(streamingCreditsPollHandle);
+                streamingCreditsPollHandle = null;
+                if (expectingUnlimited) {
+                    showToast('Annual Unlimited is now active on your account.', 'success', 4500);
+                } else {
+                    const added = ((c.streaming_credits_dollars || 0) - beforeDollars).toFixed(2);
+                    showToast('$' + added + ' in streaming credits added to your account.', 'success', 4500);
+                }
+            } else if (elapsed > 15000) {
+                clearInterval(streamingCreditsPollHandle);
+                streamingCreditsPollHandle = null;
+                // No toast — the success toast already fired; the webhook is
+                // slow but will land. Page will pick it up on the next load.
+            }
+        }, 2000);
+    }
+
+    function renderStreamingCreditsWidget() {
+        // Streaming credits widget lives at the top of the Overview section
+        // (account-scoped). Renders when we have credits + accounts loaded;
+        // hidden when in org-scoped views (the section itself is hidden then).
+        const widget = document.getElementById('streamingCreditsWidget');
+        if (!widget) return;
+        const c = cachedStreamingCredits;
+        if (!c || !cachedAccounts.length) {
+            widget.style.display = 'none';
+            return;
+        }
+        const valueEl = document.getElementById('streamingCreditsValue');
+        const metaEl = document.getElementById('streamingCreditsMeta');
+        const badgesEl = document.getElementById('streamingCreditsBadges');
+        badgesEl.innerHTML = '';
+
+        if (c.unlimited_active) {
+            valueEl.textContent = 'Annual Unlimited';
+            const untilTs = c.unlimited_until;
+            metaEl.textContent = untilTs
+                ? 'Active until ' + new Date(untilTs * 1000).toLocaleDateString()
+                : 'Active';
+            badgesEl.innerHTML = '<span class="streaming-credits-badge unlimited">Unlimited</span>';
+        } else {
+            const dollars = (c.streaming_credits_dollars || 0).toFixed(2);
+            const minutes = Math.floor(c.streaming_credits_minutes || 0);
+            valueEl.textContent = '$' + dollars;
+            metaEl.textContent = minutes.toLocaleString() + ' minutes · $'
+                + (c.per_minute_rate_usd || 0.05).toFixed(2) + ' / min';
+            if (c.free_first_hour_available) {
+                badgesEl.innerHTML = '<span class="streaming-credits-badge">First hour free</span>';
+            }
+        }
+        widget.style.display = '';
+    }
+
+    function kickOffConfigurationsFetches(orgs) {
+        cachedConfigsByOrg = {};
+        (orgs || []).forEach(function(o) {
+            orgApiCall('get_team_configurations', { org_id: o.org_id })
+                .then(function(cfg) {
+                    cachedConfigsByOrg[o.org_id] = (cfg && cfg.configurations) || [];
+                    renderActiveConfigurations(getActiveSource());
+                })
+                .catch(function(e) {
+                    console.warn('get_team_configurations failed for', o.org_id, e);
+                    cachedConfigsByOrg[o.org_id] = [];
+                });
+        });
+    }
+
+    // Legacy fallback: only used when the dashboard endpoint isn't available.
+    // Kept around during rollout; can be removed once dashboard is stable.
+    async function fetchMyOrganizationLegacy() {
+        try {
+            const data = await orgApiCall('get_my_organization', null, false, 'GET');
+            const orgs = (data && data.organizations) || [];
+            cachedOrganizations = orgs;
+            kickOffConfigurationsFetches(orgs);
+        } catch (err) {
+            console.error('Error in fetchMyOrganizationLegacy:', err);
+            cachedOrganizations = [];
+            cachedConfigsByOrg = {};
+        }
+    }
+
+    // Public entry point. After member writes (rename/add/remove/promote/demote),
+    // refresh canonical state via the bundled dashboard call. Invalidate the
+    // cache first so this reconcile always hits the network — otherwise the
+    // followup would just re-read the pre-write payload.
+    async function fetchMyOrganization() {
+        try {
+            const u = firebase.auth().currentUser;
+            if (u && window.eeDashboard) window.eeDashboard.invalidate(u.uid);
+        } catch (e) { /* ignore */ }
+        await fetchAccountDashboard();
+    }
+
+    // ---- Source model ----
+    // A "source" is the org context that org-scoped views (Members,
+    // Devices, Configurations) operate on. Account-scope views (Licenses)
+    // don't use this — they read directly from cachedLicenseOverview.
+    //
+    // Personal licenses (not assigned to any org) used to get a synthetic
+    // "Individual plan" source; that's gone now. They surface in the
+    // account-scope Licenses view with a "Personal — not assigned to a team"
+    // line on the card instead.
+
+    function computeSources(orgs /* , allLicenses */) {
+        return (orgs || []).map(function(o) {
             return {
                 id: String(o.org_id),
                 kind: 'org',
@@ -3523,32 +4756,17 @@ heading: Account
                 org: o
             };
         });
-        const orgLicenseIds = new Set();
-        sources.forEach(function(s) {
-            s.license_ids.forEach(function(id) { orgLicenseIds.add(id); });
-        });
-        const personal = (allLicenses || []).filter(function(l) {
-            return l && l.license_id && !orgLicenseIds.has(l.license_id);
-        });
-        if (personal.length > 0) {
-            const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-            const email = user && user.email;
-            const onlySource = sources.length === 0;
-            sources.push({
-                id: PERSONAL_SOURCE_ID,
-                kind: 'personal',
-                name: onlySource ? 'Individual plan'
-                    : (email ? email + ' — Individual plan' : 'Individual plan'),
-                is_admin: false,
-                license_ids: personal.map(function(l) { return l.license_id; })
-            });
-        }
-        return sources;
     }
 
     // ---- Hash routing ----
-    // URL fragment carries the active source + view: #org=<id>&view=<licenses|devices|members|configurations>
-    let activeView = 'licenses';
+    // URL fragment carries the active scope:
+    //   - Account scope (default): #view=overview  (legacy #view=licenses → redirect)
+    //   - Org scope:                #org=<id>&view=<members|devices|configurations>
+    // Overview is *account-scoped* — streaming credits + active licenses (each
+    // shown with "Used by <Org>" line). Members/Devices/Configurations are
+    // *org-scoped*.
+    let activeView = 'overview';
+    let activeScope = 'account'; // 'account' | 'org'
 
     function parseHashParams() {
         const raw = (window.location.hash || '').replace(/^#/, '');
@@ -3561,53 +4779,108 @@ heading: Account
         return out;
     }
 
-    function buildHash(orgId, view) {
+    function buildHashAccount(view) {
+        return '#view=' + encodeURIComponent(view);
+    }
+    function buildHashOrg(orgId, view) {
         return '#org=' + encodeURIComponent(orgId) + '&view=' + encodeURIComponent(view);
     }
 
-    function writeHash(orgId, view, replace) {
-        const next = buildHash(orgId, view);
+    function writeHashAccount(view, replace) {
+        const next = buildHashAccount(view);
+        if (window.location.hash === next) return;
+        const url = window.location.pathname + window.location.search + next;
+        if (replace) history.replaceState(null, '', url);
+        else history.pushState(null, '', url);
+    }
+    function writeHashOrg(orgId, view, replace) {
+        const next = buildHashOrg(orgId, view);
         if (window.location.hash === next) return;
         const url = window.location.pathname + window.location.search + next;
         if (replace) history.replaceState(null, '', url);
         else history.pushState(null, '', url);
     }
 
-    function pickDefaultSource(sources) {
-        if (!sources.length) return null;
-        const adminOrg = sources.find(function(s) { return s.kind === 'org' && s.is_admin; });
-        return (adminOrg || sources[0]).id;
+    // Pick a default org for org-scope views — first admin org if any,
+    // otherwise the first org.
+    function pickDefaultOrgId() {
+        if (!cachedOrganizations || !cachedOrganizations.length) return null;
+        const adminOrg = cachedOrganizations.find(function(o) { return !!o.is_admin; });
+        return String((adminOrg || cachedOrganizations[0]).org_id);
     }
 
-    function isViewAllowedForSource(view, source) {
-        if (!source) return false;
-        if (view === 'licenses' || view === 'devices') return true;
-        if (view === 'configurations') return source.kind === 'org';
-        if (view === 'members') return source.kind === 'org' && !!source.is_admin;
-        return false;
+    function isAccountView(view) {
+        // 'overview' is the canonical account-scope view. 'licenses' is a
+        // legacy alias and gets rewritten to 'overview' on entry.
+        return view === 'overview' || view === 'licenses'
+            || view === 'subscriptions' || view === 'streaming';
+    }
+    function isOrgView(view) {
+        return view === 'people' || view === 'members'
+            || view === 'devices' || view === 'configurations';
+    }
+    function canonicalizeAccountView(view) {
+        // Legacy → canonical
+        if (view === 'licenses') return 'overview';
+        return view;
+    }
+    function canonicalizeOrgView(view) {
+        if (view === 'members') return 'people';
+        return view;
     }
 
     function applyHashToState() {
         const params = parseHashParams();
-        const ids = cachedSources.map(function(s) { return s.id; });
-        // Active source from hash, else previous, else default
-        if (params.org && ids.indexOf(params.org) !== -1) {
-            activeSourceId = params.org;
-        } else if (!activeSourceId || ids.indexOf(activeSourceId) === -1) {
-            activeSourceId = pickDefaultSource(cachedSources);
+        const orgIds = cachedOrganizations.map(function(o) { return String(o.org_id); });
+
+        // Backwards-compat: the old `#org=X&view=licenses` URL has moved.
+        // Rewrite to the account-scope Overview view.
+        if (params.org && (params.view === 'licenses' || params.view === 'overview')) {
+            writeHashAccount('overview', true);
+            activeScope = 'account';
+            activeSourceId = null;
+            activeView = 'overview';
+            return;
         }
-        // Active view from hash; if not allowed for this source, fall back to licenses
-        const source = getActiveSource();
-        const wantedView = params.view || activeView || 'licenses';
-        activeView = isViewAllowedForSource(wantedView, source) ? wantedView : 'licenses';
-        // Normalize the hash so back/forward and reloads stay in sync.
-        // Use replaceState — this is reconciliation, not user navigation, so it
-        // shouldn't add a history entry.
-        if (activeSourceId) writeHash(activeSourceId, activeView, true);
+
+        if (params.org && orgIds.indexOf(params.org) !== -1) {
+            // Org scope. View must be people/devices/configurations.
+            activeScope = 'org';
+            activeSourceId = params.org;
+            const wantedView = params.view || 'people';
+            activeView = isOrgView(wantedView) ? canonicalizeOrgView(wantedView) : 'people';
+            writeHashOrg(activeSourceId, activeView, true);
+        } else if (params.view && isAccountView(params.view)) {
+            // Account scope (explicit). Canonicalize legacy 'licenses' → 'overview'.
+            activeScope = 'account';
+            activeSourceId = null;
+            activeView = canonicalizeAccountView(params.view);
+            writeHashAccount(activeView, true);
+        } else if (params.view && isOrgView(params.view)) {
+            // Org view but no org in URL — fall back to default org.
+            const def = pickDefaultOrgId();
+            if (def) {
+                activeScope = 'org';
+                activeSourceId = def;
+                activeView = canonicalizeOrgView(params.view);
+                writeHashOrg(def, activeView, true);
+            } else {
+                activeScope = 'account';
+                activeSourceId = null;
+                activeView = 'overview';
+                writeHashAccount('overview', true);
+            }
+        } else {
+            // No hash → default to account-scope Overview.
+            activeScope = 'account';
+            activeSourceId = null;
+            activeView = 'overview';
+            writeHashAccount('overview', true);
+        }
     }
 
     function recomputeAndRender() {
-        cachedSources = computeSources(cachedOrganizations, cachedLicenseOverview);
+        cachedSources = computeSources(cachedOrganizations);
         applyHashToState();
         // Sidebar injection is owned by the layout (so it works on Profile,
         // Downloads, Support too). We just render the active view here.
@@ -3618,24 +4891,25 @@ heading: Account
         return cachedSources.find(function(s) { return s.id === activeSourceId; }) || null;
     }
 
-    // Accent palette for org sections — cycled by org index. Personal Account
-    // always gets the neutral slate slot at the end.
     function renderActiveView() {
-        const source = getActiveSource();
         const empty = document.getElementById('accountEmptyState');
         const viewHeader = document.getElementById('viewHeader');
         const viewHeaderOrg = document.getElementById('viewHeaderOrg');
 
-        // Sections (one is shown at a time)
+        // Sections (one is shown at a time). 'overview' maps to plansSection
+        // (which contains the streaming-credits widget + license list);
+        // 'people' maps to the old 'membersSection' DOM (just renamed in copy).
         const sections = {
-            'licenses': document.getElementById('plansSection'),
+            'overview': document.getElementById('plansSection'),
             'devices': document.getElementById('devicesSection'),
-            'members': document.getElementById('membersSection'),
+            'people': document.getElementById('membersSection'),
             'configurations': document.getElementById('configurationsSection')
         };
 
-        if (!source) {
-            // No orgs and no personal licenses
+        // Empty state: no licenses and no orgs.
+        const hasLicenses = (cachedLicenseOverview && cachedLicenseOverview.length > 0);
+        const hasOrgs = (cachedOrganizations && cachedOrganizations.length > 0);
+        if (!hasLicenses && !hasOrgs && licensesLoaded) {
             Object.keys(sections).forEach(function(k) {
                 if (sections[k]) sections[k].style.display = 'none';
             });
@@ -3645,47 +4919,501 @@ heading: Account
         }
         if (empty) empty.style.display = 'none';
 
-        // View header — shows which org context the page is operating on
+        if (activeScope === 'account') {
+            // Account scope: Overview is the only view (Phase 1). Account
+            // info + streaming widget + license list all live inside
+            // plansSection.
+            if (viewHeader) viewHeader.style.display = 'none';
+            const plansTitle = document.getElementById('plansSectionTitle');
+            if (plansTitle) plansTitle.textContent = 'Overview';
+            Object.keys(sections).forEach(function(view) {
+                if (!sections[view]) return;
+                sections[view].style.display = (view === 'overview') ? '' : 'none';
+            });
+            renderAccountInfo();
+            applyOwnerGatedCtas();
+            // Make sure the streaming widget reflects current state (in case
+            // we missed an earlier render before plansSection was visible).
+            renderStreamingCreditsWidget();
+            renderActiveAccountLicenses();
+            return;
+        }
+
+        // Org scope: Members / Devices / Configurations.
+        const source = getActiveSource();
+        if (!source) {
+            // Fell through without a valid source — treat like empty.
+            Object.keys(sections).forEach(function(k) {
+                if (sections[k]) sections[k].style.display = 'none';
+            });
+            if (viewHeader) viewHeader.style.display = 'none';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+
+        // Org name is already in the page-title dropdown above. The view
+        // header just shows the user's role on this org so they know whether
+        // they can edit (admin) or just view (member).
         if (viewHeader && viewHeaderOrg) {
-            const sourceLabel = source.kind === 'personal' ? 'Personal Account' : source.name;
-            let roleSuffix = '';
-            if (source.kind === 'org') {
-                roleSuffix = source.is_admin
-                    ? ' as an <strong>Admin</strong>'
-                    : ' as a <strong>Member</strong>';
-            }
-            viewHeaderOrg.innerHTML = 'Viewing <strong>' + escapeHtmlOrg(sourceLabel) + '</strong>' + roleSuffix;
+            viewHeaderOrg.innerHTML = source.is_admin
+                ? 'You are an <strong>Admin</strong> on this team'
+                : 'You are a <strong>Member</strong> of this team';
             viewHeader.style.display = '';
         }
 
-        // Show only the active section
+        const devicesTitle = document.getElementById('devicesSectionTitle');
+        if (devicesTitle) devicesTitle.textContent = 'Devices';
+
         Object.keys(sections).forEach(function(view) {
             if (!sections[view]) return;
-            sections[view].style.display = (view === activeView) ? '' : 'none';
+            // Org scope never shows the Overview section.
+            const isMatch = (view !== 'overview') && (view === activeView);
+            sections[view].style.display = isMatch ? '' : 'none';
         });
 
-        // Always render content (cheap; cached data) — they're hidden until shown
-        renderActivePlans(source);
         renderActiveDevices(source);
         renderActiveMembers(source);
         renderActiveConfigurations(source);
     }
 
-    function renderActivePlans(source) {
-        // Skip while license data is still loading so the spinner stays visible
-        // and we don't briefly flash the "No active licenses" empty state.
+    // Render all licenses owned by the active account. Each card surfaces
+    // the "Used by <Org Name>" relationship (or "Personal" if not assigned).
+    function renderActiveAccountLicenses() {
         if (!licensesLoaded) return;
-        const ids = source ? new Set(source.license_ids) : new Set();
-        const filtered = source ? cachedLicenseOverview.filter(function(l) { return ids.has(l.license_id); }) : [];
-        renderLicenseCards(filtered);
+
+        // Filter cachedLicenseOverview to just the licenses owned by the
+        // active account. The dashboard's license_overview rows don't carry
+        // account_id today, so we resolve via accounts[].organization_ids →
+        // org.licenses[]. Licenses not on any org (personal) fall through
+        // when there are multiple accounts; for the common 1-account case
+        // we just show all licenses.
+        const activeAccountId = getActiveAccountIdFromStorage();
+        let licenses = cachedLicenseOverview;
+        if (cachedAccounts.length > 1 && activeAccountId != null) {
+            const acc = cachedAccounts.find(function(a) {
+                return String(a.account_id != null ? a.account_id : a.id) === String(activeAccountId);
+            });
+            if (acc) {
+                const orgIds = acc.organization_ids || [];
+                const licIdSet = {};
+                cachedOrganizations.forEach(function(o) {
+                    if (orgIds.indexOf(o.org_id) === -1) return;
+                    (o.licenses || []).forEach(function(l) {
+                        if (l && l.license_id) licIdSet[l.license_id] = true;
+                    });
+                });
+                licenses = cachedLicenseOverview.filter(function(l) { return licIdSet[l.license_id]; });
+            }
+        }
+
+        const decorated = licenses.map(decorateLicenseWithTokenData);
+        renderLicenseCards(decorated);
+    }
+
+    // Submit handler for the "Add another account owner" form inside the
+    // account-owner help modal. Calls the real /add_account_owner endpoint
+    // (same as the inline form on Overview — see onAddAccountOwnerSubmit).
+    window.addAccountOwner = function(event) {
+        event.preventDefault();
+        const status = document.getElementById('addOwnerStatus');
+        const input = document.getElementById('addOwnerEmail');
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const newEmail = (input && input.value || '').trim().toLowerCase();
+        if (!newEmail) return false;
+        const activeId = Number(getActiveAccountIdFromStorage());
+        if (!activeId) return false;
+        function setStatus(msg, kind) {
+            if (!status) return;
+            status.textContent = msg || '';
+            status.className = 'account-modal-status' + (kind ? ' ' + kind : '');
+        }
+        setStatus('Adding ' + newEmail + '…', '');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Adding…'; }
+        orgApiCall('add_account_owner', { account_id: activeId, email: newEmail }, false, 'POST')
+            .then(function(data) {
+                const acc = (cachedAccounts || []).find(function(a) {
+                    const id = a.account_id != null ? a.account_id : a.id;
+                    return String(id) === String(activeId);
+                });
+                if (acc && data && data.members) acc.members = data.members;
+                try {
+                    const u = firebase.auth().currentUser;
+                    if (u && window.eeDashboard) window.eeDashboard.invalidate(u.uid);
+                } catch (e) {}
+                if (input) input.value = '';
+                renderAccountInfo();
+                setStatus(newEmail + ' is now an owner.', 'success');
+            })
+            .catch(function(err) {
+                console.error('add_account_owner failed:', err);
+                let msg;
+                if (err.status === 403) msg = 'Only an existing account owner can add another owner.';
+                else if (err.status === 409) msg = err.message || 'That user is already an owner.';
+                else if (err.status === 400) msg = err.message || 'Bad request — check the email and try again.';
+                else msg = err.message || 'Could not add owner. Try again.';
+                setStatus(msg, 'error');
+            })
+            .finally(function() {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Request invite'; }
+            });
+        return false;
+    };
+
+    // Show / hide purchase CTAs on the Overview based on whether the
+    // current user is an owner of the active account. Backend enforces
+    // (403 owner-only); this is the UX gate. Affects:
+    //   - "Purchase / Renew" button in the section header
+    //   - "Buy credits →" link next to the Streaming credits subheading
+    //   - "Buy one →" link in the empty active-licenses state
+    function applyOwnerGatedCtas() {
+        var isOwner = false;
+        if (cachedAccounts && cachedAccounts.length) {
+            var activeId = getActiveAccountIdFromStorage();
+            var acc = cachedAccounts.find(function(a) {
+                var id = a.account_id != null ? a.account_id : a.id;
+                return String(id) === String(activeId);
+            }) || cachedAccounts[0];
+            if (acc) isOwner = !!acc.is_owner;
+        }
+        document.querySelectorAll('.owner-only-cta').forEach(function(el) {
+            el.style.display = isOwner ? '' : 'none';
+        });
+    }
+
+    // Surface who owns the active account at the top of Overview so users
+    // know who can make purchases / billing changes. An account can have
+    // multiple owners; list them all. Tag the one matching the current
+    // user's email as "you" (matching the email is the source of truth —
+    // `acc.is_owner` is a *global* boolean for the logged-in user, so we
+    // can't use it to identify which displayed email corresponds to them).
+    function renderAccountInfo() {
+        const row = document.getElementById('accountInfoRow');
+        const listEl = document.getElementById('accountOwnersList');
+        const headingEl = document.getElementById('accountOwnersHeading');
+        if (!row || !listEl) return;
+        if (!cachedAccounts || !cachedAccounts.length) {
+            row.style.display = 'none';
+            return;
+        }
+        const activeId = getActiveAccountIdFromStorage();
+        const acc = cachedAccounts.find(function(a) {
+            const id = a.account_id != null ? a.account_id : a.id;
+            return String(id) === String(activeId);
+        }) || cachedAccounts[0];
+        if (!acc) {
+            row.style.display = 'none';
+            return;
+        }
+        const members = acc.members || {};
+        const owners = Object.keys(members).filter(function(email) {
+            return String(members[email]).toLowerCase() === 'owner';
+        });
+        if (!owners.length) {
+            row.style.display = 'none';
+            return;
+        }
+        const currentUserEmail = (function() {
+            try { return ((firebase.auth().currentUser || {}).email || '').toLowerCase(); }
+            catch (e) { return ''; }
+        })();
+        const callerIsOwner = owners.some(function(e) { return e.toLowerCase() === currentUserEmail; });
+        const isLastOwner = owners.length === 1;
+
+        // Sort: current user → others alphabetical.
+        owners.sort(function(a, b) {
+            const aIsYou = a.toLowerCase() === currentUserEmail;
+            const bIsYou = b.toLowerCase() === currentUserEmail;
+            if (aIsYou && !bIsYou) return -1;
+            if (bIsYou && !aIsYou) return 1;
+            return a.localeCompare(b);
+        });
+
+        const accountId = acc.account_id != null ? acc.account_id : acc.id;
+        const accountIdAttr = escapeHtmlAttr(String(accountId));
+
+        // Render each owner as a People-style row (avatar + email + role
+        // badge + you pill + remove button).
+        let html = '';
+        owners.forEach(function(email) {
+            const isYou = email.toLowerCase() === currentUserEmail;
+            // Remove only when caller is an owner AND there's another owner
+            // to take over (last-owner invariant — also enforced server-side).
+            const canRemove = callerIsOwner && !isLastOwner;
+            const emailAttr = escapeHtmlAttr(email);
+            const avatarColor = colorForEmail(email);
+            const initial = (email.charAt(0) || '?').toUpperCase();
+            html += '<div class="people-row' + (isYou ? ' is-you' : '') + '">'
+                + '<div class="people-row-left">'
+                +   '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>'
+                +   '<div class="people-row-body">'
+                +     '<div class="people-row-email">' + escapeHtmlOrg(email) + '</div>'
+                +     '<div class="people-row-meta">'
+                +       '<span class="people-role-badge owner">Owner</span>'
+                +       (isYou ? '<span class="people-you-pill">you</span>' : '')
+                +     '</div>'
+                +   '</div>'
+                + '</div>';
+            if (canRemove) {
+                html += '<div class="people-row-actions">'
+                    + '<button class="people-icon-btn danger" title="Remove owner"'
+                    + ' data-account-id="' + accountIdAttr + '"'
+                    + ' data-email="' + emailAttr + '"'
+                    + ' onclick="onRemoveAccountOwnerClick(event)">× Remove</button>'
+                    + '</div>';
+            }
+            html += '</div>';
+        });
+        listEl.innerHTML = html;
+
+        // Header: "Account owner" (1) / "Account owners" (N+1) — count next to it like the People view.
+        if (headingEl) {
+            headingEl.textContent = owners.length === 1 ? 'Account owner' : 'Account owners';
+        }
+
+        // Add-owner UI — collapsed "+ Add another account owner" link
+        // beneath the list. Only shown when the caller is an owner. We
+        // intentionally DON'T touch addPanel's display state on re-render:
+        // the dashboard cache revalidates ~once per pageload, and stomping
+        // the panel closed when the user just opened it (because a
+        // background refetch arrived) was the "panel disappears after a
+        // second" bug. The toggle handler manages open/closed itself.
+        const addWrap = document.getElementById('accountOwnersAddWrap');
+        const addForm2 = document.getElementById('accountOwnersAddForm');
+        if (addWrap) addWrap.style.display = callerIsOwner ? '' : 'none';
+        if (addForm2) addForm2.setAttribute('data-account-id', accountIdAttr);
+
+        // Clear any stale status from prior actions.
+        const status = document.getElementById('accountOwnerActionStatus');
+        if (status) { status.textContent = ''; status.className = 'account-info-status'; }
+
+        row.style.display = '';
+    }
+
+    // For values placed inside double-quoted HTML attributes (e.g.,
+    // data-* attrs). Distinct from `escapeAttrOrg` below which escapes
+    // for single-quoted JS strings inside onclick="…".
+    function escapeHtmlAttr(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function setOwnerActionStatus(msg, kind) {
+        const el = document.getElementById('accountOwnerActionStatus');
+        if (!el) return;
+        el.textContent = msg || '';
+        el.className = 'account-info-status' + (kind ? ' ' + kind : '');
+    }
+
+    // POST /add_account_owner — promotes an email to owner on the active account.
+    window.onAddAccountOwnerSubmit = function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const input = form.querySelector('input[name="newOwnerEmail"]');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const accountId = Number(form.getAttribute('data-account-id'));
+        const newEmail = (input.value || '').trim().toLowerCase();
+        if (!newEmail || !accountId) return false;
+
+        setOwnerActionStatus('Adding ' + newEmail + '…', '');
+        submitBtn.disabled = true;
+        const origLabel = submitBtn.textContent;
+        submitBtn.textContent = 'Adding…';
+
+        orgApiCall('add_account_owner', { account_id: accountId, email: newEmail }, false, 'POST')
+            .then(function(data) {
+                const acc = (cachedAccounts || []).find(function(a) {
+                    const id = a.account_id != null ? a.account_id : a.id;
+                    return String(id) === String(accountId);
+                });
+                if (acc && data && data.members) acc.members = data.members;
+                // Invalidate dashboard cache so a fresh dashboard fetch picks
+                // up the new owner list everywhere else (sidebar, billing).
+                try {
+                    const u = firebase.auth().currentUser;
+                    if (u && window.eeDashboard) window.eeDashboard.invalidate(u.uid);
+                } catch (e) {}
+                input.value = '';
+                renderAccountInfo();
+                // Collapse the add panel + reset the toggle label after a
+                // successful add.
+                const panel = document.getElementById('accountOwnersAddPanel');
+                const toggle = document.getElementById('accountOwnersAddToggle');
+                if (panel) panel.style.display = 'none';
+                if (toggle) toggle.textContent = '+ Add another account owner';
+                setOwnerActionStatus(newEmail + ' is now an owner.', 'success');
+            })
+            .catch(function(err) {
+                console.error('add_account_owner failed:', err);
+                let msg;
+                if (err.status === 403) {
+                    msg = 'Only an existing account owner can add another owner.';
+                } else if (err.status === 409) {
+                    msg = err.message || 'That user is already an owner.';
+                } else if (err.status === 400) {
+                    msg = err.message || 'Bad request — check the email and try again.';
+                } else {
+                    msg = err.message || 'Could not add owner. Try again.';
+                }
+                setOwnerActionStatus(msg, 'error');
+            })
+            .finally(function() {
+                submitBtn.disabled = false;
+                submitBtn.textContent = origLabel;
+            });
+        return false;
+    };
+
+    // POST /remove_account_owner — demotes an owner back to member on the
+    // active account. Confirm before firing because it's a destructive action.
+    window.onRemoveAccountOwnerClick = function(event) {
+        event.preventDefault();
+        const btn = event.currentTarget || event.target.closest('button[data-account-id]');
+        if (!btn) return;
+        const accountId = Number(btn.getAttribute('data-account-id'));
+        const email = btn.getAttribute('data-email');
+        if (!accountId || !email) return;
+
+        // Confirm. Tailor copy when the user is removing themselves.
+        // "Account members" isn't surfaced anywhere in the UI (only owners
+        // and org members are), so phrase the consequence in terms of the
+        // capabilities they actually lose.
+        const currentEmail = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
+        const removingSelf = email.toLowerCase() === currentEmail;
+        const confirmMsg = removingSelf
+            ? 'Remove yourself as an account owner? You will lose the ability to purchase, manage billing, and manage owners for this account.'
+            : 'Remove ' + email + ' as an account owner? They will no longer be able to purchase, manage billing, or manage owners for this account.';
+        if (!window.confirm(confirmMsg)) return;
+
+        btn.disabled = true;
+        setOwnerActionStatus('Removing ' + email + '…', '');
+
+        orgApiCall('remove_account_owner', { account_id: accountId, email: email }, false, 'POST')
+            .then(function(data) {
+                const acc = (cachedAccounts || []).find(function(a) {
+                    const id = a.account_id != null ? a.account_id : a.id;
+                    return String(id) === String(accountId);
+                });
+                if (acc && data && data.members) acc.members = data.members;
+                try {
+                    const u = firebase.auth().currentUser;
+                    if (u && window.eeDashboard) window.eeDashboard.invalidate(u.uid);
+                } catch (e) {}
+                renderAccountInfo();
+                setOwnerActionStatus(email + ' is no longer an owner.', 'success');
+            })
+            .catch(function(err) {
+                console.error('remove_account_owner failed:', err);
+                let msg;
+                if (err.status === 409) {
+                    msg = 'Cannot remove the last owner. Promote another owner first.';
+                } else if (err.status === 403) {
+                    msg = 'Only an existing account owner can remove an owner.';
+                } else {
+                    msg = err.message || 'Could not remove owner. Try again.';
+                }
+                setOwnerActionStatus(msg, 'error');
+                btn.disabled = false;
+            });
+    };
+
+    function getActiveAccountIdFromStorage() {
+        try {
+            const u = firebase.auth().currentUser;
+            if (!u) return null;
+            return sessionStorage.getItem('ee-active-account:' + u.uid);
+        } catch (e) { return null; }
+    }
+
+    // Lookup which org uses a given license. Used to render the
+    // "Used by {Org Name}" line on each license card.
+    function findOrgForLicense(licenseId) {
+        if (!licenseId) return null;
+        for (let i = 0; i < cachedOrganizations.length; i++) {
+            const org = cachedOrganizations[i];
+            const licenses = org.licenses || [];
+            for (let j = 0; j < licenses.length; j++) {
+                if (licenses[j] && licenses[j].license_id === licenseId) {
+                    return org;
+                }
+            }
+        }
+        return null;
+    }
+
+    // The dashboard returns licenses without keys_left / keys_used_by — those
+    // were per-device dispense fields on the legacy get_license_overview.
+    // Compute them here from cachedTokens (loaded separately). When tokens
+    // haven't loaded yet, the existing license card UI tolerates missing
+    // fields gracefully.
+    function decorateLicenseWithTokenData(license) {
+        if (!license || !license.license_id) return license;
+        if (typeof license.keys_left === 'number') return license; // legacy path
+        const total = (typeof license.total_keys === 'number') ? license.total_keys
+            : (typeof license.n_tokens === 'number') ? license.n_tokens : 0;
+        const tokens = (cachedTokens || []).filter(function(t) {
+            return t && t.license_id === license.license_id;
+        });
+        const decorated = Object.assign({}, license, {
+            total_keys: total,
+            keys_left: Math.max(0, total - tokens.length)
+        });
+        // Pre-build keys_used_by in legacy format so renderLicenseCards' fallback
+        // path also works for users who don't have cachedTokens yet on render.
+        if (!decorated.keys_used_by && tokens.length) {
+            const byUser = {};
+            tokens.forEach(function(t) {
+                const k = t.user_email || t.email || 'unknown';
+                byUser[k] = (byUser[k] || 0) + 1;
+            });
+            decorated.keys_used_by = Object.keys(byUser).map(function(u) {
+                return u + ' (' + byUser[u] + ' devices)';
+            });
+        }
+        return decorated;
     }
 
     function renderActiveDevices(source) {
         if (!tokensLoaded) return;
         const ids = source ? new Set(source.license_ids) : new Set();
-        const filtered = source
+        let filtered = source
             ? cachedTokens.filter(function(t) { return ids.has(t.license_id); })
             : [];
+
+        // Fallback for legacy licenses that aren't linked to the org via
+        // `license.organization_id`. Backend's `_gather_organizations` only
+        // includes such linked licenses in `org.licenses[]`, so the
+        // license_id filter above misses tokens dispensed from licenses
+        // attached only via `account.organization_ids`. When that happens,
+        // fall back to filtering by org member email — every member's
+        // device tokens belong to this org's view by definition.
+        if (filtered.length === 0 && cachedTokens.length > 0 && source && source.org) {
+            const orgEmails = new Set(((source.org.emails) || []).map(function(e) {
+                return String(e || '').toLowerCase();
+            }));
+            if (orgEmails.size) {
+                filtered = cachedTokens.filter(function(t) {
+                    const e = String(t.user_email || t.email || '').toLowerCase();
+                    return e && orgEmails.has(e);
+                });
+                if (filtered.length > 0) {
+                    console.info('[devices] using email-based fallback —',
+                        filtered.length, 'tokens matched org members but the backend dashboard',
+                        'did not link their licenses to org', source.name);
+                }
+            }
+        }
+
+        // Diagnostic: log what the org-scope view looks like every time so
+        // we can see why an apparently-populated account is showing empty.
+        console.info('[devices] render', {
+            org: source && source.name,
+            sourceLicenseIds: source ? source.license_ids : [],
+            cachedTokenCount: cachedTokens.length,
+            sampleTokenLicenseIds: cachedTokens.slice(0, 3).map(function(t) { return t.license_id; }),
+            filteredCount: filtered.length,
+            orgEmailCount: source && source.org ? (source.org.emails || []).length : 0
+        });
+
         renderTokenCards(filtered);
         const tokensSpinner = document.getElementById('tokensSpinner');
         if (tokensSpinner) tokensSpinner.style.display = 'none';
@@ -3701,37 +5429,66 @@ heading: Account
         const org = source.org;
         const memberEmails = Array.isArray(org.emails) ? org.emails : [];
         const adminEmails = Array.isArray(org.admin_emails) ? org.admin_emails : [];
+        const adminSet = new Set(adminEmails.map(function(e) { return String(e).toLowerCase(); }));
         const canDemote = adminEmails.length > 1;
         const orgIdAttr = escapeAttrOrg(org.org_id);
+        const currentUserEmail = (function() {
+            try { return ((firebase.auth().currentUser || {}).email || '').toLowerCase(); }
+            catch (e) { return ''; }
+        })();
+
+        // Sort: current user → other admins → members alphabetical.
+        const sorted = memberEmails.slice().sort(function(a, b) {
+            const al = a.toLowerCase(), bl = b.toLowerCase();
+            if (al === currentUserEmail && bl !== currentUserEmail) return -1;
+            if (bl === currentUserEmail && al !== currentUserEmail) return 1;
+            const aAdmin = adminSet.has(al);
+            const bAdmin = adminSet.has(bl);
+            if (aAdmin && !bAdmin) return -1;
+            if (bAdmin && !aAdmin) return 1;
+            return al.localeCompare(bl);
+        });
 
         container.innerHTML = '';
 
-        // Header with org name + Rename action (admin-only).
+        // Header — org name + member/admin counts + Rename action.
         const header = document.createElement('div');
         header.className = 'members-header';
         header.innerHTML =
             '<div class="members-header-left org-name-row" data-org-id="' + orgIdAttr + '">' +
-            '<h4 class="members-header-name org-name">' + escapeHtmlOrg(org.name || 'Organization') + '</h4>' +
-            '<span class="members-header-meta">' + memberEmails.length + ' '
-                + (memberEmails.length === 1 ? 'member' : 'members') + '</span>' +
+              '<h4 class="members-header-name org-name">' + escapeHtmlOrg(org.name || 'Organization') + '</h4>' +
+              '<span class="members-header-meta">'
+                + memberEmails.length + ' ' + (memberEmails.length === 1 ? 'person' : 'people')
+                + (adminEmails.length ? ' · ' + adminEmails.length + ' admin' + (adminEmails.length === 1 ? '' : 's') : '')
+                + '</span>' +
             '</div>' +
             '<button type="button" class="org-btn" onclick="orgStartRename(\'' + orgIdAttr + '\', this)" title="Rename organization">Rename</button>';
         container.appendChild(header);
 
         const list = document.createElement('div');
-        list.className = 'org-members-list';
-        memberEmails.forEach(function(email) {
-            list.appendChild(buildMemberRow(org, email, adminEmails.indexOf(email) !== -1, true, canDemote));
+        list.className = 'people-list';
+        sorted.forEach(function(email) {
+            list.appendChild(buildMemberRow(
+                org,
+                email,
+                adminSet.has(email.toLowerCase()),
+                true,
+                canDemote,
+                email.toLowerCase() === currentUserEmail
+            ));
         });
         container.appendChild(list);
 
+        // Add-person form rendered as a small card so it feels distinct
+        // from the list and is easier to scan to.
         const addForm = document.createElement('div');
-        addForm.style.marginTop = '24px';
+        addForm.className = 'people-add-card';
         addForm.innerHTML =
-            '<h5 class="org-section-title">Add a member</h5>' +
+            '<div class="people-add-card-title">Add someone to this organization</div>' +
+            '<div class="people-add-card-hint">They\'ll join as a Member. Promote to Admin afterward if needed.</div>' +
             '<form class="org-add-member-form" onsubmit="return orgAddMember(event, \'' + orgIdAttr + '\')">' +
             '  <input type="email" placeholder="email@example.com" required>' +
-            '  <button type="submit" class="org-btn primary">Add member</button>' +
+            '  <button type="submit" class="org-btn primary">Add</button>' +
             '</form>' +
             '<div class="org-status-msg" data-status="add"></div>';
         container.appendChild(addForm);
@@ -3744,64 +5501,186 @@ heading: Account
             container.innerHTML = '';
             return;
         }
+        // Loading state: configs are fetched per-org *after* the dashboard
+        // resolves (see kickOffConfigurationsFetches), so the cache entry is
+        // missing entirely until the response lands. Treat "key missing" as
+        // "still loading" so we don't flash the empty state.
+        if (!Object.prototype.hasOwnProperty.call(cachedConfigsByOrg, source.id)) {
+            container.innerHTML = '<div class="loading-spinner" style="padding: 30px 0;"><div class="spinner"></div></div>';
+            return;
+        }
         const configs = cachedConfigsByOrg[source.id] || [];
         if (!configs.length) {
             container.innerHTML = '<div class="configurations-empty">No saved configurations yet. Create one from <a href="' + ('{{ "/setup/" | relative_url }}') + '" style="color: #1e90ff;">/setup/</a>.</div>';
             return;
         }
-        let html = '<div class="config-grid">';
+        let html = '<div class="people-list">';
+        const returnUrl = '/account/#org=' + encodeURIComponent(source.id) + '&view=configurations';
         configs.forEach(function(c) {
             const label = c.label || c.id || 'Configuration';
-            const integration = (c.integration_type || '').toLowerCase();
+            const cfg = c.config || {};
+            const summary = buildConfigSummary(cfg);
             const firstLicense = (c.licenses && c.licenses[0]) || '';
+            const configId = c.configuration_id || c.configurationId || c.id || '';
+            // Deep-link into /setup/ in edit mode. setup.html sees
+            // `edit_config_id`, skips the activation wizard, pre-populates
+            // the form, and on Save redirects back to `return`.
             const params = new URLSearchParams();
+            if (configId) params.set('edit_config_id', configId);
             if (firstLicense) params.set('license_id', firstLicense);
-            const href = '/setup/' + (params.toString() ? '?' + params.toString() : '');
-            html += '<a class="config-card" href="' + href + '">' +
-                '<h4 class="config-card-title">' + escapeHtmlOrg(label) + '</h4>' +
-                (integration
-                    ? '<div class="config-card-meta"><span class="config-card-integration">' + escapeHtmlOrg(integration) + '</span></div>'
-                    : '') +
-                (c.licenses && c.licenses.length
-                    ? '<div class="config-card-meta">Licenses: ' + c.licenses.length + '</div>'
-                    : '') +
-                '</a>';
+            params.set('return', returnUrl);
+            const href = '/setup/?' + params.toString();
+
+            const initial = (label.charAt(0) || '?').toUpperCase();
+            // Color the avatar deterministically from the config name so
+            // the same config keeps the same accent across renders.
+            const avatarColor = colorForEmail(label);
+
+            // Org-ownership tag for the meta line.
+            const cOrgIds = Array.isArray(c.organization_ids) ? c.organization_ids : [];
+            let orgTagHtml = '';
+            if (cOrgIds.length === 0) {
+                orgTagHtml = '<span class="config-row-orgtag-personal">Private to your account</span>';
+            } else if (cOrgIds.length > 1) {
+                const otherNames = cOrgIds
+                    .filter(function(oid) { return String(oid) !== String(source.id); })
+                    .map(function(oid) {
+                        const o = (cachedOrganizations || []).find(function(x) { return x.org_id === oid; });
+                        return o && o.name ? o.name : 'Org ' + oid;
+                    });
+                if (otherNames.length) {
+                    orgTagHtml = '<span class="config-row-orgtag">Also: ' + escapeHtmlOrg(otherNames.join(', ')) + '</span>';
+                }
+            }
+
+            const licCount = c.licenses ? c.licenses.length : 0;
+            const licCountText = licCount
+                ? licCount + ' license' + (licCount === 1 ? '' : 's')
+                : '';
+
+            // Assemble the meta-line bits with separators between them.
+            const metaBits = [];
+            if (summary) metaBits.push('<span>' + escapeHtmlOrg(summary) + '</span>');
+            if (licCountText) metaBits.push('<span>' + licCountText + '</span>');
+            if (orgTagHtml) metaBits.push(orgTagHtml);
+            const metaLine = metaBits.length
+                ? '<div class="device-row-meta">'
+                    + metaBits.map(function(b, i) {
+                        return (i > 0 ? '<span class="device-row-sep">·</span>' : '') + b;
+                    }).join('')
+                    + '</div>'
+                : '';
+
+            // Per-license sub-rows (name + monospaced id), only when there
+            // are licenses to list.
+            let licensesHtml = '';
+            if (c.licenses && c.licenses.length) {
+                licensesHtml = '<div class="config-row-licenses">';
+                c.licenses.forEach(function(licId) {
+                    const lic = (cachedLicenseOverview || []).find(function(l) {
+                        return l && l.license_id === licId;
+                    });
+                    const licName = (lic && lic.license_name) ? lic.license_name : 'License';
+                    licensesHtml += '<div class="config-row-license">'
+                        + escapeHtmlOrg(licName)
+                        + '<code>' + escapeHtmlOrg(licId) + '</code>'
+                        + '</div>';
+                });
+                licensesHtml += '</div>';
+            }
+
+            html += '<a class="people-row config-row" href="' + href + '">'
+                + '<div class="people-row-left">'
+                +   '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>'
+                +   '<div class="people-row-body">'
+                +     '<div class="people-row-email">' + escapeHtmlOrg(label) + '</div>'
+                +     metaLine
+                +   '</div>'
+                + '</div>'
+                + '<div class="people-row-actions">'
+                +   '<span class="config-edit-affordance">Edit →</span>'
+                + '</div>'
+                + licensesHtml
+                + '</a>';
         });
         html += '</div>';
         container.innerHTML = html;
     }
 
-    function buildMemberRow(org, email, isAdminMember, callerIsAdmin, canDemote) {
+    // Mirrors setup.html's buildConfigSummary so saved-config cards on
+    // /account/ list the same component names ("CalTopo · Default Map · ...")
+    // as the ones shown in /setup/ — keeps the two surfaces visually
+    // consistent without round-tripping through setup.html.
+    function buildConfigSummary(cfg) {
+        const parts = [];
+        if (cfg && cfg.service_account && (cfg.service_account.teamName || cfg.service_account.title)) parts.push('CalTopo');
+        if (cfg && cfg.default_map && cfg.default_map.mapName) parts.push('Default Map');
+        if (cfg && (cfg.procedures_text || cfg.procedures_link)) parts.push('Procedures');
+        if (cfg && (cfg.units || cfg.coordsys)) parts.push('Units / Coords');
+        return parts.join(' · ');
+    }
+
+    function buildMemberRow(org, email, isAdminMember, callerIsAdmin, canDemote, isYou) {
         const row = document.createElement('div');
-        row.className = 'org-member-row';
+        row.className = 'people-row' + (isYou ? ' is-you' : '');
         row.dataset.email = email;
 
+        // Left side: avatar circle + email + badges.
         const left = document.createElement('div');
-        left.innerHTML = `<span class="org-member-email">${escapeHtmlOrg(email)}</span>` +
-            (isAdminMember ? ` <span class="org-role-badge admin" style="margin-left: 8px;">Admin</span>` : '');
+        left.className = 'people-row-left';
+        const avatarColor = colorForEmail(email);
+        const initial = (email.charAt(0) || '?').toUpperCase();
+        left.innerHTML =
+            '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>' +
+            '<div class="people-row-body">' +
+                '<div class="people-row-email">' + escapeHtmlOrg(email) + '</div>' +
+                '<div class="people-row-meta">' +
+                    (isAdminMember
+                        ? '<span class="people-role-badge admin">Admin</span>'
+                        : '<span class="people-role-badge member">Member</span>'
+                    ) +
+                    (isYou ? '<span class="people-you-pill">you</span>' : '') +
+                '</div>' +
+            '</div>';
         row.appendChild(left);
 
         if (callerIsAdmin) {
             const actions = document.createElement('div');
-            actions.className = 'org-member-actions';
+            actions.className = 'people-row-actions';
             const orgIdAttr = escapeAttrOrg(org.org_id);
             const emailAttr = escapeAttrOrg(email);
             if (isAdminMember) {
-                // Only render Demote when there's another admin who can take over.
                 if (canDemote) {
                     actions.innerHTML +=
-                        `<button class="org-btn" onclick="orgDemote('${orgIdAttr}', '${emailAttr}', this)">Demote</button>`;
+                        '<button class="people-icon-btn" title="Demote to member"' +
+                        ' onclick="orgDemote(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">↓ Demote</button>';
                 }
                 actions.innerHTML +=
-                    `<button class="org-btn danger" onclick="orgRemoveMember('${orgIdAttr}', '${emailAttr}', this)">Remove</button>`;
+                    '<button class="people-icon-btn danger" title="Remove from organization"' +
+                    ' onclick="orgRemoveMember(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">× Remove</button>';
             } else {
                 actions.innerHTML =
-                    `<button class="org-btn" onclick="orgPromote('${orgIdAttr}', '${emailAttr}', this)">Promote to admin</button>` +
-                    `<button class="org-btn danger" onclick="orgRemoveMember('${orgIdAttr}', '${emailAttr}', this)">Remove</button>`;
+                    '<button class="people-icon-btn" title="Promote to admin"' +
+                    ' onclick="orgPromote(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">↑ Promote</button>' +
+                    '<button class="people-icon-btn danger" title="Remove from organization"' +
+                    ' onclick="orgRemoveMember(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">× Remove</button>';
             }
             row.appendChild(actions);
         }
         return row;
+    }
+
+    // Deterministic pastel color per email so avatars are visually distinct
+    // but the same person always gets the same color across renders.
+    function colorForEmail(email) {
+        const palette = [
+            '#5b8def', '#27c97b', '#f39c12', '#9b59b6', '#1abc9c',
+            '#e67e22', '#3498db', '#e74c3c', '#16a085', '#8e44ad'
+        ];
+        const s = String(email || '').toLowerCase();
+        let hash = 0;
+        for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+        return palette[hash % palette.length];
     }
 
     function formatOrgExpiry(timestamp) {
@@ -3826,6 +5705,66 @@ heading: Account
         return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     }
 
+    // ---- Optimistic update helpers ----
+    // Most org writes are simple set-operations on org.emails / org.admin_emails
+    // / org.name. We apply the change locally, re-render instantly, then call
+    // the API in the background. On failure we revert and surface a toast.
+    function findOrgById(orgId) {
+        return (cachedOrganizations || []).find(function(o) {
+            return String(o.org_id) === String(orgId);
+        });
+    }
+
+    function snapshotOrg(org) {
+        return {
+            name: org.name,
+            emails: Array.isArray(org.emails) ? org.emails.slice() : [],
+            admin_emails: Array.isArray(org.admin_emails) ? org.admin_emails.slice() : []
+        };
+    }
+
+    function restoreOrg(org, snap) {
+        if (!org || !snap) return;
+        org.name = snap.name;
+        org.emails = snap.emails;
+        org.admin_emails = snap.admin_emails;
+    }
+
+    // Apply a local patch, re-render, fire the API, and reconcile.
+    // patch: (org) => void  — mutates the org in place.
+    async function optimisticOrgWrite(opts) {
+        const org = findOrgById(opts.orgId);
+        if (!org) return;
+        const snap = snapshotOrg(org);
+
+        // 1. Mutate locally + re-render so the UI is instant.
+        opts.patch(org);
+        renderActiveView();
+        document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
+
+        // 2. Optional immediate toast — for actions where success is the
+        //    common case (remove/promote/demote/add). Skipped for actions
+        //    that need to wait for the server response (e.g. rename, which
+        //    might be server-normalized).
+        if (opts.optimisticToast) showToast(opts.optimisticToast, 'success');
+
+        // 3. Fire the API in the background.
+        try {
+            await orgApiCall(opts.endpoint, opts.body);
+            // 4. Background reconcile — keeps other state in sync (members
+            //    list ordering, role bits) without blocking the user.
+            fetchMyOrganization();
+            if (opts.onSuccess) opts.onSuccess();
+        } catch (err) {
+            console.error('Error in ' + opts.endpoint + ':', err);
+            restoreOrg(org, snap);
+            renderActiveView();
+            document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
+            showToast(err.message || 'Action failed — change reverted.', 'error');
+            if (opts.onError) opts.onError(err);
+        }
+    }
+
     async function orgAddMember(event, orgId) {
         event.preventDefault();
         const form = event.target;
@@ -3837,22 +5776,32 @@ heading: Account
 
         statusEl.textContent = '';
         statusEl.className = 'org-status-msg';
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Adding…';
 
-        try {
-            await orgApiCall('add_member', { org_id: orgId, value: email });
-            statusEl.textContent = `Added ${email}.`;
-            statusEl.classList.add('success');
-            input.value = '';
-            await fetchMyOrganization();
-        } catch (err) {
-            statusEl.textContent = err.message || 'Failed to add member.';
+        const org = findOrgById(orgId);
+        if (org && Array.isArray(org.emails) && org.emails.indexOf(email) !== -1) {
+            statusEl.textContent = email + ' is already on this team.';
             statusEl.classList.add('error');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Add member';
+            return false;
         }
+        // Clear the input immediately — instant feedback. We revert on error.
+        input.value = '';
+        await optimisticOrgWrite({
+            orgId: orgId,
+            endpoint: 'add_member',
+            body: { org_id: orgId, value: email },
+            patch: function(o) {
+                o.emails = (o.emails || []).concat([email]);
+            },
+            optimisticToast: 'Added ' + email + ' to ' + orgNameById(orgId) + '.',
+            onError: function() {
+                // Restore the typed value so the user can try again.
+                if (input) input.value = email;
+                if (statusEl) {
+                    statusEl.textContent = 'Couldn\'t add this member.';
+                    statusEl.classList.add('error');
+                }
+            }
+        });
         return false;
     }
 
@@ -3889,8 +5838,16 @@ heading: Account
 
     async function orgRemoveMember(orgId, email, btn) {
         if (!confirm(`Remove ${email} from the organization?`)) return;
-        var toastMessage = 'Removed ' + email + ' from ' + orgNameById(orgId) + '.';
-        await orgWriteAndRefresh('remove_member', { org_id: orgId, value: email }, btn, 'Removing…', toastMessage);
+        await optimisticOrgWrite({
+            orgId: orgId,
+            endpoint: 'remove_member',
+            body: { org_id: orgId, value: email },
+            patch: function(o) {
+                o.emails = (o.emails || []).filter(function(e) { return e !== email; });
+                o.admin_emails = (o.admin_emails || []).filter(function(e) { return e !== email; });
+            },
+            optimisticToast: 'Removed ' + email + ' from ' + orgNameById(orgId) + '.'
+        });
     }
 
     function orgStartRename(orgId, btn) {
@@ -3934,7 +5891,6 @@ heading: Account
         if (!row) return;
         const input = row.querySelector('input.org-rename-input');
         const statusEl = row.querySelector('[data-status="rename"]');
-        const buttons = row.querySelectorAll('button');
         const newName = (input && input.value || '').trim();
         if (!newName) {
             if (statusEl) {
@@ -3943,56 +5899,43 @@ heading: Account
             }
             return;
         }
+        // Close the inline editor immediately — the next render will paint
+        // the new name. If the API rejects, the revert + toast covers it.
+        if (row.dataset.originalHtml) delete row.dataset.originalHtml;
 
-        buttons.forEach(b => b.disabled = true);
-        if (input) input.disabled = true;
-        if (statusEl) {
-            statusEl.textContent = '';
-            statusEl.className = 'org-status-msg';
-        }
-
-        try {
-            await orgApiCall('update_organization', { org_id: orgId, name: newName });
-            // Refresh canonical state — server may have normalized the name.
-            await fetchMyOrganization();
-        } catch (err) {
-            console.error('Error in update_organization:', err);
-            if (statusEl) {
-                statusEl.textContent = err.message || 'Rename failed.';
-                statusEl.className = 'org-status-msg error';
-            }
-            buttons.forEach(b => b.disabled = false);
-            if (input) input.disabled = false;
-        }
+        await optimisticOrgWrite({
+            orgId: orgId,
+            endpoint: 'update_organization',
+            body: { org_id: orgId, name: newName },
+            patch: function(o) { o.name = newName; },
+            optimisticToast: 'Renamed to ' + newName + '.'
+        });
     }
 
     async function orgPromote(orgId, email, btn) {
-        await orgWriteAndRefresh('add_admin', { org_id: orgId, value: email }, btn, 'Promoting…');
+        await optimisticOrgWrite({
+            orgId: orgId,
+            endpoint: 'add_admin',
+            body: { org_id: orgId, value: email },
+            patch: function(o) {
+                if (!Array.isArray(o.admin_emails)) o.admin_emails = [];
+                if (o.admin_emails.indexOf(email) === -1) o.admin_emails.push(email);
+            },
+            optimisticToast: 'Promoted ' + email + ' to admin.'
+        });
     }
 
     async function orgDemote(orgId, email, btn) {
         if (!confirm(`Demote ${email} to a regular member?`)) return;
-        await orgWriteAndRefresh('remove_admin', { org_id: orgId, value: email }, btn, 'Demoting…');
-    }
-
-    async function orgWriteAndRefresh(endpoint, body, btn, busyLabel, successMessage) {
-        const originalLabel = btn ? btn.textContent : '';
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = busyLabel;
-        }
-        try {
-            await orgApiCall(endpoint, body);
-            await fetchMyOrganization();
-            if (successMessage) showToast(successMessage, 'success');
-        } catch (err) {
-            console.error(`Error in ${endpoint}:`, err);
-            alert(err.message || 'Action failed.');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = originalLabel;
-            }
-        }
+        await optimisticOrgWrite({
+            orgId: orgId,
+            endpoint: 'remove_admin',
+            body: { org_id: orgId, value: email },
+            patch: function(o) {
+                o.admin_emails = (o.admin_emails || []).filter(function(e) { return e !== email; });
+            },
+            optimisticToast: 'Demoted ' + email + ' to member.'
+        });
     }
 </script>
 

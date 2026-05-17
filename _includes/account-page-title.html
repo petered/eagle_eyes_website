@@ -1,0 +1,436 @@
+<!--
+  Account-area page title. Renders the active account or organization name at
+  the top of each /account/* page. When the user has only one entity in the
+  active scope, the title is plain text. When they have multiple, the title
+  is a dropdown button that opens a small popover menu listing the
+  alternatives.
+
+  Scope is determined by the URL:
+    - /account/?...#view=licenses|subscriptions|streaming → account scope
+    - /account/?...#org=<id>&view=... → org scope
+    - /account/billing/ → account scope
+    - /account/streaming/ → account scope
+    - Profile / Downloads / Support → no scope (title hidden)
+
+  Active selection persists in sessionStorage:
+    - ee-active-account:<uid>
+    - ee-active-org:<uid>
+
+  Default selection on first visit picks the entity whose licenses have the
+  latest expiry (almost always the one the user is actively managing).
+
+  Reads dashboard data from window.eeDashboard (shared cache + in-flight
+  dedupe defined in head.html). Re-renders on auth + hashchange + when other
+  components write to sessionStorage.
+-->
+<div id="accountPageTitle" class="account-page-title-wrap" style="display: none;">
+    <div class="account-page-title-row">
+        <button type="button" id="accountPageTitleBtn" class="account-page-title-btn" aria-haspopup="true" aria-expanded="false">
+            <span class="account-page-title-text" id="accountPageTitleText">—</span>
+            <svg class="account-page-title-chevron" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="display: none;">
+                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </button>
+        <div id="accountPageTitleMenu" class="account-page-title-menu" role="menu" style="display: none;"></div>
+    </div>
+</div>
+
+<style>
+    .account-page-title-wrap {
+        margin: 0 0 4px 0;
+    }
+    .account-page-title-row {
+        position: relative;
+        display: inline-block;
+    }
+    .account-page-title-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        padding: 4px 0;
+        font: inherit;
+        font-size: 28px;
+        font-weight: 600;
+        color: #222;
+        cursor: default;
+        text-align: left;
+        line-height: 1.2;
+    }
+    .account-page-title-btn.is-dropdown {
+        cursor: pointer;
+        padding: 4px 10px 4px 6px;
+        border-radius: 8px;
+        margin-left: -6px;
+    }
+    .account-page-title-btn.is-dropdown:hover {
+        background: #f4f6f8;
+    }
+    .account-page-title-chevron {
+        color: #888;
+        flex: 0 0 auto;
+        margin-top: 2px;
+    }
+    .account-page-title-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        min-width: 240px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        padding: 6px;
+        z-index: 50;
+    }
+    .account-page-title-menu button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        background: transparent;
+        border: none;
+        padding: 9px 12px;
+        font: inherit;
+        font-size: 14px;
+        color: #222;
+        cursor: pointer;
+        text-align: left;
+        border-radius: 6px;
+    }
+    .account-page-title-menu button:hover { background: #f4f6f8; }
+    .account-page-title-menu button.is-active {
+        background: #e8f3ff;
+        color: #1e90ff;
+        font-weight: 600;
+    }
+    @media (max-width: 768px) {
+        .account-page-title-btn { font-size: 22px; }
+    }
+</style>
+
+<script>
+(function() {
+    var ACCOUNT_PATH = '{{ "/account/" | relative_url }}';
+    var BILLING_PATH = '{{ "/account/billing/" | relative_url }}';
+    var STREAMING_PATH = '{{ "/account/streaming/" | relative_url }}';
+    var PURCHASE_PATH = '{{ "/account/purchase/" | relative_url }}';
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function pathMatches(path, target) {
+        var a = path.replace(/\/+$/, '');
+        var b = target.replace(/\/+$/, '');
+        return a === b;
+    }
+
+    function parseHash() {
+        var raw = (window.location.hash || '').replace(/^#/, '');
+        var out = {};
+        if (!raw) return out;
+        raw.split('&').forEach(function(p) {
+            var i = p.indexOf('=');
+            if (i > 0) out[decodeURIComponent(p.slice(0, i))] = decodeURIComponent(p.slice(i + 1));
+        });
+        return out;
+    }
+
+    // Scope = which entity list drives the title. The mapping:
+    //   * /account/ + #org=X → org scope
+    //   * /account/ (everything else, including no hash) → account scope
+    //   * /account/billing/, /account/streaming/ → account scope
+    //   * anywhere else (Profile/Downloads/Support) → no scope, hide title
+    function detectScope() {
+        var path = window.location.pathname;
+        var params = parseHash();
+        if (pathMatches(path, ACCOUNT_PATH)) {
+            return params.org ? 'org' : 'account';
+        }
+        if (pathMatches(path, BILLING_PATH)
+            || pathMatches(path, STREAMING_PATH)
+            || pathMatches(path, PURCHASE_PATH)) {
+            return 'account';
+        }
+        return null;
+    }
+
+    function activeAccountKey(uid) { return 'ee-active-account:' + uid; }
+    function activeOrgKey(uid) { return 'ee-active-org:' + uid; }
+    function readSelection(key) {
+        try { return sessionStorage.getItem(key); } catch (e) { return null; }
+    }
+    function writeSelection(key, value) {
+        try { sessionStorage.setItem(key, String(value)); } catch (e) {}
+    }
+
+    function expiryToTs(expiry) {
+        if (expiry == null || expiry === '') return null;
+        if (typeof expiry === 'number') return expiry < 1e12 ? expiry * 1000 : expiry;
+        var d = new Date(expiry);
+        var t = d.getTime();
+        return isNaN(t) ? null : t;
+    }
+    function accountIdOf(a) { return (a.account_id != null) ? a.account_id : a.id; }
+
+    // For both accounts and orgs: pick the entity whose licenses have the
+    // latest expiry. That's almost always the one the user is actively
+    // managing.
+    function pickDefaultAccountId(accounts, organizations, licenseOverview) {
+        if (!accounts || !accounts.length) return null;
+        if (accounts.length === 1) return String(accountIdOf(accounts[0]));
+        var bestId = null, bestTs = null;
+        accounts.forEach(function(a) {
+            var orgIds = (a.organization_ids || []);
+            var licIdSet = {};
+            (organizations || []).forEach(function(o) {
+                if (orgIds.indexOf(o.org_id) === -1) return;
+                (o.licenses || []).forEach(function(l) {
+                    if (l && l.license_id) licIdSet[l.license_id] = true;
+                });
+            });
+            var maxTs = null;
+            (licenseOverview || []).forEach(function(lic) {
+                if (!licIdSet[lic.license_id]) return;
+                var t = expiryToTs(lic.expiry_date);
+                if (t != null && (maxTs == null || t > maxTs)) maxTs = t;
+            });
+            if (maxTs != null && (bestTs == null || maxTs > bestTs)) {
+                bestTs = maxTs;
+                bestId = accountIdOf(a);
+            }
+        });
+        return String(bestId != null ? bestId : accountIdOf(accounts[0]));
+    }
+    function pickDefaultOrgId(organizations, licenseOverview) {
+        if (!organizations || !organizations.length) return null;
+        if (organizations.length === 1) return String(organizations[0].org_id);
+        var bestId = null, bestTs = null;
+        organizations.forEach(function(o) {
+            var maxTs = null;
+            (o.licenses || []).forEach(function(l) {
+                if (!l || !l.license_id) return;
+                var lic = (licenseOverview || []).find(function(x) { return x.license_id === l.license_id; });
+                if (!lic) return;
+                var t = expiryToTs(lic.expiry_date);
+                if (t != null && (maxTs == null || t > maxTs)) maxTs = t;
+            });
+            if (maxTs != null && (bestTs == null || maxTs > bestTs)) {
+                bestTs = maxTs;
+                bestId = o.org_id;
+            }
+        });
+        return String(bestId != null ? bestId : organizations[0].org_id);
+    }
+
+    function resolveActiveAccountId(user, accounts, organizations, licenseOverview) {
+        if (!accounts || !accounts.length) return null;
+        var stored = readSelection(activeAccountKey(user.uid));
+        if (stored && accounts.some(function(a) { return String(accountIdOf(a)) === String(stored); })) {
+            return stored;
+        }
+        return pickDefaultAccountId(accounts, organizations, licenseOverview);
+    }
+    function resolveActiveOrgId(user, organizations, licenseOverview) {
+        if (!organizations || !organizations.length) return null;
+        // URL hash wins when explicit — deep links land on the right org.
+        var params = parseHash();
+        if (params.org && organizations.some(function(o) { return String(o.org_id) === String(params.org); })) {
+            writeSelection(activeOrgKey(user.uid), params.org);
+            return String(params.org);
+        }
+        var stored = readSelection(activeOrgKey(user.uid));
+        if (stored && organizations.some(function(o) { return String(o.org_id) === String(stored); })) {
+            return stored;
+        }
+        return pickDefaultOrgId(organizations, licenseOverview);
+    }
+
+    function renderTitle(scope, activeName, options, activeId, isMulti) {
+        var wrap = $('accountPageTitle');
+        var btn = $('accountPageTitleBtn');
+        var txt = $('accountPageTitleText');
+        var chev = btn.querySelector('.account-page-title-chevron');
+        var menu = $('accountPageTitleMenu');
+        if (!wrap || !btn || !txt || !chev || !menu) return;
+
+        wrap.style.display = '';
+        wrap.setAttribute('data-scope', scope);
+        txt.textContent = activeName || '—';
+        // Signal to the layout CSS that the subtitle should render smaller.
+        var content = document.querySelector('.account-content');
+        if (content) content.classList.add('has-page-title');
+
+        if (isMulti) {
+            btn.classList.add('is-dropdown');
+            chev.style.display = '';
+            btn.setAttribute('aria-haspopup', 'true');
+
+            var html = '';
+            options.forEach(function(opt) {
+                var isActive = String(opt.id) === String(activeId);
+                html += '<button type="button" role="menuitem"'
+                    + ' data-option-id="' + esc(opt.id) + '"'
+                    + (isActive ? ' class="is-active"' : '')
+                    + '>'
+                    + '<span>' + esc(opt.name) + '</span>'
+                    + (isActive ? '<span aria-hidden="true">✓</span>' : '')
+                    + '</button>';
+            });
+            menu.innerHTML = html;
+        } else {
+            btn.classList.remove('is-dropdown');
+            chev.style.display = 'none';
+            menu.style.display = 'none';
+            menu.innerHTML = '';
+        }
+    }
+
+    function hideTitle() {
+        var wrap = $('accountPageTitle');
+        if (wrap) wrap.style.display = 'none';
+        var content = document.querySelector('.account-content');
+        if (content) content.classList.remove('has-page-title');
+    }
+
+    function fireChange(scope, newId) {
+        document.dispatchEvent(new CustomEvent('accountScopeChanged', {
+            detail: { scope: scope, id: newId }
+        }));
+    }
+
+    function onPickAccount(user, newId) {
+        writeSelection(activeAccountKey(user.uid), newId);
+        fireChange('account', newId);
+        // Account-scope views: account is implicit (not in URL). Trigger a
+        // page-level re-render via the custom event above. Pages listen and
+        // refilter their content.
+        render(user); // re-render title (active highlight in menu)
+    }
+    function onPickOrg(user, newId) {
+        writeSelection(activeOrgKey(user.uid), newId);
+        // Org-scope views: org IS in the URL hash. Update the hash so
+        // account.html's existing hashchange listener re-renders for the new
+        // org. We preserve the current view (members/devices/configs).
+        var params = parseHash();
+        var view = params.view || 'members';
+        var path = window.location.pathname;
+        if (pathMatches(path, ACCOUNT_PATH)) {
+            history.replaceState(null, '', ACCOUNT_PATH + '#org=' + encodeURIComponent(newId) + '&view=' + encodeURIComponent(view));
+            window.dispatchEvent(new HashChangeEvent('hashchange'));
+        }
+        fireChange('org', newId);
+        render(user);
+    }
+
+    function closeMenu() {
+        var menu = $('accountPageTitleMenu');
+        var btn = $('accountPageTitleBtn');
+        if (menu) menu.style.display = 'none';
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+    function openMenu() {
+        var menu = $('accountPageTitleMenu');
+        var btn = $('accountPageTitleBtn');
+        if (menu) menu.style.display = 'block';
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function wireMenu(user, scope) {
+        var btn = $('accountPageTitleBtn');
+        var menu = $('accountPageTitleMenu');
+        if (!btn || !menu) return;
+        // Single handler — re-attach so it always points at the right user/scope.
+        btn.onclick = function(e) {
+            if (!btn.classList.contains('is-dropdown')) return;
+            e.stopPropagation();
+            if (menu.style.display === 'block') closeMenu();
+            else openMenu();
+        };
+        menu.onclick = function(e) {
+            var target = e.target.closest('button[data-option-id]');
+            if (!target) return;
+            var newId = target.getAttribute('data-option-id');
+            closeMenu();
+            if (scope === 'account') onPickAccount(user, newId);
+            else onPickOrg(user, newId);
+        };
+    }
+
+    function render(user) {
+        if (!user) { hideTitle(); return; }
+        var scope = detectScope();
+        if (!scope) { hideTitle(); return; }
+        var dash = window.eeDashboard ? window.eeDashboard.read(user.uid) : null;
+        if (!dash) {
+            // Render a placeholder until the dashboard lands; another render()
+            // call from auth/dashboard events will fill it in.
+            hideTitle();
+            return;
+        }
+        var accounts = dash.accounts || [];
+        var orgs = dash.organizations || [];
+        var licenses = dash.license_overview || [];
+
+        if (scope === 'account') {
+            if (!accounts.length) { hideTitle(); return; }
+            var activeAccId = resolveActiveAccountId(user, accounts, orgs, licenses);
+            var activeAcc = accounts.find(function(a) { return String(accountIdOf(a)) === String(activeAccId); }) || accounts[0];
+            var options = accounts.map(function(a) {
+                return { id: accountIdOf(a), name: a.name || ('Account ' + accountIdOf(a)) };
+            });
+            renderTitle('account', activeAcc.name || ('Account ' + accountIdOf(activeAcc)), options, activeAccId, accounts.length > 1);
+            // Persist the resolved id so siblings (sidebar, /account/ page) read the same.
+            writeSelection(activeAccountKey(user.uid), activeAccId);
+        } else {
+            if (!orgs.length) { hideTitle(); return; }
+            var activeOrgId = resolveActiveOrgId(user, orgs, licenses);
+            var activeOrg = orgs.find(function(o) { return String(o.org_id) === String(activeOrgId); }) || orgs[0];
+            var orgOptions = orgs.map(function(o) {
+                return { id: o.org_id, name: o.name || 'Organization' };
+            });
+            renderTitle('org', activeOrg.name || 'Organization', orgOptions, activeOrgId, orgs.length > 1);
+            writeSelection(activeOrgKey(user.uid), activeOrgId);
+        }
+        wireMenu(user, scope);
+    }
+
+    // Close menu on outside click / escape.
+    document.addEventListener('click', function(e) {
+        var wrap = $('accountPageTitle');
+        if (!wrap) return;
+        if (!wrap.contains(e.target)) closeMenu();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeMenu();
+    });
+
+    // Re-render whenever:
+    //  - auth state changes (sign in/out)
+    //  - URL hash changes (scope might switch between account/org)
+    //  - the dashboard cache lands a fresh payload
+    function tryRender() {
+        try {
+            var u = firebase.auth().currentUser;
+            render(u);
+        } catch (e) { /* firebase not ready yet — wait for authStateChanged */ }
+    }
+    document.addEventListener('authStateChanged', function(e) {
+        render(e.detail && e.detail.user);
+    });
+    window.addEventListener('hashchange', tryRender);
+    // The dashboard fetch fires accountSidebarRefresh after writing the cache,
+    // so we hook the same event to refresh the title.
+    document.addEventListener('accountSidebarRefresh', tryRender);
+
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        tryRender();
+    }
+})();
+</script>

@@ -55,40 +55,86 @@
                                        id="navGetEagleEyesBtn"
                                        class="button small rounded no-page-fade no-margin-bottom"
                                        style="border: 1px solid #fff;">Get Eagle Eyes</a>
-                                    <div id="navProfileMenu" class="nav-profile-menu" style="display: none;">
+                                    <div id="navProfileMenu" class="nav-profile-menu">
                                         <button type="button"
                                                 id="navProfileTrigger"
                                                 class="nav-profile-trigger"
                                                 aria-label="Account menu"
                                                 aria-haspopup="true"
                                                 aria-expanded="false">
-                                            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                                                <circle cx="12" cy="8" r="4" fill="currentColor"></circle>
-                                                <path d="M4 20c0-4 4-6 8-6s8 2 8 6v1H4v-1z" fill="currentColor"></path>
-                                            </svg>
+                                            <span class="nav-profile-avatar">
+                                                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                                                    <circle cx="12" cy="8" r="4" fill="currentColor"></circle>
+                                                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6v1H4v-1z" fill="currentColor"></path>
+                                                </svg>
+                                            </span>
+                                            <span class="nav-profile-trigger-name" id="navProfileTriggerName">Account</span>
                                         </button>
+                                        <!-- Pre-paint trigger name from localStorage so the trigger
+                                             never flashes the default "Account" text before
+                                             Firebase + dashboard resolve. Set / cleared by
+                                             refreshNavTriggerName + applyAuthState below. -->
+                                        <script>(function() {
+                                            try {
+                                                var n = localStorage.getItem('eeTriggerName');
+                                                if (n) {
+                                                    var el = document.getElementById('navProfileTriggerName');
+                                                    if (el) el.textContent = n;
+                                                }
+                                            } catch (e) {}
+                                        })();</script>
                                         <div id="navProfileDropdown" class="nav-profile-dropdown" role="menu">
                                             <div class="nav-profile-email" id="navProfileEmail"></div>
+
+                                            <!-- Top-level utility links -->
                                             <a href="{{ '/account/profile/' | relative_url }}"
                                                class="nav-profile-item"
                                                role="menuitem">Profile</a>
-                                            <a href="{{ '/account/' | relative_url }}"
-                                               class="nav-profile-item"
-                                               role="menuitem">Account</a>
                                             <a href="{{ '/account/downloads/' | relative_url }}"
                                                class="nav-profile-item"
                                                role="menuitem">Downloads</a>
                                             <a href="{{ '/account/support/' | relative_url }}"
                                                class="nav-profile-item"
                                                role="menuitem">Support</a>
+
+                                            <!-- Account scope -->
+                                            <div class="nav-admin-divider"></div>
+                                            <div class="nav-admin-label">Account</div>
+                                            <a href="{{ '/account/#view=overview' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Overview</a>
+                                            <a href="{{ '/account/purchase/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Purchase / Renew</a>
+                                            <a href="{{ '/account/billing/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Billing</a>
+
+                                            <!-- Organization scope. Hidden when the user has no orgs;
+                                                 sub-item hrefs are rewritten at runtime to include the
+                                                 currently active org id (sessionStorage). -->
+                                            <div id="navOrgScope" style="display: none;">
+                                                <div class="nav-admin-divider"></div>
+                                                <div class="nav-admin-label">Organization</div>
+                                                <a href="#" class="nav-profile-item" role="menuitem"
+                                                   data-org-view="people">People</a>
+                                                <a href="#" class="nav-profile-item" role="menuitem"
+                                                   data-org-view="devices">Devices</a>
+                                                <a href="#" class="nav-profile-item" role="menuitem"
+                                                   data-org-view="configurations">Configurations</a>
+                                            </div>
+
+                                            <div class="nav-admin-divider"></div>
                                             <button type="button"
                                                     id="navSignOutBtn"
                                                     class="nav-profile-item nav-profile-signout"
                                                     role="menuitem">Sign Out</button>
 
-                                            <!-- Site-admin impersonation. Visible only when the current
-                                                 user is in SITE_ADMIN_EMAILS. Server-side enforcement
-                                                 lives in /admin_impersonate_user; the client check is UX. -->
+                                            <!-- Site-admin impersonation. Visible only when
+                                                 dash.user_account_info.is_site_admin === true
+                                                 (returned by get_account_dashboard). Server-side
+                                                 enforcement lives in /admin_impersonate_user;
+                                                 this is just a UX gate. -->
                                             <div id="navAdminImpersonate" class="nav-admin-impersonate" style="display: none;">
                                                 <div class="nav-admin-divider"></div>
                                                 <div class="nav-admin-label">Site admin tools</div>
@@ -131,45 +177,90 @@
     </script>
 
     <style>
+        /* Pre-paint auth state, driven by the html.ee-auth-hint-signed-in
+           class set synchronously in head.html before the body paints. When
+           the hint is present we hide Get Eagle Eyes and reveal the profile
+           dropdown at first paint, eliminating the FOUC on page navigation.
+           If the hint is wrong (e.g. user signed out from another tab),
+           the navbar's onAuthStateChanged handler corrects it within a tick. */
+        html.ee-auth-hint-signed-in #navGetEagleEyesBtn { display: none !important; }
+        html.ee-auth-hint-signed-in #navProfileMenu { display: inline-block !important; }
+
         .nav-auth-controls {
             position: relative;
         }
         .nav-profile-menu {
             position: relative;
         }
+        /* Profile trigger — circular avatar with the user's first name (or
+           email handle) stacked underneath so a quick glance at the navbar
+           confirms who's signed in. */
         .nav-profile-trigger {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.6);
+            background: transparent;
+            border: none;
             color: #fff;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            padding: 2px 8px 0 8px;
+            margin: 0;
             display: inline-flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 3px;
             cursor: pointer;
-            padding: 0;
-            transition: background-color 0.15s, border-color 0.15s;
+            border-radius: 8px;
+            transition: background-color 0.15s;
+            line-height: 1.1;
+            min-width: 56px;
         }
         .nav-profile-trigger:hover,
         .nav-profile-trigger[aria-expanded="true"] {
-            background: rgba(255,255,255,0.18);
-            border-color: #fff;
+            background: rgba(255,255,255,0.10);
         }
         .nav-profile-trigger:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(30,144,255,0.35);
         }
+        .nav-profile-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.6);
+            color: #fff;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+        .nav-profile-trigger:hover .nav-profile-avatar,
+        .nav-profile-trigger[aria-expanded="true"] .nav-profile-avatar {
+            background: rgba(255,255,255,0.22);
+            border-color: #fff;
+        }
+        .nav-profile-trigger-name {
+            font-size: 11px;
+            font-weight: 500;
+            color: #fff;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            letter-spacing: 0.1px;
+        }
+        @media (max-width: 600px) {
+            /* Tight navbar on phones — hide the name to save space; avatar alone is fine. */
+            .nav-profile-trigger-name { display: none; }
+            .nav-profile-trigger { min-width: 0; padding: 0; }
+        }
         .nav-profile-dropdown {
             position: absolute;
             top: calc(100% + 10px);
             right: 0;
-            min-width: 240px;
+            min-width: 280px;
             background: #fff;
             border: 1px solid #e3e6ea;
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            padding: 8px 0;
+            padding: 10px 0;
             display: none;
             z-index: 1500;
             /* The site's navbar CSS sets line-height: 8rem on <li> elements
@@ -184,7 +275,7 @@
             display: block;
         }
         .nav-profile-email {
-            padding: 10px 16px 12px;
+            padding: 10px 22px 12px;
             font-size: 13px;
             color: #555;
             word-break: break-all;
@@ -197,7 +288,7 @@
             text-align: left;
             background: none;
             border: none;
-            padding: 10px 16px;
+            padding: 10px 22px;
             font-size: 14px;
             color: #333;
             text-decoration: none;
@@ -218,19 +309,21 @@
         }
 
         .nav-admin-impersonate {
-            padding: 6px 12px 10px 12px;
+            padding: 6px 22px 10px 22px;
         }
         .nav-admin-divider {
             border-top: 1px solid #f0f0f0;
-            margin: 6px -12px 8px -12px;
+            margin: 6px 0 8px 0;
         }
         .nav-admin-label {
+            padding: 0 22px;
             font-size: 11px;
             font-weight: 700;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 0.6px;
             margin-bottom: 6px;
+            margin-top: 4px;
         }
         .nav-admin-form {
             display: flex;
@@ -275,38 +368,206 @@
     </style>
 
     <script>
-        // Site admins authorized to use the "Log in as" tool. Treated as a UX
-        // gate only — the backend cloud function (admin_impersonate_user) must
-        // independently verify the caller against its own allowlist before
-        // minting a custom token.
-        var SITE_ADMIN_EMAILS = [
-            'joep@eagleeyessearch.com',
-            'peter@eagleeyessearch.com',
-            'patrick@eagleeyessearch.com'
-        ];
-
+        // Site-admin UI is gated on dash.user_account_info.is_site_admin
+        // returned by the bundled get_account_dashboard call. Backend
+        // (admin_impersonate_user) does the real enforcement; this is just
+        // for hiding the controls from non-admins. Single source of truth
+        // lives server-side.
         (function() {
+            var ACCOUNT_PATH = '{{ "/account/" | relative_url }}';
+
+            // Rewrite the Org sub-item hrefs in the dropdown to point at the
+            // currently active org (persisted by the page-title include in
+            // sessionStorage). Also show/hide the Organization scope block
+            // based on whether the user is in any orgs.
+            function applyOrgScopeFromDash(user, dash) {
+                var scopeEl = document.getElementById('navOrgScope');
+                if (!scopeEl) return;
+                var orgs = (dash && dash.organizations) || [];
+                if (!orgs.length) {
+                    scopeEl.style.display = 'none';
+                    return;
+                }
+                scopeEl.style.display = '';
+                var activeOrgId = null;
+                try { activeOrgId = sessionStorage.getItem('ee-active-org:' + user.uid); } catch (e) {}
+                if (!activeOrgId || !orgs.some(function(o) { return String(o.org_id) === String(activeOrgId); })) {
+                    // No persisted choice yet — pick the first org. The
+                    // page-title include resolves the proper default
+                    // (latest-expiry) when the user lands on /account/, so
+                    // this is just a sensible pre-dashboard fallback.
+                    activeOrgId = orgs[0].org_id;
+                }
+                scopeEl.querySelectorAll('a[data-org-view]').forEach(function(a) {
+                    var view = a.getAttribute('data-org-view');
+                    a.href = ACCOUNT_PATH + '#org=' + encodeURIComponent(activeOrgId) + '&view=' + encodeURIComponent(view);
+                });
+            }
+
+            // Hot path: read the cached dashboard. Cold path (no cache):
+            // kick off a fetch and re-apply when it lands. This is what
+            // lets the Organization section show on pages OTHER than
+            // /account/* (homepage, /pricing/, etc.), where account.html's
+            // dashboard fetch never ran.
+            function refreshNavOrgScope(user) {
+                if (!user || !window.eeDashboard) return;
+                var dash = window.eeDashboard.read(user.uid);
+                if (dash) {
+                    applyOrgScopeFromDash(user, dash);
+                } else {
+                    // No cache — hide while we wait, then fetch + re-apply.
+                    var scopeEl = document.getElementById('navOrgScope');
+                    if (scopeEl) scopeEl.style.display = 'none';
+                    window.eeDashboard.fetch(user).then(function(fresh) {
+                        if (fresh) applyOrgScopeFromDash(user, fresh);
+                    }).catch(function(e) { /* ignore — dropdown just stays hidden */ });
+                }
+            }
+
+            // Pick the friendliest available label for the navbar trigger,
+            // in priority order (most-authoritative first):
+            //   1. profileDraft.firstName (what the user typed on Profile
+            //      — wins over the dashboard so changes show instantly).
+            //   2. form_data.first_name (explicit save via update_user_profile).
+            //   3. firebase displayName (current OAuth identity — kept up to
+            //      date by the user via their identity provider).
+            //   4. form_data.name (legacy signup form value — often years old).
+            //   5. email handle (before @), de-snake-cased + capitalized.
+            // Bumping displayName above fd.name avoids regressing users
+            // whose signup said "David" but whose Google account now says
+            // "Dave" — without it, the legacy name silently won.
+            function pickTriggerLabel(user) {
+                try {
+                    var draft = JSON.parse(localStorage.getItem('profileDraft') || '{}');
+                    if (draft && draft.firstName) return String(draft.firstName).trim();
+                } catch (e) {}
+                var dashFd = null;
+                try {
+                    if (window.eeDashboard) {
+                        var dash = window.eeDashboard.read(user.uid);
+                        dashFd = dash && dash.user_account_info && dash.user_account_info.form_data;
+                        if (dashFd && dashFd.first_name) return String(dashFd.first_name);
+                    }
+                } catch (e) { /* dashboard not loaded yet */ }
+                if (user.displayName) return String(user.displayName).split(' ')[0];
+                if (dashFd && dashFd.name) return String(dashFd.name).split(' ')[0];
+                var email = user.email || '';
+                var handle = email.split('@')[0] || 'Account';
+                handle = handle.replace(/[._-]+/g, ' ').split(' ')[0];
+                return handle.charAt(0).toUpperCase() + handle.slice(1);
+            }
+            function refreshNavTriggerName(user) {
+                var nameEl = document.getElementById('navProfileTriggerName');
+                if (!nameEl || !user) return;
+                applyTriggerName(user);
+                // If the dashboard isn't cached yet, pickTriggerLabel may
+                // have fallen back to user.displayName / email handle
+                // (which can disagree with the user's chosen first_name
+                // from their Profile form). Kick off a fetch and re-apply
+                // once form_data is available so the trigger settles on
+                // the "right" name. The fetch dedupes via _inflight.
+                if (window.eeDashboard) {
+                    var cached = window.eeDashboard.read(user.uid);
+                    if (!cached) {
+                        window.eeDashboard.fetch(user)
+                            .then(function(fresh) { if (fresh) applyTriggerName(user); })
+                            .catch(function() { /* keep the fallback label */ });
+                    }
+                }
+            }
+            function applyTriggerName(user) {
+                var nameEl = document.getElementById('navProfileTriggerName');
+                if (!nameEl) return;
+                var label = pickTriggerLabel(user);
+                nameEl.textContent = label;
+                // Cache for the next page's pre-paint so the trigger never
+                // flashes the default "Account" before JS resolves the user.
+                try { localStorage.setItem('eeTriggerName', label); } catch (e) {}
+            }
+
+            // Reveal / hide the site-admin "Log in as" tools based on the
+            // is_site_admin boolean returned by get_account_dashboard. Hot
+            // path reads the cache; cold path fetches and re-applies once
+            // the dashboard lands.
+            function refreshNavAdminScope(user) {
+                var adminEl = document.getElementById('navAdminImpersonate');
+                if (!adminEl || !user || !window.eeDashboard) return;
+                function apply(dash) {
+                    var isAdmin = !!(dash && dash.user_account_info && dash.user_account_info.is_site_admin);
+                    adminEl.style.display = isAdmin ? '' : 'none';
+                }
+                var cached = window.eeDashboard.read(user.uid);
+                if (cached) {
+                    apply(cached);
+                } else {
+                    // Default to hidden until the fetch lands — never fall
+                    // back to client-side email comparison.
+                    adminEl.style.display = 'none';
+                    window.eeDashboard.fetch(user)
+                        .then(function(fresh) { if (fresh) apply(fresh); })
+                        .catch(function() { /* ignore — admin UI stays hidden */ });
+                }
+            }
+
             function applyAuthState(user) {
                 var getBtn = document.getElementById('navGetEagleEyesBtn');
                 var profile = document.getElementById('navProfileMenu');
                 var emailEl = document.getElementById('navProfileEmail');
                 var adminEl = document.getElementById('navAdminImpersonate');
+                var orgScopeEl = document.getElementById('navOrgScope');
                 if (!profile) return;
                 if (user) {
                     if (getBtn) getBtn.style.display = 'none';
                     profile.style.display = '';
                     if (emailEl) emailEl.textContent = user.email || '';
-                    if (adminEl) {
-                        var email = (user.email || '').toLowerCase();
-                        adminEl.style.display = SITE_ADMIN_EMAILS.indexOf(email) !== -1 ? '' : 'none';
-                    }
+                    refreshNavTriggerName(user);
+                    refreshNavAdminScope(user);
+                    refreshNavOrgScope(user);
+                    // Persist a hint so the next page load can pre-paint the
+                    // profile icon synchronously, before Firebase auth resolves.
+                    try { localStorage.setItem('eeAuthHint', 'signed_in'); } catch (e) {}
+                    document.documentElement.classList.add('ee-auth-hint-signed-in');
                 } else {
                     if (getBtn) getBtn.style.display = '';
                     profile.style.display = 'none';
                     if (adminEl) adminEl.style.display = 'none';
+                    if (orgScopeEl) orgScopeEl.style.display = 'none';
                     closeProfileDropdown();
+                    try {
+                        localStorage.removeItem('eeAuthHint');
+                        localStorage.removeItem('eeHasOrgs');
+                        localStorage.removeItem('eeTriggerName');
+                    } catch (e) {}
+                    document.documentElement.classList.remove('ee-auth-hint-signed-in');
+                    document.documentElement.classList.remove('ee-auth-hint-has-orgs');
+                    // Reset the trigger label back to the default so a
+                    // signed-out user doesn't see the last user's name.
+                    var nameEl = document.getElementById('navProfileTriggerName');
+                    if (nameEl) nameEl.textContent = 'Account';
                 }
             }
+
+            // Dashboard cache may land after the auth event, so refresh again
+            // when the layout signals a sidebar refresh (same event fires
+            // after dashboard fetches + writes). Also refresh when the user
+            // picks a different org elsewhere (accountScopeChanged).
+            document.addEventListener('accountSidebarRefresh', function() {
+                try {
+                    var u = firebase.auth().currentUser;
+                    if (u) {
+                        refreshNavOrgScope(u);
+                        refreshNavAdminScope(u);
+                        refreshNavTriggerName(u);
+                    }
+                } catch (e) { /* ignore */ }
+            });
+            document.addEventListener('accountScopeChanged', function(e) {
+                if (!e.detail || e.detail.scope !== 'org') return;
+                try {
+                    var u = firebase.auth().currentUser;
+                    if (u) refreshNavOrgScope(u);
+                } catch (err) { /* ignore */ }
+            });
 
             // Form submit handler — exposed on window so onsubmit="" can find it.
             window.navImpersonate = async function(event) {
@@ -328,21 +589,23 @@
                     var r = await fetch(hostURL + '/admin_impersonate_user', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: target })
+                        // Backend contract: body is { target_email, reason? };
+                        // response is { custom_token, target_email, target_uid, expires_in }.
+                        body: JSON.stringify({ target_email: target })
                     });
                     var bodyText = await r.text();
                     var data = {};
                     try { data = JSON.parse(bodyText); } catch (e) { data = { message: bodyText }; }
                     if (!r.ok) {
-                        var msg = (data && data.message) ? data.message
+                        var msg = (data && (data.message || data.error)) ? (data.message || data.error)
                             : (r.status === 403 ? 'Not authorized to impersonate'
                             :  r.status === 404 ? 'No user with that email'
                             :  'Request failed (' + r.status + ')');
                         throw new Error(msg);
                     }
-                    if (!data.token) throw new Error('No token in response');
+                    if (!data.custom_token) throw new Error('No custom_token in response');
 
-                    await firebase.auth().signInWithCustomToken(data.token);
+                    await firebase.auth().signInWithCustomToken(data.custom_token);
                     if (status) {
                         status.textContent = 'Signed in as ' + target + ' — reloading…';
                         status.className = 'nav-admin-status success';
@@ -406,9 +669,21 @@
                     applyAuthState(e.detail && e.detail.user);
                 });
 
-                // Apply current state if Firebase is already initialized
+                // Apply current state if Firebase has *resolved* a real user.
+                // Calling applyAuthState(null) eagerly would remove the
+                // pre-paint hint classes (ee-auth-hint-signed-in and
+                // ee-auth-hint-has-orgs) on every navigation while Firebase
+                // is still restoring the session — that's what was causing
+                // the "Get Eagle Eyes" + sidebar-empty flicker. When the
+                // session resolves the authStateChanged listener above fires
+                // applyAuthState(user) with the correct state. For genuinely
+                // signed-out users, the listener fires once with null and
+                // corrects the (stale-hint) pre-paint.
                 if (typeof firebase !== 'undefined' && firebase.auth) {
-                    try { applyAuthState(firebase.auth().currentUser); } catch (e) { /* ignore */ }
+                    try {
+                        var initialUser = firebase.auth().currentUser;
+                        if (initialUser) applyAuthState(initialUser);
+                    } catch (e) { /* ignore */ }
                 }
             }
 
