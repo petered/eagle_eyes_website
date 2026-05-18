@@ -1184,32 +1184,157 @@ active: purchase
         }
     }
 
-    function onInvoice() {
-        // Phase 1: no backend endpoint yet — open a prefilled email so the
-        // sales team can issue the Stripe Invoice manually.
-        var lines = ['Pay-by-invoice request', '', 'Please send a Stripe Invoice for:'];
-        lines = lines.concat(cartSummaryLines());
-        lines.push('');
-        lines.push('Total estimated: ' + formatPrice(recomputeSummary()));
-        lines.push('Payment terms: NET-30 default — let us know if you need different terms.');
-        lines.push('');
-        lines.push('(This request was generated from /account/purchase/)');
-        openMailto('Invoice request — Eagle Eyes license', lines);
+    // Translate the cart's current state to catalog line-items the
+    // self-service invoice / quote endpoints accept. Returns null when the
+    // cart contains anything that isn't in the catalog (streaming credits,
+    // device extensions on existing licenses) — caller then shows a "use Buy
+    // now / contact sales" message instead of firing the request.
+    function cartCatalogLineItems() {
+        if (state.mode !== 'new') return null;
+        var n = parseInt($('newDeviceCount').value, 10) || 1;
+        if (n < 1 || n > 12) return null;
+        return [{ product_id: 'sar_1y_' + n + 'dev', quantity: 1 }];
     }
 
-    function onQuote(e) {
-        e.preventDefault();
-        var lines = ['Quote request', '', 'Please prepare a formal quote for:'];
-        lines = lines.concat(cartSummaryLines());
-        lines.push('');
-        lines.push('Total estimated: ' + formatPrice(recomputeSummary()));
-        lines.push('');
-        lines.push('PO # (if known): ');
-        lines.push('Fiscal-year deadline / valid-until date: ');
-        lines.push('Notes: ');
-        lines.push('');
-        lines.push('(This request was generated from /account/purchase/)');
-        openMailto('Quote request — Eagle Eyes license', lines);
+    function clearCtaStatus() {
+        var e = $('ctaError');
+        if (!e) return;
+        e.style.display = 'none';
+        e.textContent = '';
+        e.style.color = '';
+    }
+    function showCtaError(msg) {
+        var e = $('ctaError');
+        if (!e) { alert(msg); return; }
+        e.style.color = '#b32525';
+        e.style.display = '';
+        e.textContent = msg;
+    }
+    function showCtaSuccess(msg) {
+        var e = $('ctaError');
+        if (!e) { alert(msg); return; }
+        e.style.color = '#1f7a52';
+        e.style.display = '';
+        e.textContent = msg;
+    }
+
+    // Shared POST helper for the self-service billing endpoints. Surfaces
+    // status code + parsed body on the thrown error so onQuote can detect
+    // the 501 "quotes_require_invoicing_plus" fallback case.
+    async function postBillingJson(endpoint, body) {
+        var user = firebase.auth().currentUser;
+        if (!user) throw new Error('Not signed in');
+        var idToken = await user.getIdToken();
+        var r = await fetch(getHostUrl() + '/' + endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + idToken,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(body || {})
+        });
+        var text = await r.text();
+        var data = {};
+        if (text) { try { data = JSON.parse(text); } catch (e) { data = { message: text }; } }
+        if (!r.ok) {
+            var err = new Error((data && (data.message || data.error)) || ('Request failed (' + r.status + ')'));
+            err.status = r.status;
+            err.data = data;
+            throw err;
+        }
+        return data;
+    }
+
+    // POST /request_invoice_for_self — creates a finalized Stripe Invoice
+    // and emails it to the account owner. Replaces the legacy mailto.
+    async function onInvoice() {
+        clearCtaStatus();
+        var btn = $('ctaInvoice');
+        var items = cartCatalogLineItems();
+        if (!items) {
+            showCtaError('Self-service invoices cover catalog SKUs only (1-Year SAR licenses). '
+                + 'For streaming credits or device extensions on existing licenses, use "Buy now" '
+                + 'with a card, or email info@eagleeyessearch.com.');
+            return;
+        }
+        if (!state.activeAccountId) {
+            showCtaError('Select an account before requesting an invoice.');
+            return;
+        }
+        btn.disabled = true;
+        var orig = btn.textContent;
+        btn.textContent = 'Creating invoice…';
+        try {
+            var resp = await postBillingJson('request_invoice_for_self', {
+                account_id: parseInt(state.activeAccountId, 10),
+                line_items: items,
+                days_until_due: 30
+            });
+            var inv = resp && resp.invoice;
+            if (!inv || !inv.hosted_url) throw new Error('Backend did not return an invoice URL.');
+            window.open(inv.hosted_url, '_blank', 'noopener');
+            showCtaSuccess('Invoice created — opened in a new tab and emailed to the account owner.');
+        } catch (e) {
+            console.error('request_invoice_for_self failed:', e);
+            showCtaError("Couldn't create invoice: " + (e.message || String(e)));
+        } finally {
+            btn.disabled = false;
+            btn.textContent = orig;
+        }
+    }
+
+    // POST /request_quote_for_self — creates a finalized Stripe Quote.
+    // Falls back to the legacy mailto when the endpoint returns 501
+    // (quotes_require_invoicing_plus), which is the current state until
+    // Stripe Invoicing Plus is enabled on the Eagle Eyes account.
+    async function onQuote(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        clearCtaStatus();
+        var link = $('ctaQuote');
+        var items = cartCatalogLineItems();
+        if (!items) {
+            showCtaError('Self-service quotes cover catalog SKUs only (1-Year SAR licenses). '
+                + 'For other items, email info@eagleeyessearch.com.');
+            return;
+        }
+        if (!state.activeAccountId) {
+            showCtaError('Select an account before requesting a quote.');
+            return;
+        }
+        var prev = link.textContent;
+        link.textContent = 'Creating quote…';
+        try {
+            var resp = await postBillingJson('request_quote_for_self', {
+                account_id: parseInt(state.activeAccountId, 10),
+                line_items: items,
+                valid_for_days: 30
+            });
+            var quote = resp && resp.quote;
+            if (!quote || !quote.hosted_url) throw new Error('Backend did not return a quote URL.');
+            window.open(quote.hosted_url, '_blank', 'noopener');
+            showCtaSuccess('Quote created — opened in a new tab. It will also appear on /account/billing/.');
+        } catch (err) {
+            if (err.status === 501 || (err.data && err.data.code === 'quotes_require_invoicing_plus')) {
+                console.info('Quote endpoint unavailable (Invoicing Plus not enabled) — falling back to mailto');
+                var lines = ['Quote request', '', 'Please prepare a formal quote for:'];
+                lines = lines.concat(cartSummaryLines());
+                lines.push('');
+                lines.push('Total estimated: ' + formatPrice(recomputeSummary()));
+                lines.push('');
+                lines.push('PO # (if known): ');
+                lines.push('Fiscal-year deadline / valid-until date: ');
+                lines.push('Notes: ');
+                lines.push('');
+                lines.push('(This request was generated from /account/purchase/)');
+                openMailto('Quote request — Eagle Eyes license', lines);
+                return;
+            }
+            console.error('request_quote_for_self failed:', err);
+            showCtaError("Couldn't create quote: " + (err.message || String(err)));
+        } finally {
+            link.textContent = prev;
+        }
     }
 
     // ---- Init ----
