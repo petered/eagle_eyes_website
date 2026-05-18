@@ -6820,20 +6820,34 @@
                     return on.join(',');
                 }
                 function postEvent(payload, useBeacon) {
+                    // CRITICAL: Apps Script web apps return a 302 redirect to
+                    // googleusercontent.com that the browser can't follow under
+                    // default CORS mode. `mode: 'no-cors'` makes the request
+                    // "opaque" so the redirect chain works. Pattern lifted from
+                    // download.html which has been writing to its own Apps
+                    // Script sheet successfully for months.
                     try {
                         var body = JSON.stringify(payload);
                         if (useBeacon && navigator.sendBeacon) {
-                            // Send-on-unload — sendBeacon survives page close where fetch() does not
-                            navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'text/plain' }));
+                            // sendBeacon ignores CORS and is the right primitive for
+                            // beforeunload events — survives page close where fetch() does not.
+                            navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'application/json' }));
                             return;
                         }
                         fetch(ENDPOINT, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'text/plain' },
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
                             body: body,
                             keepalive: true
-                        }).catch(function(){});
-                    } catch(e) {}
+                        }).then(function() {
+                            console.log('[Drone Map Analytics] event sent:', payload.event_type);
+                        }).catch(function(err) {
+                            console.error('[Drone Map Analytics] event failed:', err);
+                        });
+                    } catch(e) {
+                        console.error('[Drone Map Analytics] postEvent threw:', e);
+                    }
                 }
                 function fetchGeoThen(cb) {
                     fetch('https://ipapi.co/json/')
