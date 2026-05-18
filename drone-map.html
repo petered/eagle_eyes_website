@@ -4297,20 +4297,30 @@
                         popover.style.display = 'none';
                         popover.setAttribute('aria-hidden', 'true');
                     }
+                    // Lucide "person-standing" icon — white stroke with a dark outer
+                        // halo via stacked drop-shadow filters so it reads against any
+                        // basemap (dark, light, satellite). Anchored at the icon's feet
+                        // so the figure stands ON the lat/lng point.
+                    var USER_LOCATION_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'
+                        + '<circle cx="12" cy="5" r="1"/>'
+                        + '<path d="m9 20 3-6 3 6"/>'
+                        + '<path d="m6 8 6 2 6-2"/>'
+                        + '<path d="M12 10v4"/>'
+                        + '</svg>';
                     function showUserOnMap(position) {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
                         if (userLocationMarker && map.hasLayer(userLocationMarker)) {
                             map.removeLayer(userLocationMarker);
                         }
-                        userLocationMarker = L.circleMarker([lat, lng], {
-                            radius: 7,
-                            fillColor: '#2563eb',
-                            color: '#1d4ed8',
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.9
-                        }).addTo(map);
+                        var icon = L.divIcon({
+                            className: 'user-location-marker',
+                            html: '<div style="filter:drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1.5px #000) drop-shadow(0 1px 1px rgba(0,0,0,0.6));line-height:0;">' + USER_LOCATION_SVG + '</div>',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 26], // feet on the lat/lng
+                            popupAnchor: [0, -24]
+                        });
+                        userLocationMarker = L.marker([lat, lng], { icon: icon, title: 'Your current location' }).addTo(map);
                         userLocationMarker.bindPopup('Your current location.', {
                             className: 'user-location-popup',
                             closeButton: true
@@ -4342,7 +4352,9 @@
                     }
                     function disableLocation() {
                         toggle.checked = false;
-                        try { localStorage.removeItem(LOC_PREF_KEY); } catch(e) {}
+                        // Record an explicit opt-out (value '0') so we don't keep auto-enabling
+                        // on every visit. Distinct from "no preference" which now defaults on.
+                        try { localStorage.setItem(LOC_PREF_KEY, '0'); } catch(e) {}
                         if (userLocationMarker && map.hasLayer(userLocationMarker)) {
                             map.removeLayer(userLocationMarker);
                             userLocationMarker = null;
@@ -4356,12 +4368,17 @@
                             disableLocation();
                         }
                     });
-                    // Restore saved preference on load
+                    // Default ON — auto-enable on every fresh visit, unless the user has
+                    // previously opted out explicitly (value '0' in localStorage). This is
+                    // a permission-gated browser API; the user still has to grant the
+                    // geolocation prompt the first time per origin.
                     try {
-                        if (localStorage.getItem(LOC_PREF_KEY) === '1') {
+                        if (localStorage.getItem(LOC_PREF_KEY) !== '0') {
                             enableLocation();
                         }
-                    } catch(e) {}
+                    } catch(e) {
+                        enableLocation();
+                    }
                     document.addEventListener('click', function(ev) {
                         if (!popover.classList.contains('visible')) return;
                         const arrow = document.querySelector('.north-arrow-content');
