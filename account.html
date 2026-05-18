@@ -521,7 +521,7 @@ active: account
     }
 
 
-    /* Streaming credits widget — sits at the top of /account/ to surface the
+    /* Streaming credits widget. Sits at the top of /account/ to surface the
        account-level balance and link to /account/streaming/ for top-ups. */
     .streaming-credits-widget {
         background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
@@ -596,7 +596,7 @@ active: account
         .streaming-credits-value { font-size: 19px; }
     }
 
-    /* View header — sits above the active section to confirm the org context */
+    /* View header. Sits above the active section to confirm the org context */
     .view-header {
         margin-bottom: 18px;
         padding-bottom: 14px;
@@ -612,7 +612,7 @@ active: account
     }
     .view-header-org strong { color: #222; font-weight: 600; }
 
-    /* My Licenses — primary card + show-more list (modeled on setup.html's lp-*) */
+    /* My Licenses. Primary card + show-more list (modeled on setup.html's lp-*) */
     .plan-primary-card {
         position: relative;
         border: 2px solid #1e90ff;
@@ -646,7 +646,7 @@ active: account
     .plan-primary-card .plan-meta-expired { color: #888; font-style: italic; }
 
     /* Surfaces the account-vs-org relationship on each license card.
-       "Accounts pay, Organizations use" — this is the one place users see
+       "Accounts pay, Organizations use". This is the one place users see
        both edges of that data model. */
     .plan-primary-card .plan-relationship {
         font-size: 12px;
@@ -664,6 +664,71 @@ active: account
         text-decoration: none;
     }
     .plan-primary-card .plan-renew-link:hover { text-decoration: underline; }
+    /* Action row at the bottom of a license card. Holds Renew + Add devices
+       side by side. Uses the same anchor styling as .plan-renew-link. */
+    .plan-primary-card .plan-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 10px;
+    }
+    .plan-primary-card .plan-actions .plan-renew-link { margin-top: 0; }
+    /* "Expiring soon" corner tag. Top-right of the card so the urgency
+       is visible even when scanning a list of licenses. Used for both
+       paid licenses (within 90 days of expiry) and trial licenses
+       (within 7 days). Positioned to clear the eye-toggle button which
+       sits at right: 12px. For trials specifically, this is also the
+       only at-a-glance signal because trials are excluded from the
+       top-of-section renewal notice. */
+    .plan-primary-card .plan-corner-tag-expiring {
+        position: absolute;
+        top: 14px;
+        right: 50px;
+        background: #fff3cd;
+        color: #856404;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 999px;
+    }
+
+    /* Top-of-section renewal notice. Always rendered for the soonest-
+       expiring active license so users always have a "days left + Renew"
+       affordance. Styled as a highlighter-pen mark rather than a boxed
+       callout. The wrapping <mark> carries the tinted background; the
+       container itself stays unstyled so the text flows like body copy.
+       Two states: neutral (default, plenty of runway) and urgent (within
+       90 days for paid licenses, 7 days for trial). */
+    .plans-expiry-notice {
+        margin: 12px 0 16px 0;
+        font-size: 14px;
+        line-height: 1.85;
+        color: #2a3a52;
+    }
+    .plans-expiry-notice mark {
+        /* Classic highlighter-pen yellow. Same shade for both neutral
+           and urgent states; the urgency is conveyed by the copy
+           ("Renew now to prevent service interruptions" vs "Renew
+           anytime to extend coverage") rather than the color. */
+        background: #fff59d;
+        color: inherit;
+        padding: 2px 4px;
+        border-radius: 2px;
+        /* Keep the highlight intact when the marked text wraps across
+           multiple lines (without this, the background only paints the
+           first line on most browsers). */
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+    }
+    .plans-expiry-notice strong { color: #1a1a2e; font-weight: 600; }
+    .plans-expiry-notice a {
+        color: #1e90ff;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .plans-expiry-notice a:hover { text-decoration: underline; }
     .plan-other-row .plan-row-relationship {
         font-size: 11px;
         color: #777;
@@ -800,7 +865,7 @@ active: account
     }
     .plan-other-row-details.open { display: block; }
 
-    /* Stacked sections — the right pane is one scrollable page */
+    /* Stacked sections. The right pane is one scrollable page */
     .account-sections {
         display: flex;
         flex-direction: column;
@@ -835,6 +900,23 @@ active: account
         line-height: 1.5;
     }
     .account-section-hint a { color: #1e90ff; }
+
+    /* Soft note callout. Used on the Account access view to flag the
+       common confusion that "account owners" and "organization members"
+       are different concepts living on different pages. Soft blue
+       background, left accent, plain copy. */
+    .account-section-note {
+        background: #f3f9ff;
+        border-left: 3px solid #1e90ff;
+        border-radius: 6px;
+        padding: 12px 14px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #2a3a52;
+        margin: 14px 0 18px 0;
+    }
+    .account-section-note strong { color: #1a1a2e; }
+    .account-section-note a { color: #1e90ff; }
 
     /* Mobile tweaks for the account page */
     @media (max-width: 600px) {
@@ -911,7 +993,7 @@ active: account
         }
     }
 
-    /* Source bar — pronounced context selector above the sections */
+    /* Source bar. Pronounced context selector above the sections */
     .source-bar {
         background: transparent;
         padding: 0;
@@ -978,7 +1060,7 @@ active: account
         pointer-events: none;
     }
 
-    /* Account info — owner email shown at the top of Overview. */
+    /* Account info. Owner email shown at the top of Overview. */
     .account-info-row {
         display: flex;
         flex-wrap: wrap;
@@ -1063,8 +1145,24 @@ active: account
         font-size: 12px;
         min-height: 14px;
     }
+    /* Collapse the status row when it carries no message. Otherwise the
+       reserved 14px min-height + 8px margin push the "Add another account
+       owner" link ~22px below the owners list for no visible reason. */
+    .account-info-status:empty {
+        margin-top: 0;
+        min-height: 0;
+    }
     .account-info-status.success { color: #1f7a52; }
     .account-info-status.error { color: #c0392b; }
+
+    /* The owners-overview list sits directly above the "+ Add another
+       account owner" toggle, so it doesn't need the same 24px breathing
+       room as the People / Devices lists (which are followed by a different
+       section). Tighten it to keep the toggle visually grouped with the
+       list it acts on. */
+    #accountOwnersList {
+        margin-bottom: 12px;
+    }
     .account-info-you {
         display: inline-block;
         margin-left: 6px;
@@ -1084,7 +1182,7 @@ active: account
     }
     .account-info-help:hover { text-decoration: underline; }
 
-    /* Account-owner help modal — explains the role + has an add-another-owner form. */
+    /* Account-owner help modal. Explains the role + has an add-another-owner form. */
     .account-modal {
         position: fixed;
         inset: 0;
@@ -1208,12 +1306,30 @@ active: account
         color: #1a1a2e;
         margin: 0;
     }
+    /* Subhead CTA, used as the "Add credits" action next to the Streaming
+       credits subhead. Outline-blue button so the most-frequent recurring
+       action (topping up credits) is visibly clickable without dominating
+       the page like a filled primary would. */
     .overview-subhead-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
         font-size: 13px;
+        font-weight: 500;
         color: #1e90ff;
+        background: #fff;
+        border: 1px solid #1e90ff;
+        border-radius: 6px;
+        padding: 6px 12px;
+        text-decoration: none;
+        transition: background-color 0.15s, color 0.15s;
+        line-height: 1;
+    }
+    .overview-subhead-cta:hover {
+        background: #1e90ff;
+        color: #fff;
         text-decoration: none;
     }
-    .overview-subhead-cta:hover { text-decoration: underline; }
     .overview-empty {
         padding: 16px 18px;
         border: 1px dashed #d8dde2;
@@ -1224,7 +1340,7 @@ active: account
     .overview-empty a { color: #1e90ff; text-decoration: none; }
     .overview-empty a:hover { text-decoration: underline; }
 
-    /* Roles & permissions disclosure — collapsed link at the top of the
+    /* Roles & permissions disclosure. Collapsed link at the top of the
        Members section; expands to a three-column panel of who-can-do-what
        (Owner, Admin, Member). */
     .roles-disclosure { margin: 0 0 18px 0; }
@@ -1290,7 +1406,7 @@ active: account
         line-height: 1.5;
     }
 
-    /* Members tab header — org name + admin actions */
+    /* Members tab header. Org name + admin actions */
     .members-header {
         display: flex;
         align-items: center;
@@ -1327,7 +1443,7 @@ active: account
         border: 1px dashed #ddd;
         border-radius: 8px;
     }
-    /* Configuration rows — same shell as the People + Devices lists
+    /* Configuration rows. Same shell as the People + Devices lists
        (.people-list container, .people-row per item). Each row is an <a>
        so the whole card is clickable (opens the config in /setup/ for
        editing). */
@@ -1347,7 +1463,7 @@ active: account
         color: #888;
         font-style: italic;
     }
-    /* License sub-rows below the meta line — name + monospaced id. */
+    /* License sub-rows below the meta line. Name + monospaced id. */
     .config-row-licenses {
         flex: 1 1 100%;
         margin: 10px 0 0 48px; /* indent past the avatar */
@@ -1582,7 +1698,7 @@ active: account
     .org-status-msg.error { color: #c0392b; }
     .org-status-msg.success { color: #27ae60; }
 
-    /* People list — redesigned card-style rows with circular avatars,
+    /* People list. Redesigned card-style rows with circular avatars,
        role badges, and compact action buttons. The current user's row gets
        a subtle blue tint so it's easy to find. */
     .people-list {
@@ -1659,7 +1775,7 @@ active: account
     .people-role-badge.member { background: #ececec; color: #555; }
     .people-role-badge.owner { background: #d6e9ff; color: #0a5fb8; }
 
-    /* "?" help icon — clickable on both desktop and mobile (hover-tooltip
+    /* "?" help icon. Clickable on both desktop and mobile (hover-tooltip
        would silently fail on touch). Opens the owner-role modal. */
     .account-owner-help-icon {
         display: inline-flex;
@@ -1690,11 +1806,13 @@ active: account
         box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.25);
     }
 
-    /* Add-owner toggle — collapsed link by default; expands to show the
-       form + hint when clicked. Sits beneath the owners list. */
+    /* Add-owner toggle. Collapsed link by default; expands to show the
+       form + hint when clicked. Sits beneath the owners list. Margin-top
+       kept small because the owners list already has its own bottom margin
+       and the status row collapses to 0 height when empty. */
     .account-owners-add-toggle {
         display: inline-block;
-        margin-top: 12px;
+        margin-top: 4px;
         font-size: 14px;
         color: #1e90ff;
         text-decoration: none;
@@ -1720,7 +1838,7 @@ active: account
     }
 
     /* Footer line in the account-owner help modal (the modal is info-only
-       now — the actual Add/Remove controls live on the Overview page). */
+       now. The actual Add/Remove controls live on the Overview page). */
     .account-modal-footer {
         margin: 0;
         padding-top: 14px;
@@ -1799,6 +1917,24 @@ active: account
        device name, and an expandable per-key sub-list for multi-key
        devices. */
     .device-row { flex-wrap: wrap; }
+    /* Inactive devices (every license on this device has expired) sit at
+       the bottom of the list with a muted treatment so they don't compete
+       with active ones. Avatar + email stay legible but desaturated. */
+    .device-row-inactive { opacity: 0.65; }
+    .device-row-inactive .people-avatar { filter: grayscale(0.5); }
+    .device-inactive-pill {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #f1f1f1;
+        color: #777;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        vertical-align: middle;
+    }
     .device-row-meta {
         display: flex;
         flex-wrap: wrap;
@@ -1916,7 +2052,7 @@ active: account
         margin: 2px 4px 2px 0;
     }
 
-    /* Toast container — floating, transient confirmations after writes
+    /* Toast container. Floating, transient confirmations after writes
        (member removed, etc.). Stacks newest-at-bottom in the bottom-right. */
     .toast-container {
         position: fixed;
@@ -2008,7 +2144,7 @@ active: account
 <!-- Account content -->
 <div id="accountContent" style="display: none;">
 
-    <!-- View header — set by JS based on hash (org name + section name) -->
+    <!-- View header. Set by JS based on hash (org name + section name) -->
     <div id="viewHeader" class="view-header" style="display: none;">
         <div class="view-header-org" id="viewHeaderOrg"></div>
     </div>
@@ -2020,15 +2156,18 @@ active: account
 
     <!-- Sections (one is shown at a time, controlled by hash routing) -->
     <div class="account-sections">
-        <!-- OVERVIEW SECTION (account-scoped) — account info on top, then
-             a "Streaming credits" subsection and a "Licenses" subsection.
-             The Licenses subsection surfaces the top 3 actives with the
-             latest expiry date; the rest hide behind a "Show other active
-             licenses (N)" toggle. Hash: #view=overview. -->
+        <!-- PLANS SECTION. Hosts two account-scope views, swapped in/out
+             by the hash router:
+               * #view=overview → "Licenses & credits" (streaming credits
+                 balance + active-licenses list).
+               * #view=access   → "Account access" (account owners + add
+                 owner controls).
+             Sub-blocks are wrapped with [data-account-view="…"] so
+             renderActiveView() can toggle them with a single selector pass. -->
         <section id="plansSection" class="account-section">
             <header class="account-section-header account-section-header-row">
                 <div class="account-section-header-text">
-                    <h2 class="account-section-title" id="plansSectionTitle">Overview</h2>
+                    <h2 class="account-section-title" id="plansSectionTitle">Licenses &amp; credits</h2>
                 </div>
                 <div class="account-section-header-actions" id="verification-status">
                     <a href="{{ '/account/purchase/' | relative_url }}"
@@ -2038,11 +2177,33 @@ active: account
                 </div>
             </header>
 
-            <!-- Account owners — same visual treatment as the People list
+            <!-- Account owners. Same visual treatment as the People list
                  on the Organization view (card list of rows with avatar +
                  role + remove). Populated by renderAccountInfo() after the
                  dashboard lands. The "?" icon next to the title opens a
-                 modal explaining the account-owner role. -->
+                 modal explaining the account-owner role.
+                 Shown only on the Account access view. -->
+            <div data-account-view="access" id="accessViewBlock">
+
+            <!-- Intro for the Account access view. Defines what "account
+                 owner" means here and (critically) flags that it is a
+                 different concept from organization members and admins,
+                 which live on a different page. New users routinely
+                 conflate the two; spelling it out inline saves support
+                 tickets. -->
+            <p class="account-section-hint" style="margin-top: 0; margin-bottom: 10px;">
+                Account owners control the money and licenses tied to this account. They can
+                purchase and renew licenses, manage streaming credits, view billing history,
+                and add or remove other owners.
+            </p>
+            <div class="account-section-note">
+                <strong>Not the same as organization members.</strong>
+                Being an admin or member of one of your organizations does not grant any billing
+                authority on this account, and adding someone as an account owner does not place
+                them in any organization. To manage who is on a team, go to
+                <strong>Organization &rsaquo; People</strong> in the sidebar.
+            </div>
+
             <div id="accountInfoRow" style="display: none;">
                 <div class="members-header" style="margin-bottom: 12px;">
                     <div class="members-header-left">
@@ -2064,7 +2225,7 @@ active: account
                     <div id="accountOwnersAddPanel" class="account-owners-add-panel" style="display: none;">
                         <p class="account-owners-add-hint">
                             Enter the email of the person you want to promote. They must already have an Eagle Eyes
-                            account at that address — they get owner powers immediately (purchase, billing, add /
+                            account at that address. They get owner powers immediately (purchase, billing, add /
                             remove other owners).
                         </p>
                         <form class="org-add-member-form" id="accountOwnersAddForm" onsubmit="return onAddAccountOwnerSubmit(event)">
@@ -2105,25 +2266,27 @@ active: account
                     </div>
                     <!-- The actual "Add owner" control lives on the Overview
                          page (next to the owners list). The modal stays
-                         info-only — explains the role, doesn't duplicate
+                         info-only. Explains the role, doesn't duplicate
                          the form. -->
                     <p class="account-modal-footer">
                         To add or remove account owners, use the controls next to the owners list on this page.
                     </p>
                 </div>
             </div>
+            </div><!-- /access view block -->
 
+            <div data-account-view="overview" id="licensesCreditsViewBlock">
             <!-- Streaming credits subsection. -->
             <div class="overview-subhead-row">
                 <h3 class="overview-subhead">Streaming credits</h3>
                 <a class="overview-subhead-cta owner-only-cta" id="streamingBuyCreditsCta"
                    href="{{ '/account/purchase/?mode=streaming' | relative_url }}"
-                   style="display: none;">Buy credits &rarr;</a>
+                   style="display: none;">+ Add credits</a>
             </div>
             <div id="streamingCreditsWidget" class="streaming-credits-widget" style="display: none;">
                 <div class="streaming-credits-left">
                     <div class="streaming-credits-label">Streaming credits</div>
-                    <div class="streaming-credits-value" id="streamingCreditsValue">—</div>
+                    <div class="streaming-credits-value" id="streamingCreditsValue">-</div>
                     <div class="streaming-credits-meta" id="streamingCreditsMeta"></div>
                 </div>
                 <div class="streaming-credits-right">
@@ -2131,19 +2294,29 @@ active: account
                 </div>
             </div>
             <div id="streamingCreditsEmpty" class="overview-empty" style="display: none;">
-                No streaming credits yet. <a href="{{ '/account/purchase/?mode=streaming' | relative_url }}">Buy your first top-up &rarr;</a>
+                No streaming credits yet. <a href="{{ '/account/purchase/?mode=streaming' | relative_url }}">Add your first credits &rarr;</a>
             </div>
 
-            <!-- Active licenses subsection. -->
+            <!-- Active licenses subsection. The primary actions live on
+                 each license card (Renew, Add devices) so users act on the
+                 specific license they're looking at. No top-level "Buy new"
+                 CTA. The empty-state below carries that affordance for the
+                 zero-license case. -->
             <div class="overview-subhead-row" style="margin-top: 24px;">
                 <h3 class="overview-subhead">Active licenses</h3>
             </div>
+            <!-- Renewal notice. Rendered by renderLicenseCards when at least
+                 one active license is within its renewal threshold (90 days
+                 regular, 7 days trial). Picks the soonest-expiring license
+                 so the user sees the most urgent thing first. -->
+            <div id="plansExpiryNotice" class="plans-expiry-notice" style="display: none;"></div>
             <div id="plansSpinner" class="loading-spinner"><div class="spinner"></div></div>
             <div id="plansError" class="empty-card" style="display: none; border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">Error loading licenses. Please try again later.</div>
             <div id="plansEmpty" class="empty-card" style="display: none;">No active licenses.<a class="owner-only-cta" id="plansEmptyBuyCta" href="{{ '/account/purchase/' | relative_url }}" style="display: none; margin-left: 6px;">Buy one &rarr;</a></div>
             <div id="plansPrimary"></div>
             <a id="plansExpandLink" class="plan-expand" href="#" style="display: none;">Show other active licenses</a>
             <div id="plansOtherList" class="plan-other-list" style="display: none;"></div>
+            </div><!-- /licenses-credits view block -->
         </section>
 
         <!-- DEVICES SECTION -->
@@ -2212,7 +2385,7 @@ active: account
                         </div>
                     </div>
                     <div class="roles-footnote">
-                        Account ownership and organization role are independent — a user can be an
+                        Account ownership and organization role are independent. A user can be an
                         account owner without being on any organization, and vice versa.
                     </div>
                 </div>
@@ -2260,7 +2433,7 @@ active: account
         const signinOverlay = document.getElementById('signin-overlay');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // Hash routing — sidebar links update the hash and we re-render in place
+        // Hash routing. Sidebar links update the hash and we re-render in place
         // (no full reload). Also handles browser back/forward. The layout owns
         // sidebar highlighting; it has its own hashchange listener.
         window.addEventListener('hashchange', function() {
@@ -2271,7 +2444,7 @@ active: account
         // Page-title dropdown announces the active account/org changing.
         // For account changes, re-render so the Licenses view refilters.
         // For org changes, the page-title also writes the URL hash and fires
-        // hashchange — which is handled above.
+        // hashchange. Which is handled above.
         document.addEventListener('accountScopeChanged', function(e) {
             if (e.detail && e.detail.scope === 'account' && activeScope === 'account') {
                 renderActiveView();
@@ -2351,7 +2524,7 @@ active: account
                 // a few hundred ms later. That two-spinner chain is what
                 // produced the visible flicker when navigating to /account/.
                 // The spinner is hidden by redirectOrNot when it shows
-                // #accountContent — see hideAccountAuthChecking() below.
+                // #accountContent. See hideAccountAuthChecking() below.
 
                 // Kick off the account-page data fetches in parallel with
                 // the account-status check. fetchAccountDashboard internally
@@ -2369,7 +2542,7 @@ active: account
                     $("#accountContent").show();
                 }
             } else {
-                // User is signed out — drop the auth-check spinner, show the
+                // User is signed out. Drop the auth-check spinner, show the
                 // sign-in panel. loadingOverlay never got shown in this flow.
                 if (authChecking) authChecking.style.setProperty('display', 'none', 'important');
                 signinButtonSection.style.display = 'block';
@@ -3490,22 +3663,24 @@ active: account
       }
     }
 
-    // Render My Plans — primary card + show-more list (setup.html-style).
+    // Render My Plans. Primary card + show-more list (setup.html-style).
     // Overview's Active-licenses view: render the top 3 actives (sorted by
      // latest expiry first) as full cards, then everything else behind a
      // "Show other active licenses (N)" toggle. Expired licenses are
-     // intentionally hidden — they aren't actionable from this view.
+     // intentionally hidden. They aren't actionable from this view.
     function renderLicenseCards(overview) {
         const primaryEl = document.getElementById('plansPrimary');
         const expandLink = document.getElementById('plansExpandLink');
         const otherList = document.getElementById('plansOtherList');
         const emptyEl = document.getElementById('plansEmpty');
+        const noticeEl = document.getElementById('plansExpiryNotice');
         if (!primaryEl || !otherList || !expandLink || !emptyEl) return;
 
         primaryEl.innerHTML = '';
         otherList.innerHTML = '';
         otherList.style.display = 'none';
         expandLink.style.display = 'none';
+        if (noticeEl) { noticeEl.style.display = 'none'; noticeEl.innerHTML = ''; }
 
         if (!overview || overview.length === 0) {
             emptyEl.style.display = 'block';
@@ -3529,6 +3704,61 @@ active: account
         if (active.length === 0) {
             emptyEl.style.display = 'block';
             return;
+        }
+
+        // Top-of-section renewal notice. Always rendered for the
+        // soonest-expiring *paid* license — trials are intentionally
+        // excluded here because users don't "renew" a trial in the same
+        // sense (they convert to a paid license), and a top-of-page
+        // "Your trial expires in 5 days, renew anytime" would read
+        // weird. The per-card "Expiring soon" tag still appears on
+        // trials when they are close to expiry.
+        if (noticeEl) {
+            let soonest = null;
+            active.forEach(function(l) {
+                const st = getLicenseExpiryStatus(l);
+                if (st.daysLeft === null) return;
+                if (st.isTrial) return;
+                if (!soonest || st.daysLeft < soonest._daysLeft) {
+                    soonest = Object.assign({}, l, {
+                        _daysLeft: st.daysLeft,
+                        _isTrial: st.isTrial,
+                        _expiringSoon: st.expiringSoon
+                    });
+                }
+            });
+            if (soonest) {
+                const dayWord = soonest._daysLeft === 1 ? 'day' : 'days';
+                const noun = soonest._isTrial ? 'trial' : 'license';
+                const renewSubject = 'License renewal request: '
+                    + (soonest.license_name || soonest.license_id || '');
+                const renewBody = 'Please renew the following Eagle Eyes license:\n\n'
+                    + 'License: ' + (soonest.license_name || '') + ' (' + (soonest.license_id || '') + ')\n'
+                    + (soonest.expiry_date ? 'Current expiry: ' + soonest.expiry_date + '\n' : '')
+                    + '\n'
+                    + 'We would like the renewal to start when the current license expires, '
+                    + 'with no interruption to service.\n\n'
+                    + 'Thanks';
+                const renewMailto = 'mailto:info@eagleeyessearch.com'
+                    + '?subject=' + encodeURIComponent(renewSubject)
+                    + '&body=' + encodeURIComponent(renewBody);
+                const callToAction = soonest._expiringSoon
+                    ? 'Renew now to prevent service interruptions.'
+                    : 'Renew anytime to avoid interruptions after expiry.';
+                // Wrap the whole sentence in <mark> so the highlighter
+                // background paints continuously across line wraps. The
+                // Renew link sits outside the mark so it reads as a
+                // distinct action rather than highlighted body copy.
+                noticeEl.innerHTML =
+                    '<mark>'
+                    + 'Your <strong>' + planEscape(soonest.license_name || 'Eagle Eyes ' + noun) + '</strong>'
+                    + ' expires in <strong>' + soonest._daysLeft + ' ' + dayWord + '</strong>. '
+                    + callToAction
+                    + '</mark>'
+                    + ' <a href="' + planEscape(renewMailto) + '">Renew &rarr;</a>';
+                noticeEl.className = 'plans-expiry-notice' + (soonest._expiringSoon ? ' urgent' : '');
+                noticeEl.style.display = '';
+            }
         }
 
         const TOP_N = 3;
@@ -3557,17 +3787,70 @@ active: account
         }
     }
 
-    // Account-scope license cards surface which org uses each license, so
+    // Account-scope license cards surface which org(s) use each license, so
     // a user with multiple orgs can see at a glance which team consumes
-    // which license. Personal licenses (not assigned to any org) get the
+    // which license. A single license can be shared by multiple orgs. List
+    // them all. Personal licenses (not assigned to any org) get the
     // "Personal" call-out instead.
     function buildLicenseRelationshipLine(license) {
         if (!license || !license.license_id) return null;
-        const org = findOrgForLicense(license.license_id);
-        if (org) {
-            return 'Used by <strong>' + planEscape(org.name || 'Organization') + '</strong> organization';
+
+        // Backend (compute_license_overview, shipped 2026-05-18) ships two new
+        // arrays on each license_overview row:
+        //   orgs_with_access: orgs that CAN use this license (funded by it).
+        //   orgs_used_by:     orgs that HAVE actually activated a device on it.
+        // For umbrella licenses (one license funding multiple orgs) this lets
+        // us distinguish "available to" vs "used by". Falls back to the older
+        // findOrgsForLicense() heuristic when a stale cache hands us a row
+        // that predates the backend change.
+        var access = license.orgs_with_access || [];
+        var used   = license.orgs_used_by    || [];
+
+        function bold(n) { return '<strong>' + planEscape(n || 'Organization') + '</strong>'; }
+        function joinAnd(arr) {
+            if (arr.length === 0) return '';
+            if (arr.length === 1) return arr[0];
+            if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+            var copy = arr.slice();
+            var lastItem = copy.pop();
+            return copy.join(', ') + ', and ' + lastItem;
         }
-        return 'Personal — not assigned to a team';
+
+        if (!license.orgs_with_access) {
+            // Legacy path. Only the cached `cachedOrganizations` are available
+            // to derive a "used by" line, with no way to know which orgs were
+            // merely granted access. Render the single-line "Used by …" form.
+            var legacyOrgs = findOrgsForLicense(license.license_id);
+            if (!legacyOrgs.length) return 'Personal. Not assigned to a team';
+            var legacyNames = legacyOrgs.map(function(o) { return bold(o.name); });
+            return 'Used by ' + joinAnd(legacyNames)
+                + (legacyNames.length === 1 ? ' organization' : ' organizations');
+        }
+
+        if (access.length === 0) {
+            return 'Personal. Not assigned to a team';
+        }
+
+        var accessNames = access.map(function(o) { return bold(o.org_name); });
+        var usedNames   = used.map(function(o) { return bold(o.org_name); });
+
+        // Single-org license. Keep the existing terse line.
+        if (access.length === 1) {
+            return used.length
+                ? 'Used by ' + accessNames[0] + ' organization'
+                : 'Available to ' + accessNames[0] + ' &middot; not used yet';
+        }
+
+        // Multi-org (umbrella) license. Two-line treatment, with shortcuts for
+        // "nobody has activated yet" and "everyone funded has activated".
+        var accessLine = 'Available to ' + joinAnd(accessNames);
+        if (used.length === 0) {
+            return accessLine + ' &middot; not used yet';
+        }
+        if (used.length === access.length) {
+            return accessLine + ' &middot; used by all';
+        }
+        return accessLine + '<br>Used by ' + joinAnd(usedNames);
     }
 
     function planEyeIconHtml() {
@@ -3584,6 +3867,27 @@ active: account
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
+    // Trial licenses use a much tighter renewal threshold (a week vs three
+    // months for paid licenses) because they're short by design and a
+    // grace-period nudge isn't useful. Detection is loose: tier contains
+    // "trial" (case-insensitive). Backend ships tier on each license row.
+    function isTrialLicense(license) {
+        if (!license) return false;
+        return /trial/i.test(String(license.tier || ''));
+    }
+    function getLicenseExpiryStatus(license) {
+        if (!license || !license.expiry_date) {
+            return { daysLeft: null, expiringSoon: false, isTrial: false };
+        }
+        var ms = new Date(license.expiry_date).getTime();
+        if (isNaN(ms)) return { daysLeft: null, expiringSoon: false, isTrial: false };
+        var daysLeft = Math.ceil((ms - Date.now()) / (1000 * 60 * 60 * 24));
+        var trial = isTrialLicense(license);
+        var threshold = trial ? 7 : 90;
+        var expiringSoon = daysLeft > 0 && daysLeft <= threshold;
+        return { daysLeft: daysLeft, expiringSoon: expiringSoon, isTrial: trial };
+    }
+
     function buildPlanPrimaryCard(license) {
         const card = document.createElement('div');
         card.className = 'plan-primary-card' + (license._isExpired ? ' expired' : '');
@@ -3593,6 +3897,17 @@ active: account
         const totalKeys = (typeof license.total_keys === 'number') ? license.total_keys : null;
         const isExpired = !!license._isExpired;
         const noDevicesLeft = keysLeft === 0;
+
+        // "Expiring soon" indicator: top-right corner tag for both paid
+        // and trial licenses, so the urgency is visible at a glance
+        // regardless of card content. Threshold is 90 days for paid
+        // licenses and 7 days for trials (getLicenseExpiryStatus handles
+        // the trial detection). The top-of-section renewal notice still
+        // excludes trials separately.
+        const expiryStatus = getLicenseExpiryStatus(license);
+        const expiringCornerTagHtml = expiryStatus.expiringSoon
+            ? '<span class="plan-corner-tag-expiring">Expiring soon</span>'
+            : '';
 
         let metaHtml = '';
         if (isExpired) {
@@ -3613,25 +3928,49 @@ active: account
             ? '<div class="plan-relationship">' + relationshipLine + '</div>'
             : '';
 
-        // Renew / add-devices CTA only when the license isn't expired AND has
-        // headroom under the 12-device cap (backend rejects extensions that
-        // would exceed 12).
-        let purchaseCtaHtml = '';
+        // Expires-soon banner. Show whenever a non-expired license is within
+        // Per-card actions: Renew (always available on non-expired licenses)
+        // and Add devices (available on non-expired licenses with headroom
+        // under the 12-device cap; backend rejects extensions over 12).
+        // Renew currently opens a prefilled mailto so users can request a
+        // renewal today. Once the backend renewal endpoint ships, swap the
+        // href for /account/purchase/?mode=renew&license_id=X.
+        let actionsHtml = '';
         if (!isExpired && license.license_id) {
+            const renewSubject = 'License renewal request: '
+                + (license.license_name || license.license_id);
+            const renewBody = 'Please renew the following Eagle Eyes license:\n\n'
+                + 'License: ' + (license.license_name || '') + ' (' + license.license_id + ')\n'
+                + (expiryDate ? 'Current expiry: ' + expiryDate + '\n' : '')
+                + (totalKeys !== null ? 'Devices: ' + totalKeys + '\n' : '')
+                + '\n'
+                + 'We would like the renewal to start when the current license expires, '
+                + 'with no interruption to service.\n\n'
+                + 'Thanks';
+            const renewMailto = 'mailto:info@eagleeyessearch.com'
+                + '?subject=' + encodeURIComponent(renewSubject)
+                + '&body=' + encodeURIComponent(renewBody);
+            actionsHtml += '<a class="plan-renew-link" href="' + planEscape(renewMailto) + '">Renew &rarr;</a>';
+
             const currentTotal = (typeof totalKeys === 'number') ? totalKeys : 0;
             if (currentTotal < 12) {
-                const url = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id=' + encodeURIComponent(license.license_id);
-                purchaseCtaHtml = '<a class="plan-renew-link" href="' + url + '">Renew / add devices →</a>';
+                const addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
+                    + encodeURIComponent(license.license_id);
+                actionsHtml += '<a class="plan-renew-link" href="' + addUrl + '">Add devices &rarr;</a>';
             }
         }
+        const actionsRowHtml = actionsHtml
+            ? '<div class="plan-actions">' + actionsHtml + '</div>'
+            : '';
 
         card.innerHTML =
             '<button type="button" class="plan-eye-toggle" aria-expanded="false" aria-label="Toggle details">'
                 + planEyeIconHtml() + '</button>'
+            + expiringCornerTagHtml
             + '<h3>' + planEscape(license.license_name || 'Eagle Eyes License') + '</h3>'
             + '<div class="plan-meta">' + metaHtml + '</div>'
             + relationshipHtml
-            + purchaseCtaHtml
+            + actionsRowHtml
             + buildPlanDetailsHtml(license);
 
         wirePlanEyeToggle(card);
@@ -3792,7 +4131,7 @@ active: account
         tokensLoaded = true;
         const spinner = document.getElementById('tokensSpinner');
         if (spinner) spinner.style.display = 'none';
-        // Diagnostic — surfaces in the console so we can tell whether tokens
+        // Diagnostic. Surfaces in the console so we can tell whether tokens
         // loaded and how the org-scope filter ends up.
         console.info('[tokens] loaded', {
             count: cachedTokens.length,
@@ -3873,11 +4212,11 @@ active: account
       tokensGrid.style.display = '';
 
       // Switch the container to the people-list look (it had grid styling
-      // baked in for the old card grid — we now want a vertical list with
+      // baked in for the old card grid. We now want a vertical list with
       // dividers between rows).
       tokensGrid.className = 'people-list';
 
-      // Group tokens by machine_id — one row per device, multiple licenses
+      // Group tokens by machine_id. One row per device, multiple licenses
       // (tokens) shown inside the row.
       const tokensByMachine = {};
       const machineOrder = [];
@@ -3889,13 +4228,34 @@ active: account
         tokensByMachine[token.machine_id].push(token);
       });
 
+      // Reorder devices: those with at least one token on a non-expired
+      // license come first. Within each bucket we preserve the backend's
+      // original order so the visible sort is stable. "Inactive" here
+      // means every license on this device has already expired, which is
+      // the case we want to push to the bottom of the list.
+      const nowMs = Date.now();
+      function deviceIsActive(tokens) {
+        return (tokens || []).some(function(t) {
+          if (!t.expiry_date) return true; // unknown expiry: treat as active
+          const ms = new Date(t.expiry_date).getTime();
+          return isNaN(ms) || ms > nowMs;
+        });
+      }
+      machineOrder.sort(function(a, b) {
+        const aActive = deviceIsActive(tokensByMachine[a]);
+        const bActive = deviceIsActive(tokensByMachine[b]);
+        if (aActive === bActive) return 0;
+        return aActive ? -1 : 1;
+      });
+
       let unnamedCounter = 0;
       machineOrder.forEach(function(machineId) {
         const tokens = tokensByMachine[machineId];
         const first = tokens[0] || {};
         const userEmail = first.user_email || first.email || '';
+        const isActive = deviceIsActive(tokens);
 
-        // Device name — fall back to "Device N" when the app hasn't
+        // Device name. Fall back to "Device N" when the app hasn't
         // reported one yet.
         let deviceName;
         if (first.device_name) {
@@ -3905,26 +4265,38 @@ active: account
           deviceName = 'Device ' + unnamedCounter;
         }
 
-        const initial = (deviceName.charAt(0) || '?').toUpperCase();
-        // Color the avatar by the *user* email so all devices belonging to
-        // the same teammate share a color — easy to scan visually.
+        // Avatar initial + color come from the user email (the "who"),
+        // not the device name, since email is the primary identifier
+        // and same user across multiple devices should share a colour.
+        const avatarSource = userEmail || deviceName;
+        const initial = (avatarSource.charAt(0) || '?').toUpperCase();
         const avatarColor = userEmail ? colorForEmail(userEmail) : '#888';
 
         const machineIdShort = String(machineId || '');
         const machineIdEsc = escapeHtmlOrg(machineIdShort);
 
         const row = document.createElement('div');
-        row.className = 'people-row device-row';
+        row.className = 'people-row device-row' + (isActive ? '' : ' device-row-inactive');
 
         const left = document.createElement('div');
         left.className = 'people-row-left';
+        // Email is the primary text (who owns this device). Device name +
+        // machine ID + key count sit on the secondary meta line. For
+        // inactive devices an "Inactive" pill is appended so users see
+        // why those rows are at the bottom.
+        const primaryText = userEmail
+          ? escapeHtmlOrg(userEmail)
+          : '<span style="color:#888;font-style:italic;">No user email on record</span>';
+        const inactivePillHtml = isActive
+          ? ''
+          : ' <span class="device-inactive-pill">Inactive</span>';
         left.innerHTML =
           '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>' +
           '<div class="people-row-body">' +
-            '<div class="people-row-email">' + escapeHtmlOrg(deviceName) + '</div>' +
+            '<div class="people-row-email">' + primaryText + inactivePillHtml + '</div>' +
             '<div class="device-row-meta">' +
-              (userEmail ? '<span>' + escapeHtmlOrg(userEmail) + '</span>' : '') +
-              (userEmail ? '<span class="device-row-sep">·</span>' : '') +
+              '<span>' + escapeHtmlOrg(deviceName) + '</span>' +
+              '<span class="device-row-sep">·</span>' +
               '<span class="device-row-machineid" title="' + machineIdEsc + '">' +
                 'Machine ID: <code>' + machineIdEsc + '</code>' +
               '</span>' +
@@ -3934,7 +4306,7 @@ active: account
           '</div>';
         row.appendChild(left);
 
-        // Right side — for single-license devices, a single inline Copy Key
+        // Right side. For single-license devices, a single inline Copy Key
         // button. For multi-license devices, an expand toggle that reveals
         // a per-license list with its own Copy buttons.
         const actions = document.createElement('div');
@@ -3962,7 +4334,7 @@ active: account
             const item = document.createElement('div');
             item.className = 'device-row-key';
             const licName = escapeHtmlOrg(t.license_name || 'License');
-            const expiry = escapeHtmlOrg(t.expiry_date || '—');
+            const expiry = escapeHtmlOrg(t.expiry_date || '-');
             const licId = escapeHtmlOrg(t.license_id || '');
             item.innerHTML =
               '<div class="device-row-key-info">' +
@@ -3998,7 +4370,7 @@ active: account
     
     // Copy text to clipboard with visual feedback. Preserves the button's
     // original label so callers can use any text ("Copy Key", "⧉ Copy",
-    // etc.) — we don't hardcode it back to "Copy Key" on reset.
+    // etc.). We don't hardcode it back to "Copy Key" on reset.
     function copyToClipboard(text, button) {
       var original = button.textContent;
       navigator.clipboard.writeText(text).then(
@@ -4227,7 +4599,7 @@ active: account
 
     // Replace with a global event listener approach
     document.addEventListener('DOMContentLoaded', function() {
-        // Roles & permissions disclosure — toggle the panel on click.
+        // Roles & permissions disclosure. Toggle the panel on click.
         const rolesTrigger = document.getElementById('rolesTrigger');
         const rolesPanel = document.getElementById('rolesPanel');
         if (rolesTrigger && rolesPanel) {
@@ -4240,7 +4612,7 @@ active: account
             });
         }
 
-        // Account-owner help modal — open from the "What's this?" link
+        // Account-owner help modal. Open from the "What's this?" link
         // next to the account owner row.
         const ownerHelpLink = document.getElementById('accountOwnerHelpLink');
         const ownerModal = document.getElementById('accountOwnerModal');
@@ -4593,7 +4965,7 @@ active: account
         if (!topup && !unlimited) return;
 
         if (topup === 'cancelled') {
-            showToast('Top-up cancelled — no charge was made.', 'info', 4500);
+            showToast('Top-up cancelled. No charge was made.', 'info', 4500);
             cleanStripeReturnParams();
             return;
         }
@@ -4607,8 +4979,8 @@ active: account
 
         showToast(
             wantsUnlimited
-                ? 'Subscription confirmed — applying Annual Unlimited…'
-                : 'Payment received — adding credits to your account…',
+                ? 'Subscription confirmed. Applying Annual Unlimited…'
+                : 'Payment received. Adding credits to your account…',
             'success',
             5000
         );
@@ -4651,7 +5023,7 @@ active: account
             } else if (elapsed > 15000) {
                 clearInterval(streamingCreditsPollHandle);
                 streamingCreditsPollHandle = null;
-                // No toast — the success toast already fired; the webhook is
+                // No toast. The success toast already fired; the webhook is
                 // slow but will land. Page will pick it up on the next load.
             }
         }, 2000);
@@ -4725,7 +5097,7 @@ active: account
 
     // Public entry point. After member writes (rename/add/remove/promote/demote),
     // refresh canonical state via the bundled dashboard call. Invalidate the
-    // cache first so this reconcile always hits the network — otherwise the
+    // cache first so this reconcile always hits the network. Otherwise the
     // followup would just re-read the pre-write payload.
     async function fetchMyOrganization() {
         try {
@@ -4738,11 +5110,11 @@ active: account
     // ---- Source model ----
     // A "source" is the org context that org-scoped views (Members,
     // Devices, Configurations) operate on. Account-scope views (Licenses)
-    // don't use this — they read directly from cachedLicenseOverview.
+    // don't use this. They read directly from cachedLicenseOverview.
     //
     // Personal licenses (not assigned to any org) used to get a synthetic
     // "Individual plan" source; that's gone now. They surface in the
-    // account-scope Licenses view with a "Personal — not assigned to a team"
+    // account-scope Licenses view with a "Personal. Not assigned to a team"
     // line on the card instead.
 
     function computeSources(orgs /* , allLicenses */) {
@@ -4762,7 +5134,7 @@ active: account
     // URL fragment carries the active scope:
     //   - Account scope (default): #view=overview  (legacy #view=licenses → redirect)
     //   - Org scope:                #org=<id>&view=<members|devices|configurations>
-    // Overview is *account-scoped* — streaming credits + active licenses (each
+    // Overview is *account-scoped*. Streaming credits + active licenses (each
     // shown with "Used by <Org>" line). Members/Devices/Configurations are
     // *org-scoped*.
     let activeView = 'overview';
@@ -4801,7 +5173,7 @@ active: account
         else history.pushState(null, '', url);
     }
 
-    // Pick a default org for org-scope views — first admin org if any,
+    // Pick a default org for org-scope views. First admin org if any,
     // otherwise the first org.
     function pickDefaultOrgId() {
         if (!cachedOrganizations || !cachedOrganizations.length) return null;
@@ -4810,9 +5182,10 @@ active: account
     }
 
     function isAccountView(view) {
-        // 'overview' is the canonical account-scope view. 'licenses' is a
-        // legacy alias and gets rewritten to 'overview' on entry.
-        return view === 'overview' || view === 'licenses'
+        // 'overview' is the canonical account-scope view (Licenses & credits).
+        // 'access' is the second account-scope view (Account owners).
+        // 'licenses' is a legacy alias and gets rewritten to 'overview' on entry.
+        return view === 'overview' || view === 'licenses' || view === 'access'
             || view === 'subscriptions' || view === 'streaming';
     }
     function isOrgView(view) {
@@ -4857,7 +5230,7 @@ active: account
             activeView = canonicalizeAccountView(params.view);
             writeHashAccount(activeView, true);
         } else if (params.view && isOrgView(params.view)) {
-            // Org view but no org in URL — fall back to default org.
+            // Org view but no org in URL. Fall back to default org.
             const def = pickDefaultOrgId();
             if (def) {
                 activeScope = 'org';
@@ -4920,29 +5293,64 @@ active: account
         if (empty) empty.style.display = 'none';
 
         if (activeScope === 'account') {
-            // Account scope: Overview is the only view (Phase 1). Account
-            // info + streaming widget + license list all live inside
-            // plansSection.
+            // Account scope: plansSection hosts both account-scope views.
+            // Toggle which inner block is visible based on activeView, then
+            // update the section title + header CTA visibility to match.
+            //   overview → Licenses & credits (credits widget + licenses list)
+            //   access   → Account access     (owners list + add/remove)
             if (viewHeader) viewHeader.style.display = 'none';
+
             const plansTitle = document.getElementById('plansSectionTitle');
-            if (plansTitle) plansTitle.textContent = 'Overview';
+            const purchaseCta = document.getElementById('overviewPurchaseCta');
+            const isAccessView = (activeView === 'access');
+            if (plansTitle) {
+                plansTitle.textContent = isAccessView ? 'Account access' : 'Licenses & credits';
+            }
+
             Object.keys(sections).forEach(function(view) {
                 if (!sections[view]) return;
                 sections[view].style.display = (view === 'overview') ? '' : 'none';
             });
+
+            // Toggle the inner view blocks. The access block is shown only on
+            // the access view; the overview (licenses & credits) block on
+            // everything else (overview is also the default fallback).
+            const accessBlock = document.getElementById('accessViewBlock');
+            const licensesBlock = document.getElementById('licensesCreditsViewBlock');
+            if (accessBlock) accessBlock.style.display = isAccessView ? '' : 'none';
+            if (licensesBlock) licensesBlock.style.display = isAccessView ? 'none' : '';
+
             renderAccountInfo();
             applyOwnerGatedCtas();
-            // Make sure the streaming widget reflects current state (in case
-            // we missed an earlier render before plansSection was visible).
-            renderStreamingCreditsWidget();
-            renderActiveAccountLicenses();
+            // Hide the section-header actions container on both account
+            // views. It used to host a "Purchase a new license" button
+            // injected by redirectOrNot's verification-status branches,
+            // but the per-section CTAs (per-license Renew + Add devices
+            // links, "Add credits" next to Streaming credits) cover the
+            // same intent without crowding the header.
+            // applyOwnerGatedCtas only knows about .owner-only-cta nodes,
+            // so the injected anchor would otherwise stay visible.
+            const verificationStatusEl = document.getElementById('verification-status');
+            if (verificationStatusEl) {
+                verificationStatusEl.style.display = 'none';
+            }
+            if (purchaseCta) {
+                purchaseCta.style.display = 'none';
+            }
+            // Refresh the credits widget and licenses list each time we land
+            // on a view so a cached render from an earlier scope reflects
+            // current state.
+            if (!isAccessView) {
+                renderStreamingCreditsWidget();
+                renderActiveAccountLicenses();
+            }
             return;
         }
 
         // Org scope: Members / Devices / Configurations.
         const source = getActiveSource();
         if (!source) {
-            // Fell through without a valid source — treat like empty.
+            // Fell through without a valid source. Treat like empty.
             Object.keys(sections).forEach(function(k) {
                 if (sections[k]) sections[k].style.display = 'none';
             });
@@ -5012,7 +5420,7 @@ active: account
 
     // Submit handler for the "Add another account owner" form inside the
     // account-owner help modal. Calls the real /add_account_owner endpoint
-    // (same as the inline form on Overview — see onAddAccountOwnerSubmit).
+    // (same as the inline form on Overview. See onAddAccountOwnerSubmit).
     window.addAccountOwner = function(event) {
         event.preventDefault();
         const status = document.getElementById('addOwnerStatus');
@@ -5049,7 +5457,7 @@ active: account
                 let msg;
                 if (err.status === 403) msg = 'Only an existing account owner can add another owner.';
                 else if (err.status === 409) msg = err.message || 'That user is already an owner.';
-                else if (err.status === 400) msg = err.message || 'Bad request — check the email and try again.';
+                else if (err.status === 400) msg = err.message || 'Bad request. Check the email and try again.';
                 else msg = err.message || 'Could not add owner. Try again.';
                 setStatus(msg, 'error');
             })
@@ -5063,7 +5471,7 @@ active: account
     // current user is an owner of the active account. Backend enforces
     // (403 owner-only); this is the UX gate. Affects:
     //   - "Purchase / Renew" button in the section header
-    //   - "Buy credits →" link next to the Streaming credits subheading
+    //   - "Add credits" button next to the Streaming credits subheading
     //   - "Buy one →" link in the empty active-licenses state
     function applyOwnerGatedCtas() {
         var isOwner = false;
@@ -5083,7 +5491,7 @@ active: account
     // Surface who owns the active account at the top of Overview so users
     // know who can make purchases / billing changes. An account can have
     // multiple owners; list them all. Tag the one matching the current
-    // user's email as "you" (matching the email is the source of truth —
+    // user's email as "you" (matching the email is the source of truth -
     // `acc.is_owner` is a *global* boolean for the logged-in user, so we
     // can't use it to identify which displayed email corresponds to them).
     function renderAccountInfo() {
@@ -5137,7 +5545,7 @@ active: account
         owners.forEach(function(email) {
             const isYou = email.toLowerCase() === currentUserEmail;
             // Remove only when caller is an owner AND there's another owner
-            // to take over (last-owner invariant — also enforced server-side).
+            // to take over (last-owner invariant. Also enforced server-side).
             const canRemove = callerIsOwner && !isLastOwner;
             const emailAttr = escapeHtmlAttr(email);
             const avatarColor = colorForEmail(email);
@@ -5165,12 +5573,12 @@ active: account
         });
         listEl.innerHTML = html;
 
-        // Header: "Account owner" (1) / "Account owners" (N+1) — count next to it like the People view.
+        // Header: "Account owner" (1) / "Account owners" (N+1). Count next to it like the People view.
         if (headingEl) {
             headingEl.textContent = owners.length === 1 ? 'Account owner' : 'Account owners';
         }
 
-        // Add-owner UI — collapsed "+ Add another account owner" link
+        // Add-owner UI. Collapsed "+ Add another account owner" link
         // beneath the list. Only shown when the caller is an owner. We
         // intentionally DON'T touch addPanel's display state on re-render:
         // the dashboard cache revalidates ~once per pageload, and stomping
@@ -5204,7 +5612,7 @@ active: account
         el.className = 'account-info-status' + (kind ? ' ' + kind : '');
     }
 
-    // POST /add_account_owner — promotes an email to owner on the active account.
+    // POST /add_account_owner. Promotes an email to owner on the active account.
     window.onAddAccountOwnerSubmit = function(event) {
         event.preventDefault();
         const form = event.target;
@@ -5250,7 +5658,7 @@ active: account
                 } else if (err.status === 409) {
                     msg = err.message || 'That user is already an owner.';
                 } else if (err.status === 400) {
-                    msg = err.message || 'Bad request — check the email and try again.';
+                    msg = err.message || 'Bad request. Check the email and try again.';
                 } else {
                     msg = err.message || 'Could not add owner. Try again.';
                 }
@@ -5263,7 +5671,7 @@ active: account
         return false;
     };
 
-    // POST /remove_account_owner — demotes an owner back to member on the
+    // POST /remove_account_owner. Demotes an owner back to member on the
     // active account. Confirm before firing because it's a destructive action.
     window.onRemoveAccountOwnerClick = function(event) {
         event.preventDefault();
@@ -5324,23 +5732,27 @@ active: account
         } catch (e) { return null; }
     }
 
-    // Lookup which org uses a given license. Used to render the
-    // "Used by {Org Name}" line on each license card.
-    function findOrgForLicense(licenseId) {
-        if (!licenseId) return null;
+    // Lookup which orgs use a given license. A license can be shared across
+    // multiple orgs (e.g., the account's main license used by both Hinton
+    // SAR and Edmonton SAR sub-teams), so this returns an array. Callers
+    // are responsible for the "1 vs N" pluralization in display copy.
+    function findOrgsForLicense(licenseId) {
+        if (!licenseId) return [];
+        const matches = [];
         for (let i = 0; i < cachedOrganizations.length; i++) {
             const org = cachedOrganizations[i];
             const licenses = org.licenses || [];
             for (let j = 0; j < licenses.length; j++) {
                 if (licenses[j] && licenses[j].license_id === licenseId) {
-                    return org;
+                    matches.push(org);
+                    break; // don't double-count if the license appears twice in one org
                 }
             }
         }
-        return null;
+        return matches;
     }
 
-    // The dashboard returns licenses without keys_left / keys_used_by — those
+    // The dashboard returns licenses without keys_left / keys_used_by. Those
     // were per-device dispense fields on the legacy get_license_overview.
     // Compute them here from cachedTokens (loaded separately). When tokens
     // haven't loaded yet, the existing license card UI tolerates missing
@@ -5384,7 +5796,7 @@ active: account
         // includes such linked licenses in `org.licenses[]`, so the
         // license_id filter above misses tokens dispensed from licenses
         // attached only via `account.organization_ids`. When that happens,
-        // fall back to filtering by org member email — every member's
+        // fall back to filtering by org member email. Every member's
         // device tokens belong to this org's view by definition.
         if (filtered.length === 0 && cachedTokens.length > 0 && source && source.org) {
             const orgEmails = new Set(((source.org.emails) || []).map(function(e) {
@@ -5396,7 +5808,7 @@ active: account
                     return e && orgEmails.has(e);
                 });
                 if (filtered.length > 0) {
-                    console.info('[devices] using email-based fallback —',
+                    console.info('[devices] using email-based fallback -',
                         filtered.length, 'tokens matched org members but the backend dashboard',
                         'did not link their licenses to org', source.name);
                 }
@@ -5451,7 +5863,7 @@ active: account
 
         container.innerHTML = '';
 
-        // Header — org name + member/admin counts + Rename action.
+        // Header. Org name + member/admin counts + Rename action.
         const header = document.createElement('div');
         header.className = 'members-header';
         header.innerHTML =
@@ -5609,7 +6021,7 @@ active: account
 
     // Mirrors setup.html's buildConfigSummary so saved-config cards on
     // /account/ list the same component names ("CalTopo · Default Map · ...")
-    // as the ones shown in /setup/ — keeps the two surfaces visually
+    // as the ones shown in /setup/. Keeps the two surfaces visually
     // consistent without round-tripping through setup.html.
     function buildConfigSummary(cfg) {
         const parts = [];
@@ -5731,7 +6143,7 @@ active: account
     }
 
     // Apply a local patch, re-render, fire the API, and reconcile.
-    // patch: (org) => void  — mutates the org in place.
+    // patch: (org) => void . Mutates the org in place.
     async function optimisticOrgWrite(opts) {
         const org = findOrgById(opts.orgId);
         if (!org) return;
@@ -5742,7 +6154,7 @@ active: account
         renderActiveView();
         document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
 
-        // 2. Optional immediate toast — for actions where success is the
+        // 2. Optional immediate toast. For actions where success is the
         //    common case (remove/promote/demote/add). Skipped for actions
         //    that need to wait for the server response (e.g. rename, which
         //    might be server-normalized).
@@ -5751,7 +6163,7 @@ active: account
         // 3. Fire the API in the background.
         try {
             await orgApiCall(opts.endpoint, opts.body);
-            // 4. Background reconcile — keeps other state in sync (members
+            // 4. Background reconcile. Keeps other state in sync (members
             //    list ordering, role bits) without blocking the user.
             fetchMyOrganization();
             if (opts.onSuccess) opts.onSuccess();
@@ -5760,7 +6172,7 @@ active: account
             restoreOrg(org, snap);
             renderActiveView();
             document.dispatchEvent(new CustomEvent('accountSidebarRefresh'));
-            showToast(err.message || 'Action failed — change reverted.', 'error');
+            showToast(err.message || 'Action failed. Change reverted.', 'error');
             if (opts.onError) opts.onError(err);
         }
     }
@@ -5783,7 +6195,7 @@ active: account
             statusEl.classList.add('error');
             return false;
         }
-        // Clear the input immediately — instant feedback. We revert on error.
+        // Clear the input immediately. Instant feedback. We revert on error.
         input.value = '';
         await optimisticOrgWrite({
             orgId: orgId,
@@ -5899,7 +6311,7 @@ active: account
             }
             return;
         }
-        // Close the inline editor immediately — the next render will paint
+        // Close the inline editor immediately. The next render will paint
         // the new name. If the API rejects, the revert + toast covers it.
         if (row.dataset.originalHtml) delete row.dataset.originalHtml;
 

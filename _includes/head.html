@@ -232,7 +232,7 @@
 				if (localStorage.getItem('eeHasOrgs') === 'true') {
 					document.documentElement.classList.add('ee-auth-hint-has-orgs');
 				}
-			} catch (e) { /* localStorage disabled — accept the flash */ }
+			} catch (e) { /* localStorage disabled. Accept the flash */ }
 		})();
 	</script>
 	<style>
@@ -248,16 +248,27 @@
 		}
 
 		/* Default (no auth hint = signed out or first-ever load):
-		   hide profile icon + sidebar groups, show "Get Eagle Eyes". */
+		   hide profile icon + the entire account-area sidebar (every link
+		   in it requires auth, so the visible-but-empty shell is
+		   misleading — users on /account/purchase/ without a session were
+		   seeing Profile/Downloads/Support links that lead to dead pages).
+		   Show "Get Eagle Eyes" in the navbar instead. */
 		#navProfileMenu,
 		#sidebarAccountSection,
 		#sidebarAccountGroup,
 		#sidebarBillingItem { display: none; }
 		#sidebarOrgSection { display: none; }
+		.account-sidebar { display: none; }
+		/* Mobile sidebar drawer toggle is useless when the sidebar itself
+		   is hidden, so suppress it for signed-out users too. The desktop
+		   default is already display:none — this overrides the mobile
+		   @media (max-width: 768px) rule that sets it to inline-flex. */
+		html:not(.ee-auth-hint-signed-in) .account-menu-toggle { display: none !important; }
 
-		/* Signed in: show profile icon + Account scope; hide Get Eagle Eyes. */
+		/* Signed in: show profile icon + sidebar + Account scope; hide Get Eagle Eyes. */
 		html.ee-auth-hint-signed-in #navGetEagleEyesBtn { display: none !important; }
 		html.ee-auth-hint-signed-in #navProfileMenu { display: inline-block !important; }
+		html.ee-auth-hint-signed-in .account-sidebar { display: block !important; }
 		html.ee-auth-hint-signed-in #sidebarAccountSection { display: block !important; }
 		html.ee-auth-hint-signed-in #sidebarAccountGroup { display: block !important; }
 		html.ee-auth-hint-signed-in #sidebarBillingItem { display: block !important; }
@@ -273,7 +284,7 @@
 		html.ee-auth-hint-signed-in #signinButtonSection { display: none !important; }
 		html.ee-auth-hint-signed-in #accountAuthChecking { display: block !important; }
 
-		/* Shared spinner keyframes — used by the account-area loading panels
+		/* Shared spinner keyframes. Used by the account-area loading panels
 		   on /account/, /account/profile/, /account/billing/, /account/purchase/
 		   so they all show an identical spinner instead of a "Loading…" text flash.
 		   Named `spin` to match account.html's existing local definition. */

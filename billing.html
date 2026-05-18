@@ -1,8 +1,8 @@
 ---
 layout: account-area
-title: Billing - Eagle Eyes
+title: Purchase history - Eagle Eyes
 permalink: /account/billing/
-heading: Billing
+heading: Purchase history
 active: billing
 ---
 <style>
@@ -147,7 +147,7 @@ active: billing
     .billing-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .billing-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
 
-    /* Billing timeline — rows of charges / invoices / quotes from
+    /* Billing timeline. Rows of charges / invoices / quotes from
        list_account_billing. One row per Stripe object, sorted newest-first. */
     .billing-item-row {
         display: flex;
@@ -197,27 +197,9 @@ active: billing
 
     <div id="billingContent" style="display: none;">
 
-        <!-- Account-owners + funds info has moved to /account/ (Overview).
-             Billing keeps just the actual billing surfaces: streaming
-             credits, payment method, invoices. -->
-
-        <!-- Streaming credits -->
-        <div class="billing-card">
-            <div class="billing-card-header">
-                <div>
-                    <h3 class="billing-card-title">Streaming credits</h3>
-                    <p class="billing-card-sub">Used when streaming from Eagle Eyes Pilot to other viewers.</p>
-                </div>
-                <a href="{{ '/account/purchase/?mode=streaming' | relative_url }}" class="billing-btn">Buy credits</a>
-            </div>
-            <div id="billingCreditsBody">
-                <div class="billing-balance">
-                    <div class="billing-balance-value" id="billingBalanceValue">—</div>
-                    <div class="billing-balance-meta" id="billingBalanceMeta"></div>
-                </div>
-                <div id="billingBalanceBadges" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;"></div>
-            </div>
-        </div>
+        <!-- Account-owners + funds info live on /account/ (Overview). The
+             streaming-credits balance widget moved to Overview too, so this
+             page is now focused on payment method + purchase history. -->
 
         <!-- Payment method -->
         <div class="billing-card">
@@ -231,7 +213,7 @@ active: billing
             <div class="billing-empty" id="billingPortalStatus">Available after your first purchase.</div>
         </div>
 
-        <!-- Invoices, receipts, and quotes — live from Stripe via list_account_billing -->
+        <!-- Invoices, receipts, and quotes. Live from Stripe via list_account_billing -->
         <div class="billing-card">
             <div class="billing-card-header">
                 <div>
@@ -315,15 +297,6 @@ active: billing
         return apiCall('get_account_dashboard');
     }
 
-    async function loadCredits(accountId) {
-        try {
-            return await apiCall('get_streaming_credits', { account_id: accountId });
-        } catch (err) {
-            console.warn('get_streaming_credits failed:', err);
-            return null;
-        }
-    }
-
     function accountIdOf(a) {
         return (a.account_id != null) ? a.account_id : a.id;
     }
@@ -341,7 +314,7 @@ active: billing
     }
 
     // Best license-expiry timestamp across all licenses funded by `account`.
-    // Used to pick the "freshest" account as the default — almost always the
+    // Used to pick the "freshest" account as the default. Almost always the
     // one the user is actively managing.
     function maxExpiryForAccount(account) {
         var orgIds = (account && account.organization_ids) || [];
@@ -402,47 +375,19 @@ active: billing
     // only renders billing-specific surfaces (credits, payment, invoices).
     function renderAccountSummary() { /* no-op */ }
 
-    function renderCreditsCard() {
-        var valEl = $('billingBalanceValue');
-        var metaEl = $('billingBalanceMeta');
-        var badgesEl = $('billingBalanceBadges');
-        badgesEl.innerHTML = '';
-        if (!state.credits) {
-            valEl.textContent = '—';
-            metaEl.textContent = 'Balance unavailable.';
-            return;
-        }
-        var c = state.credits;
-        if (c.unlimited_active) {
-            valEl.textContent = 'Annual Unlimited';
-            var until = c.unlimited_until ? new Date(c.unlimited_until * 1000).toLocaleDateString() : '';
-            metaEl.textContent = until ? 'Active until ' + until : 'Active';
-            badgesEl.innerHTML = '<span class="billing-pill">Active</span>';
-            return;
-        }
-        var dollars = (c.streaming_credits_dollars || 0).toFixed(2);
-        var minutes = Math.floor(c.streaming_credits_minutes || 0);
-        var rate = (typeof c.per_minute_rate_usd === 'number') ? c.per_minute_rate_usd : 0.05;
-        valEl.textContent = '$' + dollars;
-        metaEl.textContent = minutes.toLocaleString() + ' minutes · $' + rate.toFixed(2) + ' / minute';
-        if (c.free_first_hour_available) {
-            badgesEl.innerHTML = '<span class="billing-badge">First hour free</span>';
-        }
-    }
-
     // The account picker lives in the page-title dropdown (see
     // account-page-title.html). It writes to sessionStorage and dispatches
-    // `accountScopeChanged`; we listen below and re-fetch credits.
+    // `accountScopeChanged`; we listen below and re-fetch the timeline.
+    // Streaming-credit balance lives on /account/ Overview; this page
+    // doesn't render it.
     async function applyActiveAccount(user, newId) {
         if (!newId) return;
         state.activeAccountId = String(newId);
         renderAccountSummary();
-        state.credits = await loadCredits(state.activeAccountId);
-        renderCreditsCard();
         loadBillingTimeline(state.activeAccountId);
     }
 
-    // GET /list_account_billing — fetches Stripe invoices, charges, and
+    // GET /list_account_billing. Fetches Stripe invoices, charges, and
     // quotes for the active account and renders them as a single
     // newest-first timeline. Empty list is a valid state (no Stripe history
     // for accounts that paid offline / before Stripe).
@@ -553,7 +498,7 @@ active: billing
         state.licenses = (dash && dash.license_overview) || [];
 
         if (!state.accounts.length) {
-            $('billingLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">No account found — visit <a href="/account/" style="color: #1e90ff;">/account/</a> to set up.</p>';
+            $('billingLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">No account found. Visit <a href="/account/" style="color: #1e90ff;">/account/</a> to set up.</p>';
             $('billingLoading').style.display = '';
             $('billingContent').style.display = 'none';
             return;
@@ -561,7 +506,7 @@ active: billing
 
         // Prefer the previously selected account from sessionStorage so the
         // billing and streaming pages stay in sync. Otherwise default to the
-        // account whose licenses have the latest expiry — that's almost
+        // account whose licenses have the latest expiry. That's almost
         // always the one the user is actively managing.
         var stored = readActiveAccount(user.uid);
         var storedMatches = stored && state.accounts.some(function(a) {
@@ -571,21 +516,15 @@ active: billing
         state.activeAccountId = storedMatches ? stored : String(defaultId);
         writeActiveAccount(user.uid, state.activeAccountId);
 
-        // Reuse credits from the dashboard if it matches the active account;
-        // otherwise fetch. The dashboard's streaming_credits is for the
-        // backend-picked "primary" account (usually accounts[0]), which may
-        // differ from our latest-expiry pick — so check both.
-        var dashAccountId = accountIdOf(state.accounts[0]);
-        if (dash.streaming_credits && String(state.activeAccountId) === String(dashAccountId)) {
-            state.credits = dash.streaming_credits;
-        } else {
-            state.credits = await loadCredits(state.activeAccountId);
-        }
-
+        // Streaming-credits balance lives on /account/ Overview now, so this
+        // page no longer fetches or renders it. (The earlier calls to
+        // loadCredits / renderCreditsCard were left in by mistake when those
+        // helpers were deleted; that ReferenceError was killing the await
+        // chain before loadBillingTimeline could run, which is why the
+        // Invoices & receipts section appeared blank.)
         $('billingLoading').style.display = 'none';
         $('billingContent').style.display = '';
         renderAccountSummary();
-        renderCreditsCard();
         loadBillingTimeline(state.activeAccountId);
     }
 
@@ -604,7 +543,7 @@ active: billing
         applyAuth(e.detail && e.detail.user);
     });
 
-    // Page-title dropdown changes the active account — refresh credits + summary.
+    // Page-title dropdown changes the active account. Refresh credits + summary.
     document.addEventListener('accountScopeChanged', function(e) {
         if (!e.detail || e.detail.scope !== 'account') return;
         try {

@@ -97,22 +97,10 @@
                                                class="nav-profile-item"
                                                role="menuitem">Support</a>
 
-                                            <!-- Account scope -->
-                                            <div class="nav-admin-divider"></div>
-                                            <div class="nav-admin-label">Account</div>
-                                            <a href="{{ '/account/#view=overview' | relative_url }}"
-                                               class="nav-profile-item"
-                                               role="menuitem">Overview</a>
-                                            <a href="{{ '/account/purchase/' | relative_url }}"
-                                               class="nav-profile-item"
-                                               role="menuitem">Purchase / Renew</a>
-                                            <a href="{{ '/account/billing/' | relative_url }}"
-                                               class="nav-profile-item"
-                                               role="menuitem">Billing</a>
-
                                             <!-- Organization scope. Hidden when the user has no orgs;
                                                  sub-item hrefs are rewritten at runtime to include the
-                                                 currently active org id (sessionStorage). -->
+                                                 currently active org id (sessionStorage). Lives above
+                                                 Billing to match the sidebar ordering. -->
                                             <div id="navOrgScope" style="display: none;">
                                                 <div class="nav-admin-divider"></div>
                                                 <div class="nav-admin-label">Organization</div>
@@ -123,6 +111,24 @@
                                                 <a href="#" class="nav-profile-item" role="menuitem"
                                                    data-org-view="configurations">Configurations</a>
                                             </div>
+
+                                            <!-- Billing scope (was "Account", renamed to disambiguate
+                                                 from the /account/ page itself). Sub-items mirror the
+                                                 sidebar order, with Account access at the bottom. -->
+                                            <div class="nav-admin-divider"></div>
+                                            <div class="nav-admin-label">Billing</div>
+                                            <a href="{{ '/account/#view=overview' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Licenses &amp; credits</a>
+                                            <a href="{{ '/account/purchase/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Purchase / Renew</a>
+                                            <a href="{{ '/account/billing/' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Purchase history</a>
+                                            <a href="{{ '/account/#view=access' | relative_url }}"
+                                               class="nav-profile-item"
+                                               role="menuitem">Account access</a>
 
                                             <div class="nav-admin-divider"></div>
                                             <button type="button"
@@ -202,7 +208,7 @@
         .nav-profile-menu {
             position: relative;
         }
-        /* Profile trigger — circular avatar with the user's first name (or
+        /* Profile trigger. Circular avatar with the user's first name (or
            email handle) stacked underneath so a quick glance at the navbar
            confirms who's signed in. */
         .nav-profile-trigger {
@@ -257,7 +263,7 @@
             letter-spacing: 0.1px;
         }
         @media (max-width: 600px) {
-            /* Tight navbar on phones — hide the name to save space; avatar alone is fine. */
+            /* Tight navbar on phones. Hide the name to save space; avatar alone is fine. */
             .nav-profile-trigger-name { display: none; }
             .nav-profile-trigger { min-width: 0; padding: 0; }
         }
@@ -415,7 +421,7 @@
                 var activeOrgId = null;
                 try { activeOrgId = sessionStorage.getItem('ee-active-org:' + user.uid); } catch (e) {}
                 if (!activeOrgId || !orgs.some(function(o) { return String(o.org_id) === String(activeOrgId); })) {
-                    // No persisted choice yet — pick the first org. The
+                    // No persisted choice yet. Pick the first org. The
                     // page-title include resolves the proper default
                     // (latest-expiry) when the user lands on /account/, so
                     // this is just a sensible pre-dashboard fallback.
@@ -438,27 +444,27 @@
                 if (dash) {
                     applyOrgScopeFromDash(user, dash);
                 } else {
-                    // No cache — hide while we wait, then fetch + re-apply.
+                    // No cache. Hide while we wait, then fetch + re-apply.
                     var scopeEl = document.getElementById('navOrgScope');
                     if (scopeEl) scopeEl.style.display = 'none';
                     window.eeDashboard.fetch(user).then(function(fresh) {
                         if (fresh) applyOrgScopeFromDash(user, fresh);
-                    }).catch(function(e) { /* ignore — dropdown just stays hidden */ });
+                    }).catch(function(e) { /* ignore. Dropdown just stays hidden */ });
                 }
             }
 
             // Pick the friendliest available label for the navbar trigger,
             // in priority order (most-authoritative first):
             //   1. profileDraft.firstName (what the user typed on Profile
-            //      — wins over the dashboard so changes show instantly).
+            //     . Wins over the dashboard so changes show instantly).
             //   2. form_data.first_name (explicit save via update_user_profile).
-            //   3. firebase displayName (current OAuth identity — kept up to
+            //   3. firebase displayName (current OAuth identity. Kept up to
             //      date by the user via their identity provider).
-            //   4. form_data.name (legacy signup form value — often years old).
+            //   4. form_data.name (legacy signup form value. Often years old).
             //   5. email handle (before @), de-snake-cased + capitalized.
             // Bumping displayName above fd.name avoids regressing users
             // whose signup said "David" but whose Google account now says
-            // "Dave" — without it, the legacy name silently won.
+            // "Dave". Without it, the legacy name silently won.
             function pickTriggerLabel(user) {
                 try {
                     var draft = JSON.parse(localStorage.getItem('profileDraft') || '{}');
@@ -523,12 +529,12 @@
                 if (cached) {
                     apply(cached);
                 } else {
-                    // Default to hidden until the fetch lands — never fall
+                    // Default to hidden until the fetch lands. Never fall
                     // back to client-side email comparison.
                     adminEl.style.display = 'none';
                     window.eeDashboard.fetch(user)
                         .then(function(fresh) { if (fresh) apply(fresh); })
-                        .catch(function() { /* ignore — admin UI stays hidden */ });
+                        .catch(function() { /* ignore. Admin UI stays hidden */ });
                 }
             }
 
@@ -592,7 +598,7 @@
                 } catch (err) { /* ignore */ }
             });
 
-            // Form submit handler — exposed on window so onsubmit="" can find it.
+            // Form submit handler. Exposed on window so onsubmit="" can find it.
             window.navImpersonate = async function(event) {
                 event.preventDefault();
                 var input = document.getElementById('navImpersonateEmail');
@@ -651,7 +657,7 @@
 
                     await firebase.auth().signInWithCustomToken(data.custom_token);
                     if (status) {
-                        status.textContent = 'Signed in as ' + target + ' — reloading…';
+                        status.textContent = 'Signed in as ' + target + '. Reloading…';
                         status.className = 'nav-admin-status success';
                     }
                     setTimeout(function() {
@@ -701,7 +707,12 @@
                     signOutBtn.addEventListener('click', function() {
                         if (typeof firebase === 'undefined' || !firebase.auth) return;
                         firebase.auth().signOut().then(function() {
-                            window.location.reload();
+                            // Always land on the public home page after sign-out
+                            // rather than reloading whatever account-area page
+                            // the user was on. Reloading leaves users stranded
+                            // on signed-out shells of /account/purchase/, etc.,
+                            // with no obvious way back in.
+                            window.location.href = '{{ "/" | relative_url }}';
                         }).catch(function(err) {
                             console.error('Sign out error:', err);
                         });
@@ -717,7 +728,7 @@
                 // Calling applyAuthState(null) eagerly would remove the
                 // pre-paint hint classes (ee-auth-hint-signed-in and
                 // ee-auth-hint-has-orgs) on every navigation while Firebase
-                // is still restoring the session — that's what was causing
+                // is still restoring the session. That's what was causing
                 // the "Get Eagle Eyes" + sidebar-empty flicker. When the
                 // session resolves the authStateChanged listener above fires
                 // applyAuthState(user) with the correct state. For genuinely

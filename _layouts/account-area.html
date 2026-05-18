@@ -67,7 +67,7 @@ layout: main
     }
     .account-sidebar-link.active svg { color: #1e90ff; }
 
-    /* Account + Organization scoped groups — each is a label row (styled
+    /* Account + Organization scoped groups. Each is a label row (styled
        like Profile/Downloads/Support) followed by its sub-items. */
     .account-scope-group {
         margin: 14px 0 6px 0;
@@ -311,8 +311,13 @@ layout: main
             var match = false;
             if (scope === 'account') {
                 if (view === 'overview') {
+                    // Licenses & credits. Also the default landing on /account/
+                    // with no hash, and the canonical target for the legacy
+                    // #view=licenses fragment.
                     match = onAccount && (!params.org)
                         && (!params.view || params.view === 'overview' || params.view === 'licenses');
+                } else if (view === 'access') {
+                    match = onAccount && (!params.org) && params.view === 'access';
                 } else if (view === 'billing') {
                     match = onBilling;
                 } else if (view === 'purchase') {
@@ -406,7 +411,7 @@ layout: main
         if (typeof window.refreshAccountSidebar === 'function') window.refreshAccountSidebar();
     });
     document.addEventListener('accountScopeChanged', function(e) {
-        // Active org changed via the page-title dropdown — rewrite hrefs.
+        // Active org changed via the page-title dropdown. Rewrite hrefs.
         try {
             var u = firebase.auth().currentUser;
             if (!u || !window.eeDashboard) return;

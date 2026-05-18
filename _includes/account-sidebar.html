@@ -1,7 +1,7 @@
 <!--
   Sidebar shown on signed-in account-area pages.
   Mirrors the data model: Account pays, Organization uses. Two scoped groups,
-  no account/org names in the menu itself — the active account/org name lives
+  no account/org names in the menu itself. The active account/org name lives
   in the page-title dropdown (see account-page-title.html) so we avoid
   repeating them in two places.
 
@@ -65,62 +65,11 @@
                 </a>
             </li>
 
-            <!-- ACCOUNT scope — account-scoped views. "Account" label row
-                 styled like Profile/Downloads/Support; sub-items below. -->
-            <li id="sidebarAccountSection" class="account-scope-group">
-                <a href="{{ '/account/#view=licenses' | relative_url }}"
-                   class="account-sidebar-link account-scope-label"
-                   data-scope-label="account">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                        <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"></circle>
-                        <rect x="3" y="14" width="18" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                    </svg>
-                    <span>Account</span>
-                </a>
-                <ul class="account-scope-sublist">
-                    <li>
-                        <a href="{{ '/account/#view=overview' | relative_url }}"
-                           class="account-sidebar-link"
-                           data-scope="account" data-view="overview">
-                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                                <rect x="3" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                                <rect x="14" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                                <rect x="3" y="14" width="7" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                                <rect x="14" y="14" width="7" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                            </svg>
-                            <span>Overview</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ '/account/purchase/' | relative_url }}"
-                           class="account-sidebar-link{% if page.active == 'purchase' %} active{% endif %}"
-                           data-scope="account" data-view="purchase">
-                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                                <circle cx="9" cy="20" r="1.6" fill="currentColor"></circle>
-                                <circle cx="17" cy="20" r="1.6" fill="currentColor"></circle>
-                                <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.5L20 8H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                            <span>Purchase / Renew</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ '/account/billing/' | relative_url }}"
-                           class="account-sidebar-link{% if page.active == 'billing' %} active{% endif %}"
-                           data-scope="account" data-view="billing">
-                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                                <rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                                <path d="M3 10h18" stroke="currentColor" stroke-width="2"></path>
-                                <path d="M7 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                            </svg>
-                            <span>Billing</span>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-
-            <!-- ORGANIZATION scope — per-org views. Hidden if user has no
-                 orgs. Sub-item hrefs are rewritten by the layout JS using
-                 the active org id from sessionStorage. -->
+            <!-- ORGANIZATION scope. Per-org views. Hidden if the user has
+                 no orgs. Sub-item hrefs are rewritten by the layout JS
+                 using the active org id from sessionStorage. Lives above
+                 Billing because day-to-day use happens here; billing is
+                 a periodic concern. -->
             <li id="sidebarOrgSection" class="account-scope-group">
                 <a href="#"
                    id="sidebarOrgScopeLink"
@@ -149,8 +98,15 @@
                         <a href="#" class="account-sidebar-link"
                            data-scope="org" data-view="devices">
                             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                                <rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
-                                <path d="M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                                <!-- Drone-controller (RC transmitter) silhouette:
+                                     two short antenna sticks on top, body, two
+                                     joysticks inside. Falls back visually to a
+                                     gamepad shape at 16px. -->
+                                <line x1="8" y1="9" x2="8" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                                <line x1="16" y1="9" x2="16" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                                <rect x="3" y="9" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+                                <circle cx="8" cy="14" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+                                <circle cx="16" cy="14" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
                             </svg>
                             <span>Devices</span>
                         </a>
@@ -163,6 +119,74 @@
                                 <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
                             </svg>
                             <span>Configurations</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- BILLING scope. Account-scoped views (licenses, credits,
+                 purchases, owners). Lives below Organization. -->
+            <li id="sidebarAccountSection" class="account-scope-group" data-section-order="billing">
+                <a href="{{ '/account/#view=licenses' | relative_url }}"
+                   class="account-sidebar-link account-scope-label"
+                   data-scope-label="account">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                        <rect x="3" y="14" width="18" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+                    </svg>
+                    <span>Billing</span>
+                </a>
+                <ul class="account-scope-sublist">
+                    <li>
+                        <a href="{{ '/account/#view=overview' | relative_url }}"
+                           class="account-sidebar-link"
+                           data-scope="account" data-view="overview">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                <!-- Stack of cards. "What you have" (licenses + credits balance). -->
+                                <rect x="3" y="5" width="18" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+                                <path d="M6 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                                <path d="M6 13h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                                <path d="M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"></path>
+                            </svg>
+                            <span>Licenses &amp; credits</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ '/account/purchase/' | relative_url }}"
+                           class="account-sidebar-link{% if page.active == 'purchase' %} active{% endif %}"
+                           data-scope="account" data-view="purchase">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                <circle cx="9" cy="20" r="1.6" fill="currentColor"></circle>
+                                <circle cx="17" cy="20" r="1.6" fill="currentColor"></circle>
+                                <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.5L20 8H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                            <span>Purchase / Renew</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ '/account/billing/' | relative_url }}"
+                           class="account-sidebar-link{% if page.active == 'billing' %} active{% endif %}"
+                           data-scope="account" data-view="billing">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                <rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+                                <path d="M3 10h18" stroke="currentColor" stroke-width="2"></path>
+                                <path d="M7 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                            </svg>
+                            <span>Purchase history</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ '/account/#view=access' | relative_url }}"
+                           class="account-sidebar-link"
+                           data-scope="account" data-view="access">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                <!-- Person + key glyph. "Who has access". -->
+                                <circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                                <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                                <circle cx="18.5" cy="14.5" r="2" fill="none" stroke="currentColor" stroke-width="2"></circle>
+                                <path d="M17 16l-1.5 1.5M14.5 18.5l1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"></path>
+                            </svg>
+                            <span>Account access</span>
                         </a>
                     </li>
                 </ul>
