@@ -6782,9 +6782,20 @@
             (function setupDroneMapAnalytics() {
                 var ENDPOINT = 'https://script.google.com/macros/s/AKfycbytI9n1cNzxltKpxR_XOmEiVq25OfV-Cv2MELV_JdpW3hjFmQOzNdadvoJcDvATS-FNeA/exec';
                 var VIEWER_ID_KEY = 'eagle_eyes_dronemap_viewer_id';
+                var CONSENT_KEY = 'ee_dronemap_analytics_consent';
                 var SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000; // 5 min between drones_observed snapshots
                 var sessionStart = Date.now();
                 var observedDrones = {}; // hex/id → 1 (for unique-count)
+                // Consent state: 'accepted' / 'declined' / null (pending — first visit
+                // before the banner is answered). null behaves like accepted so we
+                // capture the initial page-view, but Decline immediately stops all
+                // future events including the periodic snapshots + session_end.
+                var consentState = null;
+                try { consentState = localStorage.getItem(CONSENT_KEY); } catch(e) {}
+                function tracking() { return consentState !== 'declined'; }
+                window.__droneMapAnalyticsConsentChanged = function(choice) {
+                    consentState = choice;
+                };
 
                 function safeGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
                 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
@@ -6833,7 +6844,9 @@
                         .catch(function() { cb({ country: '', city: '', region: '' }); });
                 }
                 function firePageView() {
+                    if (!tracking()) return;
                     fetchGeoThen(function(geo) {
+                        if (!tracking()) return;
                         postEvent({
                             timestamp_iso: isoNow(),
                             timestamp_pacific: pacificNow(),
@@ -6844,7 +6857,7 @@
                             country: geo.country,
                             city: geo.city,
                             region: geo.region,
-                            consent_given: '',
+                            consent_given: consentState || 'pending',
                             user_agent: navigator.userAgent,
                             drones_observed: 0,
                             layers_enabled: layersSnapshot(),
@@ -6853,24 +6866,28 @@
                     });
                 }
                 function fireSnapshot() {
+                    if (!tracking()) return;
                     postEvent({
                         timestamp_iso: isoNow(),
                         timestamp_pacific: pacificNow(),
                         event_type: 'drones_observed',
                         viewer_id: getViewerId(),
                         page_url: '/drone-map',
+                        consent_given: consentState || 'pending',
                         drones_observed: Object.keys(observedDrones).length,
                         layers_enabled: layersSnapshot(),
                         session_duration_s: Math.round((Date.now() - sessionStart) / 1000)
                     });
                 }
                 function fireSessionEnd() {
+                    if (!tracking()) return;
                     postEvent({
                         timestamp_iso: isoNow(),
                         timestamp_pacific: pacificNow(),
                         event_type: 'session_end',
                         viewer_id: getViewerId(),
                         page_url: '/drone-map',
+                        consent_given: consentState || 'pending',
                         drones_observed: Object.keys(observedDrones).length,
                         layers_enabled: layersSnapshot(),
                         session_duration_s: Math.round((Date.now() - sessionStart) / 1000)
@@ -7513,6 +7530,96 @@
                     collapseSearch();
                 }
             });
+        })();
+    </script>
+
+    <!-- One-time low-key analytics consent banner (bottom of page, mobile-friendly).
+         Only shown on first visit; "Accept & continue" or "Decline & continue" both
+         dismiss it forever. Decline stops all future analytics events from firing. -->
+    <style>
+        .drone-map-consent-banner {
+            position: fixed;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            z-index: 99999;
+            display: none;
+            max-width: 480px;
+            width: calc(100% - 20px);
+            background: rgba(20, 20, 20, 0.96);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 12px;
+            color: #d0d0d0;
+            line-height: 1.4;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+        .drone-map-consent-banner.visible { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .drone-map-consent-text { flex: 1 1 220px; min-width: 200px; }
+        .drone-map-consent-buttons { display: flex; gap: 6px; flex: 0 0 auto; }
+        .drone-map-consent-banner button {
+            background: transparent;
+            border: 1px solid #555;
+            color: #d0d0d0;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .drone-map-consent-banner button.accept {
+            background: #2a4a35;
+            border-color: #4a7c59;
+            color: #fff;
+        }
+        .drone-map-consent-banner button:hover { background: rgba(255,255,255,0.08); }
+        .drone-map-consent-banner button.accept:hover { background: #3a5a45; }
+        @media (max-width: 520px) {
+            .drone-map-consent-banner {
+                left: 8px;
+                right: 8px;
+                bottom: 8px;
+                transform: none;
+                width: auto;
+                max-width: none;
+                padding: 10px 12px;
+            }
+            .drone-map-consent-buttons { flex: 1 1 100%; justify-content: space-between; }
+            .drone-map-consent-banner button { flex: 1; padding: 8px 6px; }
+        }
+    </style>
+    <div id="droneMapConsentBanner" class="drone-map-consent-banner" role="dialog" aria-label="Analytics consent">
+        <div class="drone-map-consent-text">
+            We use anonymous analytics to understand how this map is used. No personal data.
+        </div>
+        <div class="drone-map-consent-buttons">
+            <button type="button" class="decline" id="droneMapConsentDecline">Decline &amp; continue</button>
+            <button type="button" class="accept" id="droneMapConsentAccept">Accept &amp; continue</button>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var KEY = 'ee_dronemap_analytics_consent';
+            var banner = document.getElementById('droneMapConsentBanner');
+            if (!banner) return;
+            var stored;
+            try { stored = localStorage.getItem(KEY); } catch(e) { stored = null; }
+            // Only show if not previously answered.
+            if (!stored) {
+                // Slight delay so the banner doesn't fight the map mounting visually.
+                setTimeout(function() { banner.classList.add('visible'); }, 800);
+            }
+            function record(choice) {
+                try { localStorage.setItem(KEY, choice); } catch(e) {}
+                banner.classList.remove('visible');
+                // Notify the analytics IIFE so it can stop firing future events on Decline.
+                window.__droneMapAnalyticsConsentChanged && window.__droneMapAnalyticsConsentChanged(choice);
+            }
+            document.getElementById('droneMapConsentAccept').onclick = function() { record('accepted'); };
+            document.getElementById('droneMapConsentDecline').onclick = function() { record('declined'); };
         })();
     </script>
 </body>
