@@ -7544,7 +7544,10 @@
             transform: translateX(-50%);
             z-index: 99999;
             display: none;
-            max-width: 480px;
+            /* Wide enough on desktop to fit text + "What data?" link + both buttons
+               on a single line. Falls back to full-bleed on narrow screens via the
+               media query below. */
+            max-width: 720px;
             width: calc(100% - 20px);
             background: rgba(20, 20, 20, 0.96);
             border: 1px solid rgba(255, 255, 255, 0.15);
@@ -7556,10 +7559,22 @@
             line-height: 1.4;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
         }
-        .drone-map-consent-banner.visible { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .drone-map-consent-text { flex: 1 1 220px; min-width: 200px; }
+        .drone-map-consent-banner.visible { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
+        .drone-map-consent-text { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .drone-map-consent-what-data {
+            color: #60a5fa;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-left: 6px;
+            background: none;
+            border: none;
+            font: inherit;
+            padding: 0;
+        }
+        .drone-map-consent-what-data:hover { color: #93c5fd; }
         .drone-map-consent-buttons { display: flex; gap: 6px; flex: 0 0 auto; }
-        .drone-map-consent-banner button {
+        .drone-map-consent-banner button.decline,
+        .drone-map-consent-banner button.accept {
             background: transparent;
             border: 1px solid #555;
             color: #d0d0d0;
@@ -7575,9 +7590,58 @@
             border-color: #4a7c59;
             color: #fff;
         }
-        .drone-map-consent-banner button:hover { background: rgba(255,255,255,0.08); }
+        .drone-map-consent-banner button.decline:hover { background: rgba(255,255,255,0.08); }
         .drone-map-consent-banner button.accept:hover { background: #3a5a45; }
-        @media (max-width: 520px) {
+
+        /* Popout listing exactly what we collect. Anchored above the banner. */
+        .drone-map-consent-popout {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 70px;
+            z-index: 99999;
+            display: none;
+            max-width: 480px;
+            width: calc(100% - 20px);
+            background: rgba(20, 20, 20, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 12px;
+            color: #d8d8d8;
+            line-height: 1.5;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+        }
+        .drone-map-consent-popout.visible { display: block; }
+        .drone-map-consent-popout h4 {
+            margin: 0 0 8px;
+            font-size: 12px;
+            color: #d4a574;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            padding-right: 24px;
+        }
+        .drone-map-consent-popout ul { margin: 0 0 8px; padding-left: 18px; }
+        .drone-map-consent-popout li { margin-bottom: 2px; }
+        .drone-map-consent-popout p { margin: 8px 0 0; font-size: 11px; color: #999; }
+        .drone-map-consent-popout-close {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 2px 8px;
+        }
+        .drone-map-consent-popout-close:hover { color: #fff; }
+
+        /* Mobile: stack vertically, allow wrapping, full-bleed banner. */
+        @media (max-width: 720px) {
             .drone-map-consent-banner {
                 left: 8px;
                 right: 8px;
@@ -7587,39 +7651,77 @@
                 max-width: none;
                 padding: 10px 12px;
             }
-            .drone-map-consent-buttons { flex: 1 1 100%; justify-content: space-between; }
-            .drone-map-consent-banner button { flex: 1; padding: 8px 6px; }
+            .drone-map-consent-banner.visible { flex-wrap: wrap; align-items: stretch; }
+            .drone-map-consent-text { flex: 1 1 100%; white-space: normal; }
+            .drone-map-consent-buttons { flex: 1 1 100%; justify-content: space-between; margin-top: 4px; }
+            .drone-map-consent-banner button.decline,
+            .drone-map-consent-banner button.accept { flex: 1; padding: 8px 6px; }
+            .drone-map-consent-popout {
+                left: 8px;
+                right: 8px;
+                width: auto;
+                max-width: none;
+                transform: none;
+                bottom: 130px;
+            }
         }
     </style>
     <div id="droneMapConsentBanner" class="drone-map-consent-banner" role="dialog" aria-label="Analytics consent">
         <div class="drone-map-consent-text">
-            We use anonymous analytics to understand how this map is used. No personal data.
+            Anonymous usage analytics — no personal data.<button type="button" class="drone-map-consent-what-data" id="droneMapConsentWhatData">What data?</button>
         </div>
         <div class="drone-map-consent-buttons">
             <button type="button" class="decline" id="droneMapConsentDecline">Decline &amp; continue</button>
             <button type="button" class="accept" id="droneMapConsentAccept">Accept &amp; continue</button>
         </div>
     </div>
+    <div id="droneMapConsentPopout" class="drone-map-consent-popout" role="dialog" aria-label="What data is collected">
+        <button type="button" class="drone-map-consent-popout-close" id="droneMapConsentPopoutClose" aria-label="Close">&times;</button>
+        <h4>What we collect</h4>
+        <ul>
+            <li>Anonymous random ID stored on your device (no name, email, or account)</li>
+            <li>Approximate location (country, region, city — derived from your IP)</li>
+            <li>Page visited, referrer, browser type</li>
+            <li>Session length and which layers you turned on</li>
+            <li>Count of unique drones your session saw on the EDS-B network</li>
+        </ul>
+        <p>No tracking across other websites. No personal identifiers. We use this to understand who finds the public drone map useful and which layers people care about.</p>
+    </div>
     <script>
         (function() {
             var KEY = 'ee_dronemap_analytics_consent';
             var banner = document.getElementById('droneMapConsentBanner');
+            var popout = document.getElementById('droneMapConsentPopout');
             if (!banner) return;
             var stored;
             try { stored = localStorage.getItem(KEY); } catch(e) { stored = null; }
-            // Only show if not previously answered.
+            // Only show banner if not previously answered.
             if (!stored) {
-                // Slight delay so the banner doesn't fight the map mounting visually.
                 setTimeout(function() { banner.classList.add('visible'); }, 800);
             }
             function record(choice) {
                 try { localStorage.setItem(KEY, choice); } catch(e) {}
                 banner.classList.remove('visible');
-                // Notify the analytics IIFE so it can stop firing future events on Decline.
+                if (popout) popout.classList.remove('visible');
                 window.__droneMapAnalyticsConsentChanged && window.__droneMapAnalyticsConsentChanged(choice);
+            }
+            function togglePopout() {
+                if (!popout) return;
+                popout.classList.toggle('visible');
             }
             document.getElementById('droneMapConsentAccept').onclick = function() { record('accepted'); };
             document.getElementById('droneMapConsentDecline').onclick = function() { record('declined'); };
+            var whatBtn = document.getElementById('droneMapConsentWhatData');
+            if (whatBtn) whatBtn.onclick = function(e) { e.stopPropagation(); togglePopout(); };
+            var closeBtn = document.getElementById('droneMapConsentPopoutClose');
+            if (closeBtn) closeBtn.onclick = function() { popout.classList.remove('visible'); };
+            // Click outside the popout closes it (but don't close on banner clicks).
+            document.addEventListener('click', function(ev) {
+                if (!popout || !popout.classList.contains('visible')) return;
+                if (popout.contains(ev.target)) return;
+                if (banner.contains(ev.target)) return;
+                popout.classList.remove('visible');
+            });
         })();
     </script>
 </body>
