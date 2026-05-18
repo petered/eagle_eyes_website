@@ -5925,36 +5925,52 @@
             'populationCentres', 'metars', 'tafs', 'jurisdictions'
         ];
 
-        function shareMapView() {
-            if (!map) return;
+        // Build the current map-view hash string. Lat/lng kept at 5 decimals
+        // (~1.1 m precision); zoom kept fractional so detail levels round-trip
+        // exactly. All layer toggle states encoded so the recipient lands on
+        // the same view the sharer was looking at.
+        function buildMapViewHash() {
+            if (!map) return '';
             var c = map.getCenter();
             var z = map.getZoom();
-            // Find current base map code
             var bcode = 'd';
             Object.keys(baseMaps).forEach(function(name) {
                 if (map.hasLayer(baseMaps[name])) bcode = baseMapCodes[name] || 'd';
             });
-            // ADS-B: 1 or 0
             var adsb = showDetectedAircraft ? '1' : '0';
-            // FAA parent + sub-layer bitmask
             var faaFlag = showFaaAirspace ? '1' : '0';
             var bits = 0;
             faaSubKeys.forEach(function(key, i) {
                 if (faaSubLayers[key] && faaSubLayers[key].visible) bits |= (1 << i);
             });
-            // Canadian parent + sub-layer bitmask
             var canFlag = showCanadianAirspace ? '1' : '0';
             var canBits = 0;
             canSubKeys.forEach(function(key, i) {
                 if (canSubLayers[key] && canSubLayers[key].visible) canBits |= (1 << i);
             });
-            // Live ADS-B (adsb.lol) flag
             var adsbLolFlag = showAdsbLol ? '1' : '0';
-            // Build hash: lat,lng rounded to 5 decimals, zoom as int
-            var hash = '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + z + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36) + ',' + canFlag + ',' + canBits.toString(36) + ',' + adsbLolFlag;
-            // Update URL without reload
-            history.replaceState(null, '', window.location.pathname + window.location.search + hash);
-            // Copy to clipboard
+            return '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + (Math.round(z * 100) / 100) + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36) + ',' + canFlag + ',' + canBits.toString(36) + ',' + adsbLolFlag;
+        }
+
+        // Live-update the URL hash so the address bar is always copy-pasteable.
+        // Called from map moveend/zoomend + every layer toggle. Uses
+        // history.replaceState so we don't pollute browser history with every
+        // pan, and so the page is never reloaded. Suppressed during the
+        // initial restore-from-hash to avoid a self-trigger feedback loop.
+        var suppressHashUpdate = false;
+        function updateMapViewHashLive() {
+            if (suppressHashUpdate || !map) return;
+            var hash = buildMapViewHash();
+            if (!hash) return;
+            try {
+                history.replaceState(null, '', window.location.pathname + window.location.search + hash);
+            } catch(e) {}
+        }
+
+        function shareMapView() {
+            if (!map) return;
+            // Make sure the address bar matches the current view before reading from it.
+            updateMapViewHashLive();
             var url = window.location.href;
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(function() {
@@ -6001,7 +6017,7 @@
                 if (parts.length < 7) return false;
                 var lat = parseFloat(parts[0]);
                 var lng = parseFloat(parts[1]);
-                var z = parseInt(parts[2], 10);
+                var z = parseFloat(parts[2]); // fractional zoom preserved (e.g. 13.25)
                 var bcode = parts[3];
                 var adsb = parts[4] === '1';
                 var faaOn = parts[5] === '1';
@@ -6734,8 +6750,30 @@
             parseTargetDroneFromURL();
 
             initMap();
-            // Restore shared map view from URL hash (center, zoom, layers)
+            // Restore shared map view from URL hash (center, zoom, layers).
+            // suppressHashUpdate prevents the restoration itself from triggering
+            // moveend handlers that would overwrite the inbound URL.
+            suppressHashUpdate = true;
             restoreMapFromHash();
+            suppressHashUpdate = false;
+
+            // Live URL-hash updates so the address bar is always copy-pasteable
+            // for the current view + layer state. Fires on every pan/zoom and
+            // every layer-toggle change. history.replaceState (not pushState)
+            // keeps browser back/forward sensible.
+            if (map) {
+                map.on('moveend', updateMapViewHashLive);
+                map.on('zoomend', updateMapViewHashLive);
+                map.on('baselayerchange', updateMapViewHashLive);
+            }
+            // Hook layer toggle changes — every visibility/sub-layer flip
+            // re-writes the hash so a Share link captures the latest state.
+            document.querySelectorAll('.base-map-toggle input[type="checkbox"]').forEach(function(cb) {
+                cb.addEventListener('change', function() { setTimeout(updateMapViewHashLive, 0); });
+            });
+            // Also write the initial hash once on load so a fresh visit (with
+            // no inbound #v=...) gets a canonical shareable URL immediately.
+            updateMapViewHashLive();
             console.log('initMap() called, map variable:', typeof map !== 'undefined' ? map : 'undefined');
 
             // Initialize header MQTT status indicator
