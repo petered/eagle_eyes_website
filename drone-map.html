@@ -3211,8 +3211,8 @@
                     <label for="toggleDetectedAircraftCheckbox">Detected manned aircraft <span style="white-space: nowrap;">(ADS-B)</span></label>
                 </div>
                 <div class="base-map-option base-map-toggle" id="toggleCanadianAirspaceOption">
-                    <input type="checkbox" id="toggleCanadianAirspaceCheckbox" title="Show or hide Canadian airspace, protected areas, and weather layers" onchange="setCanadianAirspaceVisibility(this.checked)">
-                    <label for="toggleCanadianAirspaceCheckbox">Canadian Airspace</label>
+                    <input type="checkbox" id="toggleCanadianAirspaceCheckbox" title="Show or hide Canadian drone airspace, protected areas, jurisdictions, and weather layers" onchange="setCanadianAirspaceVisibility(this.checked)">
+                    <label for="toggleCanadianAirspaceCheckbox">Canadian Drone Layers</label>
                 </div>
                 <div id="canSubLayerList" class="can-sublayer-list" style="display:none;">
                     <div class="base-map-option base-map-toggle can-sublayer can-toggle-all">
@@ -3262,6 +3262,10 @@
                     <div class="base-map-option base-map-toggle can-sublayer">
                         <input type="checkbox" id="canSubTafs" onchange="setCanSubLayerVisibility('tafs', this.checked)">
                         <label for="canSubTafs">TAFs</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubJurisdictions" onchange="setCanSubLayerVisibility('jurisdictions', this.checked)">
+                        <label for="canSubJurisdictions">Jurisdictions</label>
                     </div>
                 </div>
                 <div class="base-map-option base-map-toggle" id="toggleFaaAirspaceOption">
@@ -4540,6 +4544,7 @@
                 case 'parksCanada':    return String(props.BAID || props.OBJECTID || props.DESC_EN || '');
                 case 'airspaceDrone':
                 case 'airspaceAll':    return String(props.id || props.name || '');
+                case 'jurisdictions':  return String(props.csduid || props.name || '');
                 default: return JSON.stringify(props);
             }
         }
@@ -4760,9 +4765,9 @@
                 visible: false, checkboxId: 'canSubPopulationCentres',
                 layer: L.geoJSON(null, { style: { color: '#6b7280', weight: 0.5, fillColor: '#6b7280', fillOpacity: 0.15 } }),
                 buildPopup: function(p) {
-                    return canPopup('Population centre', [
-                        'Name: ' + (p.name || p.PCNAME || 'N/A'),
-                        'Reference: CARs 901.27'
+                    return canPopup(p.PCNAME || p.name || 'Population Centre', [
+                        '<i style="color:#92400e">Maintain ≥30 m horizontal distance from bystanders (CARs 901.27). BVLOS: ≥1 km from populated areas.</i>',
+                        '<i style="font-size:10px;color:#9ca3af">Source: Statistics Canada 2021 Census</i>'
                     ]);
                 }
             };
@@ -4797,6 +4802,67 @@
                 }
             };
 
+            // Jurisdictions — Statistics Canada CSD polygons (municipalities,
+            // regional districts, Indian Reserves, unorganized areas, etc.).
+            // Context-only: outline-only rendering, no fill. Indian Reserves get
+            // a distinct amber solid stroke; everything else is dashed grey-blue.
+            var CAN_MAJOR_CITIES = {
+                'Vancouver': 1, 'Toronto': 1, 'Montreal': 1, 'Montréal': 1,
+                'Calgary': 1, 'Quebec': 1, 'Québec': 1, 'Ottawa': 1,
+                'Edmonton': 1, 'Winnipeg': 1, 'Halifax': 1
+            };
+            canSubLayers.jurisdictions = {
+                kind: 'pmtiles', source: 'jurisdictions', sourceLabel: 'Jurisdiction',
+                visible: false, checkboxId: 'canSubJurisdictions',
+                layer: buildPmtilesLayer('jurisdictions.pmtiles', 'jurisdictions', function(layerName) {
+                    return [{
+                        dataLayer: layerName,
+                        symbolizer: (function() {
+                            var jColor = function(z, f) {
+                                if (canIsSelected('jurisdictions', f && f.props)) return CAN_HIGHLIGHT_STYLE.color;
+                                return (f && f.props && f.props.type === 'IRI') ? '#fbbf24' : '#d946ef';
+                            };
+                            var jWidth = function(z, f) {
+                                if (canIsSelected('jurisdictions', f && f.props)) return CAN_HIGHLIGHT_STYLE.weight;
+                                return (f && f.props && f.props.type === 'IRI') ? 1.5 : 1;
+                            };
+                            return new protomapsL.LineSymbolizer({
+                                perFeature: true,
+                                color: jColor,
+                                width: jWidth,
+                                // LineSymbolizer with a `dash` set renders via dashColor/dashWidth
+                                // (NOT color/width) — so set both pairs to the same callbacks,
+                                // otherwise the dashed lines render as default black.
+                                dashColor: jColor,
+                                dashWidth: jWidth,
+                                dash: function(z, f) {
+                                    if (canIsSelected('jurisdictions', f && f.props)) return [];
+                                    return (f && f.props && f.props.type === 'IRI') ? [] : [3, 3];
+                                }
+                            });
+                        })()
+                    }];
+                }),
+                buildPopup: function(p) {
+                    var title = (p.name || 'Jurisdiction') + (p.type_label ? ' (' + p.type_label + ')' : '');
+                    var lines = [];
+                    var subtitleParts = [];
+                    if (p.province) subtitleParts.push(p.province);
+                    if (p.land_km2 != null) subtitleParts.push(Math.round(Number(p.land_km2)).toLocaleString() + ' km²');
+                    if (subtitleParts.length) lines.push(subtitleParts.join(' · '));
+                    var note;
+                    if (p.type === 'IRI') {
+                        note = "<i>Indian Reserve land — fly only with the First Nation's permission.</i>";
+                    } else if (CAN_MAJOR_CITIES[p.name]) {
+                        note = '<i>This city has drone bylaws — check the municipal website before flying.</i>';
+                    } else {
+                        note = '<i>Federal CARs Part 9 applies. Check municipal bylaws if launching from public land.</i>';
+                    }
+                    lines.push(note);
+                    return canPopup(title, lines);
+                }
+            };
+
             canSubLayers.tafs = {
                 kind: 'geojson', path: '/data/tafs.geojson', sourceLabel: 'TAF',
                 visible: false, checkboxId: 'canSubTafs',
@@ -4818,12 +4884,18 @@
             };
         }
 
-        // Fetch + populate a GeoJSON sub-layer on first show
+        // Fetch + populate a GeoJSON sub-layer on first show.
+        // X-Eagle-Eyes-Client identifies this consumer in the Worker's access logs
+        // (per CORS allowlist agreed with the airspace-worker owner). PMTiles range
+        // requests go through protomaps-leaflet's internal fetch and don't carry this
+        // header — only direct GeoJSON fetches do.
         function loadCanGeoJsonIfNeeded(key) {
             var sub = canSubLayers[key];
             if (!sub || sub.kind !== 'geojson' || sub._loaded) return;
             sub._loaded = true;
-            fetch(canUrl(sub.path))
+            fetch(canUrl(sub.path), {
+                headers: { 'X-Eagle-Eyes-Client': 'eagleeyes-website-dronemap' }
+            })
                 .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                 .then(function(geo) {
                     if (geo && geo.features) sub.layer.addData(geo);
