@@ -67,7 +67,7 @@ permalink: /srt-converter/
                         <li>Downloads the generated <code>.SRT</code> files to your computer</li>
                     </ol>
                     <p style="color: #888; font-size: 0.9em; margin-top: 10px; margin-bottom: 0;">
-                        All processing happens locally in your browser — no files are uploaded to any server.
+                        All processing happens locally in your browser. No files are uploaded to any server.
                         <button onclick="document.getElementById('tech-info-popup').style.display='flex'" style="
                             display: inline-flex; align-items: center; justify-content: center;
                             width: 24px; height: 24px; border-radius: 4px;
@@ -100,23 +100,23 @@ permalink: /srt-converter/
         <button onclick="document.getElementById('tech-info-popup').style.display='none'" style="position:absolute; top:12px; right:16px; background:none; border:none; font-size:1.4em; cursor:pointer; color:#888; line-height:1;">&times;</button>
         <h3 style="margin:0 0 16px 0; color:#333;">How does this tool work?</h3>
         <p style="color:#555; line-height:1.6; margin-bottom:12px;">
-            When you record video with a DJI Matrice 4 series drone, the GPS coordinates, altitude, camera settings, and other flight data are stored inside the video file itself as a hidden subtitle track — rather than in a separate <code>.SRT</code> file like older DJI drones.
+            When you record video with a DJI Matrice 4 series drone, the GPS coordinates, altitude, camera settings, and other flight data are stored inside the video file itself as a hidden subtitle track. Rather than in a separate <code>.SRT</code> file like older DJI drones.
         </p>
         <p style="color:#555; line-height:1.6; margin-bottom:12px;">
             This tool reads the structure of your <code>.MP4</code> file to locate that hidden subtitle track, extracts the telemetry entries, and converts them into a standard <code>.SRT</code> file format that Eagle Eyes Scan can understand.
         </p>
         <p style="color:#555; line-height:1.6; margin-bottom:12px;">
-            Only a small portion of the file is actually read — the tool skips over the video data and goes straight to the metadata, so it works quickly even with very large files.
+            Only a small portion of the file is actually read. The tool skips over the video data and goes straight to the metadata, so it works quickly even with very large files.
         </p>
         <p style="color:#888; font-size:0.9em; line-height:1.5; margin-bottom:0;">
-            Everything runs entirely in your web browser using JavaScript. Your video files never leave your computer — nothing is uploaded anywhere.
+            Everything runs entirely in your web browser using JavaScript. Your video files never leave your computer. Nothing is uploaded anywhere.
         </p>
     </div>
 </div>
 
 <script>
 // ============================================================================
-// MP4 SUBTITLE EXTRACTOR — streaming version for large files
+// MP4 SUBTITLE EXTRACTOR. Streaming version for large files
 // Uses File.slice() to avoid loading entire file into memory
 // ============================================================================
 
@@ -503,7 +503,7 @@ function convertSrtContent(content) {
 
 
 async function saveFile(blob, suggestedName) {
-    // Use showSaveFilePicker if available (Chrome/Edge) — lets user choose save location
+    // Use showSaveFilePicker if available (Chrome/Edge). Lets user choose save location
     if (window.showSaveFilePicker) {
         try {
             var handle = await window.showSaveFilePicker({
@@ -518,9 +518,9 @@ async function saveFile(blob, suggestedName) {
             await writable.close();
             return { savedName: handle.name, method: 'picker' };
         } catch (err) {
-            // User cancelled the picker — skip this file silently
+            // User cancelled the picker. Skip this file silently
             if (err.name === 'AbortError') throw err;
-            // Other error — fall through to download fallback
+            // Other error. Fall through to download fallback
         }
     }
     // Fallback: trigger a regular browser download
@@ -658,7 +658,7 @@ function processFiles(files) {
             if (rawSrt === null) {
                 resultItem.style.backgroundColor = "#fff3cd";
                 resultItem.style.color = "#856404";
-                resultItem.innerHTML = "⚠️ <strong>" + escapeHtml(file.name) + "</strong> — No subtitle track found. This file may not contain embedded telemetry.";
+                resultItem.innerHTML = "⚠️ <strong>" + escapeHtml(file.name) + "</strong>. No subtitle track found. This file may not contain embedded telemetry.";
                 skipCount++;
             } else {
                 // Convert if bracket format
@@ -671,7 +671,7 @@ function processFiles(files) {
                 var srtName = file.name.replace(/\.mp4$/i, "") + ".SRT";
                 var blob = new Blob([converted], { type: "text/plain;charset=utf-8" });
 
-                // Save file — use file picker if available, otherwise fallback
+                // Save file. Use file picker if available, otherwise fallback
                 var saveResult = await saveFile(blob, srtName);
                 await showSavePopup(saveResult.savedName, file.name, saveResult.method);
 
@@ -684,11 +684,11 @@ function processFiles(files) {
             if (err.name === 'AbortError') {
                 resultItem.style.backgroundColor = "#e2e3e5";
                 resultItem.style.color = "#383d41";
-                resultItem.innerHTML = "⏭️ <strong>" + escapeHtml(file.name) + "</strong> — Save cancelled, skipped.";
+                resultItem.innerHTML = "⏭️ <strong>" + escapeHtml(file.name) + "</strong>. Save cancelled, skipped.";
             } else {
                 resultItem.style.backgroundColor = "#f8d7da";
                 resultItem.style.color = "#721c24";
-                resultItem.innerHTML = "❌ <strong>" + escapeHtml(file.name) + "</strong> — Error: " + escapeHtml(err.message);
+                resultItem.innerHTML = "❌ <strong>" + escapeHtml(file.name) + "</strong>. Error: " + escapeHtml(err.message);
             }
             skipCount++;
         }

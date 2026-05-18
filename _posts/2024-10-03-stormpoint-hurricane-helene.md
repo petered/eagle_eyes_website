@@ -42,7 +42,7 @@ Deliveries often required beyond-visual-line-of-sight (BVLOS) flights, demanding
 In a <a href="https://youtu.be/Y22zKInhP1Q?si=Ra4ba54q9IpaOOBr&t=1476" target="_blank" rel="noopener">webinar</a> hosted by DJI, Jeff Clementi, Operations Manager at StormPoint, explained how leveraging Eagle Eyes helped identify targets they might have otherwise missed. While StormPoint captured aerial footage, Matt Quinn of Great Lakes Drone Company used Eagle Eyes Scan to analyze the footage, add small descriptions to the detections, and generate useful reports for StormPoint to investigate. This allowed StormPoint to stay focused on continuous search and relief flights.
 
 > "We were very, very fortunate to be able to use Eagle Eyes. It was incredibly helpful for us. The software was able to notice the smallest details... The reports it generates are really neat, containing pictures and coordinates of each detection."
-> — Jeff Clementi, Operations Manager at StormPoint
+>. Jeff Clementi, Operations Manager at StormPoint
 
 ![Eagle Eyes helped process imagery]({{ site.baseurl }}/images/Stormpoint4.png)
 *Eagle Eyes helped StormPoint to sift through masses of drone imagery to find targets to investigate*

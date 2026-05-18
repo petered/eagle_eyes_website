@@ -270,17 +270,17 @@ heading: Profile
         </div>
     </section>
 
-    <!-- Sign-in info (kept at the bottom — it's reference data, not editable) -->
+    <!-- Sign-in info (kept at the bottom. It's reference data, not editable) -->
     <section class="profile-card">
         <h2>Sign-in</h2>
         <div class="profile-grid">
             <div class="profile-field">
                 <label>Sign-in method</label>
-                <div class="profile-readonly-value" id="profileSignInMethod">—</div>
+                <div class="profile-readonly-value" id="profileSignInMethod">-</div>
             </div>
             <div class="profile-field">
                 <label>Account created at</label>
-                <div class="profile-readonly-value" id="profileMemberSince">—</div>
+                <div class="profile-readonly-value" id="profileMemberSince">-</div>
             </div>
         </div>
     </section>
@@ -298,7 +298,7 @@ heading: Profile
 
 <script>
     (function() {
-        // Local state — backend save endpoints aren't wired yet, so values are
+        // Local state. Backend save endpoints aren't wired yet, so values are
         // remembered in localStorage as a temporary store until we have an
         // update_user_profile cloud function.
         var STORAGE_KEY = 'profileDraft';
@@ -331,12 +331,12 @@ heading: Profile
         }
 
         function formatDate(iso) {
-            if (!iso) return '—';
+            if (!iso) return '-';
             try {
                 var d = new Date(iso);
-                if (isNaN(d.getTime())) return '—';
+                if (isNaN(d.getTime())) return '-';
                 return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-            } catch (e) { return '—'; }
+            } catch (e) { return '-'; }
         }
 
         // Snapshot of saved values; the Cancel button shows only when the form
@@ -370,13 +370,13 @@ heading: Profile
             // Email (read-only)
             document.getElementById('profileEmail').value = user.email || '';
 
-            // Name + phone — priority order, most-authoritative first:
+            // Name + phone. Priority order, most-authoritative first:
             //   1. localStorage draft (unsaved edits from this device)
             //   2. dashboard form_data.first_name / .last_name (explicit
             //      saves via update_user_profile)
-            //   3. firebase user.displayName (current OAuth identity —
+            //   3. firebase user.displayName (current OAuth identity -
             //      regularly updated by the user via their identity provider)
-            //   4. dashboard form_data.name (legacy signup form value —
+            //   4. dashboard form_data.name (legacy signup form value -
             //      often years old; last resort)
             // Bumping displayName above fd.name avoids regressing users
             // whose signup said "David" but who have since updated their
@@ -395,7 +395,7 @@ heading: Profile
                         last = (fd.last_name || '').trim();
                     }
                     if (fd && !phone && fd.phone) phone = String(fd.phone);
-                } catch (e) { /* dashboard not cached — fall through */ }
+                } catch (e) { /* dashboard not cached. Fall through */ }
             }
 
             if (!first && !last && user.displayName) {
@@ -423,7 +423,7 @@ heading: Profile
             // If the dashboard wasn't cached, kick off a fetch and only
             // upgrade the form when fresh form_data has an *explicit*
             // first_name / last_name (set via update_user_profile). We
-            // never overwrite with fd.name here — displayName already
+            // never overwrite with fd.name here. DisplayName already
             // beats it in the priority chain above, and overwriting with
             // a stale legacy name is the regression we're avoiding.
             if (!draft.firstName && !draft.lastName && window.eeDashboard) {
@@ -577,7 +577,7 @@ heading: Profile
                     throw new Error(text || 'Request failed (' + r.status + ')');
                 }
 
-                // Keep the localStorage draft in sync — pickTriggerLabel
+                // Keep the localStorage draft in sync. PickTriggerLabel
                 // in the navbar reads it as a fast pre-paint hint before
                 // the dashboard re-fetches.
                 writeDraft({ firstName: first, lastName: last, phone: phone });
