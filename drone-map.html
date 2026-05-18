@@ -535,7 +535,7 @@
         }
         .can-disclaimer-card button:hover { background: #5a8c69; }
 
-        /* EDS-B tooltip: shown on hover and click */
+        /* EDS-B info popover: shown on hover (short title) and on click (full card) */
         .edsb-tooltip-popover {
             position: fixed;
             z-index: 100003;
@@ -553,6 +553,49 @@
         }
         .edsb-tooltip-popover.visible {
             display: block;
+        }
+        .edsb-tooltip-popover.card-mode {
+            pointer-events: auto;
+            max-width: 360px;
+            min-width: 280px;
+            white-space: normal;
+            padding: 14px 16px 12px;
+            line-height: 1.5;
+        }
+        .edsb-tooltip-popover .edsb-card-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(74, 124, 89, 0.4);
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .edsb-tooltip-popover .edsb-card-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .edsb-tooltip-popover .edsb-card-close:hover {
+            color: #d4a574;
+        }
+        .edsb-tooltip-popover .edsb-card-body {
+            color: #c0c0c0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .edsb-tooltip-popover .edsb-card-body p {
+            margin: 0 0 8px;
+        }
+        .edsb-tooltip-popover .edsb-card-body p:last-child {
+            margin-bottom: 0;
         }
         
         .tagline-text {
@@ -3172,7 +3215,20 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- EDS-B tooltip popover (hover + click) -->
-    <div id="edsbTooltipPopover" class="edsb-tooltip-popover" aria-hidden="true">Eagle Dependent Surveillance Broadcast</div>
+    <div id="edsbTooltipPopover" class="edsb-tooltip-popover" aria-hidden="true">
+        <span class="edsb-tooltip-default">Eagle Dependent Surveillance Broadcast</span>
+        <div class="edsb-card-content" style="display:none;">
+            <div class="edsb-card-title">
+                <span>EDS-B</span>
+                <button type="button" class="edsb-card-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="edsb-card-body">
+                <p><b>Eagle Dependent Surveillance-Broadcast.</b> EDS-B is how Eagle Eyes apps tell each other what they're seeing in the sky.</p>
+                <p>When one app spots a drone, an aircraft, or picks up a Remote ID broadcast, it shares that with every other Eagle Eyes app on the same Wi-Fi — or signed into the same shared channel over the internet — so everyone's looking at the same picture in real time.</p>
+                <p style="font-size:11px;color:#888;">Connection status is shown in the EDS-B Network indicator at the top of the page.</p>
+            </div>
+        </div>
+    </div>
     <!-- Location popover: shown when north arrow is clicked; toggle to show/hide current location -->
     <div id="locationPopover" class="location-popover" aria-hidden="true" style="display: none;">
         <div class="location-popover-toggle">
@@ -5218,10 +5274,14 @@
         }
 
         // ==================== Share Map View ====================
-        // Compact URL hash format: #v=lat,lng,z,base,adsb,faaBitmask
+        // Compact URL hash format:
+        //   v1 (legacy):  #v=lat,lng,z,base,adsb,faaFlag,faaBits
+        //   v2 (current): #v=lat,lng,z,base,adsb,faaFlag,faaBits,canFlag,canBits
         // Base map codes: d=Dark, gh=Google Hybrid, gi=Google Imagery, ei=Esri Imagery, et=Esri Topo, l=Light
         // FAA bitmask: 7 bits for sub-layers (laanc,classAirspace,sua,tfr,nsufr,airports,recSites)
-        // Only written to URL when user clicks Share; parsed on page load.
+        // Canadian bitmask: 12 bits for sub-layers (see canSubKeys order below)
+        // Only written to URL when user clicks Share; parsed on page load. v1 links
+        // still work — Canadian state defaults to off when those fields are absent.
 
         var baseMapCodes = {
             'Dark Theme': 'd', 'Google Hybrid': 'gh', 'Google Imagery': 'gi',
@@ -5230,6 +5290,13 @@
         var baseMapFromCode = {};
         Object.keys(baseMapCodes).forEach(function(k) { baseMapFromCode[baseMapCodes[k]] = k; });
         var faaSubKeys = ['laanc','classAirspace','sua','tfr','nsufr','airports','recSites'];
+        // Stable ordering for Canadian sub-layer bitmask — DO NOT REORDER, only append
+        // (changing this order silently breaks every previously-shared URL).
+        var canSubKeys = [
+            'airspaceDrone', 'airspaceAll', 'protectedAreas', 'parksCanada',
+            'aerodromes', 'buffersMajor', 'buffersMinor', 'notams',
+            'populationCentres', 'metars', 'tafs', 'jurisdictions'
+        ];
 
         function shareMapView() {
             if (!map) return;
@@ -5248,8 +5315,14 @@
             faaSubKeys.forEach(function(key, i) {
                 if (faaSubLayers[key] && faaSubLayers[key].visible) bits |= (1 << i);
             });
+            // Canadian parent + sub-layer bitmask
+            var canFlag = showCanadianAirspace ? '1' : '0';
+            var canBits = 0;
+            canSubKeys.forEach(function(key, i) {
+                if (canSubLayers[key] && canSubLayers[key].visible) canBits |= (1 << i);
+            });
             // Build hash: lat,lng rounded to 5 decimals, zoom as int
-            var hash = '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + z + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36);
+            var hash = '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + z + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36) + ',' + canFlag + ',' + canBits.toString(36);
             // Update URL without reload
             history.replaceState(null, '', window.location.pathname + window.location.search + hash);
             // Copy to clipboard
@@ -5304,6 +5377,10 @@
                 var adsb = parts[4] === '1';
                 var faaOn = parts[5] === '1';
                 var bits = parseInt(parts[6], 36);
+                // v2 fields — Canadian Drone Layers state (optional for backward compat)
+                var canOn = parts.length >= 9 ? parts[7] === '1' : false;
+                var canBits = parts.length >= 9 ? parseInt(parts[8], 36) : 0;
+                if (isNaN(canBits)) canBits = 0;
                 if (isNaN(lat) || isNaN(lng) || isNaN(z)) return false;
                 // Set view
                 map.setView([lat, lng], z);
@@ -5336,6 +5413,33 @@
                     });
                 }
                 syncToggleAllCheckbox();
+
+                // Canadian Drone Layers — restore sub-layer visibility flags + master
+                // toggle without re-triggering the disclaimer dialog (the sharer
+                // already acked it on their end; we trust the inbound link).
+                canSubKeys.forEach(function(key, i) {
+                    var on = !!(canBits & (1 << i));
+                    if (canSubLayers[key]) {
+                        canSubLayers[key].visible = on;
+                        var cb = document.getElementById(canSubLayers[key].checkboxId);
+                        if (cb) cb.checked = on;
+                    }
+                });
+                showCanadianAirspace = canOn;
+                var canCheckbox = document.getElementById('toggleCanadianAirspaceCheckbox');
+                if (canCheckbox) canCheckbox.checked = canOn;
+                var canSubList = document.getElementById('canSubLayerList');
+                if (canSubList) canSubList.style.display = canOn ? 'block' : 'none';
+                if (canOn && map) {
+                    canSubKeys.forEach(function(key) {
+                        var sub = canSubLayers[key];
+                        if (sub && sub.layer && sub.visible) {
+                            if (sub.kind === 'geojson') loadCanGeoJsonIfNeeded(key);
+                            sub.layer.addTo(map);
+                        }
+                    });
+                }
+                syncCanToggleAllCheckbox();
                 return true;
             } catch(e) {
                 console.warn('Could not restore map from hash:', e);
@@ -6017,37 +6121,76 @@
                 });
             }
 
-            // EDS-B tooltip: show "Eagle Dependent Surveillance Broadcast" on hover and click
+            // EDS-B popover:
+            //   - hover  → short label "Eagle Dependent Surveillance Broadcast"
+            //   - click  → full info card with succinct explanation + close button
             const edsbPopover = document.getElementById('edsbTooltipPopover');
             const edsbTriggers = document.querySelectorAll('.edsb-tooltip-trigger');
             if (edsbPopover && edsbTriggers.length) {
+                const edsbDefault = edsbPopover.querySelector('.edsb-tooltip-default');
+                const edsbCard = edsbPopover.querySelector('.edsb-card-content');
+                const edsbClose = edsbPopover.querySelector('.edsb-card-close');
+                let cardOpen = false;
+                let closeOnClickHandler = null;
+
+                function setMode(card) {
+                    cardOpen = card;
+                    if (card) {
+                        edsbPopover.classList.add('card-mode');
+                        edsbDefault.style.display = 'none';
+                        edsbCard.style.display = 'block';
+                    } else {
+                        edsbPopover.classList.remove('card-mode');
+                        edsbDefault.style.display = '';
+                        edsbCard.style.display = 'none';
+                    }
+                }
                 function positionAndShow(triggerEl) {
                     edsbPopover.classList.add('visible');
                     edsbPopover.setAttribute('aria-hidden', 'false');
                     const r = triggerEl.getBoundingClientRect();
                     const w = edsbPopover.offsetWidth;
-                    edsbPopover.style.left = Math.max(6, r.left + r.width / 2 - w / 2) + 'px';
+                    edsbPopover.style.left = Math.max(6, Math.min(window.innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + 'px';
                     edsbPopover.style.top = (r.bottom + 6) + 'px';
                 }
                 function hide() {
                     edsbPopover.classList.remove('visible');
                     edsbPopover.setAttribute('aria-hidden', 'true');
+                    setMode(false);
+                    if (closeOnClickHandler) {
+                        document.removeEventListener('click', closeOnClickHandler);
+                        closeOnClickHandler = null;
+                    }
                 }
                 edsbTriggers.forEach(function(trigger) {
-                    trigger.addEventListener('mouseenter', function() { positionAndShow(trigger); });
-                    trigger.addEventListener('mouseleave', hide);
+                    trigger.addEventListener('mouseenter', function() {
+                        if (cardOpen) return; // don't downgrade open card
+                        setMode(false);
+                        positionAndShow(trigger);
+                    });
+                    trigger.addEventListener('mouseleave', function() {
+                        if (cardOpen) return; // don't close the card on hover-out
+                        hide();
+                    });
                     trigger.addEventListener('click', function(e) {
                         e.preventDefault();
+                        e.stopPropagation();
+                        setMode(true);
                         positionAndShow(trigger);
-                        var closeOnClick = function(ev) {
-                            if (ev.target.closest && ev.target.closest('.edsb-tooltip-trigger')) return;
-                            document.removeEventListener('click', closeOnClick);
+                        if (closeOnClickHandler) document.removeEventListener('click', closeOnClickHandler);
+                        closeOnClickHandler = function(ev) {
+                            if (ev.target.closest && (ev.target.closest('.edsb-tooltip-trigger') || ev.target.closest('.edsb-tooltip-popover'))) return;
                             hide();
                         };
-                        setTimeout(function() { document.addEventListener('click', closeOnClick); }, 0);
-                        setTimeout(hide, 4000);
+                        setTimeout(function() { document.addEventListener('click', closeOnClickHandler); }, 0);
                     });
                 });
+                if (edsbClose) {
+                    edsbClose.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        hide();
+                    });
+                }
             }
             
             // Initialize MQTT connection
