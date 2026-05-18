@@ -534,6 +534,130 @@
             font-size: 13px;
         }
         .can-disclaimer-card button:hover { background: #5a8c69; }
+        .can-disclaimer-card button.airspace-btn-secondary {
+            background: transparent;
+            color: #ccc;
+            border: 1px solid #555;
+        }
+        .can-disclaimer-card button.airspace-btn-secondary:hover {
+            background: #2a2a2a;
+            color: #fff;
+        }
+        .can-disclaimer-card .can-disclaimer-dontshow input[type="checkbox"] {
+            margin: 0;
+        }
+        .edsb-card-info-btn {
+            background: transparent;
+            border: 1px solid #4a7c59;
+            color: #d4a574;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 3px;
+            margin-top: 8px;
+        }
+        .edsb-card-info-btn:hover {
+            background: rgba(74, 124, 89, 0.2);
+        }
+
+        /* Touch-device override: the page-level @media (pointer:coarse) rule sets
+           `a { display:flex; justify-content:center }` for big touch targets, which
+           breaks inline links inside dialog bodies (anchors land on their own line,
+           centered). Re-assert normal inline behaviour inside our dialogs. */
+        .can-disclaimer-card a,
+        .attribution-card a,
+        .edsb-card-body a {
+            display: inline !important;
+            min-height: 0 !important;
+            min-width: 0 !important;
+            justify-content: flex-start !important;
+            align-items: baseline !important;
+        }
+
+        /* Attribution dialog — clean sans-serif look, distinct from the dark Courier
+           styling of the disclaimer dialogs. */
+        .attribution-card {
+            position: relative;
+            max-width: 520px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+        .attribution-card,
+        .attribution-card * {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .attribution-close-x {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            background: transparent !important;
+            border: 1px solid transparent !important;
+            color: #c0c0c0 !important;
+            font-size: 28px !important;
+            line-height: 1 !important;
+            cursor: pointer;
+            padding: 2px 10px 4px !important;
+            border-radius: 4px;
+            width: auto;
+            height: auto;
+            min-height: 0 !important;
+            min-width: 0 !important;
+        }
+        .attribution-close-x:hover {
+            color: #fff !important;
+            background: rgba(255,255,255,0.12) !important;
+            border-color: rgba(255,255,255,0.2) !important;
+        }
+        .attribution-card .attr-section {
+            margin-bottom: 12px;
+        }
+        .attribution-card .attr-section:last-child {
+            margin-bottom: 0;
+        }
+        .attribution-card .attr-section h4 {
+            font-size: 11px;
+            color: #d4a574;
+            margin: 0 0 4px 0;
+            padding: 0 0 3px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(212, 165, 116, 0.25);
+            text-align: left;
+        }
+        .attribution-card .attr-section ul {
+            margin: 0;
+            padding-left: 18px;
+            line-height: 1.45;
+            font-size: 12.5px;
+            color: #d8d8d8;
+            text-align: left;
+            list-style: disc;
+            list-style-position: outside;
+        }
+        .attribution-card .attr-section ul li {
+            text-align: left;
+            display: list-item;
+            margin-bottom: 1px;
+        }
+        .attribution-card .attr-section ul li a,
+        .attribution-card .attr-section .attr-footnote a {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        .attribution-card .attr-section ul li a:hover,
+        .attribution-card .attr-section .attr-footnote a:hover {
+            color: #93c5fd;
+        }
+        .attribution-card .attr-section .attr-footnote {
+            margin: 4px 0 0;
+            padding-left: 18px;
+            font-size: 11px;
+            color: #999;
+            text-align: left;
+            line-height: 1.4;
+            font-style: italic;
+        }
 
         /* EDS-B info popover: shown on hover (short title) and on click (full card) */
         .edsb-tooltip-popover {
@@ -3223,9 +3347,9 @@
                 <button type="button" class="edsb-card-close" aria-label="Close">&times;</button>
             </div>
             <div class="edsb-card-body">
-                <p><b>Eagle Dependent Surveillance-Broadcast.</b> EDS-B is how Eagle Eyes apps tell each other what they're seeing in the sky.</p>
-                <p>When one app spots a drone, an aircraft, or picks up a Remote ID broadcast, it shares that with every other Eagle Eyes app on the same Wi-Fi — or signed into the same shared channel over the internet — so everyone's looking at the same picture in real time.</p>
-                <p style="font-size:11px;color:#888;">Connection status is shown in the EDS-B Network indicator at the top of the page.</p>
+                <p><b>Eagle Dependent Surveillance-Broadcast (EDS-B)</b> is a free service that lets drone operators voluntarily broadcast their drone's live location. Anyone visiting this map can see participating broadcasts in real time.</p>
+                <p>Designed to support emergency response operations and to help drone operators be responsible patrons of shared airspace.</p>
+                <button id="edsbAttributionBtn" type="button" class="edsb-card-info-btn">ⓘ Map data sources &amp; attributions</button>
             </div>
         </div>
     </div>
@@ -3266,6 +3390,10 @@
                     <input type="checkbox" id="toggleDetectedAircraftCheckbox" checked title="Show or hide detected manned aircraft on the map">
                     <label for="toggleDetectedAircraftCheckbox">Detected manned aircraft <span style="white-space: nowrap;">(ADS-B)</span></label>
                 </div>
+                <div class="base-map-option base-map-toggle" id="toggleAdsbLolOption">
+                    <input type="checkbox" id="toggleAdsbLolCheckbox" title="Show live ADS-B traffic from adsb.lol community feeders (beta)" onchange="setAdsbLolVisibility(this.checked)">
+                    <label for="toggleAdsbLolCheckbox">Live ADS-B <span style="white-space: nowrap;">(adsb.lol)</span></label>
+                </div>
                 <div class="base-map-option base-map-toggle" id="toggleCanadianAirspaceOption">
                     <input type="checkbox" id="toggleCanadianAirspaceCheckbox" title="Show or hide Canadian drone airspace, protected areas, jurisdictions, and weather layers" onchange="setCanadianAirspaceVisibility(this.checked)">
                     <label for="toggleCanadianAirspaceCheckbox">Canadian Drone Layers</label>
@@ -3284,14 +3412,6 @@
                         <label for="canSubAirspaceAll">Aviation airspace (all DAH)</label>
                     </div>
                     <div class="base-map-option base-map-toggle can-sublayer">
-                        <input type="checkbox" id="canSubProtectedAreas" checked onchange="setCanSubLayerVisibility('protectedAreas', this.checked)">
-                        <label for="canSubProtectedAreas">Protected areas</label>
-                    </div>
-                    <div class="base-map-option base-map-toggle can-sublayer">
-                        <input type="checkbox" id="canSubParksCanada" checked onchange="setCanSubLayerVisibility('parksCanada', this.checked)">
-                        <label for="canSubParksCanada">National parks</label>
-                    </div>
-                    <div class="base-map-option base-map-toggle can-sublayer">
                         <input type="checkbox" id="canSubAerodromes" checked onchange="setCanSubLayerVisibility('aerodromes', this.checked)">
                         <label for="canSubAerodromes">Aerodromes</label>
                     </div>
@@ -3304,20 +3424,28 @@
                         <label for="canSubBuffersMinor">Heliport buffers (1 NM)</label>
                     </div>
                     <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubProtectedAreas" checked onchange="setCanSubLayerVisibility('protectedAreas', this.checked)">
+                        <label for="canSubProtectedAreas">Protected areas</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubParksCanada" checked onchange="setCanSubLayerVisibility('parksCanada', this.checked)">
+                        <label for="canSubParksCanada">National parks</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
                         <input type="checkbox" id="canSubNotams" checked onchange="setCanSubLayerVisibility('notams', this.checked)">
                         <label for="canSubNotams">NOTAMs</label>
                     </div>
                     <div class="base-map-option base-map-toggle can-sublayer">
-                        <input type="checkbox" id="canSubPopulationCentres" onchange="setCanSubLayerVisibility('populationCentres', this.checked)">
-                        <label for="canSubPopulationCentres">Population centres</label>
-                    </div>
-                    <div class="base-map-option base-map-toggle can-sublayer">
-                        <input type="checkbox" id="canSubMetars" onchange="setCanSubLayerVisibility('metars', this.checked)">
+                        <input type="checkbox" id="canSubMetars" checked onchange="setCanSubLayerVisibility('metars', this.checked)">
                         <label for="canSubMetars">METARs</label>
                     </div>
                     <div class="base-map-option base-map-toggle can-sublayer">
-                        <input type="checkbox" id="canSubTafs" onchange="setCanSubLayerVisibility('tafs', this.checked)">
+                        <input type="checkbox" id="canSubTafs" checked onchange="setCanSubLayerVisibility('tafs', this.checked)">
                         <label for="canSubTafs">TAFs</label>
+                    </div>
+                    <div class="base-map-option base-map-toggle can-sublayer">
+                        <input type="checkbox" id="canSubPopulationCentres" checked onchange="setCanSubLayerVisibility('populationCentres', this.checked)">
+                        <label for="canSubPopulationCentres">Population centres</label>
                     </div>
                     <div class="base-map-option base-map-toggle can-sublayer">
                         <input type="checkbox" id="canSubJurisdictions" onchange="setCanSubLayerVisibility('jurisdictions', this.checked)">
@@ -3382,15 +3510,15 @@
             <p>This layer brings together everything you need to plan and operate drone missions in Canada — restricted airspace, control zones, aerodromes (airports, heliports, seaplane bases) with regulatory buffers, NOTAMs, current weather (METARs/TAFs), protected areas, and national parks — all in one place.</p>
             <p>It's currently in <strong>beta</strong> and may contain errors, omissions, or stale information. For mission-critical decisions, cross-reference with authoritative sources:</p>
             <ul style="margin:0 0 12px 0;padding-left:22px;line-height:1.7;text-align:left;list-style-position:outside;">
-                <li style="text-align:left;display:list-item;"><a href="https://nrc.canada.ca/en/drone-tool/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NAV Drone Map (NAV CANADA)</a></li>
-                <li style="text-align:left;display:list-item;"><a href="https://nrc.canada.ca/en/drone-tool/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NRC Drone Site Selection Tool</a></li>
-                <li style="text-align:left;display:list-item;"><a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides/designated-airspace-handbook.aspx" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NAV CANADA's Designated Airspace Handbook (DAH)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://map.navdrone.ca/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NAV Drone Map (NAV CANADA)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://nrc.canada.ca/en/drone-tool-2/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NRC Drone Site Selection Tool</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides.aspx" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">NAV CANADA's Designated Airspace Handbook (DAH)</a></li>
                 <li style="text-align:left;display:list-item;"><a href="https://plan.navcanada.ca/wxrecall/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">Current NOTAMs (NAV CANADA CFPS)</a></li>
             </ul>
             <details style="margin: 0 0 12px 0; font-size: 12px; color: #ccc;">
                 <summary style="cursor: pointer; color: #d4a574; font-weight: 600;">Data sources &amp; vintages</summary>
                 <ul style="margin-top: 8px; padding-left: 20px; line-height: 1.6; list-style: disc;">
-                    <li>Airspace: <a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides/designated-airspace-handbook.aspx" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA Designated Airspace Handbook (DAH)</a>, Issue 319, eff. 22 Jan 2026</li>
+                    <li>Airspace: <a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides.aspx" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA Designated Airspace Handbook (DAH)</a>, Issue 319, eff. 22 Jan 2026</li>
                     <li>Aerodromes: <a href="https://ourairports.com/" target="_blank" rel="noopener" style="color:#60a5fa;">OurAirports</a> (community, public domain)</li>
                     <li>Aerodrome operator/phone/customs: <a href="https://www.navcanada.ca/en/aeronautical-information/operational-guides/canada-flight-supplement.aspx" target="_blank" rel="noopener" style="color:#60a5fa;">NAV CANADA Canada Flight Supplement (CFS)</a> — <strong>sample edition (Dec 2020)</strong>. Current CFS data requires a paid NAV CANADA subscription.
                         <div style="margin-top: 4px; color: #aaa; font-size: 11px;">If access to up-to-date CFS information matters for your operations, we'd love to hear from you — drop us a line at <a href="mailto:info@eagleeyessearch.com" style="color:#60a5fa;">info@eagleeyessearch.com</a> and let us know how you'd use it.</div>
@@ -3404,8 +3532,130 @@
                 <p style="margin: 10px 0 0; font-size: 11px; color: #888;">Contains information licensed under the <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener" style="color:#60a5fa;">Open Government Licence – Canada</a> (CPCAD, Parks Canada, Statistics Canada). Aviation data sourced from publicly available NAV CANADA publications; OurAirports data is community-contributed and in the public domain.</p>
             </details>
             <p style="font-size:12px;color:#bbb;margin:0 0 14px;">For planning and situational awareness only. Pilot-in-command must verify against authoritative sources before flight; Eagle Eyes Search accepts no liability for operational decisions made using this data.</p>
-            <div class="can-disclaimer-actions" style="justify-content:flex-end;">
-                <button id="canDisclaimerAck" type="button">Close</button>
+            <div class="can-disclaimer-actions" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="can-disclaimer-dontshow">
+                    <input type="checkbox" id="canDisclaimerDontShow"> Don't show this again
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button id="canDisclaimerCancel" type="button" class="airspace-btn-secondary">Cancel</button>
+                    <button id="canDisclaimerAck" type="button">I understand</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAA Drone Airspace disclaimer (shown each time the master toggle is turned on
+         unless the user previously checked "Don't show this again"). -->
+    <div id="faaDisclaimerOverlay" class="can-disclaimer-overlay" aria-hidden="true">
+        <div class="can-disclaimer-card" role="dialog" aria-modal="true" aria-labelledby="faaDisclaimerTitle">
+            <h3 id="faaDisclaimerTitle" style="display:flex;align-items:center;gap:10px;font-size:15px;"><span style="color:#f97316;font-size:28px;line-height:1;">⚠</span> FAA Drone Airspace</h3>
+            <p>This layer shows U.S. drone-relevant airspace from the FAA's public UAS data services — useful for planning drone operations in U.S. airspace.</p>
+            <p>For mission-critical decisions, cross-reference with authoritative FAA sources:</p>
+            <ul style="margin:0 0 12px 0;padding-left:22px;line-height:1.7;text-align:left;list-style-position:outside;">
+                <li style="text-align:left;display:list-item;"><a href="https://www.faa.gov/uas/getting_started/b4ufly" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">B4UFLY (FAA's official recreational drone app)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://www.faa.gov/uas/programs_partnerships/data_exchange" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">LAANC (Low Altitude Authorization and Notification Capability)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://tfr.faa.gov/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">Active TFRs (tfr.faa.gov)</a></li>
+                <li style="text-align:left;display:list-item;"><a href="https://faadronezone.faa.gov/" target="_blank" rel="noopener" style="color:#60a5fa;text-align:left;">FAA DroneZone (Part 107 commercial operations)</a></li>
+            </ul>
+            <details style="margin: 0 0 12px 0; font-size: 12px; color: #ccc;">
+                <summary style="cursor: pointer; color: #d4a574; font-weight: 600;">Sublayers &amp; data sources</summary>
+                <ul style="margin-top: 8px; padding-left: 20px; line-height: 1.6; list-style: disc;">
+                    <li><strong>LAANC Ceiling Grid</strong> — Maximum altitude permitted via LAANC near controlled airspace</li>
+                    <li><strong>Controlled Airspace (B/C/D/E)</strong> — Class B, C, D, and E surface designations</li>
+                    <li><strong>Special Use Airspace</strong> — Military Operations Areas (MOA), Restricted (R), Prohibited (P)</li>
+                    <li><strong>National Defense TFR Areas</strong> — Long-standing temporary flight restrictions around stadiums, DC area, etc.</li>
+                    <li><strong>National Security UAS Restrictions</strong> — UAS-specific restrictions over sensitive sites</li>
+                    <li><strong>Airports</strong> — All US airports (towered and non-towered)</li>
+                    <li><strong>Recreational Flyer Fixed Sites</strong> — CBO-approved flying sites</li>
+                </ul>
+                <p style="margin: 10px 0 0; font-size: 11px; color: #888;">All data sourced from the <a href="https://udds-faa.opendata.arcgis.com/" target="_blank" rel="noopener" style="color:#60a5fa;">FAA UAS Data Delivery System</a> (public domain U.S. government work). Eagle Eyes is not affiliated with or endorsed by the FAA.</p>
+            </details>
+            <p style="font-size:12px;color:#bbb;margin:0 0 14px;">For planning and situational awareness only. Pilot-in-command must verify against authoritative sources before flight; Eagle Eyes Search accepts no liability for operational decisions made using this data.</p>
+            <div class="can-disclaimer-actions" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="can-disclaimer-dontshow">
+                    <input type="checkbox" id="faaDisclaimerDontShow"> Don't show this again
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button id="faaDisclaimerCancel" type="button" class="airspace-btn-secondary">Cancel</button>
+                    <button id="faaDisclaimerAck" type="button">I understand</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- adsb.lol live ADS-B disclaimer (Cancel / I understand / Don't show again) -->
+    <div id="adsbDisclaimerOverlay" class="can-disclaimer-overlay" aria-hidden="true">
+        <div class="can-disclaimer-card" role="dialog" aria-modal="true" aria-labelledby="adsbDisclaimerTitle">
+            <h3 id="adsbDisclaimerTitle" style="display:flex;align-items:center;gap:10px;font-size:15px;"><span style="color:#f97316;font-size:28px;line-height:1;">⚠</span> Live ADS-B (adsb.lol) — Beta</h3>
+            <p>This layer shows live manned-aircraft positions from <a href="https://www.adsb.lol/" target="_blank" rel="noopener" style="color:#60a5fa;">adsb.lol</a>, a community-run ADS-B aggregator with worldwide volunteer feeder coverage. Data is licensed <strong>CC0 (Public Domain)</strong>.</p>
+            <p><strong>Not for primary navigation.</strong> Coverage depends on volunteer feeders and is sparse in remote regions. The service has no SLA. Cross-reference an authoritative source before flight-critical decisions.</p>
+            <details style="margin: 0 0 12px 0; font-size: 12px; color: #ccc;">
+                <summary style="cursor: pointer; color: #d4a574; font-weight: 600;">About this data &amp; license</summary>
+                <ul style="margin-top: 8px; padding-left: 20px; line-height: 1.6; list-style: disc;">
+                    <li>Aircraft positions broadcast on 1090 MHz, captured by volunteer SDR feeders worldwide</li>
+                    <li>Each contributor licenses their feed as <a href="https://www.adsb.lol/privacy-license/" target="_blank" rel="noopener" style="color:#60a5fa;">CC0 (Public Domain)</a> at signup</li>
+                    <li>Community successor to ADS-B Exchange (after its 2023 acquisition); maintained openly at <a href="https://github.com/adsblol" target="_blank" rel="noopener" style="color:#60a5fa;">github.com/adsblol</a></li>
+                    <li>Routed through Eagle Eyes' airspace proxy (5s edge cache, identified user-agent) to be a courteous community consumer</li>
+                </ul>
+            </details>
+            <p style="font-size:12px;color:#bbb;margin:0 0 14px;">For situational awareness only. Pilot-in-command must verify against authoritative sources before flight; Eagle Eyes Search accepts no liability for operational decisions made using this data.</p>
+            <div class="can-disclaimer-actions" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <label class="can-disclaimer-dontshow">
+                    <input type="checkbox" id="adsbDisclaimerDontShow"> Don't show this again
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button id="adsbDisclaimerCancel" type="button" class="airspace-btn-secondary">Cancel</button>
+                    <button id="adsbDisclaimerAck" type="button">I understand</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attribution dialog — opened via the (i) button on the EDS-B info card.
+         Closes via the top-right ✕, clicking outside the card, or Escape. -->
+    <div id="attributionOverlay" class="can-disclaimer-overlay attribution-overlay" aria-hidden="true">
+        <div class="can-disclaimer-card attribution-card" role="dialog" aria-modal="true" aria-labelledby="attributionTitle" style="text-align:left;">
+            <button id="attributionCloseTop" type="button" aria-label="Close" class="attribution-close-x">&times;</button>
+            <h3 id="attributionTitle" style="font-size:15px;margin:0 0 4px;padding-right:24px;">Map data sources &amp; attributions</h3>
+            <p style="font-size:12px;color:#bbb;margin:0 0 14px;">For situational awareness only. Verify against authoritative sources before flight.</p>
+
+            <div class="attr-section">
+                <h4>Canadian Drone Layers</h4>
+                <ul>
+                    <li>Airspace, NOTAMs, METARs, TAFs — <a href="https://www.navcanada.ca/" target="_blank" rel="noopener">NAV CANADA</a></li>
+                    <li>Protected areas — <a href="https://www.canada.ca/en/environment-climate-change/services/national-wildlife-areas/protected-conserved-areas-database.html" target="_blank" rel="noopener">ECCC CPCAD</a></li>
+                    <li>National parks — <a href="https://open.canada.ca/data/en/organization/pc" target="_blank" rel="noopener">Parks Canada</a></li>
+                    <li>Population centres &amp; jurisdictions — <a href="https://www12.statcan.gc.ca/census-recensement/2021/geo/index-eng.cfm" target="_blank" rel="noopener">Statistics Canada 2021 Census</a></li>
+                    <li>Aerodromes — <a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a> (community, public domain)</li>
+                </ul>
+                <p class="attr-footnote">Contains information licensed under the <a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener">Open Government Licence – Canada</a>.</p>
+            </div>
+
+            <div class="attr-section">
+                <h4>FAA Drone Airspace</h4>
+                <ul>
+                    <li>All FAA airspace + airport data — <a href="https://udds-faa.opendata.arcgis.com/" target="_blank" rel="noopener">FAA UAS Data Delivery System</a> (public domain, U.S. government work)</li>
+                    <li>Authoritative for go / no-go decisions — <a href="https://www.faa.gov/uas/getting_started/b4ufly" target="_blank" rel="noopener">B4UFLY</a>, <a href="https://tfr.faa.gov/" target="_blank" rel="noopener">tfr.faa.gov</a>, <a href="https://faadronezone.faa.gov/" target="_blank" rel="noopener">FAA DroneZone</a></li>
+                </ul>
+                <p class="attr-footnote">Eagle Eyes is not affiliated with or endorsed by the FAA.</p>
+            </div>
+
+            <div class="attr-section">
+                <h4>Base maps</h4>
+                <ul>
+                    <li>Dark / Light theme — © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></li>
+                    <li>Google Hybrid / Imagery — © Google</li>
+                    <li>Esri Imagery / Topo — © Esri</li>
+                </ul>
+            </div>
+
+            <div class="attr-section">
+                <h4>Live overlays</h4>
+                <ul>
+                    <li>EDS-B telemetry — voluntarily broadcast by Eagle Eyes-equipped drone operators</li>
+                    <li>Detected manned aircraft (EDS-B) — ADS-B receivers attached to Eagle Eyes apps, relayed via the EDS-B network. Click an aircraft for an <a href="https://opensky-network.org/" target="_blank" rel="noopener">OpenSky</a> deep-link for additional details.</li>
+                    <li>Live ADS-B (adsb.lol) — community ADS-B aggregator at <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, volunteer feeders worldwide. Data licensed <a href="https://www.adsb.lol/privacy-license/" target="_blank" rel="noopener">CC0 (Public Domain)</a>. Routed via Eagle Eyes' airspace proxy.</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -3556,7 +3806,7 @@
         let canSubLayers = {}; // key -> { layer, visible, checkboxId, _loaded }
         const CAN_AIRSPACE_BASE = 'https://mirada-airspace.patrick-e20.workers.dev';
         const CAN_AIRSPACE_VERSION = 'eagleeyes-v1';
-        const CAN_DISCLAIMER_KEY = 'ee_can_airspace_disclaimer_acked';
+        const CAN_DISCLAIMER_KEY = 'ee_can_airspace_disclaimer_suppressed';
         const CAN_SUB_PREF_KEY = 'ee_can_airspace_sublayers';
         let hasShownConnectedToast = false; // Show "Connected to drone telemetry stream" only once per connection
 
@@ -4424,34 +4674,41 @@
         }
 
         function setFaaAirspaceVisibility(visible) {
-            showFaaAirspace = visible;
             const checkbox = document.getElementById('toggleFaaAirspaceCheckbox');
-            if (checkbox) checkbox.checked = showFaaAirspace;
-            // Show/hide sub-layer list
             const subList = document.getElementById('faaSubLayerList');
-            if (subList) subList.style.display = showFaaAirspace ? 'block' : 'none';
-            if (!map) return;
-            if (showFaaAirspace) {
-                // Turning ON: restore saved sub-layer preferences
-                var prefs = loadFaaSubPrefs();
-                Object.keys(faaSubLayers).forEach(function(key) {
-                    var sub = faaSubLayers[key];
-                    if (!sub || !sub.layer) return;
-                    // Use saved pref if available, otherwise keep current visible state
-                    if (prefs && prefs.hasOwnProperty(key)) {
-                        sub.visible = prefs[key];
-                    }
-                    var cb = document.getElementById(sub.checkboxId);
-                    if (cb) cb.checked = sub.visible;
-                    if (sub.visible) {
-                        sub.layer.addTo(map);
-                    } else {
-                        map.removeLayer(sub.layer);
-                    }
+            if (visible) {
+                showFaaDisclaimerIfNeeded(function() {
+                    showFaaAirspace = true;
+                    if (checkbox) checkbox.checked = true;
+                    if (subList) subList.style.display = 'block';
+                    if (!map) return;
+                    var prefs = loadFaaSubPrefs();
+                    Object.keys(faaSubLayers).forEach(function(key) {
+                        var sub = faaSubLayers[key];
+                        if (!sub || !sub.layer) return;
+                        if (prefs && prefs.hasOwnProperty(key)) {
+                            sub.visible = prefs[key];
+                        }
+                        var cb = document.getElementById(sub.checkboxId);
+                        if (cb) cb.checked = sub.visible;
+                        if (sub.visible) {
+                            sub.layer.addTo(map);
+                        } else {
+                            map.removeLayer(sub.layer);
+                        }
+                    });
+                    syncToggleAllCheckbox();
+                }, function() {
+                    // Cancelled — revert master toggle and hide sub-list.
+                    showFaaAirspace = false;
+                    if (checkbox) checkbox.checked = false;
+                    if (subList) subList.style.display = 'none';
                 });
-                syncToggleAllCheckbox();
             } else {
-                // Turning OFF: remove all from map (visible flags stay as-is)
+                showFaaAirspace = false;
+                if (checkbox) checkbox.checked = false;
+                if (subList) subList.style.display = 'none';
+                if (!map) return;
                 Object.keys(faaSubLayers).forEach(function(key) {
                     var sub = faaSubLayers[key];
                     if (!sub || !sub.layer) return;
@@ -4818,7 +5075,7 @@
 
             canSubLayers.populationCentres = {
                 kind: 'geojson', path: '/data/population-centres.geojson', sourceLabel: 'Population centre',
-                visible: false, checkboxId: 'canSubPopulationCentres',
+                visible: true, checkboxId: 'canSubPopulationCentres',
                 layer: L.geoJSON(null, { style: { color: '#6b7280', weight: 0.5, fillColor: '#6b7280', fillOpacity: 0.15 } }),
                 buildPopup: function(p) {
                     return canPopup(p.PCNAME || p.name || 'Population Centre', [
@@ -4831,7 +5088,7 @@
             var metarColors = { VFR: '#16a34a', MVFR: '#2563eb', IFR: '#dc2626', LIFR: '#a855f7' };
             canSubLayers.metars = {
                 kind: 'geojson', path: '/data/metars.geojson', sourceLabel: 'METAR',
-                visible: false, checkboxId: 'canSubMetars',
+                visible: true, checkboxId: 'canSubMetars',
                 layer: L.geoJSON(null, {
                     pointToLayer: function(feature, latlng) {
                         var p = feature.properties || {};
@@ -4921,7 +5178,7 @@
 
             canSubLayers.tafs = {
                 kind: 'geojson', path: '/data/tafs.geojson', sourceLabel: 'TAF',
-                visible: false, checkboxId: 'canSubTafs',
+                visible: true, checkboxId: 'canSubTafs',
                 layer: L.geoJSON(null, {
                     pointToLayer: function(feature, latlng) {
                         var icon = L.divIcon({
@@ -4962,7 +5219,7 @@
                 });
         }
 
-        function showCanDisclaimerIfNeeded(onProceed) {
+        function showCanDisclaimerIfNeeded(onProceed, onCancel) {
             try {
                 if (localStorage.getItem(CAN_DISCLAIMER_KEY) === '1') { onProceed(); return; }
             } catch(e) {}
@@ -4970,11 +5227,269 @@
             if (!overlay) { onProceed(); return; }
             overlay.classList.add('visible');
             var ackBtn = document.getElementById('canDisclaimerAck');
+            var cancelBtn = document.getElementById('canDisclaimerCancel');
+            var dontShow = document.getElementById('canDisclaimerDontShow');
+            if (dontShow) dontShow.checked = false; // reset each time
             ackBtn.onclick = function() {
-                try { localStorage.setItem(CAN_DISCLAIMER_KEY, '1'); } catch(e) {}
+                if (dontShow && dontShow.checked) {
+                    try { localStorage.setItem(CAN_DISCLAIMER_KEY, '1'); } catch(e) {}
+                }
                 overlay.classList.remove('visible');
                 onProceed();
             };
+            cancelBtn.onclick = function() {
+                overlay.classList.remove('visible');
+                if (typeof onCancel === 'function') onCancel();
+            };
+        }
+
+        // ---- FAA Drone Airspace disclaimer (same Cancel / I understand / Don't show again pattern) ----
+        var FAA_DISCLAIMER_KEY = 'ee_faa_airspace_disclaimer_suppressed';
+        function showFaaDisclaimerIfNeeded(onProceed, onCancel) {
+            try {
+                if (localStorage.getItem(FAA_DISCLAIMER_KEY) === '1') { onProceed(); return; }
+            } catch(e) {}
+            var overlay = document.getElementById('faaDisclaimerOverlay');
+            if (!overlay) { onProceed(); return; }
+            overlay.classList.add('visible');
+            var ackBtn = document.getElementById('faaDisclaimerAck');
+            var cancelBtn = document.getElementById('faaDisclaimerCancel');
+            var dontShow = document.getElementById('faaDisclaimerDontShow');
+            if (dontShow) dontShow.checked = false;
+            ackBtn.onclick = function() {
+                if (dontShow && dontShow.checked) {
+                    try { localStorage.setItem(FAA_DISCLAIMER_KEY, '1'); } catch(e) {}
+                }
+                overlay.classList.remove('visible');
+                onProceed();
+            };
+            cancelBtn.onclick = function() {
+                overlay.classList.remove('visible');
+                if (typeof onCancel === 'function') onCancel();
+            };
+        }
+
+        // ==================== Live ADS-B layer (adsb.lol via Cloudflare Worker proxy) ====================
+        // Background: adsb.lol's upstream API doesn't send CORS headers, so we route through
+        // the mirada-airspace Worker which adds Access-Control-Allow-Origin + edge-caches 5s.
+        // See docs/adsb-lol-integration.md for the full research log + legal posture (CC0).
+
+        var ADSB_LOL_PROXY = 'https://mirada-airspace.patrick-e20.workers.dev/proxy/adsb/v2/lat/{lat}/lon/{lon}/dist/{dist}';
+        var ADSB_LOL_REFRESH_MS = 10000;    // poll every 10s while layer is active
+        var ADSB_LOL_DEBOUNCE_MS = 500;     // moveend debounce before refetching
+        var ADSB_LOL_MAX_DIST_NM = 250;     // upstream-enforced cap
+        var ADSB_DISCLAIMER_KEY = 'ee_adsb_lol_disclaimer_suppressed';
+
+        var showAdsbLol = false;
+        var adsbLolLayer = null;            // L.LayerGroup containing all aircraft markers
+        var adsbLolMarkers = {};            // hex → L.marker
+        var adsbLolRefreshTimer = null;
+        var adsbLolMoveEndTimer = null;
+        var adsbLolFetchSeq = 0;            // discard stale responses
+
+        function showAdsbDisclaimerIfNeeded(onProceed, onCancel) {
+            try {
+                if (localStorage.getItem(ADSB_DISCLAIMER_KEY) === '1') { onProceed(); return; }
+            } catch(e) {}
+            var overlay = document.getElementById('adsbDisclaimerOverlay');
+            if (!overlay) { onProceed(); return; }
+            overlay.classList.add('visible');
+            var ackBtn = document.getElementById('adsbDisclaimerAck');
+            var cancelBtn = document.getElementById('adsbDisclaimerCancel');
+            var dontShow = document.getElementById('adsbDisclaimerDontShow');
+            if (dontShow) dontShow.checked = false;
+            ackBtn.onclick = function() {
+                if (dontShow && dontShow.checked) {
+                    try { localStorage.setItem(ADSB_DISCLAIMER_KEY, '1'); } catch(e) {}
+                }
+                overlay.classList.remove('visible');
+                onProceed();
+            };
+            cancelBtn.onclick = function() {
+                overlay.classList.remove('visible');
+                if (typeof onCancel === 'function') onCancel();
+            };
+        }
+
+        // Build a simple plane marker — small Unicode glyph rotated to track.
+        function buildAdsbLolMarker(ac) {
+            var lat = ac.lat, lon = ac.lon;
+            if (typeof lat !== 'number' || typeof lon !== 'number') return null;
+            var track = (typeof ac.track === 'number') ? ac.track : 0;
+            var callsign = (ac.flight || ac.r || ac.hex || '').toString().trim();
+            // Tiny ✈ marker. Unicode plane points "up-right" at 45°, so subtract 45 to align
+            // 0° (north) with the glyph's perceived heading.
+            var icon = L.divIcon({
+                className: 'adsb-lol-marker',
+                html: '<div style="transform:rotate(' + (track - 45) + 'deg);font-size:14px;color:#22d3ee;text-shadow:0 0 3px #000,0 0 1px #000;line-height:1;">✈</div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+            var marker = L.marker([lat, lon], { icon: icon, title: callsign, interactive: true });
+            marker.bindPopup(buildAdsbLolPopup(ac));
+            return marker;
+        }
+        function buildAdsbLolPopup(ac) {
+            var callsign = (ac.flight || '').toString().trim();
+            var lines = [
+                '<div style="font-family:system-ui,sans-serif;font-size:12px;color:#222;line-height:1.5;">',
+                '<b>' + (callsign || '(no callsign)') + '</b>',
+                '<br>Reg: ' + (ac.r || 'N/A') + ' · Type: ' + (ac.t || 'N/A'),
+                '<br>Altitude: ' + (ac.alt_baro != null ? ac.alt_baro + ' ft' : 'N/A') +
+                  ' · Speed: ' + (ac.gs != null ? Math.round(ac.gs) + ' kt' : 'N/A'),
+                '<br>Track: ' + (ac.track != null ? Math.round(ac.track) + '°' : 'N/A') +
+                  ' · Squawk: ' + (ac.squawk || 'N/A'),
+                '<br>Hex: <code>' + (ac.hex || '') + '</code>'
+            ];
+            if (ac.hex) {
+                var globeUrl = 'https://globe.adsb.lol/?icao=' + encodeURIComponent(ac.hex);
+                lines.push('<br><a href="' + globeUrl + '" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;">Track on adsb.lol globe</a>');
+            }
+            lines.push('<div style="font-size:10px;color:#888;margin-top:4px;">Source: adsb.lol (CC0)</div>');
+            lines.push('</div>');
+            return lines.join('');
+        }
+
+        function adsbLolBboxParams() {
+            // adsb.lol radius API: center+distance. We use the map center and the diagonal
+            // distance from center to corner as the radius (capped at 250 NM).
+            if (!map) return null;
+            var c = map.getCenter();
+            var bounds = map.getBounds();
+            var ne = bounds.getNorthEast();
+            // Leaflet distanceTo returns metres; convert to nautical miles.
+            var diagonalM = c.distanceTo(ne);
+            var diagonalNM = diagonalM / 1852;
+            var dist = Math.max(5, Math.min(ADSB_LOL_MAX_DIST_NM, Math.ceil(diagonalNM)));
+            return { lat: c.lat.toFixed(4), lon: c.lng.toFixed(4), dist: dist };
+        }
+
+        function fetchAdsbLol() {
+            if (!showAdsbLol || !map) return;
+            var p = adsbLolBboxParams();
+            if (!p) return;
+            var seq = ++adsbLolFetchSeq;
+            var url = ADSB_LOL_PROXY
+                .replace('{lat}', p.lat)
+                .replace('{lon}', p.lon)
+                .replace('{dist}', p.dist);
+            fetch(url, { headers: { 'X-Eagle-Eyes-Client': 'eagleeyes-website-dronemap' } })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function(data) {
+                    if (seq !== adsbLolFetchSeq || !showAdsbLol) return; // stale
+                    renderAdsbLol(data && data.ac ? data.ac : []);
+                })
+                .catch(function(err) {
+                    console.warn('adsb.lol fetch failed:', err);
+                });
+        }
+
+        function renderAdsbLol(aircraft) {
+            if (!adsbLolLayer) return;
+            var keep = {};
+            for (var i = 0; i < aircraft.length; i++) {
+                var ac = aircraft[i];
+                if (!ac || !ac.hex || typeof ac.lat !== 'number' || typeof ac.lon !== 'number') continue;
+                keep[ac.hex] = true;
+                var existing = adsbLolMarkers[ac.hex];
+                if (existing) {
+                    existing.setLatLng([ac.lat, ac.lon]);
+                    // Update icon for new track
+                    existing.setIcon(buildAdsbLolMarker(ac).options.icon);
+                    existing.setPopupContent(buildAdsbLolPopup(ac));
+                } else {
+                    var m = buildAdsbLolMarker(ac);
+                    if (m) {
+                        m.addTo(adsbLolLayer);
+                        adsbLolMarkers[ac.hex] = m;
+                    }
+                }
+            }
+            // Remove aircraft that are no longer in the response
+            Object.keys(adsbLolMarkers).forEach(function(hex) {
+                if (!keep[hex]) {
+                    adsbLolLayer.removeLayer(adsbLolMarkers[hex]);
+                    delete adsbLolMarkers[hex];
+                }
+            });
+        }
+
+        function startAdsbLolPolling() {
+            stopAdsbLolPolling();
+            fetchAdsbLol(); // immediate
+            adsbLolRefreshTimer = setInterval(fetchAdsbLol, ADSB_LOL_REFRESH_MS);
+            map.on('moveend', onAdsbLolMoveEnd);
+        }
+        function stopAdsbLolPolling() {
+            if (adsbLolRefreshTimer) { clearInterval(adsbLolRefreshTimer); adsbLolRefreshTimer = null; }
+            if (adsbLolMoveEndTimer) { clearTimeout(adsbLolMoveEndTimer); adsbLolMoveEndTimer = null; }
+            if (map) map.off('moveend', onAdsbLolMoveEnd);
+        }
+        function onAdsbLolMoveEnd() {
+            if (adsbLolMoveEndTimer) clearTimeout(adsbLolMoveEndTimer);
+            adsbLolMoveEndTimer = setTimeout(function() {
+                adsbLolMoveEndTimer = null;
+                fetchAdsbLol();
+            }, ADSB_LOL_DEBOUNCE_MS);
+        }
+
+        function setAdsbLolVisibility(visible) {
+            var checkbox = document.getElementById('toggleAdsbLolCheckbox');
+            if (visible) {
+                showAdsbDisclaimerIfNeeded(function() {
+                    showAdsbLol = true;
+                    if (checkbox) checkbox.checked = true;
+                    if (!map) return;
+                    if (!adsbLolLayer) {
+                        adsbLolLayer = L.layerGroup();
+                    }
+                    adsbLolLayer.addTo(map);
+                    startAdsbLolPolling();
+                }, function() {
+                    // Cancelled — revert toggle
+                    showAdsbLol = false;
+                    if (checkbox) checkbox.checked = false;
+                });
+            } else {
+                showAdsbLol = false;
+                if (checkbox) checkbox.checked = false;
+                stopAdsbLolPolling();
+                if (adsbLolLayer && map) {
+                    map.removeLayer(adsbLolLayer);
+                }
+                Object.keys(adsbLolMarkers).forEach(function(hex) {
+                    if (adsbLolLayer) adsbLolLayer.removeLayer(adsbLolMarkers[hex]);
+                });
+                adsbLolMarkers = {};
+            }
+        }
+
+        // ---- Attribution dialog (opened from the EDS-B info card) ----
+        // Closes via the top-right ✕, outside-click on the overlay backdrop, or Escape.
+        function openAttributionDialog() {
+            var overlay = document.getElementById('attributionOverlay');
+            if (!overlay) return;
+            var card = overlay.querySelector('.attribution-card');
+            overlay.classList.add('visible');
+            function close() {
+                overlay.classList.remove('visible');
+                overlay.removeEventListener('click', onOverlayClick);
+                document.removeEventListener('keydown', onKeyDown);
+            }
+            function onOverlayClick(e) {
+                // Click on the backdrop (overlay itself), not inside the card → close
+                if (card && !card.contains(e.target)) close();
+            }
+            function onKeyDown(e) {
+                if (e.key === 'Escape') close();
+            }
+            var closeX = document.getElementById('attributionCloseTop');
+            if (closeX) closeX.onclick = close;
+            overlay.addEventListener('click', onOverlayClick);
+            document.addEventListener('keydown', onKeyDown);
         }
 
         function setCanadianAirspaceVisibility(visible) {
@@ -5002,6 +5517,11 @@
                         }
                     });
                     syncCanToggleAllCheckbox();
+                }, function() {
+                    // User cancelled the disclaimer — revert the master toggle.
+                    showCanadianAirspace = false;
+                    if (checkbox) checkbox.checked = false;
+                    if (subList) subList.style.display = 'none';
                 });
             } else {
                 showCanadianAirspace = false;
@@ -5071,6 +5591,81 @@
         var CAN_HIGHLIGHT_STYLE = { color: '#06b6d4', weight: 4, opacity: 1 };
         var CAN_HIGHLIGHT_FILL = { fillColor: '#06b6d4', fillOpacity: 0.18 };
 
+        // Make a Leaflet popup draggable. Anchors stay at the original latlng (so the
+        // popup tracks panning of the map), but the user can grab and pull the popup
+        // off the click point if it's covering something they want to see. Buttons,
+        // links, and form controls inside the popup are excluded from the drag region.
+        function makeCanPopupDraggable(popup) {
+            var el = popup.getElement && popup.getElement();
+            if (!el) return;
+            el.style.cursor = 'grab';
+
+            var dragging = false;
+            var startX = 0, startY = 0, dx = 0, dy = 0;
+            var origOffset = null;
+
+            function getCurrentOffset() {
+                var o = popup.options.offset;
+                if (o && typeof o.x === 'number') return L.point(o.x, o.y);
+                if (Array.isArray(o)) return L.point(o[0], o[1]);
+                return L.point(0, -7); // Leaflet default
+            }
+            function isInteractiveTarget(t) {
+                if (!t || !t.closest) return false;
+                return !!(t.closest('button') || t.closest('a') || t.closest('input') ||
+                         t.closest('textarea') || t.closest('select') || t.closest('summary'));
+            }
+            function onMove(cx, cy) {
+                if (!dragging) return;
+                dx = cx - startX;
+                dy = cy - startY;
+                el.style.transform = 'translate3d(' + dx + 'px, ' + dy + 'px, 0)';
+            }
+            function onEnd() {
+                if (!dragging) return;
+                dragging = false;
+                document.removeEventListener('mousemove', mouseMove);
+                document.removeEventListener('mouseup', mouseUp);
+                document.removeEventListener('touchmove', touchMove);
+                document.removeEventListener('touchend', touchEnd);
+                el.style.cursor = 'grab';
+                if (map.dragging) map.dragging.enable();
+                if (origOffset) {
+                    popup.options.offset = L.point(origOffset.x + dx, origOffset.y + dy);
+                }
+                el.style.transform = '';
+                popup.update();
+            }
+            function mouseMove(e) { onMove(e.clientX, e.clientY); }
+            function mouseUp() { onEnd(); }
+            function touchMove(e) {
+                if (e.touches.length !== 1) return;
+                onMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+            function touchEnd() { onEnd(); }
+
+            el.addEventListener('mousedown', function(e) {
+                if (isInteractiveTarget(e.target) || e.button !== 0) return;
+                dragging = true;
+                startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+                origOffset = getCurrentOffset();
+                el.style.cursor = 'grabbing';
+                if (map.dragging) map.dragging.disable();
+                document.addEventListener('mousemove', mouseMove);
+                document.addEventListener('mouseup', mouseUp);
+                e.preventDefault();
+            });
+            el.addEventListener('touchstart', function(e) {
+                if (e.touches.length !== 1 || isInteractiveTarget(e.target)) return;
+                dragging = true;
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; dy = 0;
+                origOffset = getCurrentOffset();
+                if (map.dragging) map.dragging.disable();
+                document.addEventListener('touchmove', touchMove, { passive: false });
+                document.addEventListener('touchend', touchEnd);
+            }, { passive: true });
+        }
+
         function handleCanadianMapClick(latlng, origEvt) {
             if (!showCanadianAirspace || !map) return;
             // Ignore clicks that originated inside a Leaflet popup (e.g. the
@@ -5100,6 +5695,7 @@
                 });
             canActivePopup.openOn(map);
             renderCanPopupContent();
+            makeCanPopupDraggable(canActivePopup);
         }
 
         function renderCanPopupContent() {
@@ -6189,6 +6785,14 @@
                     edsbClose.addEventListener('click', function(e) {
                         e.stopPropagation();
                         hide();
+                    });
+                }
+                var edsbAttrBtn = document.getElementById('edsbAttributionBtn');
+                if (edsbAttrBtn) {
+                    edsbAttrBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        hide();
+                        openAttributionDialog();
                     });
                 }
             }
