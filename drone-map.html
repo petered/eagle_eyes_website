@@ -5061,7 +5061,20 @@
                     pointToLayer: function(feature, latlng) {
                         var sev = (feature.properties && feature.properties.severity) || 'low';
                         var s = notamStyle[sev] || notamStyle.low;
-                        return L.circleMarker(latlng, { radius: s.r, color: s.color, fillColor: s.color, fillOpacity: 0.75, weight: 1 });
+                        // Solid colored fill (severity colour) with a white outline so the
+                        // dot reads cleanly against both dark and light basemaps.
+                        var m = L.circleMarker(latlng, {
+                            radius: s.r,
+                            color: '#fff',
+                            weight: 1.5,
+                            fillColor: s.color,
+                            fillOpacity: 0.85
+                        });
+                        m.on('click', function(ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            handleCanadianMapClick(m.getLatLng(), ev.originalEvent);
+                        });
+                        return m;
                     }
                 }),
                 buildPopup: function(p) {
@@ -5092,14 +5105,20 @@
                 layer: L.geoJSON(null, {
                     pointToLayer: function(feature, latlng) {
                         var p = feature.properties || {};
-                        var cat = p.category || 'VFR';
-                        var color = metarColors[cat] || '#2563eb';
+                        // Color encodes flight category; label always says METAR for
+                        // clarity regardless of category quality / missing fields.
+                        var color = metarColors[p.category] || '#2563eb';
                         var icon = L.divIcon({
                             className: 'can-metar-chip',
-                            html: '<div style="background:' + color + ';color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">' + cat + '</div>',
-                            iconSize: null, iconAnchor: [40, 8]
+                            html: '<div style="background:' + color + ';color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">METAR</div>',
+                            iconSize: null, iconAnchor: [44, 8]
                         });
-                        return L.marker(latlng, { icon: icon, interactive: true });
+                        var m = L.marker(latlng, { icon: icon, interactive: true });
+                        m.on('click', function(ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            handleCanadianMapClick(m.getLatLng(), ev.originalEvent);
+                        });
+                        return m;
                     }
                 }),
                 buildPopup: function(p) {
@@ -5186,7 +5205,12 @@
                             html: '<div style="background:#0ea5e9;color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">TAF</div>',
                             iconSize: null, iconAnchor: [-12, 8]
                         });
-                        return L.marker(latlng, { icon: icon, interactive: true });
+                        var m = L.marker(latlng, { icon: icon, interactive: true });
+                        m.on('click', function(ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            handleCanadianMapClick(m.getLatLng(), ev.originalEvent);
+                        });
+                        return m;
                     }
                 }),
                 buildPopup: function(p) {
@@ -5311,19 +5335,24 @@
             };
         }
 
-        // Build a simple plane marker — small Unicode glyph rotated to track.
+        // Inline SVG plane that points straight up at rotation 0. Track is degrees
+        // from north (0=N, 90=E), so rotating this upward-facing icon clockwise by
+        // the track produces the correct visual heading on screen — no font-
+        // dependent glyph orientation to compensate for.
+        var ADSB_LOL_PLANE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18">'
+            + '<path d="M16 2 L18 13 L29 18 L29 21 L18 18.5 L18 25 L20 27 L20 29 L16 28 L12 29 L12 27 L14 25 L14 18.5 L3 21 L3 18 L14 13 Z" '
+            + 'fill="#22d3ee" stroke="#000" stroke-width="0.6" stroke-linejoin="round" paint-order="stroke" />'
+            + '</svg>';
         function buildAdsbLolMarker(ac) {
             var lat = ac.lat, lon = ac.lon;
             if (typeof lat !== 'number' || typeof lon !== 'number') return null;
             var track = (typeof ac.track === 'number') ? ac.track : 0;
             var callsign = (ac.flight || ac.r || ac.hex || '').toString().trim();
-            // Tiny ✈ marker. Unicode plane points "up-right" at 45°, so subtract 45 to align
-            // 0° (north) with the glyph's perceived heading.
             var icon = L.divIcon({
                 className: 'adsb-lol-marker',
-                html: '<div style="transform:rotate(' + (track - 45) + 'deg);font-size:14px;color:#22d3ee;text-shadow:0 0 3px #000,0 0 1px #000;line-height:1;">✈</div>',
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
+                html: '<div style="transform:rotate(' + track + 'deg);transform-origin:center;width:18px;height:18px;line-height:0;">' + ADSB_LOL_PLANE_SVG + '</div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
             });
             var marker = L.marker([lat, lon], { icon: icon, title: callsign, interactive: true });
             marker.bindPopup(buildAdsbLolPopup(ac));
