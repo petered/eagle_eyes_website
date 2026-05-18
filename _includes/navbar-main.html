@@ -140,6 +140,16 @@
                                                 <div class="nav-admin-label">Site admin tools</div>
                                                 <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
                                                     <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
+                                                    <select id="navImpersonateCategory" required>
+                                                        <option value="" disabled selected>Reason category…</option>
+                                                        <option value="customer_support">Customer support</option>
+                                                        <option value="bug_investigation">Bug investigation</option>
+                                                        <option value="account_recovery">Account recovery</option>
+                                                        <option value="internal_test">Internal test</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                    <input type="text" id="navImpersonateReason" placeholder="Reason (e.g. ticket #1234)" autocomplete="off" maxlength="200" required>
+                                                    <p class="nav-admin-hint">Logged to the impersonations audit trail.</p>
                                                     <button type="submit" class="nav-admin-go">Log in as</button>
                                                 </form>
                                                 <div id="navImpersonateStatus" class="nav-admin-status"></div>
@@ -327,22 +337,35 @@
         }
         .nav-admin-form {
             display: flex;
+            flex-direction: column;
             gap: 6px;
             margin: 0;
         }
-        .nav-admin-form input {
-            flex: 1 1 auto;
-            min-width: 0;
+        .nav-admin-form input,
+        .nav-admin-form select {
+            width: 100%;
+            box-sizing: border-box;
             padding: 6px 9px;
             border: 1px solid #d8dce0;
             border-radius: 4px;
             font-size: 13px;
             font-family: inherit;
+            background: #fff;
         }
-        .nav-admin-form input:focus {
+        .nav-admin-form input:focus,
+        .nav-admin-form select:focus {
             outline: none;
             border-color: #1e90ff;
             box-shadow: 0 0 0 2px rgba(30,144,255,0.18);
+        }
+        .nav-admin-form .nav-admin-go {
+            margin-top: 2px;
+        }
+        .nav-admin-hint {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.35;
+            margin: 0 0 2px 0;
         }
         .nav-admin-go {
             background: #1e90ff;
@@ -573,10 +596,25 @@
             window.navImpersonate = async function(event) {
                 event.preventDefault();
                 var input = document.getElementById('navImpersonateEmail');
+                var categoryEl = document.getElementById('navImpersonateCategory');
+                var reasonEl = document.getElementById('navImpersonateReason');
                 var status = document.getElementById('navImpersonateStatus');
                 var submitBtn = event.target.querySelector('button[type="submit"]');
                 var target = (input.value || '').trim().toLowerCase();
+                var category = (categoryEl && categoryEl.value || '').trim();
+                var reason = (reasonEl && reasonEl.value || '').trim();
                 if (!target) return false;
+                // Compliance gate: refuse to call the endpoint without a
+                // logged justification. Backend should also enforce, but
+                // the client-side check keeps the audit trail honest in
+                // the common case and avoids a wasted round-trip.
+                if (!category || !reason) {
+                    if (status) {
+                        status.textContent = 'Reason category and details are required.';
+                        status.className = 'nav-admin-status error';
+                    }
+                    return false;
+                }
                 if (status) { status.textContent = ''; status.className = 'nav-admin-status'; }
                 if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Working…'; }
 
@@ -589,9 +627,15 @@
                     var r = await fetch(hostURL + '/admin_impersonate_user', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
-                        // Backend contract: body is { target_email, reason? };
+                        // Backend contract: body is { target_email, reason, reason_category };
                         // response is { custom_token, target_email, target_uid, expires_in }.
-                        body: JSON.stringify({ target_email: target })
+                        // reason + reason_category land on the impersonations
+                        // audit doc for compliance / anomaly detection.
+                        body: JSON.stringify({
+                            target_email: target,
+                            reason: reason,
+                            reason_category: category
+                        })
                     });
                     var bodyText = await r.text();
                     var data = {};
