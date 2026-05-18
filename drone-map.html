@@ -6394,6 +6394,12 @@
             const droneId = telemetryData.public_drone_id;
             const droneName = telemetryData.drone_name || droneId;
 
+            // Drone-map analytics: tally unique drones observed during the session.
+            // Safe to call before / after the analytics IIFE registers the hook.
+            if (typeof window.__droneMapAnalyticsObserveDrone === 'function') {
+                window.__droneMapAnalyticsObserveDrone(droneId);
+            }
+
             // Store latest telemetry data
             mqttDroneData[droneId] = telemetryData;
             
@@ -6767,6 +6773,124 @@
             parseTargetDroneFromURL();
 
             initMap();
+
+            // ==================== Drone Map Analytics ====================
+            // Silent page-view ping + periodic session snapshots to the
+            // DroneMapAnalyticsIngest Apps Script (separate Sheet from Mirada
+            // so the two surfaces stay cleanly partitioned). No banner, no
+            // PII, persistent anonymous viewer_id in localStorage.
+            (function setupDroneMapAnalytics() {
+                var ENDPOINT = 'https://script.google.com/macros/s/AKfycbytI9n1cNzxltKpxR_XOmEiVq25OfV-Cv2MELV_JdpW3hjFmQOzNdadvoJcDvATS-FNeA/exec';
+                var VIEWER_ID_KEY = 'eagle_eyes_dronemap_viewer_id';
+                var SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000; // 5 min between drones_observed snapshots
+                var sessionStart = Date.now();
+                var observedDrones = {}; // hex/id → 1 (for unique-count)
+
+                function safeGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+                function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+                function getViewerId() {
+                    var id = safeGet(VIEWER_ID_KEY);
+                    if (!id) {
+                        id = 'vw_' + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2));
+                        safeSet(VIEWER_ID_KEY, id);
+                    }
+                    return id;
+                }
+                function isoNow() { return new Date().toISOString(); }
+                function pacificNow() {
+                    try { return new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }); } catch(e) { return ''; }
+                }
+                function layersSnapshot() {
+                    var on = [];
+                    if (typeof showDetectedAircraft !== 'undefined' && showDetectedAircraft) on.push('adsb_edsb');
+                    if (typeof showAdsbLol !== 'undefined' && showAdsbLol) on.push('adsb_lol');
+                    if (typeof showFaaAirspace !== 'undefined' && showFaaAirspace) on.push('faa');
+                    if (typeof showCanadianAirspace !== 'undefined' && showCanadianAirspace) on.push('can');
+                    return on.join(',');
+                }
+                function postEvent(payload, useBeacon) {
+                    try {
+                        var body = JSON.stringify(payload);
+                        if (useBeacon && navigator.sendBeacon) {
+                            // Send-on-unload — sendBeacon survives page close where fetch() does not
+                            navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'text/plain' }));
+                            return;
+                        }
+                        fetch(ENDPOINT, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: body,
+                            keepalive: true
+                        }).catch(function(){});
+                    } catch(e) {}
+                }
+                function fetchGeoThen(cb) {
+                    fetch('https://ipapi.co/json/')
+                        .then(function(r) { return r.ok ? r.json() : {}; })
+                        .then(function(d) {
+                            cb({ country: d.country_name || '', city: d.city || '', region: d.region || '' });
+                        })
+                        .catch(function() { cb({ country: '', city: '', region: '' }); });
+                }
+                function firePageView() {
+                    fetchGeoThen(function(geo) {
+                        postEvent({
+                            timestamp_iso: isoNow(),
+                            timestamp_pacific: pacificNow(),
+                            event_type: 'page_view',
+                            viewer_id: getViewerId(),
+                            page_url: '/drone-map',
+                            referrer: document.referrer || '',
+                            country: geo.country,
+                            city: geo.city,
+                            region: geo.region,
+                            consent_given: '',
+                            user_agent: navigator.userAgent,
+                            drones_observed: 0,
+                            layers_enabled: layersSnapshot(),
+                            session_duration_s: 0
+                        });
+                    });
+                }
+                function fireSnapshot() {
+                    postEvent({
+                        timestamp_iso: isoNow(),
+                        timestamp_pacific: pacificNow(),
+                        event_type: 'drones_observed',
+                        viewer_id: getViewerId(),
+                        page_url: '/drone-map',
+                        drones_observed: Object.keys(observedDrones).length,
+                        layers_enabled: layersSnapshot(),
+                        session_duration_s: Math.round((Date.now() - sessionStart) / 1000)
+                    });
+                }
+                function fireSessionEnd() {
+                    postEvent({
+                        timestamp_iso: isoNow(),
+                        timestamp_pacific: pacificNow(),
+                        event_type: 'session_end',
+                        viewer_id: getViewerId(),
+                        page_url: '/drone-map',
+                        drones_observed: Object.keys(observedDrones).length,
+                        layers_enabled: layersSnapshot(),
+                        session_duration_s: Math.round((Date.now() - sessionStart) / 1000)
+                    }, true);
+                }
+                // Track unique drone IDs seen via EDSB telemetry. mqttAircraftMarkers
+                // already tracks aircraft; we also want to count drones (publishers).
+                // Hook into a global mechanism we already maintain — anything that
+                // looks like a drone telemetry observation populates this map.
+                window.__droneMapAnalyticsObserveDrone = function(id) {
+                    if (id) observedDrones[id] = 1;
+                };
+
+                firePageView();
+                setInterval(fireSnapshot, SNAPSHOT_INTERVAL_MS);
+                window.addEventListener('beforeunload', fireSessionEnd);
+                window.addEventListener('pagehide', fireSessionEnd);
+            })();
+            // ==============================================================
+
             // Restore shared map view from URL hash (center, zoom, layers).
             // suppressHashUpdate prevents the restoration itself from triggering
             // moveend handlers that would overwrite the inbound URL.
