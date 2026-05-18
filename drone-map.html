@@ -5901,12 +5901,14 @@
         // ==================== Share Map View ====================
         // Compact URL hash format:
         //   v1 (legacy):  #v=lat,lng,z,base,adsb,faaFlag,faaBits
-        //   v2 (current): #v=lat,lng,z,base,adsb,faaFlag,faaBits,canFlag,canBits
+        //   v2 (legacy):  #v=lat,lng,z,base,adsb,faaFlag,faaBits,canFlag,canBits
+        //   v3 (current): #v=lat,lng,z,base,adsb,faaFlag,faaBits,canFlag,canBits,adsbLolFlag
         // Base map codes: d=Dark, gh=Google Hybrid, gi=Google Imagery, ei=Esri Imagery, et=Esri Topo, l=Light
         // FAA bitmask: 7 bits for sub-layers (laanc,classAirspace,sua,tfr,nsufr,airports,recSites)
         // Canadian bitmask: 12 bits for sub-layers (see canSubKeys order below)
-        // Only written to URL when user clicks Share; parsed on page load. v1 links
-        // still work — Canadian state defaults to off when those fields are absent.
+        // adsbLolFlag: 1 or 0 — whether the Live ADS-B (adsb.lol) layer is active
+        // Only written to URL when user clicks Share; parsed on page load. v1/v2 links
+        // still work — adsb.lol state silently defaults to off when that field is absent.
 
         var baseMapCodes = {
             'Dark Theme': 'd', 'Google Hybrid': 'gh', 'Google Imagery': 'gi',
@@ -5946,8 +5948,10 @@
             canSubKeys.forEach(function(key, i) {
                 if (canSubLayers[key] && canSubLayers[key].visible) canBits |= (1 << i);
             });
+            // Live ADS-B (adsb.lol) flag
+            var adsbLolFlag = showAdsbLol ? '1' : '0';
             // Build hash: lat,lng rounded to 5 decimals, zoom as int
-            var hash = '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + z + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36) + ',' + canFlag + ',' + canBits.toString(36);
+            var hash = '#v=' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + z + ',' + bcode + ',' + adsb + ',' + faaFlag + ',' + bits.toString(36) + ',' + canFlag + ',' + canBits.toString(36) + ',' + adsbLolFlag;
             // Update URL without reload
             history.replaceState(null, '', window.location.pathname + window.location.search + hash);
             // Copy to clipboard
@@ -6006,6 +6010,8 @@
                 var canOn = parts.length >= 9 ? parts[7] === '1' : false;
                 var canBits = parts.length >= 9 ? parseInt(parts[8], 36) : 0;
                 if (isNaN(canBits)) canBits = 0;
+                // v3 field — Live ADS-B (adsb.lol) flag (optional for backward compat)
+                var adsbLolOn = parts.length >= 10 ? parts[9] === '1' : false;
                 if (isNaN(lat) || isNaN(lng) || isNaN(z)) return false;
                 // Set view
                 map.setView([lat, lng], z);
@@ -6065,6 +6071,18 @@
                     });
                 }
                 syncCanToggleAllCheckbox();
+
+                // Live ADS-B (adsb.lol) — restore without re-triggering the disclaimer
+                // (sharer is treated as having acked on the recipient's behalf, same as
+                // the Canadian/FAA restoration paths above).
+                if (adsbLolOn && map) {
+                    showAdsbLol = true;
+                    var adsbLolCheckbox = document.getElementById('toggleAdsbLolCheckbox');
+                    if (adsbLolCheckbox) adsbLolCheckbox.checked = true;
+                    if (!adsbLolLayer) adsbLolLayer = L.layerGroup();
+                    adsbLolLayer.addTo(map);
+                    startAdsbLolPolling();
+                }
                 return true;
             } catch(e) {
                 console.warn('Could not restore map from hash:', e);
