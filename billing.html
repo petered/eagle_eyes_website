@@ -146,6 +146,43 @@ active: billing
     }
     .billing-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .billing-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
+
+    /* Billing timeline — rows of charges / invoices / quotes from
+       list_account_billing. One row per Stripe object, sorted newest-first. */
+    .billing-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-top: 1px solid #f0f0f0;
+        gap: 12px;
+    }
+    .billing-item-row:first-child { border-top: none; }
+    .billing-item-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+    .billing-item-pill {
+        display: inline-block; padding: 2px 8px; border-radius: 999px;
+        font-size: 11px; font-weight: 600; flex-shrink: 0;
+        text-transform: capitalize;
+    }
+    .billing-item-pill.paid,
+    .billing-item-pill.accepted { background: rgba(46,155,110,0.12); color: #1f7a52; }
+    .billing-item-pill.open { background: rgba(255,170,0,0.14); color: #a66800; }
+    .billing-item-pill.canceled,
+    .billing-item-pill.uncollectible,
+    .billing-item-pill.void,
+    .billing-item-pill.draft { background: #f1f1f1; color: #777; }
+    .billing-item-pill.failed,
+    .billing-item-pill.pending { background: rgba(255,80,80,0.13); color: #b32525; }
+    .billing-item-meta { display: flex; flex-direction: column; min-width: 0; }
+    .billing-item-title { font-size: 14px; color: #222; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+    .billing-item-sub { font-size: 12px; color: #888; margin-top: 2px; }
+    .billing-item-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .billing-item-amount { font-size: 14px; font-weight: 600; color: #222; }
+    .billing-item-link {
+        font-size: 12px; color: #1e90ff; text-decoration: none;
+        padding: 4px 10px; border: 1px solid #1e90ff; border-radius: 6px;
+    }
+    .billing-item-link:hover { background: #e8f3ff; text-decoration: none; }
 </style>
 
 <div class="billing-page">
@@ -194,19 +231,21 @@ active: billing
             <div class="billing-empty" id="billingPortalStatus">Available after your first purchase.</div>
         </div>
 
-        <!-- Invoices -->
+        <!-- Invoices, receipts, and quotes — live from Stripe via list_account_billing -->
         <div class="billing-card">
             <div class="billing-card-header">
                 <div>
                     <h3 class="billing-card-title">Invoices &amp; receipts</h3>
-                    <p class="billing-card-sub">Stripe emails receipts to the account owner after every charge.</p>
+                    <p class="billing-card-sub">Live from Stripe. Receipts are also emailed to the account owner.</p>
                 </div>
             </div>
-            <div class="billing-empty">
-                A history of charges will appear here once the invoices endpoint ships.
-                In the meantime, search your inbox for "Stripe" or the account-owner email
-                for receipts.
+            <div id="billingTimelineLoading" class="billing-empty" style="display: none;">Loading billing history…</div>
+            <div id="billingTimelineEmpty" class="billing-empty" style="display: none;">
+                No Stripe records yet for this account. If you've paid by invoice or check
+                in the past, contact <a href="mailto:info@eagleeyessearch.com" style="color: #1e90ff;">info@eagleeyessearch.com</a>
+                for a copy of your receipt.
             </div>
+            <div id="billingTimelineList"></div>
         </div>
     </div>
 </div>
@@ -400,6 +439,98 @@ active: billing
         renderAccountSummary();
         state.credits = await loadCredits(state.activeAccountId);
         renderCreditsCard();
+        loadBillingTimeline(state.activeAccountId);
+    }
+
+    // GET /list_account_billing — fetches Stripe invoices, charges, and
+    // quotes for the active account and renders them as a single
+    // newest-first timeline. Empty list is a valid state (no Stripe history
+    // for accounts that paid offline / before Stripe).
+    async function loadBillingTimeline(accountId) {
+        var loading = $('billingTimelineLoading');
+        var empty = $('billingTimelineEmpty');
+        var list = $('billingTimelineList');
+        if (!loading || !empty || !list) return;
+        loading.style.display = '';
+        empty.style.display = 'none';
+        list.innerHTML = '';
+
+        try {
+            var resp = await apiCall('list_account_billing?account_id=' + encodeURIComponent(accountId));
+            loading.style.display = 'none';
+            var items = (resp && resp.items) || [];
+            if (!items.length) {
+                empty.style.display = '';
+                return;
+            }
+            list.innerHTML = items.map(renderBillingItem).filter(Boolean).join('');
+        } catch (e) {
+            console.error('list_account_billing failed:', e);
+            loading.style.display = 'none';
+            list.innerHTML = '<div class="billing-empty" style="color: #b32525;">Couldn\'t load billing history: '
+                + escapeHtml(e.message || String(e)) + '</div>';
+        }
+    }
+
+    function renderBillingItem(item) {
+        var dateStr = item.created_at_iso ? new Date(item.created_at_iso).toLocaleDateString() : '';
+        var amount = '$' + (Number(item.amount_usd) || 0).toFixed(2);
+        var pill, title, sub = '', actions = [];
+
+        if (item.type === 'invoice') {
+            pill = item.status || 'invoice';
+            title = (item.line_items && item.line_items.length)
+                ? item.line_items.map(function(li) { return escapeHtml(li.description || ''); }).join(' • ')
+                : (item.number ? 'Invoice ' + escapeHtml(item.number) : 'Invoice');
+            sub = dateStr;
+            if (item.status === 'open' && item.due_date_iso) {
+                sub += ' · due ' + new Date(item.due_date_iso).toLocaleDateString();
+            } else if (item.status === 'paid' && item.paid_at_iso) {
+                sub += ' · paid ' + new Date(item.paid_at_iso).toLocaleDateString();
+            }
+            if (item.hosted_url) {
+                var label = item.status === 'paid' ? 'View' : (item.status === 'open' ? 'Pay now' : 'View');
+                actions.push('<a class="billing-item-link" href="' + escapeHtml(item.hosted_url)
+                    + '" target="_blank" rel="noopener">' + label + '</a>');
+            }
+            if (item.pdf_url) {
+                actions.push('<a class="billing-item-link" href="' + escapeHtml(item.pdf_url)
+                    + '" target="_blank" rel="noopener">PDF</a>');
+            }
+        } else if (item.type === 'charge') {
+            pill = item.status === 'succeeded' ? 'paid' : (item.status || 'charge');
+            title = escapeHtml(item.description || 'Card payment');
+            sub = dateStr + (item.refunded ? ' · refunded' : '');
+            if (item.receipt_url) {
+                actions.push('<a class="billing-item-link" href="' + escapeHtml(item.receipt_url)
+                    + '" target="_blank" rel="noopener">Receipt</a>');
+            }
+        } else if (item.type === 'quote') {
+            pill = item.status || 'quote';
+            var qhead = item.number ? 'Quote ' + escapeHtml(item.number) : 'Quote';
+            title = qhead + (item.description ? ' · ' + escapeHtml(item.description) : '');
+            sub = dateStr + (item.expires_at_iso ? ' · valid until ' + new Date(item.expires_at_iso).toLocaleDateString() : '');
+            if (item.hosted_url) {
+                actions.push('<a class="billing-item-link" href="' + escapeHtml(item.hosted_url)
+                    + '" target="_blank" rel="noopener">View quote</a>');
+            }
+        } else {
+            return '';
+        }
+
+        return '<div class="billing-item-row">'
+            +   '<div class="billing-item-left">'
+            +     '<span class="billing-item-pill ' + escapeHtml(pill) + '">' + escapeHtml(pill) + '</span>'
+            +     '<div class="billing-item-meta">'
+            +       '<span class="billing-item-title">' + title + '</span>'
+            +       (sub ? '<span class="billing-item-sub">' + escapeHtml(sub) + '</span>' : '')
+            +     '</div>'
+            +   '</div>'
+            +   '<div class="billing-item-right">'
+            +     '<span class="billing-item-amount">' + amount + '</span>'
+            +     actions.join('')
+            +   '</div>'
+            + '</div>';
     }
 
     async function initSignedIn(user) {
@@ -455,6 +586,7 @@ active: billing
         $('billingContent').style.display = '';
         renderAccountSummary();
         renderCreditsCard();
+        loadBillingTimeline(state.activeAccountId);
     }
 
     function initSignedOut() {
