@@ -101,7 +101,7 @@ active: purchase
     }
     .mode-row-inputs input[type="number"] { width: 80px; }
 
-    /* License-picker cards — modeled on the saved-configuration cards in
+    /* License-picker cards. Modeled on the saved-configuration cards in
        setup.html (.config-card): white card with a blue left-accent bar,
        hover lift, bold dark title, smaller grey detail line. The whole
        card is a radio target; the selected card gets a thicker accent and
@@ -160,7 +160,7 @@ active: purchase
     }
     .license-row-meta-warn { color: #c0392b; font-weight: 600; }
 
-    /* Step blocks — two-step add-devices flow. Step 1 = pick license,
+    /* Step blocks. Two-step add-devices flow. Step 1 = pick license,
        Step 2 = pick count. Step 2 is hidden until Step 1 has a pick. */
     .step-block { margin-top: 18px; }
     .step-block:first-child { margin-top: 8px; }
@@ -187,7 +187,7 @@ active: purchase
         color: #1a1a2e;
     }
 
-    /* Step 2 stepper card — bigger, more deliberate than a tiny input.
+    /* Step 2 stepper card. Bigger, more deliberate than a tiny input.
        The − / + buttons hint at the process nature: tap to adjust. */
     .step2-card {
         background: #fff;
@@ -323,16 +323,13 @@ active: purchase
     .cta-stack {
         margin-top: 24px;
     }
-    .cta-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: center;
-    }
+    /* Single primary CTA at the bottom (Buy now). Invoice + quote moved
+       to the top alt-cta bar so the bottom row stays a clean single
+       commit action. */
     .cta-btn {
         display: inline-block;
-        padding: 12px 22px;
-        font-size: 15px;
+        padding: 14px 28px;
+        font-size: 16px;
         font-weight: 600;
         border-radius: 8px;
         border: none;
@@ -343,28 +340,134 @@ active: purchase
     }
     .cta-btn.primary { background: #1e90ff; color: #fff; }
     .cta-btn.primary:hover { background: #1077dc; }
-    .cta-btn.secondary {
-        background: #fff;
-        color: #1e90ff;
-        border: 1px solid #1e90ff;
-    }
-    .cta-btn.secondary:hover { background: #e8f3ff; }
     .cta-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
-    .cta-quote-row {
-        margin-top: 18px;
-        text-align: center;
+
+    /* Payment-method rows. Same visual language as .mode-row (the "What
+       are you buying?" radios) for consistency: subtle row, active row
+       gets a blue tint + border, sub-inputs appear inside the active
+       row only. Invoice has a multi-field details panel revealed when
+       it's the active option. */
+    .pay-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 1px solid transparent;
     }
-    .cta-quote-link {
-        font-size: 15px;
-        color: #1e90ff;
-        text-decoration: none;
+    .pay-row:hover { background: #f6f8fa; }
+    .pay-row.is-active {
+        background: #e8f3ff;
+        border-color: #c8e1ff;
     }
-    .cta-quote-link:hover { text-decoration: underline; }
+    .pay-row input[type="radio"] {
+        width: auto !important;
+        padding: 0 !important;
+        margin: 4px 0 0 0 !important;
+        flex: 0 0 auto;
+        appearance: auto !important;
+        -webkit-appearance: auto !important;
+        -moz-appearance: auto !important;
+    }
+    .pay-row-body { flex: 1 1 auto; min-width: 0; }
+    .pay-row-label {
+        font-weight: 600;
+        color: #222;
+        margin-bottom: 4px;
+    }
+    .pay-row-desc {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+    }
+    .pay-row-inputs {
+        display: none;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed #e0e6ec;
+    }
+    .pay-row.is-active .pay-row-inputs { display: block; }
+
+    /* Invoice details fields. Two-column grid so PO + payment-terms sit
+       side by side on wider screens; collapses to single column on
+       narrow screens. Address + memo + attention are always full-width. */
+    .invoice-fields {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px 18px;
+    }
+    .invoice-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .invoice-field-wide { grid-column: 1 / -1; }
+    .invoice-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #444;
+        letter-spacing: 0.02em;
+    }
+    .invoice-field-optional {
+        color: #999;
+        font-weight: 400;
+        font-size: 11px;
+        text-transform: lowercase;
+    }
+    .invoice-field input[type="text"],
+    .invoice-field select,
+    .invoice-field textarea {
+        padding: 8px 11px;
+        border: 1px solid #cfd6dc;
+        border-radius: 6px;
+        font: inherit;
+        font-size: 13px;
+        background: #fff;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+        -webkit-appearance: auto;
+        -moz-appearance: auto;
+        appearance: auto;
+    }
+    .invoice-field textarea {
+        font-family: inherit;
+        resize: vertical;
+        min-height: 60px;
+    }
+    .invoice-field-hint {
+        font-size: 11px;
+        color: #888;
+        margin: 0;
+        line-height: 1.4;
+    }
+    /* Recipient confirmation. Sits inside the invoice details panel and
+       tells the user (in plain English) which email will receive the
+       invoice — so they don't wonder where the Stripe email is going.
+       Soft blue tint matches the active pay-row treatment. */
+    .invoice-recipient {
+        grid-column: 1 / -1;
+        background: #fff;
+        border: 1px solid #d8e8fa;
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: #2a3a52;
+        line-height: 1.4;
+    }
+    .invoice-recipient strong { color: #1a1a2e; font-weight: 600; }
+    .invoice-recipient code {
+        font-family: SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        color: #1077dc;
+        background: transparent;
+        padding: 0;
+    }
+    @media (max-width: 600px) {
+        .invoice-fields { grid-template-columns: 1fr; }
+    }
 
     .purchase-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .purchase-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
 
-    /* Non-owner blocked state — replaces the purchase form for members
+    /* Non-owner blocked state. Replaces the purchase form for members
        of the account who don't have purchase authority. */
     .non-owner-card {
         background: #fff;
@@ -469,8 +572,6 @@ active: purchase
 <div class="purchase-page">
     <p class="purchase-intro">
         Buy a new license, add devices to one you already have, or top up your streaming credits.
-        Prefer to pay by invoice or need a formal quote for procurement? Use the alternative
-        buttons below — we'll get back to you the same business day.
     </p>
 
     <div id="purchaseLoading" class="purchase-loading" style="text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
@@ -484,7 +585,7 @@ active: purchase
 
     <!-- Non-owner blocked state. Account members who aren't owners still
          land on this page (e.g., via the sidebar link), but they can't
-         actually buy anything — server enforces with a 403. We swap the
+         actually buy anything. Server enforces with a 403. We swap the
          purchase UI for a friendly explainer + the list of owners they
          can contact. -->
     <div id="purchaseNonOwner" class="purchase-non-owner" style="display: none;">
@@ -494,7 +595,7 @@ active: purchase
             <p class="non-owner-hint">
                 You're a member of <strong id="nonOwnerAccountName">this account</strong> but not an owner,
                 so you can't buy licenses, streaming credits, or subscriptions here. Reach out to one of the
-                owners below — they can purchase on the account's behalf, or promote you to an owner so you can buy directly.
+                owners below. They can purchase on the account's behalf, or promote you to an owner so you can buy directly.
             </p>
             <div class="non-owner-owners-label">Account owners</div>
             <div class="non-owner-owners-list" id="nonOwnerOwnersList"></div>
@@ -507,11 +608,39 @@ active: purchase
         <div class="purchase-card">
             <h3 class="purchase-card-title">What are you buying?</h3>
 
+            <!-- Renew license. Shown when the account already has at least
+                 one active license; first-license accounts see "New license"
+                 instead (the two are mutually exclusive). For now Renew
+                 sends a mailto on Buy now until the backend renewal
+                 endpoint ships; the renewal starts when the current
+                 license ends so there is no service interruption. -->
+            <div class="mode-row" data-mode="renew" id="modeRowRenew" style="display: none;">
+                <input type="radio" name="purchaseMode" value="renew">
+                <div class="mode-row-body">
+                    <div class="mode-row-label">Renew an existing license</div>
+                    <div class="mode-row-desc">Extends the term of one of your active licenses. Starts when the current license ends, so there is no interruption.</div>
+                    <div class="mode-row-inputs" style="flex-direction: column; align-items: stretch;">
+                        <div class="step-block">
+                            <div class="step-header">
+                                <span class="step-pill">Step 1</span>
+                                <span class="step-title">Choose a license to renew</span>
+                            </div>
+                            <div class="license-list" id="renewLicenseList"></div>
+                        </div>
+                    </div>
+                    <div class="purchase-disabled-note" id="renewEmpty" style="display: none;">
+                        No active licenses on this account yet.
+                    </div>
+                </div>
+            </div>
+
             <!-- New license. <div> wrappers (not <label>) because the
                  legacy core.min.css applies global `label{...}` rules that
                  collapse our flex layout. Activation is handled by the
-                 row-click listener at the bottom of this file. -->
-            <div class="mode-row" data-mode="new">
+                 row-click listener at the bottom of this file. Hidden
+                 when the account already has at least one active license
+                 (users renew or add devices instead of stacking new ones). -->
+            <div class="mode-row" data-mode="new" id="modeRowNew">
                 <input type="radio" name="purchaseMode" value="new" checked>
                 <div class="mode-row-body">
                     <div class="mode-row-label">New license</div>
@@ -537,9 +666,9 @@ active: purchase
             </div>
 
             <!-- Add devices to existing license. Two-step process:
-                 Step 1 — pick a license from a list of cards (each shows
+                 Step 1. Pick a license from a list of cards (each shows
                  name + expiry + current device count).
-                 Step 2 — pick how many devices to add. Hidden until a
+                 Step 2. Pick how many devices to add. Hidden until a
                  license is selected so the flow reads top-to-bottom. -->
             <div class="mode-row" data-mode="add_devices" id="modeRowAddDevices">
                 <input type="radio" name="purchaseMode" value="add_devices">
@@ -548,7 +677,7 @@ active: purchase
                     <div class="mode-row-desc">Prorated to the license's current expiry. $20 / month / added device.</div>
                     <div class="mode-row-inputs" style="flex-direction: column; align-items: stretch;">
 
-                        <!-- Step 1 — choose a license -->
+                        <!-- Step 1. Choose a license -->
                         <div class="step-block">
                             <div class="step-header">
                                 <span class="step-pill">Step 1</span>
@@ -557,7 +686,7 @@ active: purchase
                             <div class="license-list" id="addDevicesLicenseList"></div>
                         </div>
 
-                        <!-- Step 2 — how many devices. Hidden until Step 1 has a selection. -->
+                        <!-- Step 2. How many devices. Hidden until Step 1 has a selection. -->
                         <div class="step-block" id="addDevicesStep2" style="display: none;">
                             <div class="step-header">
                                 <span class="step-pill">Step 2</span>
@@ -575,7 +704,7 @@ active: purchase
                         </div>
                     </div>
                     <div class="purchase-disabled-note" id="addDevicesEmpty" style="display: none;">
-                        No active licenses on this account yet — buy a new license first.
+                        No active licenses on this account yet. Buy a new license first.
                     </div>
                 </div>
             </div>
@@ -587,7 +716,7 @@ active: purchase
             <div class="mode-row" data-mode="streaming">
                 <input type="radio" name="purchaseMode" value="streaming">
                 <div class="mode-row-body">
-                    <div class="mode-row-label">Buy streaming credits</div>
+                    <div class="mode-row-label">Add streaming credits</div>
                     <div class="mode-row-desc">
                         Credits are deducted at $<span data-rate-per-minute>0.06</span> / minute
                         while streaming from Eagle Eyes Pilot to other viewers.
@@ -609,7 +738,7 @@ active: purchase
                         <div class="streaming-row" data-package="pro_bundle">
                             <input type="radio" name="streamingPkg" value="pro_bundle">
                             <div class="streaming-row-body">
-                                <div class="streaming-row-label">Pro Bundle — 20% bonus</div>
+                                <div class="streaming-row-label">Pro Bundle. 20% bonus</div>
                                 <div class="streaming-row-desc">$500 → $600 in credits. Best value for active users.</div>
                             </div>
                         </div>
@@ -625,11 +754,72 @@ active: purchase
             </div>
         </div>
 
+        <!-- How do you want to pay? Three options: credit card (Stripe
+             Checkout), invoice (Stripe Invoice, NET-30), quote (Stripe
+             Quote). The Continue button at the bottom branches on this
+             radio. Invoice is the only one with extra fields (PO, address,
+             memo, etc.), revealed in a sub-panel below when selected. -->
+        <div class="purchase-card">
+            <h3 class="purchase-card-title">How do you want to pay?</h3>
+
+            <div class="pay-row" data-pay="card">
+                <input type="radio" name="paymentMethod" value="card" checked>
+                <div class="pay-row-body">
+                    <div class="pay-row-label">Pay now with a credit card</div>
+                    <div class="pay-row-desc">Charged immediately via Stripe Checkout. License or credits are issued the moment payment succeeds.</div>
+                </div>
+            </div>
+
+            <div class="pay-row" data-pay="invoice">
+                <input type="radio" name="paymentMethod" value="invoice">
+                <div class="pay-row-body">
+                    <div class="pay-row-label">Request an invoice</div>
+                    <div class="pay-row-desc">Stripe sends an emailed invoice with a hosted pay link. NET-30 by default. Best for agencies that need a PO before payment.</div>
+
+                    <!-- Invoice details panel. Revealed only when this row
+                         is active. All fields are optional; on Continue
+                         they're packaged into the request_invoice_for_self
+                         call. Until the backend grows structured fields,
+                         everything except days_until_due rides in `footer`
+                         as a labeled block — easy to migrate later. -->
+                    <div class="pay-row-inputs" id="invoiceDetailsPanel">
+                        <div class="invoice-fields">
+                            <div class="invoice-field invoice-field-wide">
+                                <label for="invoicePO">PO number <span class="invoice-field-optional">(optional)</span></label>
+                                <input type="text" id="invoicePO" maxlength="120" placeholder="e.g. PO-2026-0142" autocomplete="off">
+                            </div>
+                            <div class="invoice-field invoice-field-wide">
+                                <label for="invoiceAttn">Attention <span class="invoice-field-optional">(optional)</span></label>
+                                <input type="text" id="invoiceAttn" maxlength="160" placeholder="e.g. Accounts Payable, Jane Smith" autocomplete="off">
+                            </div>
+                            <div class="invoice-recipient" id="invoiceRecipient" aria-live="polite">
+                                <!-- Populated by renderInvoiceRecipient() with the signed-in user's
+                                     name + email so they see who's about to receive the invoice. -->
+                            </div>
+                            <p class="invoice-field-hint" style="margin-top: 4px;">
+                                Payment terms are NET-30 by default. Stripe collects the billing address on
+                                the hosted invoice page. Email info@eagleeyessearch.com for non-standard terms
+                                or other questions.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pay-row" data-pay="quote">
+                <input type="radio" name="paymentMethod" value="quote">
+                <div class="pay-row-body">
+                    <div class="pay-row-label">Request a quote</div>
+                    <div class="pay-row-desc">Stripe sends a finalized quote valid for 30 days. Use this when procurement needs a quote document before approving the spend.</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Order summary -->
         <div class="purchase-card">
             <h3 class="purchase-card-title">Order summary</h3>
             <div class="summary-line">
-                <span id="summaryLineLabel">—</span>
+                <span id="summaryLineLabel">-</span>
                 <span id="summaryLineAmount">$0.00</span>
             </div>
             <div class="summary-line total">
@@ -639,17 +829,16 @@ active: purchase
             <div class="summary-note">Final price + applicable taxes are calculated at checkout.</div>
         </div>
 
-        <!-- CTAs. Buy now is the dominant path; "Request an invoice
-             instead" sits to its right as the procurement alternative.
-             "Need a quote?" lives on its own row below, centered. -->
+        <!-- Single Continue button. Branches by paymentMethod radio:
+             card → Stripe Checkout (get_stripe_payment_link),
+             invoice → request_invoice_for_self (with the invoice-fields
+                       panel data),
+             quote → request_quote_for_self.
+             The previous direct-to-action top buttons (Request invoice /
+             Request quote that fired the API immediately on click) were
+             surprising — users expect a discrete Confirm step. -->
         <div class="cta-stack">
-            <div class="cta-row">
-                <button type="button" id="ctaBuyNow" class="cta-btn primary">Buy now</button>
-                <button type="button" id="ctaInvoice" class="cta-btn secondary">Request an invoice instead</button>
-            </div>
-            <div class="cta-quote-row">
-                <a href="#" id="ctaQuote" class="cta-quote-link">Need a quote?</a>
-            </div>
+            <button type="button" id="ctaContinue" class="cta-btn primary">Continue</button>
             <div id="ctaError" class="purchase-error" style="display: none;"></div>
         </div>
     </div>
@@ -666,8 +855,10 @@ active: purchase
         credits: null,             // streaming credits balance for active account
         activeAccountId: null,
         activeLicenseId: null,     // selected license for add_devices mode
-        mode: 'new',
-        streamingPkg: 'payg'       // payg | pro_bundle | unlimited
+        renewLicenseId: null,      // selected license for renew mode
+        mode: 'new',               // new | renew | add_devices | streaming
+        streamingPkg: 'payg',      // payg | pro_bundle | unlimited
+        paymentMethod: 'card'      // card | invoice | quote
     };
 
     function $(id) { return document.getElementById(id); }
@@ -994,12 +1185,104 @@ active: purchase
         });
     }
 
+    // Toggle the active state on the "How do you want to pay?" rows and
+    // adjust the Continue button label so the action verb matches the
+    // chosen method. The label change is the main signal that this isn't
+    // a generic "next step" — it's a discrete commitment to the chosen
+    // payment path.
+    function applyPaymentUI() {
+        document.querySelectorAll('.pay-row').forEach(function(row) {
+            var isActive = row.getAttribute('data-pay') === state.paymentMethod;
+            row.classList.toggle('is-active', isActive);
+            var radio = row.querySelector(':scope > input[type="radio"]');
+            if (radio) radio.checked = isActive;
+        });
+        var continueBtn = $('ctaContinue');
+        if (continueBtn) {
+            if (state.paymentMethod === 'card') {
+                continueBtn.textContent = 'Continue to checkout';
+            } else if (state.paymentMethod === 'invoice') {
+                continueBtn.textContent = 'Send invoice';
+            } else if (state.paymentMethod === 'quote') {
+                continueBtn.textContent = 'Create quote';
+            } else {
+                continueBtn.textContent = 'Continue';
+            }
+        }
+        // Refresh the "invoice will be emailed to …" line whenever we
+        // toggle to / between payment methods. Cheap enough to run
+        // unconditionally; keeps the recipient line in sync if the
+        // user's profile name changed in another tab.
+        renderInvoiceRecipient();
+    }
+
+    // Read the invoice-details panel into a plain object. Empty strings
+    // stay as empty strings so the caller can decide whether to send /
+    // include each field. days_until_due always has a sensible numeric
+    // default since the select is never blank.
+    function readInvoiceFields() {
+        // days_until_due is fixed at the vendor default (NET-30); payment
+        // terms are a vendor policy, not a buyer choice. Billing address
+        // is collected by Stripe on the hosted invoice page. Notes/memo
+        // was removed for simplicity (low signal, low usage).
+        return {
+            po_number: ($('invoicePO').value || '').trim(),
+            days_until_due: 30,
+            attention: ($('invoiceAttn').value || '').trim()
+        };
+    }
+    function buildInvoiceFooter(f) {
+        var blocks = [];
+        if (f.po_number) blocks.push('PO: ' + f.po_number);
+        if (f.attention) blocks.push('Attn: ' + f.attention);
+        return blocks.join('\n\n');
+    }
+
+    // Plain-English recipient line so the user can see, before clicking
+    // Send invoice, which email address will receive the Stripe invoice.
+    // Picks first/last name in the same priority order as the navbar
+    // trigger and the profile form (localStorage draft → dashboard
+    // form_data → displayName → email handle) so the value matches what
+    // they see elsewhere in the app.
+    function pickInvoiceRecipientName(user) {
+        try {
+            var draft = JSON.parse(localStorage.getItem('profileDraft') || '{}');
+            var draftName = [draft.firstName, draft.lastName].filter(Boolean).join(' ').trim();
+            if (draftName) return draftName;
+        } catch (e) {}
+        try {
+            if (window.eeDashboard) {
+                var dash = window.eeDashboard.read(user.uid);
+                var fd = dash && dash.user_account_info && dash.user_account_info.form_data;
+                if (fd) {
+                    var fdName = [fd.first_name, fd.last_name].filter(Boolean).join(' ').trim();
+                    if (fdName) return fdName;
+                    if (fd.name) return String(fd.name).trim();
+                }
+            }
+        } catch (e) {}
+        if (user.displayName) return String(user.displayName).trim();
+        return '';
+    }
+    function renderInvoiceRecipient() {
+        var el = $('invoiceRecipient');
+        if (!el) return;
+        var user = (firebase.auth && firebase.auth().currentUser) || null;
+        if (!user) { el.innerHTML = ''; return; }
+        var email = user.email || '';
+        var name = pickInvoiceRecipientName(user);
+        var nameLine = name
+            ? '<strong>' + esc(name) + '</strong> at <code>' + esc(email) + '</code>'
+            : '<code>' + esc(email) + '</code>';
+        el.innerHTML = 'The invoice will be emailed to ' + nameLine + '.';
+    }
+
     function recomputeSummary() {
         var labelEl = $('summaryLineLabel');
         var amountEl = $('summaryLineAmount');
         var totalEl = $('summaryTotal');
         var total = 0;
-        var label = '—';
+        var label = '-';
 
         if (state.mode === 'new') {
             var n = parseInt($('newDeviceCount').value, 10) || 1;
@@ -1019,10 +1302,10 @@ active: purchase
                 var amt = parseFloat($('paygAmount').value);
                 if (isNaN(amt) || amt < streamingPricing.payg_min) amt = streamingPricing.payg_min;
                 total = amt;
-                label = 'Streaming credits — pay as you go';
+                label = 'Streaming credits. Pay as you go';
             } else if (state.streamingPkg === 'pro_bundle') {
                 total = streamingPricing.bundle_price;
-                label = 'Streaming credits — Pro Bundle ($' + streamingPricing.bundle_credits.toFixed(0) + ' in credits)';
+                label = 'Streaming credits. Pro Bundle ($' + streamingPricing.bundle_credits.toFixed(0) + ' in credits)';
             } else if (state.streamingPkg === 'unlimited') {
                 total = streamingPricing.unlimited_annual;
                 label = 'Annual Unlimited streaming subscription';
@@ -1042,24 +1325,24 @@ active: purchase
         var lines = [];
         if (state.mode === 'new') {
             var n = parseInt($('newDeviceCount').value, 10) || 1;
-            lines.push('• Eagle Eyes Pro license — ' + n + ' device' + (n === 1 ? '' : 's') + ' — 1 year — ' + formatPrice(priceForNew(n)));
+            lines.push('• Eagle Eyes Pro license. ' + n + ' device' + (n === 1 ? '' : 's') + '. 1 year. ' + formatPrice(priceForNew(n)));
         } else if (state.mode === 'add_devices') {
             var lic = findLicenseById(state.activeLicenseId);
             var addN = parseInt($('addDevicesCount').value, 10) || 1;
             if (lic) {
                 lines.push('• +' + addN + ' device' + (addN === 1 ? '' : 's') + ' added to license "' + (lic.license_name || lic.license_id) + '" (id: ' + lic.license_id + ')');
-                lines.push('  Prorated to expiry: ' + (lic.expiry_date || 'unknown') + ' — ' + formatPrice(priceForAddDevices(lic, addN)));
+                lines.push('  Prorated to expiry: ' + (lic.expiry_date || 'unknown') + '. ' + formatPrice(priceForAddDevices(lic, addN)));
             }
         } else if (state.mode === 'streaming') {
             if (state.streamingPkg === 'payg') {
                 var amt = parseFloat($('paygAmount').value) || streamingPricing.payg_min;
-                lines.push('• Streaming credits — pay as you go top-up — ' + formatPrice(amt));
+                lines.push('• Streaming credits. Pay as you go top-up. ' + formatPrice(amt));
             } else if (state.streamingPkg === 'pro_bundle') {
-                lines.push('• Streaming credits — Pro Bundle — '
+                lines.push('• Streaming credits. Pro Bundle. '
                     + formatPrice(streamingPricing.bundle_price)
                     + ' (you receive ' + formatPrice(streamingPricing.bundle_credits) + ' in credits)');
             } else if (state.streamingPkg === 'unlimited') {
-                lines.push('• Annual Unlimited streaming subscription — '
+                lines.push('• Annual Unlimited streaming subscription. '
                     + formatPrice(streamingPricing.unlimited_annual) + ' / year');
             }
         }
@@ -1097,7 +1380,11 @@ active: purchase
     async function onBuyNow() {
         var err = $('ctaError');
         err.style.display = 'none';
-        var btn = $('ctaBuyNow');
+        // The cta is now the single Continue button (ctaContinue), regardless
+        // of payment method. The label is rewritten by applyPaymentUI on
+        // every payment-method change so the visible action ("Continue to
+        // checkout") matches what we're about to do.
+        var btn = $('ctaContinue');
         btn.disabled = true;
         var orig = btn.textContent;
         btn.textContent = 'Redirecting…';
@@ -1187,7 +1474,7 @@ active: purchase
     // Translate the cart's current state to catalog line-items the
     // self-service invoice / quote endpoints accept. Returns null when the
     // cart contains anything that isn't in the catalog (streaming credits,
-    // device extensions on existing licenses) — caller then shows a "use Buy
+    // device extensions on existing licenses). Caller then shows a "use Buy
     // now / contact sales" message instead of firing the request.
     function cartCatalogLineItems() {
         if (state.mode !== 'new') return null;
@@ -1246,35 +1533,48 @@ active: purchase
         return data;
     }
 
-    // POST /request_invoice_for_self — creates a finalized Stripe Invoice
-    // and emails it to the account owner. Replaces the legacy mailto.
+    // POST /request_invoice_for_self. Creates a finalized Stripe Invoice
+    // and emails it to the account owner. Reads the invoice-details panel
+    // (PO, address, attention, memo, days-until-due) and packages them
+    // into the request — until the backend grows structured fields, the
+    // PO + address + attention + memo ride in `footer` as a labeled block.
     async function onInvoice() {
         clearCtaStatus();
-        var btn = $('ctaInvoice');
+        var btn = $('ctaContinue');
         var items = cartCatalogLineItems();
         if (!items) {
-            showCtaError('Self-service invoices cover catalog SKUs only (1-Year SAR licenses). '
-                + 'For streaming credits or device extensions on existing licenses, use "Buy now" '
-                + 'with a card, or email info@eagleeyessearch.com.');
+            showCtaError('Invoices cover catalog SKUs only (1-Year SAR licenses) right now. '
+                + 'For streaming credits or device extensions on existing licenses, switch to '
+                + '"Pay now with a credit card" or email info@eagleeyessearch.com.');
             return;
         }
         if (!state.activeAccountId) {
             showCtaError('Select an account before requesting an invoice.');
             return;
         }
+        var fields = readInvoiceFields();
+        var footer = buildInvoiceFooter(fields);
         btn.disabled = true;
         var orig = btn.textContent;
         btn.textContent = 'Creating invoice…';
         try {
-            var resp = await postBillingJson('request_invoice_for_self', {
+            var body = {
                 account_id: parseInt(state.activeAccountId, 10),
                 line_items: items,
-                days_until_due: 30
-            });
+                days_until_due: fields.days_until_due
+            };
+            if (footer) body.footer = footer;
+            // Send structured fields too so the backend can adopt them
+            // when it ships proper invoice metadata; current handler
+            // ignores unknown fields gracefully.
+            if (fields.po_number) body.po_number = fields.po_number;
+            if (fields.attention) body.attention = fields.attention;
+
+            var resp = await postBillingJson('request_invoice_for_self', body);
             var inv = resp && resp.invoice;
             if (!inv || !inv.hosted_url) throw new Error('Backend did not return an invoice URL.');
             window.open(inv.hosted_url, '_blank', 'noopener');
-            showCtaSuccess('Invoice created — opened in a new tab and emailed to the account owner.');
+            showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
         } catch (e) {
             console.error('request_invoice_for_self failed:', e);
             showCtaError("Couldn't create invoice: " + (e.message || String(e)));
@@ -1284,17 +1584,17 @@ active: purchase
         }
     }
 
-    // POST /request_quote_for_self — creates a finalized Stripe Quote.
+    // POST /request_quote_for_self. Creates a finalized Stripe Quote.
     // Falls back to the legacy mailto when the endpoint returns 501
     // (quotes_require_invoicing_plus), which is the current state until
     // Stripe Invoicing Plus is enabled on the Eagle Eyes account.
     async function onQuote(e) {
         if (e && e.preventDefault) e.preventDefault();
         clearCtaStatus();
-        var link = $('ctaQuote');
+        var link = $('ctaContinue');
         var items = cartCatalogLineItems();
         if (!items) {
-            showCtaError('Self-service quotes cover catalog SKUs only (1-Year SAR licenses). '
+            showCtaError('Quotes cover catalog SKUs only (1-Year SAR licenses) right now. '
                 + 'For other items, email info@eagleeyessearch.com.');
             return;
         }
@@ -1313,10 +1613,10 @@ active: purchase
             var quote = resp && resp.quote;
             if (!quote || !quote.hosted_url) throw new Error('Backend did not return a quote URL.');
             window.open(quote.hosted_url, '_blank', 'noopener');
-            showCtaSuccess('Quote created — opened in a new tab. It will also appear on /account/billing/.');
+            showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
         } catch (err) {
             if (err.status === 501 || (err.data && err.data.code === 'quotes_require_invoicing_plus')) {
-                console.info('Quote endpoint unavailable (Invoicing Plus not enabled) — falling back to mailto');
+                console.info('Quote endpoint unavailable (Invoicing Plus not enabled). Falling back to mailto');
                 var lines = ['Quote request', '', 'Please prepare a formal quote for:'];
                 lines = lines.concat(cartSummaryLines());
                 lines.push('');
@@ -1327,7 +1627,7 @@ active: purchase
                 lines.push('Notes: ');
                 lines.push('');
                 lines.push('(This request was generated from /account/purchase/)');
-                openMailto('Quote request — Eagle Eyes license', lines);
+                openMailto('Quote request. Eagle Eyes license', lines);
                 return;
             }
             console.error('request_quote_for_self failed:', err);
@@ -1348,6 +1648,7 @@ active: purchase
         var mode = p.get('mode');
         if (mode === 'extend' || mode === 'add_devices') return 'add_devices';
         if (mode === 'new') return 'new';
+        if (mode === 'renew') return 'renew';
         if (mode === 'streaming' || mode === 'credits') return 'streaming';
         return null;
     }
@@ -1375,7 +1676,7 @@ active: purchase
             dash = await loadDashboard(user);
         } catch (err) {
             console.error('Dashboard load failed:', err);
-            // Replace the spinner markup with the error message — innerHTML
+            // Replace the spinner markup with the error message. InnerHTML
             // wipes the spinner so it doesn't spin behind the text.
             $('purchaseLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">Couldn\'t load your licenses. Please refresh.</p>';
             return;
@@ -1419,7 +1720,7 @@ active: purchase
             state.credits = c;
             applyPerMinuteRate(c.per_minute_rate_usd);
         });
-        // Streaming package config — overrides hardcoded defaults if backend exposes it.
+        // Streaming package config. Overrides hardcoded defaults if backend exposes it.
         loadStreamingPackages(user).then(applyPackageConfig);
 
         recomputeSummary();
@@ -1466,7 +1767,7 @@ active: purchase
 
         if (!listEl) return;
         if (!owners.length) {
-            listEl.innerHTML = '<div class="non-owner-owner-row"><div class="non-owner-owner-email">No owners on file — contact info@eagleeyessearch.com.</div></div>';
+            listEl.innerHTML = '<div class="non-owner-owner-row"><div class="non-owner-owner-email">No owners on file. Contact info@eagleeyessearch.com.</div></div>';
             if (contactBtn) contactBtn.href = 'mailto:info@eagleeyessearch.com';
             return;
         }
@@ -1516,7 +1817,7 @@ active: purchase
         ].join('\n');
     }
 
-    // (esc already declared at top of file — reuse it.)
+    // (esc already declared at top of file. Reuse it.)
 
     function initSignedOut() {
         $('purchaseLoading').style.display = 'none';
@@ -1547,6 +1848,9 @@ active: purchase
                 row.classList.toggle('is-active', row.getAttribute('data-license-id') === state.activeLicenseId);
             });
             recomputeSummary();
+        } else if (e.target.name === 'paymentMethod') {
+            state.paymentMethod = e.target.value;
+            applyPaymentUI();
         }
     });
     document.addEventListener('input', function(e) {
@@ -1558,7 +1862,7 @@ active: purchase
     });
     document.addEventListener('click', function(e) {
         // Don't let clicks inside a sub-control (license row, streaming row)
-        // accidentally trigger the outer mode switch — handle the inner case
+        // accidentally trigger the outer mode switch. Handle the inner case
         // first.
         var licRow = e.target.closest('.license-row');
         if (licRow) {
@@ -1590,16 +1894,37 @@ active: purchase
             state.mode = row.getAttribute('data-mode');
             applyModeUI();
             recomputeSummary();
+            return;
+        }
+        // Pay-row click → activate that payment method (mirrors mode-row).
+        var payRow = e.target.closest('.pay-row');
+        if (payRow && payRow.getAttribute('data-pay') !== state.paymentMethod) {
+            // Don't hijack clicks on the inputs inside the invoice details
+            // panel (typing / focusing fields shouldn't reactivate the row).
+            if (e.target.closest('.pay-row-inputs')) return;
+            state.paymentMethod = payRow.getAttribute('data-pay');
+            applyPaymentUI();
         }
     });
 
+    // Single Continue button branches by state.paymentMethod. onInvoice
+    // is wrapped here so it picks up the invoice-details fields (PO,
+    // address, etc.) before delegating to the API. onBuyNow / onQuote
+    // are called as-is — they read state.mode / streamingPkg directly.
+    function onContinue(event) {
+        if (event && event.preventDefault) event.preventDefault();
+        if (state.paymentMethod === 'invoice') return onInvoice(event);
+        if (state.paymentMethod === 'quote') return onQuote(event);
+        return onBuyNow(event);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        var buy = $('ctaBuyNow');
-        var inv = $('ctaInvoice');
-        var quote = $('ctaQuote');
-        if (buy) buy.addEventListener('click', onBuyNow);
-        if (inv) inv.addEventListener('click', onInvoice);
-        if (quote) quote.addEventListener('click', onQuote);
+        var continueBtn = $('ctaContinue');
+        if (continueBtn) continueBtn.addEventListener('click', onContinue);
+        // Initialize the Continue button label to match the default
+        // (Pay now with credit card) so it doesn't read "Continue" for
+        // a moment before applyPaymentUI runs.
+        applyPaymentUI();
 
         // Stepper +/− buttons for the add-devices count.
         var minus = $('addDevicesMinus');
