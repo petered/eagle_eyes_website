@@ -784,6 +784,47 @@
             color: #60a5fa;
             text-decoration: underline;
         }
+        /* Inline swatches for the altitude-colour legend in the attribution dialog */
+        .attribution-card .attr-swatch {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+            position: relative;
+        }
+        .attribution-card .attr-swatch-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+        }
+        .attribution-card .attr-swatch-critical {
+            width: 16px;
+            height: 16px;
+        }
+        .attribution-card .attr-swatch-critical .attr-swatch-halo {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(220, 38, 38, 0.7) 0%,
+                rgba(127, 29, 29, 0.6) 60%,
+                rgba(127, 29, 29, 0) 100%);
+            animation: adsbCriticalPulse 1.4s ease-out infinite;
+            pointer-events: none;
+        }
+        .attribution-card .attr-swatch-critical .attr-swatch-dot {
+            position: absolute;
+            inset: 2px;
+            width: 12px;
+            height: 12px;
+        }
+        .attribution-card .attr-swatch-ring {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #00CED1;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.4) inset;
+        }
         .attribution-card .attr-section ul li a:hover,
         .attribution-card .attr-section .attr-footnote a:hover {
             color: #93c5fd;
@@ -3848,9 +3889,24 @@
                 <h4>Live overlays</h4>
                 <ul>
                     <li>EDS-B telemetry — voluntarily broadcast by Eagle Eyes-equipped drone operators</li>
-                    <li>Detected manned aircraft (EDS-B) — ADS-B receivers attached to Eagle Eyes apps, relayed via the EDS-B network. Click an aircraft for an <a href="https://opensky-network.org/" target="_blank" rel="noopener">OpenSky</a> deep-link for additional details.</li>
+                    <li>DJI Air Sense ADS-B detected manned aircraft — ADS-B transmissions broadcast by manned aircraft, picked up by DJI drones equipped with the Air Sense receiver, then relayed into the EDS-B network by the Eagle Eyes Pilot app. Click an aircraft for an <a href="https://opensky-network.org/" target="_blank" rel="noopener">OpenSky</a> deep-link.</li>
                     <li>Live ADS-B (adsb.lol) — community ADS-B aggregator at <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, volunteer feeders worldwide. Data licensed <a href="https://www.adsb.lol/privacy-license/" target="_blank" rel="noopener">CC0 (Public Domain)</a>. Routed via Eagle Eyes' airspace proxy.</li>
                 </ul>
+            </div>
+
+            <div class="attr-section">
+                <h4>Aircraft altitude colours</h4>
+                <p style="font-size:11px;color:#aaa;margin:0 0 6px;">Marker colour reflects pressure altitude. Both ADS-B sources (Air Sense + adsb.lol) share the same colour scheme. Air-Sense aircraft are additionally marked with a cyan ring around the icon.</p>
+                <ul style="list-style:none;padding-left:0;font-size:11px;line-height:1.7;">
+                    <li><span class="attr-swatch attr-swatch-critical"><span class="attr-swatch-halo"></span><span class="attr-swatch-dot" style="background:#7f1d1d;"></span></span> ≤ 500 ft — critical (drone-conflict altitude; pulses)</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#ef4444;"></span> 500 – 5,000 ft — low</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#f59e0b;"></span> 5,000 – 15,000 ft — mid</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#22c55e;"></span> 15,000 – 25,000 ft — cruise</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#3b82f6;"></span> &gt; 25,000 ft — high</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#9ca3af;"></span> on ground / altitude unknown</li>
+                    <li style="margin-top:4px;"><span class="attr-swatch attr-swatch-ring"></span> cyan ring = DJI Air Sense (EDS-B) source</li>
+                </ul>
+                <p style="font-size:10px;color:#888;margin:6px 0 0;">⚠ Pressure altitude can differ from true altitude by up to ±1,000 ft. Don't use this layer for deconfliction.</p>
             </div>
         </div>
     </div>
@@ -6892,8 +6948,12 @@
         }
 
         /**
-         * Update or create marker for a detected aircraft (ADS-B)
-         * Standard cyan color for all aircraft (no risk-level coloring). Label: call sign if available, otherwise ICAO id.
+         * Update or create marker for a detected aircraft (ADS-B, EDS-B-sourced via
+         * DJI Air Sense receivers). Visual language matches the adsb.lol layer:
+         *   - Plane glyph colour follows the altitude band
+         *   - Critical band (≤500 ft) gets the same pulsing red halo
+         *   - Air Sense origin is signalled by a cyan ring around the glyph,
+         *     differentiating these from the bare-glyph adsb.lol markers.
          */
         function updateOrCreateAircraftMarker(droneId, droneName, droneLat, droneLng, aircraft, aircraftId) {
             if (!map) return;
@@ -6904,36 +6964,45 @@
             const lng = Number(aircraft.lng ?? aircraft.longitude);
             if (isNaN(lat) || isNaN(lng)) return;
             const heading = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading) : 0;
-            const AIRCRAFT_CYAN = '#00CED1';
-            const altM = (aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM) != null ? Number(aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM).toFixed(0) : '—';
+            const altMRaw = aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM;
+            const altM = (altMRaw != null) ? Number(altMRaw).toFixed(0) : '—';
             const headingStr = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading).toFixed(0) + '°' : '—';
             const callSign = aircraft.call_sign ?? aircraft.callSign;
             const displayLabel = (callSign && String(callSign).trim()) ? String(callSign).trim() : id;
 
+            // Compute altitude band from MSL metres (EDS-B payloads carry metres,
+            // not feet). Convert to feet, then reuse the adsb.lol band classifier
+            // so the two layers share band thresholds and colours exactly.
+            const altFt = (altMRaw != null) ? Number(altMRaw) * 3.28084 : null;
+            const band = adsbLolAltitudeBand({ alt_baro: altFt });
+            const bandColor = ADSB_LOL_BAND_COLOR[band];
+            const AIR_SENSE_RING_COLOR = '#00CED1'; // cyan — the Air-Sense origin badge
+
             // Unicode ✈ in most fonts points right (90°); rotate so nose points at heading_deg (0=North, 90=East)
             const rotationDeg = heading - 90;
+            const halo = (band === 'critical') ? '<div class="adsb-critical-halo"></div>' : '';
+            const markerHtml = '<div style="position:relative;width:34px;height:34px;">'
+                + halo
+                + '<div style="position:absolute;inset:5px;border:2px solid ' + AIR_SENSE_RING_COLOR + ';border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,0.55);pointer-events:none;"></div>'
+                + '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><span class="aircraft-marker-plane" style="color:' + bandColor + ';text-shadow:0 0 2px #000,0 0 1px #000;transform:rotate(' + rotationDeg + 'deg);">✈</span></div>'
+                + '</div>';
+            const icon = L.divIcon({
+                className: 'aircraft-marker-wrapper',
+                html: markerHtml,
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            });
 
             let marker = mqttAircraftMarkers[key];
             if (!marker) {
-                const icon = L.divIcon({
-                    className: 'aircraft-marker-wrapper',
-                    html: '<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><span class="aircraft-marker-plane" style="color:' + AIRCRAFT_CYAN + ';transform:rotate(' + rotationDeg + 'deg);">✈</span></div>',
-                    iconSize: [34, 34],
-                    iconAnchor: [17, 17]
-                });
                 marker = L.marker([lat, lng], { icon: icon });
                 if (showDetectedAircraft) marker.addTo(map);
                 mqttAircraftMarkers[key] = marker;
             } else {
                 marker.setLatLng([lat, lng]);
-                const el = marker._icon;
-                if (el) {
-                    const planeEl = el.querySelector('.aircraft-marker-plane');
-                    if (planeEl) {
-                        planeEl.style.color = AIRCRAFT_CYAN;
-                        planeEl.style.transform = 'rotate(' + rotationDeg + 'deg)';
-                    }
-                }
+                // Rebuild the icon fully because the band (and therefore the halo)
+                // can change between updates.
+                marker.setIcon(icon);
             }
 
             const callSignLine = (callSign && String(callSign).trim()) ? `<strong>Call sign:</strong> ${String(callSign).trim()}<br>` : '';
