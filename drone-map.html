@@ -127,6 +127,25 @@
             box-sizing: border-box;
         }
 
+        /* Live ADS-B marker — pulsing halo for critical-altitude aircraft (≤500 ft).
+           Matches the Mirada Beta layer's symbology so both surfaces share visual
+           language. */
+        @keyframes adsbCriticalPulse {
+            0%   { transform: scale(0.55); opacity: 0.85; }
+            100% { transform: scale(2.1);  opacity: 0;    }
+        }
+        .adsb-critical-halo {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(220, 38, 38, 0.7) 0%,
+                rgba(127, 29, 29, 0.6) 60%,
+                rgba(127, 29, 29, 0) 100%);
+            animation: adsbCriticalPulse 1.4s ease-out infinite;
+            pointer-events: none;
+        }
+
         /* Screen-reader-only content — visible to crawlers and assistive tech,
            visually hidden from sighted users. Hosts the SEO H1 + descriptive
            prose so the otherwise-fullscreen-map page has indexable content. */
@@ -3662,10 +3681,6 @@
                         <label for="faaSubNsufr">National security UAS restrictions</label>
                     </div>
                     <div class="base-map-option base-map-toggle faa-sublayer">
-                        <input type="checkbox" id="faaSubAirports" onchange="setFaaSubLayerVisibility('airports', this.checked)">
-                        <label for="faaSubAirports">Airports</label>
-                    </div>
-                    <div class="base-map-option base-map-toggle faa-sublayer">
                         <input type="checkbox" id="faaSubRecSites" onchange="setFaaSubLayerVisibility('recSites', this.checked)">
                         <label for="faaSubRecSites">Recreational flyer fixed sites</label>
                     </div>
@@ -4228,33 +4243,11 @@
                     visible: false, checkboxId: 'faaSubNsufr'
                 };
 
-                // 6. US Airports (point layer)
-                faaSubLayers.airports = {
-                    layer: L.esri.featureLayer({
-                        url: FAA_BASE + '/US_Airport/FeatureServer/0',
-                        pointToLayer: function(geojson, latlng) {
-                            return L.circleMarker(latlng, {
-                                radius: 4,
-                                color: '#00bfff',
-                                fillColor: '#00bfff',
-                                fillOpacity: 0.7,
-                                weight: 1
-                            });
-                        },
-                        onEachFeature: function(feature, layer) {
-                            var p = feature.properties;
-                            layer.bindPopup(faaPopup('Airport', [
-                                'Name: ' + (p.NAME || 'N/A'),
-                                'ICAO: ' + (p.ICAO_ID || 'N/A'),
-                                'Ident: ' + (p.IDENT || 'N/A'),
-                                'City: ' + (p.SERVCITY || 'N/A'),
-                                'Elev: ' + (p.ELEVATION || 'N/A') + ' ft'
-                            ]));
-                        },
-                        minZoom: 8
-                    }),
-                    visible: false, checkboxId: 'faaSubAirports'
-                };
+                // 6. US Airports — removed. The FAA UAS Data Delivery System endpoint
+                // (US_Airport/FeatureServer/0) returns noisy data that doesn't add value
+                // beyond what the LAANC Ceiling Grid + Controlled Airspace layers already
+                // show. The 'airports' slot is intentionally preserved in faaSubKeys so
+                // previously-shared `#v=…` URLs don't have their bit ordering shifted.
 
                 // 7. Recreational Flyer Fixed Sites
                 faaSubLayers.recSites = {
@@ -5496,7 +5489,7 @@
         // See docs/adsb-lol-integration.md for the full research log + legal posture (CC0).
 
         var ADSB_LOL_PROXY = 'https://mirada-airspace.patrick-e20.workers.dev/proxy/adsb/v2/lat/{lat}/lon/{lon}/dist/{dist}';
-        var ADSB_LOL_REFRESH_MS = 10000;    // poll every 10s while layer is active
+        var ADSB_LOL_REFRESH_MS = 5000;     // poll every 5s while idle (aligned with Worker edge cache)
         var ADSB_LOL_DEBOUNCE_MS = 500;     // moveend debounce before refetching
         var ADSB_LOL_MAX_DIST_NM = 250;     // upstream-enforced cap
         var ADSB_DISCLAIMER_KEY = 'ee_adsb_lol_disclaimer_suppressed';
@@ -5504,6 +5497,8 @@
         var showAdsbLol = false;
         var adsbLolLayer = null;            // L.LayerGroup containing all aircraft markers
         var adsbLolMarkers = {};            // hex → L.marker
+        var adsbLolMarkerBands = {};        // hex → last band ('critical' | 'low' | ...) for skip-redraw
+        var adsbLolFetchedAt = 0;           // wall-clock ms of last successful fetch (for popup "age" line)
         var adsbLolRefreshTimer = null;
         var adsbLolMoveEndTimer = null;
         var adsbLolFetchSeq = 0;            // discard stale responses
@@ -5532,48 +5527,98 @@
             };
         }
 
-        // Inline SVG plane that points straight up at rotation 0. Track is degrees
-        // from north (0=N, 90=E), so rotating this upward-facing icon clockwise by
-        // the track produces the correct visual heading on screen — no font-
-        // dependent glyph orientation to compensate for.
-        var ADSB_LOL_PLANE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18">'
-            + '<path d="M16 2 L18 13 L29 18 L29 21 L18 18.5 L18 25 L20 27 L20 29 L16 28 L12 29 L12 27 L14 25 L14 18.5 L3 21 L3 18 L14 13 Z" '
-            + 'fill="#22d3ee" stroke="#000" stroke-width="0.6" stroke-linejoin="round" paint-order="stroke" />'
-            + '</svg>';
+        // Altitude band → marker colour. Matches Mirada's symbology so the two
+        // surfaces share visual language. Pressure altitude (alt_baro) is the
+        // input; "ground" / missing is treated as grey.
+        function adsbLolAltitudeBand(ac) {
+            var alt = ac && ac.alt_baro;
+            if (alt === 'ground' || alt == null || isNaN(alt)) return 'ground';
+            var n = Number(alt);
+            if (n <= 500) return 'critical';
+            if (n <= 5000) return 'low';
+            if (n <= 15000) return 'mid';
+            if (n <= 25000) return 'cruise';
+            return 'high';
+        }
+        var ADSB_LOL_BAND_COLOR = {
+            critical: '#7f1d1d',
+            low:      '#ef4444',
+            mid:      '#f59e0b',
+            cruise:   '#22c55e',
+            high:     '#3b82f6',
+            ground:   '#9ca3af'
+        };
+
+        // Inline SVG plane (points up at rotation 0; rotating by track in degrees
+        // gives correct visual heading on screen). Container is 28x28 to leave
+        // halo room for the critical-band pulse; glyph itself is 18x18.
+        function buildAdsbPlaneSvg(color) {
+            return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18">'
+                + '<path d="M16 2 L18 13 L29 18 L29 21 L18 18.5 L18 25 L20 27 L20 29 L16 28 L12 29 L12 27 L14 25 L14 18.5 L3 21 L3 18 L14 13 Z" '
+                + 'fill="' + color + '" stroke="#000" stroke-width="0.6" stroke-linejoin="round" paint-order="stroke" />'
+                + '</svg>';
+        }
+        function buildAdsbLolIcon(ac) {
+            var band = adsbLolAltitudeBand(ac);
+            var color = ADSB_LOL_BAND_COLOR[band];
+            var track = (typeof ac.track === 'number') ? ac.track : 0;
+            // The 28x28 container hosts an optional halo + the rotated plane glyph.
+            var halo = (band === 'critical') ? '<div class="adsb-critical-halo"></div>' : '';
+            var html = '<div style="position:relative;width:28px;height:28px;">'
+                + halo
+                + '<div style="position:absolute;left:5px;top:5px;width:18px;height:18px;line-height:0;transform:rotate(' + track + 'deg);transform-origin:center;">'
+                + buildAdsbPlaneSvg(color)
+                + '</div>'
+                + '</div>';
+            return L.divIcon({
+                className: 'adsb-lol-marker',
+                html: html,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+        }
         function buildAdsbLolMarker(ac) {
             var lat = ac.lat, lon = ac.lon;
             if (typeof lat !== 'number' || typeof lon !== 'number') return null;
-            var track = (typeof ac.track === 'number') ? ac.track : 0;
             var callsign = (ac.flight || ac.r || ac.hex || '').toString().trim();
-            var icon = L.divIcon({
-                className: 'adsb-lol-marker',
-                html: '<div style="transform:rotate(' + track + 'deg);transform-origin:center;width:18px;height:18px;line-height:0;">' + ADSB_LOL_PLANE_SVG + '</div>',
-                iconSize: [18, 18],
-                iconAnchor: [9, 9]
+            var marker = L.marker([lat, lon], {
+                icon: buildAdsbLolIcon(ac),
+                title: callsign,
+                interactive: true
             });
-            var marker = L.marker([lat, lon], { icon: icon, title: callsign, interactive: true });
-            marker.bindPopup(buildAdsbLolPopup(ac));
+            marker.bindPopup(buildAdsbLolPopup(ac), { autoClose: false, closeOnClick: false });
             return marker;
         }
         function buildAdsbLolPopup(ac) {
             var callsign = (ac.flight || '').toString().trim();
-            var lines = [
-                '<div style="font-family:system-ui,sans-serif;font-size:12px;color:#222;line-height:1.5;">',
-                '<b>' + (callsign || '(no callsign)') + '</b>',
-                '<br>Reg: ' + (ac.r || 'N/A') + ' · Type: ' + (ac.t || 'N/A'),
-                '<br>Altitude: ' + (ac.alt_baro != null ? ac.alt_baro + ' ft' : 'N/A') +
-                  ' · Speed: ' + (ac.gs != null ? Math.round(ac.gs) + ' kt' : 'N/A'),
-                '<br>Track: ' + (ac.track != null ? Math.round(ac.track) + '°' : 'N/A') +
-                  ' · Squawk: ' + (ac.squawk || 'N/A'),
-                '<br>Hex: <code>' + (ac.hex || '') + '</code>'
-            ];
+            var reg = (ac.r || '').toString().trim();
+            var altLine;
+            if (ac.alt_baro === 'ground') {
+                altLine = 'On ground';
+            } else if (ac.alt_baro != null && !isNaN(ac.alt_baro)) {
+                altLine = Number(ac.alt_baro).toLocaleString() + ' ft (pressure)';
+            } else {
+                altLine = 'N/A';
+            }
+            var ageS = adsbLolFetchedAt ? Math.max(0, Math.round((Date.now() - adsbLolFetchedAt) / 1000)) : null;
+            if (typeof ac.seen === 'number') ageS = Math.round(ac.seen);
+            var html = '<div style="font-family:system-ui,sans-serif;font-size:12px;color:#222;line-height:1.5;min-width:200px;">';
+            html += '<b style="font-size:13px;">' + (callsign || reg || ac.hex || '(no callsign)') + '</b>';
+            if (ac.t) html += ' <span style="color:#666;font-size:11px;">' + ac.t + '</span>';
+            if (reg && reg !== callsign) html += '<br>Reg: ' + reg;
+            html += '<br>Altitude: ' + altLine;
+            html += '<br>Speed: ' + (ac.gs != null ? Math.round(ac.gs) + ' kt' : 'N/A')
+                  + ' · Heading: ' + (ac.track != null ? Math.round(ac.track) + '°' : 'N/A');
+            if (ageS != null) html += '<br>Observed: ' + ageS + 's ago';
+            html += '<br>Squawk: ' + (ac.squawk || 'N/A') + ' · Hex: <code style="font-size:11px;">' + (ac.hex || '') + '</code>';
+            html += '<div style="margin-top:6px;font-size:11px;color:#92400e;">⚠ Pressure altitude (±1,000 ft vs. true height)</div>';
             if (ac.hex) {
                 var globeUrl = 'https://globe.adsb.lol/?icao=' + encodeURIComponent(ac.hex);
-                lines.push('<br><a href="' + globeUrl + '" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;">Track on adsb.lol globe</a>');
+                html += '<br><a href="' + globeUrl + '" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;font-size:11px;">Track on adsb.lol globe →</a>';
             }
-            lines.push('<div style="font-size:10px;color:#888;margin-top:4px;">Source: adsb.lol (CC0)</div>');
-            lines.push('</div>');
-            return lines.join('');
+            html += '<div style="font-size:10px;color:#888;margin-top:4px;border-top:1px solid #eee;padding-top:4px;">ADS-B via <a href="https://www.adsb.lol/" target="_blank" rel="noopener" style="color:#888;">adsb.lol</a></div>';
+            html += '</div>';
+            return html;
         }
 
         function adsbLolBboxParams() {
@@ -5606,6 +5651,7 @@
                 })
                 .then(function(data) {
                     if (seq !== adsbLolFetchSeq || !showAdsbLol) return; // stale
+                    adsbLolFetchedAt = Date.now();
                     renderAdsbLol(data && data.ac ? data.ac : []);
                 })
                 .catch(function(err) {
@@ -5622,15 +5668,27 @@
                 keep[ac.hex] = true;
                 var existing = adsbLolMarkers[ac.hex];
                 if (existing) {
-                    existing.setLatLng([ac.lat, ac.lon]);
-                    // Update icon for new track
-                    existing.setIcon(buildAdsbLolMarker(ac).options.icon);
+                    // Update position. If the marker's popup is currently open,
+                    // also setLatLng on the popup so it tracks the aircraft on
+                    // screen as the marker moves.
+                    var newLatLng = L.latLng(ac.lat, ac.lon);
+                    existing.setLatLng(newLatLng);
+                    var openPopup = existing.getPopup();
+                    if (openPopup && existing.isPopupOpen && existing.isPopupOpen()) {
+                        openPopup.setLatLng(newLatLng);
+                    }
+                    // Always refresh the icon — track rotation and altitude-band
+                    // color/halo can change every poll. setIcon preserves any
+                    // open popup binding.
+                    existing.setIcon(buildAdsbLolIcon(ac));
                     existing.setPopupContent(buildAdsbLolPopup(ac));
+                    adsbLolMarkerBands[ac.hex] = adsbLolAltitudeBand(ac);
                 } else {
                     var m = buildAdsbLolMarker(ac);
                     if (m) {
                         m.addTo(adsbLolLayer);
                         adsbLolMarkers[ac.hex] = m;
+                        adsbLolMarkerBands[ac.hex] = adsbLolAltitudeBand(ac);
                     }
                 }
             }
@@ -5639,6 +5697,7 @@
                 if (!keep[hex]) {
                     adsbLolLayer.removeLayer(adsbLolMarkers[hex]);
                     delete adsbLolMarkers[hex];
+                    delete adsbLolMarkerBands[hex];
                 }
             });
         }
@@ -5647,18 +5706,31 @@
             stopAdsbLolPolling();
             fetchAdsbLol(); // immediate
             adsbLolRefreshTimer = setInterval(fetchAdsbLol, ADSB_LOL_REFRESH_MS);
+            map.on('movestart', onAdsbLolMoveStart);
             map.on('moveend', onAdsbLolMoveEnd);
         }
         function stopAdsbLolPolling() {
             if (adsbLolRefreshTimer) { clearInterval(adsbLolRefreshTimer); adsbLolRefreshTimer = null; }
             if (adsbLolMoveEndTimer) { clearTimeout(adsbLolMoveEndTimer); adsbLolMoveEndTimer = null; }
-            if (map) map.off('moveend', onAdsbLolMoveEnd);
+            if (map) {
+                map.off('movestart', onAdsbLolMoveStart);
+                map.off('moveend', onAdsbLolMoveEnd);
+            }
+        }
+        // Pause the periodic poll the moment the user starts panning/zooming.
+        // Refetches happen after the gesture settles via the moveend debounce
+        // below, and only then does the periodic poll resume.
+        function onAdsbLolMoveStart() {
+            if (adsbLolRefreshTimer) { clearInterval(adsbLolRefreshTimer); adsbLolRefreshTimer = null; }
         }
         function onAdsbLolMoveEnd() {
             if (adsbLolMoveEndTimer) clearTimeout(adsbLolMoveEndTimer);
             adsbLolMoveEndTimer = setTimeout(function() {
                 adsbLolMoveEndTimer = null;
                 fetchAdsbLol();
+                if (!adsbLolRefreshTimer && showAdsbLol) {
+                    adsbLolRefreshTimer = setInterval(fetchAdsbLol, ADSB_LOL_REFRESH_MS);
+                }
             }, ADSB_LOL_DEBOUNCE_MS);
         }
 
