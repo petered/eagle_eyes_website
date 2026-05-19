@@ -2775,6 +2775,15 @@
             }
         }
 
+        /* adsb.lol marker for an aircraft that's ALSO being heard via DJI Air Sense
+           is rendered translucent + desaturated so the Air Sense marker visually
+           wins. The shadowed marker stays clickable. */
+        .adsb-lol-marker-shadowed {
+            opacity: 0.28;
+            filter: grayscale(0.85) saturate(0.6);
+            transition: opacity 0.4s ease, filter 0.4s ease;
+        }
+
         /* Pulsing cyan ring drawn around DJI Air Sense (EDS-B-sourced) aircraft.
            Signals the Air Sense origin and visually distinguishes them from the
            bare adsb.lol markers. */
@@ -5375,23 +5384,25 @@
                 }
             };
 
-            var notamStyle = { high: { color: '#dc2626', r: 8 }, medium: { color: '#ea580c', r: 6 }, low: { color: '#9ca3af', r: 5 } };
+            // NOTAM chip — same style as the METAR / TAF chips so the trio are
+            // visually consistent. Background colour encodes severity; label is
+            // always the literal word "NOTAM". Anchored above the station so a
+            // co-located METAR (left) + TAF (right) + NOTAM (above) trio doesn't
+            // overlap.
+            var notamColors = { high: '#dc2626', medium: '#ea580c', low: '#9ca3af' };
             canSubLayers.notams = {
                 kind: 'geojson', path: '/data/notams.geojson', sourceLabel: 'NOTAM',
                 visible: true, checkboxId: 'canSubNotams',
                 layer: L.geoJSON(null, {
                     pointToLayer: function(feature, latlng) {
                         var sev = (feature.properties && feature.properties.severity) || 'low';
-                        var s = notamStyle[sev] || notamStyle.low;
-                        // Solid colored fill (severity colour) with a white outline so the
-                        // dot reads cleanly against both dark and light basemaps.
-                        var m = L.circleMarker(latlng, {
-                            radius: s.r,
-                            color: '#fff',
-                            weight: 1.5,
-                            fillColor: s.color,
-                            fillOpacity: 0.85
+                        var color = notamColors[sev] || notamColors.low;
+                        var icon = L.divIcon({
+                            className: 'can-notam-chip',
+                            html: '<div style="background:' + color + ';color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">NOTAM</div>',
+                            iconSize: null, iconAnchor: [25, 26]
                         });
+                        var m = L.marker(latlng, { icon: icon, interactive: true });
                         m.on('click', function(ev) {
                             L.DomEvent.stopPropagation(ev);
                             handleCanadianMapClick(m.getLatLng(), ev.originalEvent);
@@ -5690,7 +5701,7 @@
                 + 'fill="' + color + '" stroke="#000" stroke-width="0.6" stroke-linejoin="round" paint-order="stroke" />'
                 + '</svg>';
         }
-        function buildAdsbLolIcon(ac) {
+        function buildAdsbLolIcon(ac, shadowed) {
             var band = adsbLolAltitudeBand(ac);
             var color = ADSB_LOL_BAND_COLOR[band];
             var track = (typeof ac.track === 'number') ? ac.track : 0;
@@ -5703,26 +5714,42 @@
                 + '</div>'
                 + '</div>';
             return L.divIcon({
-                className: 'adsb-lol-marker',
+                className: shadowed ? 'adsb-lol-marker adsb-lol-marker-shadowed' : 'adsb-lol-marker',
                 html: html,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             });
         }
+
+        // True if this ICAO hex is also being broadcast through the Air Sense /
+        // EDS-B path. Keys in mqttAircraftMarkers are "<droneId>:<aircraftId>"
+        // where aircraftId is the ICAO hex. Compared case-insensitively.
+        function isHexInAirSenseSource(hex) {
+            if (!hex) return false;
+            var target = String(hex).toLowerCase();
+            for (var key in mqttAircraftMarkers) {
+                if (!Object.prototype.hasOwnProperty.call(mqttAircraftMarkers, key)) continue;
+                var idx = key.lastIndexOf(':');
+                if (idx < 0) continue;
+                if (key.substring(idx + 1).toLowerCase() === target) return true;
+            }
+            return false;
+        }
         function buildAdsbLolMarker(ac) {
             var lat = ac.lat, lon = ac.lon;
             if (typeof lat !== 'number' || typeof lon !== 'number') return null;
             var callsign = (ac.flight || ac.r || ac.hex || '').toString().trim();
+            var shadowed = isHexInAirSenseSource(ac.hex);
             var marker = L.marker([lat, lon], {
-                icon: buildAdsbLolIcon(ac),
+                icon: buildAdsbLolIcon(ac, shadowed),
                 title: callsign,
                 interactive: true,
                 pane: 'aircraftPane'
             });
-            marker.bindPopup(buildAdsbLolPopup(ac), { autoClose: false, closeOnClick: false });
+            marker.bindPopup(buildAdsbLolPopup(ac, shadowed), { autoClose: false, closeOnClick: false });
             return marker;
         }
-        function buildAdsbLolPopup(ac) {
+        function buildAdsbLolPopup(ac, shadowed) {
             var callsign = (ac.flight || '').toString().trim();
             var reg = (ac.r || '').toString().trim();
             var altLine;
@@ -5739,6 +5766,9 @@
             html += '<b style="font-size:13px;">' + (callsign || reg || ac.hex || '(no callsign)') + '</b>';
             if (ac.t) html += ' <span style="color:#666;font-size:11px;">' + ac.t + '</span>';
             html += '<br><span style="display:inline-block;margin:4px 0;padding:2px 6px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:3px;color:#475569;font-size:11px;">Source: <a href="https://www.adsb.lol/" target="_blank" rel="noopener" style="color:#475569;text-decoration:underline;">adsb.lol</a> community feeder network</span>';
+            if (shadowed) {
+                html += '<div style="margin:4px 0;padding:4px 6px;background:#fffbeb;border-left:3px solid #f59e0b;font-size:11px;color:#92400e;">Also being heard via DJI Air Sense — see the brighter Air Sense marker for full detection details.</div>';
+            }
             if (reg && reg !== callsign) html += '<br>Reg: ' + reg;
             html += '<br>Altitude: ' + altLine;
             html += '<br>Speed: ' + (ac.gs != null ? Math.round(ac.gs) + ' kt' : 'N/A')
@@ -5811,10 +5841,12 @@
                         openPopup.setLatLng(newLatLng);
                     }
                     // Always refresh the icon — track rotation and altitude-band
-                    // color/halo can change every poll. setIcon preserves any
-                    // open popup binding.
-                    existing.setIcon(buildAdsbLolIcon(ac));
-                    existing.setPopupContent(buildAdsbLolPopup(ac));
+                    // color/halo can change every poll. Shadowing is re-evaluated
+                    // each poll so Air Sense coming online or going offline updates
+                    // the visual within at most one refresh interval.
+                    var shadowedExisting = isHexInAirSenseSource(ac.hex);
+                    existing.setIcon(buildAdsbLolIcon(ac, shadowedExisting));
+                    existing.setPopupContent(buildAdsbLolPopup(ac, shadowedExisting));
                     adsbLolMarkerBands[ac.hex] = adsbLolAltitudeBand(ac);
                 } else {
                     var m = buildAdsbLolMarker(ac);
