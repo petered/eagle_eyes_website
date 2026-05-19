@@ -2735,30 +2735,50 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            margin-top: -6px;
-            margin-left: -6px;
-            width: 12px;
-            height: 12px;
+            margin-top: -13px;
+            margin-left: -13px;
+            width: 26px;
+            height: 26px;
             border: 2px solid rgba(255, 0, 0, 0.9);
             border-radius: 50%;
             animation: dronePulse 1.5s ease-out infinite;
             pointer-events: none;
             transform-origin: center center;
         }
-        
+
         @keyframes dronePulse {
             0% {
-                transform: scale(1);
+                transform: scale(0.85);
                 opacity: 0.9;
             }
             50% {
-                transform: scale(2);
-                opacity: 0.3;
+                transform: scale(1.7);
+                opacity: 0.35;
             }
             100% {
-                transform: scale(2.5);
+                transform: scale(2.2);
                 opacity: 0;
             }
+        }
+
+        /* Lucide drone icon shown at every active EDS-B drone marker. Replaces the
+           old solid-red dot. Rendered as a black glyph with stacked white drop-
+           shadows for a high-contrast white halo against any basemap. The
+           pulsing red ring above continues to animate around it. */
+        .drone-location-drone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -11px;
+            margin-left: -11px;
+            width: 22px;
+            height: 22px;
+            color: #000;
+            filter: drop-shadow(0 0 1.5px #fff)
+                    drop-shadow(0 0 1.5px #fff)
+                    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+            z-index: 11;
+            pointer-events: none;
         }
         
         /* Detected aircraft (ADS-B) marker: Unicode plane ✈ (native points right/90° in most fonts) */
@@ -3950,7 +3970,17 @@
         <div class="legend-item" data-legend="mqtt-drones">
             <div class="legend-symbol legend-drone-pulse-wrap">
                 <div class="drone-location-pulse"></div>
-                <div class="drone-location-circle"></div>
+                <svg class="drone-location-drone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 10 7 7"/>
+                    <path d="m10 14-3 3"/>
+                    <path d="m14 10 3-3"/>
+                    <path d="m14 14 3 3"/>
+                    <path d="M14.205 4.139a4 4 0 1 1 5.439 5.863"/>
+                    <path d="M19.637 14a4 4 0 1 1-5.432 5.868"/>
+                    <path d="M4.367 10a4 4 0 1 1 5.438-5.862"/>
+                    <path d="M9.795 19.862a4 4 0 1 1-5.429-5.873"/>
+                    <rect x="10" y="8" width="4" height="8" rx="1"/>
+                </svg>
             </div>
             <span>Drone live location</span>
         </div>
@@ -6827,12 +6857,24 @@
             let marker = mqttDroneMarkers[droneId];
 
             if (!marker) {
-                // Create new marker - smaller red circle with pulsing ring for drone location
+                // Lucide "drone" glyph (black, white-haloed) wrapped by a pulsing
+                // red ring. Replaces the previous solid red dot.
+                const droneSvg = '<svg class="drone-location-drone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                    + '<path d="M10 10 7 7"/>'
+                    + '<path d="m10 14-3 3"/>'
+                    + '<path d="m14 10 3-3"/>'
+                    + '<path d="m14 14 3 3"/>'
+                    + '<path d="M14.205 4.139a4 4 0 1 1 5.439 5.863"/>'
+                    + '<path d="M19.637 14a4 4 0 1 1-5.432 5.868"/>'
+                    + '<path d="M4.367 10a4 4 0 1 1 5.438-5.862"/>'
+                    + '<path d="M9.795 19.862a4 4 0 1 1-5.429-5.873"/>'
+                    + '<rect x="10" y="8" width="4" height="8" rx="1"/>'
+                    + '</svg>';
                 const droneIcon = L.divIcon({
                     className: 'home-point-marker',
-                    html: '<div class="drone-location-pulse"></div><div class="drone-location-circle"></div>',
-                    iconSize: [16, 16],
-                    iconAnchor: [8, 8]
+                    html: '<div class="drone-location-pulse"></div>' + droneSvg,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
                 });
 
                 marker = L.marker([lat, lng], { icon: droneIcon }).addTo(map);
