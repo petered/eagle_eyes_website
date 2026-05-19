@@ -2775,6 +2775,23 @@
             }
         }
 
+        /* Zoom-based opacity for METAR / TAF / NOTAM chips. Driven by the
+           --can-chip-opacity CSS custom property updated on map zoomend (see
+           updateCanChipOpacity in JS). Far-out zoom = faint, city zoom = solid.
+           The currently-selected chip overrides this with opacity:1 so the
+           stacked-popup highlight still reads at any zoom. */
+        .can-metar-chip,
+        .can-taf-chip,
+        .can-notam-chip {
+            opacity: var(--can-chip-opacity, 1);
+            transition: opacity 0.25s ease-out;
+        }
+        .can-metar-chip.can-marker-selected,
+        .can-taf-chip.can-marker-selected,
+        .can-notam-chip.can-marker-selected {
+            opacity: 1;
+        }
+
         /* Stacked popup geometry — fixed body height with internal scroll so
            prev/next buttons stay in the same screen position as the user
            cycles through features with varying amounts of content. Width is
@@ -4448,6 +4465,24 @@
                 // ---- Canadian Airspace Sub-Layers ----
                 initCanadianAirspaceLayers();
                 map.on('click', function(e) { handleCanadianMapClick(e.latlng, e.originalEvent); });
+
+                // METAR / TAF / NOTAM chips fade with zoom — at far-out zoom levels
+                // there are too many of them to read, so they recede into the basemap;
+                // zoom in past city level and they become fully opaque. Driven by a
+                // CSS custom property (--can-chip-opacity) updated on every zoomend.
+                function updateCanChipOpacity() {
+                    if (!map) return;
+                    var z = map.getZoom();
+                    var minZ = 6;    // fully faded below this
+                    var maxZ = 12;   // fully opaque at/above this
+                    var minO = 0.18;
+                    var maxO = 1.0;
+                    var t = Math.max(0, Math.min(1, (z - minZ) / (maxZ - minZ)));
+                    var op = (minO + t * (maxO - minO)).toFixed(2);
+                    document.documentElement.style.setProperty('--can-chip-opacity', op);
+                }
+                map.on('zoomend', updateCanChipOpacity);
+                updateCanChipOpacity();
 
                 // Close base map menu when clicking outside
                 document.addEventListener('click', function(event) {
