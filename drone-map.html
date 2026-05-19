@@ -2775,6 +2775,28 @@
             }
         }
 
+        /* Stacked popup geometry — fixed body height with internal scroll so
+           prev/next buttons stay in the same screen position as the user
+           cycles through features with varying amounts of content. Width is
+           pinned via min/maxWidth on the L.popup options (300 px). */
+        .can-stacked-body {
+            max-height: 220px;
+            overflow-y: auto;
+            font-size: 11.5px;
+            line-height: 1.45;
+            padding-right: 4px;
+        }
+        .can-stacked-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .can-stacked-body::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.18);
+            border-radius: 3px;
+        }
+        .can-stacked-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.32);
+        }
+
         /* Stacked-popup "this chip is the active selection" outline. Targets the
            inner chip div inside any DivIcon-based Canadian marker (METAR / TAF /
            NOTAM). Cyan outline + glow + small lift so the user can see which
@@ -6160,7 +6182,11 @@
             if (canActivePopup) {
                 map.closePopup(canActivePopup);
             }
-            canActivePopup = L.popup({ closeButton: true, maxWidth: 340, minWidth: 220, autoPan: true })
+            // Fixed-size popup so the prev/next buttons don't jump as we cycle
+            // through overlapping features with different amounts of text. Width
+            // pinned (min === max), content body scrolls internally if it overflows
+            // the height cap. See can-stacked-body / can-stacked-nav CSS below.
+            canActivePopup = L.popup({ closeButton: true, maxWidth: 300, minWidth: 300, autoPan: true })
                 .setLatLng(latlng)
                 .on('remove', function() {
                     cleanupCanHighlight();
@@ -6178,20 +6204,27 @@
             cleanupCanHighlight();
             var feat = canActiveFeatures[canActiveIndex];
             var total = canActiveFeatures.length;
-            // Compact footer nav (matches scan2v2 Mirada pattern): single row at the
-            // bottom, prev / counter+label / next. Buttons stop propagation so the
-            // click doesn't bubble up to the map's click handler.
+            // Compact footer nav (matches scan2v2 Mirada pattern): single row at
+            // the bottom, prev / counter+label / next. Anchored OUTSIDE the
+            // scrollable body so the buttons stay in the same screen position
+            // as the user cycles through features with different content
+            // lengths. Buttons stop propagation so the click doesn't bubble up
+            // to the map's click handler.
             var navHtml;
             if (total > 1) {
-                navHtml = '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;margin-top:6px;padding-top:6px;font-size:11px;color:#6b7280;font-family:system-ui,-apple-system,sans-serif;">'
+                navHtml = '<div class="can-stacked-nav" style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;padding-top:6px;margin-top:6px;font-size:11px;color:#6b7280;font-family:system-ui,-apple-system,sans-serif;">'
                     + '<button type="button" onclick="event.stopPropagation();cycleCanPopup(-1)" style="border:1px solid #d1d5db;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4;">← prev</button>'
                     + '<span><b>' + (canActiveIndex + 1) + ' of ' + total + '</b> · ' + feat.sourceLabel + '</span>'
                     + '<button type="button" onclick="event.stopPropagation();cycleCanPopup(1)" style="border:1px solid #d1d5db;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4;">next →</button>'
                     + '</div>';
             } else {
-                navHtml = '<div style="font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:6px;padding-top:4px;font-family:system-ui,-apple-system,sans-serif;">' + feat.sourceLabel + '</div>';
+                navHtml = '<div class="can-stacked-nav" style="font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:4px;margin-top:6px;font-family:system-ui,-apple-system,sans-serif;">' + feat.sourceLabel + '</div>';
             }
-            canActivePopup.setContent(feat.contentHtml + navHtml);
+            // Wrap content in a fixed-height scroll frame so the popup geometry
+            // is stable across cycles. Buttons (navHtml) sit OUTSIDE the scroll
+            // frame so they remain in the same place every render.
+            var framed = '<div class="can-stacked-body">' + feat.contentHtml + '</div>' + navHtml;
+            canActivePopup.setContent(framed);
             if (typeof feat.applyHighlight === 'function') {
                 canActiveHighlightCleanup = feat.applyHighlight();
             }
