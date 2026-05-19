@@ -3681,10 +3681,6 @@
                         <label for="faaSubNsufr">National security UAS restrictions</label>
                     </div>
                     <div class="base-map-option base-map-toggle faa-sublayer">
-                        <input type="checkbox" id="faaSubAirports" onchange="setFaaSubLayerVisibility('airports', this.checked)">
-                        <label for="faaSubAirports">Airports</label>
-                    </div>
-                    <div class="base-map-option base-map-toggle faa-sublayer">
                         <input type="checkbox" id="faaSubRecSites" onchange="setFaaSubLayerVisibility('recSites', this.checked)">
                         <label for="faaSubRecSites">Recreational flyer fixed sites</label>
                     </div>
@@ -4247,33 +4243,11 @@
                     visible: false, checkboxId: 'faaSubNsufr'
                 };
 
-                // 6. US Airports (point layer)
-                faaSubLayers.airports = {
-                    layer: L.esri.featureLayer({
-                        url: FAA_BASE + '/US_Airport/FeatureServer/0',
-                        pointToLayer: function(geojson, latlng) {
-                            return L.circleMarker(latlng, {
-                                radius: 4,
-                                color: '#00bfff',
-                                fillColor: '#00bfff',
-                                fillOpacity: 0.7,
-                                weight: 1
-                            });
-                        },
-                        onEachFeature: function(feature, layer) {
-                            var p = feature.properties;
-                            layer.bindPopup(faaPopup('Airport', [
-                                'Name: ' + (p.NAME || 'N/A'),
-                                'ICAO: ' + (p.ICAO_ID || 'N/A'),
-                                'Ident: ' + (p.IDENT || 'N/A'),
-                                'City: ' + (p.SERVCITY || 'N/A'),
-                                'Elev: ' + (p.ELEVATION || 'N/A') + ' ft'
-                            ]));
-                        },
-                        minZoom: 8
-                    }),
-                    visible: false, checkboxId: 'faaSubAirports'
-                };
+                // 6. US Airports — removed. The FAA UAS Data Delivery System endpoint
+                // (US_Airport/FeatureServer/0) returns noisy data that doesn't add value
+                // beyond what the LAANC Ceiling Grid + Controlled Airspace layers already
+                // show. The 'airports' slot is intentionally preserved in faaSubKeys so
+                // previously-shared `#v=…` URLs don't have their bit ordering shifted.
 
                 // 7. Recreational Flyer Fixed Sites
                 faaSubLayers.recSites = {
