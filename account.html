@@ -566,6 +566,27 @@ active: account
         gap: 6px;
         flex-wrap: wrap;
     }
+    /* "Add credits" CTA inside the widget body (right column). Same
+       outline-blue treatment as the per-license Renew button so the
+       action affordances feel consistent. */
+    .streaming-credits-cta {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e90ff;
+        background: #fff;
+        border: 1px solid #1e90ff;
+        border-radius: 7px;
+        text-decoration: none;
+        transition: background-color 0.15s, color 0.15s;
+    }
+    .streaming-credits-cta:hover {
+        background: #1e90ff;
+        color: #fff;
+        text-decoration: none;
+    }
     .streaming-credits-badge {
         font-size: 11px;
         font-weight: 700;
@@ -656,6 +677,29 @@ active: account
         border-top: 1px dashed #ececec;
     }
     .plan-primary-card .plan-relationship strong { color: #222; font-weight: 600; }
+    /* Org chips for umbrella licenses. Non-clickable labels listing
+       each org the license is available to. Reads as a tag cloud
+       rather than a comma-and-and sentence, which becomes
+       unreadable past 3 orgs. */
+    .plan-relationship-chips {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+        vertical-align: middle;
+        margin-left: 4px;
+    }
+    .plan-relationship-chip {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #eef2f7;
+        color: #36506b;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.4;
+        white-space: nowrap;
+    }
+    .plan-relationship-note { font-style: italic; color: #888; }
 
     /* Small clickable "?" icon next to detail values that benefit from
        an inline explanation. Used by the "Device releases" row in the
@@ -2536,12 +2580,13 @@ active: account
             </div><!-- /access view block -->
 
             <div data-account-view="overview" id="licensesCreditsViewBlock">
-            <!-- Streaming credits subsection. -->
+            <!-- Streaming credits subsection. The "Add credits" CTA
+                 lives *inside* the credits widget (right column),
+                 mirroring how the Renew button sits inside each
+                 license card - so action lives where the data it
+                 acts on lives, not stranded in the section header. -->
             <div class="overview-subhead-row">
                 <h3 class="overview-subhead">Streaming credits</h3>
-                <a class="overview-subhead-cta owner-only-cta" id="streamingBuyCreditsCta"
-                   href="{{ '/account/purchase/?mode=streaming' | relative_url }}"
-                   style="display: none;">+ Add credits</a>
             </div>
             <div id="streamingCreditsWidget" class="streaming-credits-widget" style="display: none;">
                 <div class="streaming-credits-left">
@@ -2551,6 +2596,9 @@ active: account
                 </div>
                 <div class="streaming-credits-right">
                     <div class="streaming-credits-badges" id="streamingCreditsBadges"></div>
+                    <a class="streaming-credits-cta owner-only-cta" id="streamingBuyCreditsCta"
+                       href="{{ '/account/purchase/?mode=streaming' | relative_url }}"
+                       style="display: none;">+ Add credits</a>
                 </div>
             </div>
             <div id="streamingCreditsEmpty" class="overview-empty" style="display: none;">
@@ -4152,24 +4200,25 @@ active: account
             return 'Personal. Not assigned to a team';
         }
 
-        var accessNames = access.map(function(o) { return bold(o.org_name); });
-
-        // Single-org license. Keep the existing terse line.
+        // Single-org license. Keep the existing prose: a chip would
+        // feel heavy when there's just one name to show.
         if (access.length === 1) {
+            var oneName = bold(access[0].org_name);
             return used.length
-                ? 'Used by ' + accessNames[0] + ' organization'
-                : 'Available to ' + accessNames[0] + ' &middot; not used yet';
+                ? 'Used by ' + oneName + ' organization'
+                : 'Available to ' + oneName + ' &middot; not used yet';
         }
 
-        // Multi-org (umbrella) license. Drop the "Used by A, B, C" tail
-        // - the foldout's per-user list now carries the org context
-        // for each active user, which is more useful than the aggregate
-        // org list and avoids saying the same thing twice.
-        var accessLine = 'Available to ' + joinAnd(accessNames);
-        if (used.length === 0) {
-            return accessLine + ' &middot; not used yet';
-        }
-        return accessLine;
+        // Multi-org (umbrella) license. Render each org as a small
+        // non-clickable chip rather than a "A, B, and C" prose list,
+        // which becomes a wall of text once there are more than 2-3
+        // orgs in play. The chips read top-to-bottom as a tag cloud,
+        // which scans much faster.
+        var chipsHtml = access.map(function(o) {
+            return '<span class="plan-relationship-chip">' + planEscape(o.org_name || 'Organization') + '</span>';
+        }).join('');
+        var suffix = used.length === 0 ? ' <span class="plan-relationship-note">not used yet</span>' : '';
+        return 'Available to <span class="plan-relationship-chips">' + chipsHtml + '</span>' + suffix;
     }
 
     function planEyeIconHtml() {
