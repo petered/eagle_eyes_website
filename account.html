@@ -4322,24 +4322,61 @@ active: account
     }
 
     function buildPlanUsersHtml(license) {
-        // The user list comes from cachedTokens (one row per dispensed
-        // device key). Tokens load on a separate request from the
-        // dashboard, so they may not have landed yet when a card first
-        // renders; show a quiet "Loading…" so we don't briefly claim
-        // "No active devices" on a license that actually has plenty.
-        if (!tokensLoaded) {
+        // Two possible data sources for the user list, in order of
+        // preference:
+        //   1. cachedAccountDevices (from list_account_devices) - the
+        //      newer, rich payload that always carries emails[] per
+        //      device and tokens[].email per token.
+        //   2. cachedTokens (from get_license_tokens_overview) - the
+        //      older payload. Fields here aren't always populated;
+        //      when token.email is missing we cross-reference
+        //      cachedAccountDevices by machine_id to fill the gap.
+        // Both load asynchronously and a license card can render before
+        // either lands, so we show "Loading…" until at least one is
+        // available rather than briefly claiming "No active devices."
+        const haveDevices = !!(typeof accountDevicesLoaded !== 'undefined' && accountDevicesLoaded);
+        if (!tokensLoaded && !haveDevices) {
             return '<span style="color:#888;">Loading…</span>';
         }
 
-        const tokens = (cachedTokens || []).filter(function(t) {
-            return t && t.license_id === license.license_id;
+        // Build a machine_id → email map from cachedAccountDevices so we
+        // can recover emails for tokens that don't carry them directly.
+        const emailByMachineId = {};
+        (typeof cachedAccountDevices !== 'undefined' ? cachedAccountDevices : []).forEach(function(d) {
+            if (!d || !d.machine_id) return;
+            const e = (d.emails && d.emails[0]) || '';
+            if (e) emailByMachineId[d.machine_id] = e;
         });
-        if (tokens.length) {
-            const byUser = {};
+
+        // Primary path: derive users from cachedAccountDevices when it's
+        // loaded - it's authoritative and consistent.
+        const byUser = {};
+        if (haveDevices && cachedAccountDevices.length) {
+            cachedAccountDevices.forEach(function(d) {
+                (d.tokens || []).forEach(function(t) {
+                    if (!t || t.license_id !== license.license_id) return;
+                    const k = t.email || (d.emails && d.emails[0]) || 'unknown';
+                    byUser[k] = (byUser[k] || 0) + 1;
+                });
+            });
+        }
+
+        // Backfill / primary path: derive from cachedTokens. Use the
+        // device lookup to recover emails when the token row itself
+        // doesn't include one.
+        if (!Object.keys(byUser).length) {
+            const tokens = (cachedTokens || []).filter(function(t) {
+                return t && t.license_id === license.license_id;
+            });
             tokens.forEach(function(t) {
-                const k = t.user_email || t.email || 'unknown';
+                const direct = t.user_email || t.email;
+                const fromDevice = t.machine_id ? emailByMachineId[t.machine_id] : null;
+                const k = direct || fromDevice || 'unknown';
                 byUser[k] = (byUser[k] || 0) + 1;
             });
+        }
+
+        if (Object.keys(byUser).length) {
             // Stable sort: most devices first, then alphabetical.
             const emails = Object.keys(byUser).sort(function(a, b) {
                 const diff = byUser[b] - byUser[a];
@@ -4509,10 +4546,18 @@ active: account
             accountDevicesLoaded = false;
         }
         await fetchAccountDevices(accountId);
-        // If the Devices view is currently rendered, refresh it.
+        // Refresh the Devices view when it's the active scope.
         if (activeScope === 'org' && activeView === 'devices') {
             const source = getActiveSource();
             if (source) renderActiveDevices(source);
+        }
+        // The Licenses & credits view's "Users with a device" foldout
+        // also reads from cachedAccountDevices (more reliable email data
+        // than cachedTokens). Re-render here so the row updates from
+        // "Loading…" / "unknown" to the real email list once devices
+        // land.
+        if (activeScope === 'account' && activeView !== 'access') {
+            renderActiveAccountLicenses();
         }
     }
 
