@@ -146,16 +146,6 @@
                                                 <div class="nav-admin-label">Site admin tools</div>
                                                 <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
                                                     <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
-                                                    <select id="navImpersonateCategory" required>
-                                                        <option value="" disabled selected>Reason category…</option>
-                                                        <option value="customer_support">Customer support</option>
-                                                        <option value="bug_investigation">Bug investigation</option>
-                                                        <option value="account_recovery">Account recovery</option>
-                                                        <option value="internal_test">Internal test</option>
-                                                        <option value="other">Other</option>
-                                                    </select>
-                                                    <input type="text" id="navImpersonateReason" placeholder="Reason (e.g. ticket #1234)" autocomplete="off" maxlength="200" required>
-                                                    <p class="nav-admin-hint">Logged to the impersonations audit trail.</p>
                                                     <button type="submit" class="nav-admin-go">Log in as</button>
                                                 </form>
                                                 <div id="navImpersonateStatus" class="nav-admin-status"></div>
@@ -467,7 +457,17 @@
             // "Dave". Without it, the legacy name silently won.
             function pickTriggerLabel(user) {
                 try {
-                    var draft = JSON.parse(localStorage.getItem('profileDraft') || '{}');
+                    // Per-uid key (profileDraft:<uid>) - previously this
+                    // was a single global key and an impersonation /
+                    // sign-in-as-different-user would let one identity's
+                    // draft leak into another's trigger label. Fall back
+                    // to the legacy global key only if no per-uid value
+                    // exists, so historical drafts still work the first
+                    // time the original user signs in after this change.
+                    var rawScoped = user && user.uid
+                        ? localStorage.getItem('profileDraft:' + user.uid)
+                        : null;
+                    var draft = rawScoped ? JSON.parse(rawScoped) : {};
                     if (draft && draft.firstName) return String(draft.firstName).trim();
                 } catch (e) {}
                 var dashFd = null;
@@ -602,25 +602,10 @@
             window.navImpersonate = async function(event) {
                 event.preventDefault();
                 var input = document.getElementById('navImpersonateEmail');
-                var categoryEl = document.getElementById('navImpersonateCategory');
-                var reasonEl = document.getElementById('navImpersonateReason');
                 var status = document.getElementById('navImpersonateStatus');
                 var submitBtn = event.target.querySelector('button[type="submit"]');
                 var target = (input.value || '').trim().toLowerCase();
-                var category = (categoryEl && categoryEl.value || '').trim();
-                var reason = (reasonEl && reasonEl.value || '').trim();
                 if (!target) return false;
-                // Compliance gate: refuse to call the endpoint without a
-                // logged justification. Backend should also enforce, but
-                // the client-side check keeps the audit trail honest in
-                // the common case and avoids a wasted round-trip.
-                if (!category || !reason) {
-                    if (status) {
-                        status.textContent = 'Reason category and details are required.';
-                        status.className = 'nav-admin-status error';
-                    }
-                    return false;
-                }
                 if (status) { status.textContent = ''; status.className = 'nav-admin-status'; }
                 if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Working…'; }
 
@@ -633,15 +618,11 @@
                     var r = await fetch(hostURL + '/admin_impersonate_user', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
-                        // Backend contract: body is { target_email, reason, reason_category };
+                        // Backend contract: body is { target_email };
                         // response is { custom_token, target_email, target_uid, expires_in }.
-                        // reason + reason_category land on the impersonations
-                        // audit doc for compliance / anomaly detection.
-                        body: JSON.stringify({
-                            target_email: target,
-                            reason: reason,
-                            reason_category: category
-                        })
+                        // The reason/category audit-trail fields are
+                        // intentionally not collected for now.
+                        body: JSON.stringify({ target_email: target })
                     });
                     var bodyText = await r.text();
                     var data = {};
@@ -654,6 +635,17 @@
                         throw new Error(msg);
                     }
                     if (!data.custom_token) throw new Error('No custom_token in response');
+
+                    // Wipe identity hints from the previous user before
+                    // signing in as the new one — otherwise the next
+                    // page's pre-paint trigger-name reads the previous
+                    // signed-in user's cached name. Sign-out clears
+                    // these too; impersonation goes directly from one
+                    // signed-in identity to another so we need to do
+                    // it explicitly here.
+                    try {
+                        localStorage.removeItem('eeTriggerName');
+                    } catch (e) {}
 
                     await firebase.auth().signInWithCustomToken(data.custom_token);
                     if (status) {

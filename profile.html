@@ -298,10 +298,19 @@ heading: Profile
 
 <script>
     (function() {
-        // Local state. Backend save endpoints aren't wired yet, so values are
-        // remembered in localStorage as a temporary store until we have an
-        // update_user_profile cloud function.
-        var STORAGE_KEY = 'profileDraft';
+        // Local-only draft for the in-flight profile edits. Now scoped
+        // per-uid (key = "profileDraft:<uid>") so impersonation and
+        // sign-in-as-different-user don't leak the previous identity's
+        // first-name into the new session's navbar trigger and profile
+        // form. Pre-2026-05-20 used a single global "profileDraft" key
+        // which is the bug we're fixing here.
+        function draftStorageKey() {
+            try {
+                var u = firebase.auth().currentUser;
+                if (u && u.uid) return 'profileDraft:' + u.uid;
+            } catch (e) {}
+            return 'profileDraft';
+        }
 
         function setStatus(el, message, type) {
             if (!el) return;
@@ -311,13 +320,13 @@ heading: Profile
 
         function readDraft() {
             try {
-                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+                return JSON.parse(localStorage.getItem(draftStorageKey()) || '{}') || {};
             } catch (e) { return {}; }
         }
         function writeDraft(patch) {
             var current = readDraft();
             Object.keys(patch).forEach(function(k) { current[k] = patch[k]; });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+            localStorage.setItem(draftStorageKey(), JSON.stringify(current));
         }
 
         function formatProvider(providerId) {
