@@ -733,6 +733,34 @@ active: account
         opacity: 0.75;
         font-weight: 400;
     }
+    /* Passive "Renewal queued" status badge shown in place of the
+       Renew button on licenses that already have a future-dated
+       renewal (successor_license_id is set). Same dimensions as
+       .plan-action-btn so layout stays stable; muted treatment so
+       it doesn't read as clickable. */
+    .plan-primary-card .plan-action-status {
+        display: block;
+        padding: 9px 14px;
+        text-align: center;
+        border: 1px solid #d4e4d4;
+        border-radius: 7px;
+        background: #f1f8f1;
+        color: #2d7a48;
+        font-family: inherit;
+        line-height: 1.25;
+    }
+    .plan-primary-card .plan-action-status-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .plan-primary-card .plan-action-status-sub {
+        display: block;
+        font-size: 11px;
+        margin-top: 2px;
+        opacity: 0.85;
+        font-weight: 400;
+    }
     @media (max-width: 600px) {
         .plan-primary-card .plan-card-main { flex-direction: column; }
         .plan-primary-card .plan-card-actions { width: 100%; min-width: 0; }
@@ -3843,6 +3871,10 @@ active: account
                 const st = getLicenseExpiryStatus(l);
                 if (st.daysLeft === null) return;
                 if (st.isTrial) return;
+                // Licenses that already have a future-dated renewal queued
+                // don't need a renew prompt - the per-card "Renewal queued"
+                // status carries that information instead.
+                if (l.successor_license_id) return;
                 if (!soonest || st.daysLeft < soonest._daysLeft) {
                     soonest = Object.assign({}, l, {
                         _daysLeft: st.daysLeft,
@@ -3999,6 +4031,20 @@ active: account
         if (!license) return false;
         return /trial/i.test(String(license.tier || ''));
     }
+    // Format a backend ISO datetime as a human date for the "Renewal
+     // queued — Starts {date}" status label. Falls back to the raw
+     // ISO string if Date parsing fails on this browser.
+    function formatRenewalStartDate(iso) {
+        if (!iso) return '';
+        try {
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        } catch (e) {
+            return iso;
+        }
+    }
+
     function getLicenseExpiryStatus(license) {
         if (!license || !license.expiry_date) {
             return { daysLeft: null, expiringSoon: false, isTrial: false };
@@ -4053,37 +4099,43 @@ active: account
             : '';
 
         // Per-card actions, rendered as two stacked outline buttons in
-        // the card's right column so they read as obvious actions
-        // rather than buried inline links. Each button carries a
-        // two-line label (primary + small subtitle) so users know
-        // exactly what's about to happen.
-        //   Renew → opens a prefilled mailto until the renew_license
-        //     endpoint is wired into the purchase page (renew mode is
-        //     drafted but not yet on the Continue dispatcher).
+        // the card's right column. Each button carries a two-line label
+        // (primary + small subtitle) so users know what's about to
+        // happen.
+        //   Renew → /account/purchase/?mode=renew&license_id=X. The
+        //     purchase page's renew mode calls the renew_license
+        //     endpoint (payment_method = checkout / invoice / quote).
         //   Add devices → standard purchase page when the license has
         //     headroom under the 12-device backend cap, otherwise a
-        //     mailto so customers with custom-sized licenses (>12
-        //     devices) still see an action.
+        //     mailto so customers with custom-sized licenses still see
+        //     an action.
+        //   Already-renewed licenses (those with successor_license_id
+        //     set by the backend) show a passive "Renewal queued"
+        //     status pill instead of the Renew button — the user can't
+        //     queue a second renewal on top of a pending one.
         let actionsHtml = '';
         if (!isExpired && license.license_id) {
-            const renewSubject = 'License renewal request: '
-                + (license.license_name || license.license_id);
-            const renewBody = 'Please renew the following Eagle Eyes license:\n\n'
-                + 'License: ' + (license.license_name || '') + ' (' + license.license_id + ')\n'
-                + (expiryDate ? 'Current expiry: ' + expiryDate + '\n' : '')
-                + (totalKeys !== null ? 'Devices: ' + totalKeys + '\n' : '')
-                + '\n'
-                + 'We would like the renewal to start when the current license expires, '
-                + 'with no interruption to service.\n\n'
-                + 'Thanks';
-            const renewMailto = 'mailto:info@eagleeyessearch.com'
-                + '?subject=' + encodeURIComponent(renewSubject)
-                + '&body=' + encodeURIComponent(renewBody);
-            actionsHtml +=
-                '<a class="plan-action-btn" href="' + planEscape(renewMailto) + '">'
-                +   '<span class="plan-action-btn-label">Renew for 1 year</span>'
-                +   '<span class="plan-action-btn-sub">Extends this license. Starts at expiry.</span>'
-                + '</a>';
+            const hasQueuedRenewal = !!license.successor_license_id;
+            if (hasQueuedRenewal) {
+                let queuedDate = license.successor_starts_at_iso
+                    ? formatRenewalStartDate(license.successor_starts_at_iso)
+                    : '';
+                actionsHtml +=
+                    '<div class="plan-action-status">'
+                    +   '<span class="plan-action-status-label">Renewal queued</span>'
+                    +   (queuedDate
+                        ? '<span class="plan-action-status-sub">Starts ' + planEscape(queuedDate) + '</span>'
+                        : '<span class="plan-action-status-sub">Starts at expiry.</span>')
+                    + '</div>';
+            } else {
+                const renewUrl = '{{ "/account/purchase/" | relative_url }}?mode=renew&license_id='
+                    + encodeURIComponent(license.license_id);
+                actionsHtml +=
+                    '<a class="plan-action-btn" href="' + renewUrl + '">'
+                    +   '<span class="plan-action-btn-label">Renew for 1 year</span>'
+                    +   '<span class="plan-action-btn-sub">Extends this license. Starts at expiry.</span>'
+                    + '</a>';
+            }
 
             const currentTotal = (typeof totalKeys === 'number') ? totalKeys : 0;
             let addUrl;

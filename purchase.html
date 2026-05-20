@@ -1107,6 +1107,65 @@ active: purchase
 
     // ---- Render ----
 
+    // List of active (non-expired) licenses on the active account that
+    // are eligible to renew. Excludes licenses that already have a
+    // future-dated renewal queued (successor_license_id is set).
+    function licensesEligibleToRenew() {
+        return licensesForActiveAccount().filter(function(l) {
+            if (remainingMonthsFor(l) <= 0) return false;
+            if (l.successor_license_id) return false;
+            return true;
+        });
+    }
+
+    function renderRenewLicenseList() {
+        var listEl = $('renewLicenseList');
+        var emptyNote = $('renewEmpty');
+        if (!listEl) return;
+        var avail = licensesEligibleToRenew();
+        var renewRow = $('modeRowRenew');
+        if (!avail.length) {
+            listEl.innerHTML = '';
+            if (emptyNote) emptyNote.style.display = '';
+            if (renewRow) {
+                renewRow.classList.add('is-disabled');
+                var r = renewRow.querySelector('input[type="radio"]');
+                if (r) r.disabled = true;
+            }
+            return;
+        }
+        if (emptyNote) emptyNote.style.display = 'none';
+        if (renewRow) {
+            renewRow.classList.remove('is-disabled');
+            var r2 = renewRow.querySelector('input[type="radio"]');
+            if (r2) r2.disabled = false;
+        }
+
+        var selectedId = state.renewLicenseId;
+        if (!selectedId || !avail.some(function(l) { return l.license_id === selectedId; })) {
+            selectedId = avail[0].license_id;
+            state.renewLicenseId = selectedId;
+        }
+
+        var html = '';
+        avail.forEach(function(l) {
+            var isSel = l.license_id === selectedId;
+            var devices = deviceCountOf(l);
+            var expiry = l.expiry_date || 'unknown';
+            html += '<label class="license-row' + (isSel ? ' is-active' : '') + '" data-renew-license-id="' + esc(l.license_id) + '">'
+                + '<input type="radio" name="renewPick" value="' + esc(l.license_id) + '"' + (isSel ? ' checked' : '') + '>'
+                + '<div class="license-row-body">'
+                +   '<div class="license-row-name">' + esc(l.license_name || 'License ' + l.license_id) + '</div>'
+                +   '<div class="license-row-meta">'
+                +     devices + ' device' + (devices === 1 ? '' : 's') + ' · expires ' + esc(expiry)
+                +     ' · renewal will run for 1 year starting at expiry'
+                +   '</div>'
+                + '</div>'
+                + '</label>';
+        });
+        listEl.innerHTML = html;
+    }
+
     function renderLicenseList() {
         var listEl = $('addDevicesLicenseList');
         var emptyNote = $('addDevicesEmpty');
@@ -1205,6 +1264,43 @@ active: purchase
 
         if (minus) minus.disabled = n <= 1;
         if (plus) plus.disabled = n >= maxAdd;
+    }
+
+    // Decide which top-level modes are visible. The mutual-exclusion
+     // policy: when the account already has at least one active
+     // (non-expired, non-already-renewed) license, hide "New license"
+     // and show "Renew" instead. First-license accounts see "New
+     // license"; renewing accounts see "Renew an existing license".
+     // "Add devices" and "Add streaming credits" stay visible always
+     // (subject to their own internal availability checks).
+    function applyAvailableModes() {
+        var newRow = $('modeRowNew');
+        var renewRow = $('modeRowRenew');
+        var addDevicesRow = $('modeRowAddDevices');
+        if (!newRow || !renewRow) return;
+        var renewable = licensesEligibleToRenew();
+        var hasRenewable = renewable.length > 0;
+        // Also consider whether any active licenses exist at all (not
+        // just renewable ones) so an account with only already-renewed
+        // licenses still hides "New license" — the user is mid-renewal,
+        // a new license would be redundant.
+        var anyActive = (state.licenses || []).some(function(l) {
+            return remainingMonthsFor(l) > 0;
+        });
+        if (anyActive) {
+            newRow.style.display = 'none';
+            renewRow.style.display = hasRenewable ? '' : 'none';
+        } else {
+            newRow.style.display = '';
+            renewRow.style.display = 'none';
+        }
+        // If the URL preselected a mode that's now hidden, fall back
+        // to a visible one. Same for the default 'new' state.
+        if (state.mode === 'new' && anyActive) {
+            state.mode = hasRenewable ? 'renew' : 'add_devices';
+        } else if (state.mode === 'renew' && !hasRenewable) {
+            state.mode = anyActive ? 'add_devices' : 'new';
+        }
     }
 
     function applyModeUI() {
@@ -1352,6 +1448,19 @@ active: purchase
             var n = parseInt($('newDeviceCount').value, 10) || 1;
             total = priceForNew(n);
             label = 'Pro license, ' + n + ' device' + (n === 1 ? '' : 's') + ', 1 year';
+        } else if (state.mode === 'renew') {
+            var rlic = findLicenseById(state.renewLicenseId);
+            if (rlic) {
+                var devs = deviceCountOf(rlic);
+                // Renewals price at the same per-year rate as new licenses
+                // with the same device count. Backend final-prices via the
+                // catalog SKU; this is an estimate for the summary line.
+                total = priceForNew(devs);
+                label = 'Renew "' + (rlic.license_name || rlic.license_id) + '" - '
+                    + devs + ' device' + (devs === 1 ? '' : 's') + ', 1 year';
+            } else {
+                label = 'Renew a license';
+            }
         } else if (state.mode === 'add_devices') {
             var lic = findLicenseById(state.activeLicenseId);
             var addN = parseInt($('addDevicesCount').value, 10) || 1;
@@ -1390,6 +1499,13 @@ active: purchase
         if (state.mode === 'new') {
             var n = parseInt($('newDeviceCount').value, 10) || 1;
             lines.push('• Eagle Eyes Pro license. ' + n + ' device' + (n === 1 ? '' : 's') + '. 1 year. ' + formatPrice(priceForNew(n)));
+        } else if (state.mode === 'renew') {
+            var rlic = findLicenseById(state.renewLicenseId);
+            if (rlic) {
+                var rdevs = deviceCountOf(rlic);
+                lines.push('• Renewal of license "' + (rlic.license_name || rlic.license_id) + '" (id: ' + rlic.license_id + ')');
+                lines.push('  ' + rdevs + ' device' + (rdevs === 1 ? '' : 's') + ', 1 year. Starts ' + (rlic.expiry_date || 'at current expiry') + '.');
+            }
         } else if (state.mode === 'add_devices') {
             var lic = findLicenseById(state.activeLicenseId);
             var addN = parseInt($('addDevicesCount').value, 10) || 1;
@@ -1456,6 +1572,37 @@ active: purchase
             var user = firebase.auth().currentUser;
             if (!user) throw new Error('Not signed in');
             var idToken = await user.getIdToken();
+
+            // ----- Renew: POST to /renew_license with payment_method=checkout.
+            // Backend returns { hosted_url, id, amount_usd, ... } and we
+            // redirect the user to the Stripe Checkout session. Invoice
+            // and quote payment methods for renewals route through
+            // onInvoice / onQuote below, which read state.mode==='renew'
+            // and switch endpoints.
+            if (state.mode === 'renew') {
+                var rlic = findLicenseById(state.renewLicenseId);
+                if (!rlic) throw new Error('Pick a license to renew.');
+                var rRes = await fetch(getHostUrl() + '/renew_license', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + idToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        license_id: rlic.license_id,
+                        payment_method: 'checkout'
+                    })
+                });
+                var rText = await rRes.text();
+                if (!rRes.ok) {
+                    throw new Error('Renewal failed (' + rRes.status + '): ' + rText);
+                }
+                var rData = rText ? JSON.parse(rText) : {};
+                if (!rData.hosted_url) throw new Error('No checkout URL returned.');
+                window.location.href = rData.hosted_url;
+                return;
+            }
 
             // ----- Streaming credits: POST to a dedicated endpoint per package. -----
             if (state.mode === 'streaming') {
@@ -1616,68 +1763,91 @@ active: purchase
         };
     }
 
-    // POST /request_invoice_for_self. Creates a finalized Stripe Invoice
-    // and emails it to the account owner. Reads custom_fields from the
-    // reference-details panel. Handles the 409 billing_address_required
-    // refusal by popping the shared address modal and retrying once on
-    // success.
+    // Helper: send a 409-billing_address-aware POST. If the first call
+    // returns the structured "billing_address_required" refusal, opens
+    // the shared address modal, lets the user save an address, and
+    // retries the original POST once. Returns null when the user
+    // cancels the address modal (caller should bail without erroring).
+    async function postWithAddressRetry(endpoint, body, reason) {
+        try {
+            return await postBillingJson(endpoint, body);
+        } catch (err1) {
+            if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
+                var addr = window.eeBillingAddress
+                    ? await window.eeBillingAddress.open({
+                        accountId: err1.data.account_id || parseInt(state.activeAccountId, 10),
+                        currentAddress: activeAccountAddress(),
+                        reason: reason || 'invoice'
+                    })
+                    : null;
+                if (!addr) return null;
+                // Patch the in-memory state so subsequent retries
+                // don't 409 again (modal already pushed to backend).
+                var acc = (state.accounts || []).find(function(a) {
+                    return String(accountIdOf(a)) === String(state.activeAccountId);
+                });
+                if (acc) acc.address = addr;
+                return await postBillingJson(endpoint, body);
+            }
+            throw err1;
+        }
+    }
+
+    // Invoice flow. Branches by state.mode:
+    //   - renew: POST /renew_license { license_id, payment_method:'invoice',
+    //     custom_fields } - returns { hosted_url, ... }
+    //   - new (catalog SKUs): POST /request_invoice_for_self
+    //   - add_devices / streaming: not catalog-eligible; show a hint
+    //     pointing the user at credit-card payment or sales.
+    // 409 billing_address_required refusals are handled identically:
+    // pop the shared modal, capture address, retry once.
     async function onInvoice() {
         clearCtaStatus();
         var btn = $('ctaContinue');
-        var items = cartCatalogLineItems();
-        if (!items) {
-            showCtaError('Invoices cover catalog SKUs only (1-Year SAR licenses) right now. '
-                + 'For streaming credits or device extensions on existing licenses, switch to '
-                + '"Pay now with a credit card" or email info@eagleeyessearch.com.');
-            return;
-        }
-        if (!state.activeAccountId) {
-            showCtaError('Select an account before requesting an invoice.');
-            return;
-        }
-        var body = buildBillingRequestBody();
-        // Don't include `custom_fields` when empty — backend rejects an
-        // empty array with the "non-empty name and value" validator.
-        if (!body.custom_fields || body.custom_fields.length === 0) delete body.custom_fields;
-
         btn.disabled = true;
         var orig = btn.textContent;
         btn.textContent = 'Creating invoice…';
         try {
-            var inv;
-            try {
-                var resp = await postBillingJson('request_invoice_for_self', body);
-                inv = resp && resp.invoice;
-            } catch (err1) {
-                // 409 billing_address_required: open the shared address
-                // modal, capture an address, set it, and retry once.
-                if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
-                    var addr = window.eeBillingAddress
-                        ? await window.eeBillingAddress.open({
-                            accountId: err1.data.account_id || parseInt(state.activeAccountId, 10),
-                            currentAddress: activeAccountAddress(),
-                            reason: 'invoice'
-                        })
-                        : null;
-                    if (!addr) { return; } // user cancelled; bail (no error toast)
-                    // The modal already POSTed to /set_billing_address.
-                    // Patch the in-memory state so subsequent attempts
-                    // don't 409 again.
-                    var acc = (state.accounts || []).find(function(a) {
-                        return String(accountIdOf(a)) === String(state.activeAccountId);
-                    });
-                    if (acc) acc.address = addr;
-                    var resp2 = await postBillingJson('request_invoice_for_self', body);
-                    inv = resp2 && resp2.invoice;
-                } else {
-                    throw err1;
+            var hostedUrl;
+
+            if (state.mode === 'renew') {
+                var rlic = findLicenseById(state.renewLicenseId);
+                if (!rlic) throw new Error('Pick a license to renew.');
+                var customFieldsR = readInvoiceCustomFields();
+                var renewBody = {
+                    license_id: rlic.license_id,
+                    payment_method: 'invoice'
+                };
+                if (customFieldsR.length) renewBody.custom_fields = customFieldsR;
+                var renewResp = await postWithAddressRetry('renew_license', renewBody, 'invoice');
+                if (renewResp === null) return; // user cancelled the address modal
+                if (!renewResp || !renewResp.hosted_url) throw new Error('Backend did not return an invoice URL.');
+                hostedUrl = renewResp.hosted_url;
+            } else {
+                var items = cartCatalogLineItems();
+                if (!items) {
+                    showCtaError('Invoices cover catalog SKUs only (1-Year SAR licenses) and renewals. '
+                        + 'For streaming credits or device extensions, switch to '
+                        + '"Pay now with a credit card" or email info@eagleeyessearch.com.');
+                    return;
                 }
+                if (!state.activeAccountId) {
+                    showCtaError('Select an account before requesting an invoice.');
+                    return;
+                }
+                var body = buildBillingRequestBody();
+                if (!body.custom_fields || body.custom_fields.length === 0) delete body.custom_fields;
+                var resp = await postWithAddressRetry('request_invoice_for_self', body, 'invoice');
+                if (resp === null) return;
+                var inv = resp && resp.invoice;
+                if (!inv || !inv.hosted_url) throw new Error('Backend did not return an invoice URL.');
+                hostedUrl = inv.hosted_url;
             }
-            if (!inv || !inv.hosted_url) throw new Error('Backend did not return an invoice URL.');
-            window.open(inv.hosted_url, '_blank', 'noopener');
+
+            window.open(hostedUrl, '_blank', 'noopener');
             showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
         } catch (e) {
-            console.error('request_invoice_for_self failed:', e);
+            console.error('Invoice flow failed:', e);
             showCtaError("Couldn't create invoice: " + (e.message || String(e)));
         } finally {
             btn.disabled = false;
@@ -1693,56 +1863,58 @@ active: purchase
         if (e && e.preventDefault) e.preventDefault();
         clearCtaStatus();
         var link = $('ctaContinue');
-        var items = cartCatalogLineItems();
-        if (!items) {
-            showCtaError('Quotes cover catalog SKUs only (1-Year SAR licenses) right now. '
-                + 'For other items, email info@eagleeyessearch.com.');
-            return;
-        }
-        if (!state.activeAccountId) {
-            showCtaError('Select an account before requesting a quote.');
-            return;
-        }
-        var customFields = readInvoiceCustomFields();
-        var body = {
-            account_id: parseInt(state.activeAccountId, 10),
-            line_items: items,
-            valid_for_days: 30
-        };
-        if (customFields.length) body.custom_fields = customFields;
-
         var prev = link.textContent;
         link.textContent = 'Creating quote…';
+
         try {
-            var quote;
-            try {
-                var resp = await postBillingJson('request_quote_for_self', body);
-                quote = resp && resp.quote;
-            } catch (err1) {
-                // Same 409 billing_address_required retry pattern as
-                // onInvoice. Open modal, set address, retry once.
-                if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
-                    var addr = window.eeBillingAddress
-                        ? await window.eeBillingAddress.open({
-                            accountId: err1.data.account_id || parseInt(state.activeAccountId, 10),
-                            currentAddress: activeAccountAddress(),
-                            reason: 'quote'
-                        })
-                        : null;
-                    if (!addr) { return; }
-                    var acc = (state.accounts || []).find(function(a) {
-                        return String(accountIdOf(a)) === String(state.activeAccountId);
-                    });
-                    if (acc) acc.address = addr;
-                    var resp2 = await postBillingJson('request_quote_for_self', body);
-                    quote = resp2 && resp2.quote;
-                } else {
-                    throw err1;
+            var hostedUrl;
+
+            if (state.mode === 'renew') {
+                var rlic = findLicenseById(state.renewLicenseId);
+                if (!rlic) throw new Error('Pick a license to renew.');
+                // renew_license quote mode rejects custom_fields (Stripe
+                // API limitation for one-time-priced Quote line items).
+                // The reference-details panel still applies for invoice
+                // mode, but quote mode silently drops them.
+                var renewBody = {
+                    license_id: rlic.license_id,
+                    payment_method: 'quote'
+                };
+                var renewResp = await postWithAddressRetry('renew_license', renewBody, 'quote');
+                if (renewResp === null) { link.textContent = prev; return; }
+                if (!renewResp || !renewResp.hosted_url) throw new Error('Backend did not return a quote URL.');
+                hostedUrl = renewResp.hosted_url;
+            } else {
+                var items = cartCatalogLineItems();
+                if (!items) {
+                    showCtaError('Quotes cover catalog SKUs only (1-Year SAR licenses) and renewals. '
+                        + 'For other items, email info@eagleeyessearch.com.');
+                    link.textContent = prev;
+                    return;
                 }
+                if (!state.activeAccountId) {
+                    showCtaError('Select an account before requesting a quote.');
+                    link.textContent = prev;
+                    return;
+                }
+                var customFields = readInvoiceCustomFields();
+                var body = {
+                    account_id: parseInt(state.activeAccountId, 10),
+                    line_items: items,
+                    valid_for_days: 30
+                };
+                if (customFields.length) body.custom_fields = customFields;
+                var resp = await postWithAddressRetry('request_quote_for_self', body, 'quote');
+                if (resp === null) { link.textContent = prev; return; }
+                var quote = resp && resp.quote;
+                if (!quote || !quote.hosted_url) throw new Error('Backend did not return a quote URL.');
+                hostedUrl = quote.hosted_url;
             }
-            if (!quote || !quote.hosted_url) throw new Error('Backend did not return a quote URL.');
-            window.open(quote.hosted_url, '_blank', 'noopener');
+
+            window.open(hostedUrl, '_blank', 'noopener');
             showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
+            link.textContent = prev;
+            return;
         } catch (err) {
             if (err.status === 501 || (err.data && err.data.code === 'quotes_require_invoicing_plus')) {
                 console.info('Quote endpoint unavailable (Invoicing Plus not enabled). Falling back to mailto');
@@ -1840,8 +2012,16 @@ active: purchase
         var dc = readDeviceCountFromUrl();
         if (dc && state.mode === 'new') $('newDeviceCount').value = String(dc);
 
+        // Preselect a license for renew mode when the URL points to one.
+        if (state.mode === 'renew' && lid) state.renewLicenseId = lid;
+
+        // Decide which top-level modes are visible (gates New vs Renew
+        // based on whether the account has active licenses).
+        applyAvailableModes();
+
         applyModeUI();
         renderLicenseList();
+        renderRenewLicenseList();
 
         // Streaming credit balance + per-minute rate (informational).
         loadCredits(user).then(function(c) {
@@ -1977,6 +2157,12 @@ active: purchase
                 row.classList.toggle('is-active', row.getAttribute('data-license-id') === state.activeLicenseId);
             });
             recomputeSummary();
+        } else if (e.target.name === 'renewPick') {
+            state.renewLicenseId = e.target.value;
+            document.querySelectorAll('.license-row').forEach(function(row) {
+                row.classList.toggle('is-active', row.getAttribute('data-renew-license-id') === state.renewLicenseId);
+            });
+            recomputeSummary();
         } else if (e.target.name === 'paymentMethod') {
             state.paymentMethod = e.target.value;
             applyPaymentUI();
@@ -1995,11 +2181,25 @@ active: purchase
         // first.
         var licRow = e.target.closest('.license-row');
         if (licRow) {
-            var id = licRow.getAttribute('data-license-id');
-            if (id && id !== state.activeLicenseId) {
-                state.activeLicenseId = id;
+            // The same .license-row class is used by both the add_devices
+            // picker (data-license-id) and the renew picker
+            // (data-renew-license-id). Branch on which attribute is set.
+            var addId = licRow.getAttribute('data-license-id');
+            var renewId = licRow.getAttribute('data-renew-license-id');
+            if (renewId) {
+                if (renewId !== state.renewLicenseId) {
+                    state.renewLicenseId = renewId;
+                    document.querySelectorAll('.license-row').forEach(function(r) {
+                        r.classList.toggle('is-active', r.getAttribute('data-renew-license-id') === renewId);
+                    });
+                    var rradio = licRow.querySelector('input[type="radio"]');
+                    if (rradio) rradio.checked = true;
+                    recomputeSummary();
+                }
+            } else if (addId && addId !== state.activeLicenseId) {
+                state.activeLicenseId = addId;
                 document.querySelectorAll('.license-row').forEach(function(r) {
-                    r.classList.toggle('is-active', r.getAttribute('data-license-id') === id);
+                    r.classList.toggle('is-active', r.getAttribute('data-license-id') === addId);
                 });
                 var radio = licRow.querySelector('input[type="radio"]');
                 if (radio) radio.checked = true;
@@ -2108,7 +2308,13 @@ active: purchase
         if (!u) return;
         state.activeAccountId = String(e.detail.id);
         state.activeLicenseId = null; // pick a default again from the new account's licenses
+        state.renewLicenseId = null;
+        // Re-evaluate which modes are visible (the new account may have
+        // active licenses where the previous one didn't, or vice versa).
+        applyAvailableModes();
+        applyModeUI();
         renderLicenseList();
+        renderRenewLicenseList();
         loadCredits(u).then(function(c) {
             if (!c) return;
             state.credits = c;
