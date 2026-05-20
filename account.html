@@ -5317,8 +5317,24 @@ active: account
         const inactivePillHtml = isActive
           ? ''
           : ' <span class="device-inactive-pill">Inactive</span>';
-        const djiPart = device.dji_device_type
-          ? '<span class="device-row-sep">·</span><span>' + escapeHtmlOrg(device.dji_device_type) + '</span>'
+        // Backend stamps dji_device_type = 'unknown' (any case) for
+        // devices it can't classify. Treat that as missing and skip the
+        // segment so the row doesn't show a meaningless "UNKNOWN" pill.
+        const djiType = (device.dji_device_type || '').trim();
+        const djiPart = djiType && djiType.toLowerCase() !== 'unknown'
+          ? '<span class="device-row-sep">·</span><span>' + escapeHtmlOrg(djiType) + '</span>'
+          : '';
+        // Most-recent activation across the tokens shown in this row's
+        // dropdown. Format as YYYY-MM-DD to match the expiry copy. Omit
+        // the segment when no activation timestamp is available.
+        const activationMs = dropdownTokens.reduce(function(acc, t) {
+          const ms = tokenActivationMs(t);
+          return ms > acc ? ms : acc;
+        }, 0);
+        const activationPart = activationMs > 0
+          ? '<span class="device-row-sep">·</span><span>activated '
+              + escapeHtmlOrg(new Date(activationMs).toISOString().slice(0, 10))
+              + '</span>'
           : '';
         // The device name lives in the secondary meta line; primary line
         // is the user email so devices group visually by "who owns them".
@@ -5341,6 +5357,7 @@ active: account
               '<span class="device-row-machineid" title="' + machineIdEsc + '">' +
                 'Machine ID: <code>' + machineIdEsc + '</code>' +
               '</span>' +
+              activationPart +
             '</div>' +
           '</div>';
         row.appendChild(left);
