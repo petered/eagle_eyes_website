@@ -2587,11 +2587,18 @@ active: account
         // hashchange. Which is handled above.
         document.addEventListener('accountScopeChanged', function(e) {
             if (e.detail && e.detail.scope === 'account') {
-                // Account-scoped devices payload is keyed by account_id, so
-                // switching accounts via the page-title dropdown needs to
-                // re-fetch and re-render the Devices view alongside the
-                // account-scope renders.
+                // Account-scoped data needs to be re-fetched after the
+                // page-title dropdown picks a different account:
+                //   - devices payload is keyed by account_id
+                //   - streaming credits is keyed by account_id (the
+                //     widget reads from cachedStreamingCredits which we
+                //     need to invalidate + refetch, otherwise the
+                //     balance from the previously-loaded account stays
+                //     visible and the dropdown looks broken).
                 fetchAccountDevicesForActiveAccount();
+                cachedStreamingCredits = null;
+                renderStreamingCreditsWidget(); // immediate placeholder
+                kickOffStreamingCreditsFetch();  // async refresh
                 if (activeScope === 'account') {
                     renderActiveView();
                 }
@@ -5328,9 +5335,25 @@ active: account
     let cachedStreamingCredits = null;
     let streamingCreditsPollHandle = null;
 
+    // Resolve the currently-active account id for credits + similar
+     // account-keyed calls. Reads the page-title dropdown's selection
+     // from sessionStorage (ee-active-account:<uid>) and falls back
+     // to cachedAccounts[0] if no selection has been written yet.
+     // Previously this always returned cachedAccounts[0], which made
+     // the page-title dropdown look broken for accounts that share
+     // orgs/licenses: the user picked a different account but credits
+     // (and any other consumer of this helper) still read off the
+     // first account.
     function getActiveAccountId() {
         if (!cachedAccounts || !cachedAccounts.length) return null;
-        // get_my_accounts returns account_id (not id); be tolerant of both.
+        const stored = getActiveAccountIdFromStorage();
+        if (stored != null) {
+            const match = cachedAccounts.find(function(a) {
+                const id = a.account_id != null ? a.account_id : a.id;
+                return String(id) === String(stored);
+            });
+            if (match) return match.account_id != null ? match.account_id : match.id;
+        }
         return cachedAccounts[0].account_id != null
             ? cachedAccounts[0].account_id
             : cachedAccounts[0].id;
