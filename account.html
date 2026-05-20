@@ -656,6 +656,30 @@ active: account
         border-top: 1px dashed #ececec;
     }
     .plan-primary-card .plan-relationship strong { color: #222; font-weight: 600; }
+
+    /* Device-release budget badge. Each license has a per-license cap on
+       how many times a device slot can be released (freed so a different
+       device can claim it via the standard activation flow). The badge
+       surfaces remaining capacity so users notice before they hit the
+       wall mid-deployment. Color escalates as headroom shrinks: green
+       (>25% remaining), amber (≤25%), red (0). Default budget is
+       n_tokens × 2; renewal resets the counter. */
+    .plan-primary-card .plan-release-budget {
+        margin-top: 8px;
+    }
+    .plan-release-budget-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: help;
+    }
+    .plan-release-budget-pill.green { background: #e6f6ed; color: #1f7a52; }
+    .plan-release-budget-pill.amber { background: #fff3cd; color: #856404; }
+    .plan-release-budget-pill.red { background: #fde2e2; color: #b32525; }
     .plan-primary-card .plan-renew-link {
         display: inline-block;
         margin-top: 10px;
@@ -736,35 +760,44 @@ active: account
     }
     .plan-other-row .plan-row-relationship strong { color: #333; font-weight: 600; }
 
-    .plan-eye-toggle {
-        position: absolute;
-        top: 12px;
-        right: 12px;
+    /* Disclosure toggle at the bottom of each license card. Replaces the
+       previous eye-icon-in-corner pattern, which read as "view" / "watch"
+       rather than "expand details". Bottom-center chevron is a more
+       conventional "show more" affordance. The chevron rotates 180°
+       when the panel is open. */
+    .plan-details-toggle {
+        display: block;
+        width: 100%;
         background: transparent;
-        border: 1px solid transparent;
+        border: none;
+        border-top: 1px dashed rgba(30,144,255,0.25);
+        margin-top: 14px;
+        padding: 9px 0 2px 0;
+        font-size: 12px;
+        font-weight: 500;
         color: #1e90ff;
-        padding: 4px;
-        border-radius: 6px;
+        text-align: center;
         cursor: pointer;
-        line-height: 0;
-        transition: background-color 0.15s, border-color 0.15s;
+        font-family: inherit;
+        letter-spacing: 0.02em;
     }
-    .plan-eye-toggle:hover,
-    .plan-eye-toggle[aria-expanded="true"] {
-        background: rgba(30,144,255,0.1);
-        border-color: rgba(30,144,255,0.3);
+    .plan-details-toggle:hover { color: #1077dc; }
+    .plan-details-toggle .chevron {
+        display: inline-block;
+        transition: transform 0.15s;
+        margin-left: 4px;
     }
+    .plan-details-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+    .plan-primary-card.expired .plan-details-toggle { border-top-color: #e3e3e3; }
 
+    /* Foldout details. Sits above the bottom .plan-details-toggle button
+       in DOM order; the toggle's own dashed top border is the single
+       separator between this content and what's above. */
     .plan-details {
         margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(30,144,255,0.2);
         font-size: 13px;
         color: #444;
         display: none;
-    }
-    .plan-primary-card.expired .plan-details {
-        border-top-color: #e3e3e3;
     }
     .plan-details.open { display: block; }
     .plan-detail-row {
@@ -1957,6 +1990,27 @@ active: account
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    /* Device name inside the meta line. Treated as a quieter span by
+       default; placeholder names ("Device 1") are italicized so users
+       can tell at a glance which ones are unset. The pencil rename
+       button is inline next to the name. */
+    .device-row-name { display: inline-flex; align-items: center; gap: 4px; }
+    .device-row-name-placeholder .device-row-name-text { font-style: italic; color: #aaa; }
+    .device-rename-btn {
+        background: transparent;
+        border: none;
+        padding: 0 4px;
+        font-size: 12px;
+        line-height: 1;
+        color: #1e90ff;
+        cursor: pointer;
+        opacity: 0.55;
+        transition: opacity 0.12s;
+        font-family: inherit;
+    }
+    .device-row:hover .device-rename-btn { opacity: 1; }
+    .device-rename-btn:focus { opacity: 1; outline: 2px solid rgba(30,144,255,0.35); border-radius: 3px; }
+    .device-rename-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .device-row-keys {
         flex: 1 1 100%;
         margin-top: 10px;
@@ -2446,8 +2500,15 @@ active: account
         // For org changes, the page-title also writes the URL hash and fires
         // hashchange. Which is handled above.
         document.addEventListener('accountScopeChanged', function(e) {
-            if (e.detail && e.detail.scope === 'account' && activeScope === 'account') {
-                renderActiveView();
+            if (e.detail && e.detail.scope === 'account') {
+                // Account-scoped devices payload is keyed by account_id, so
+                // switching accounts via the page-title dropdown needs to
+                // re-fetch and re-render the Devices view alongside the
+                // account-scope renders.
+                fetchAccountDevicesForActiveAccount();
+                if (activeScope === 'account') {
+                    renderActiveView();
+                }
             }
         });
 
@@ -2748,6 +2809,11 @@ active: account
                         // Downloads lives at /account/downloads/ now; no need
                         // to fetch the file listing on /account/.
                         fetchLicenseTokensOverview();
+                        // Devices view uses list_account_devices for the
+                        // rich payload (display names, DJI types,
+                        // per-device token summaries). Tokens load
+                        // separately for the signed Copy-key values.
+                        fetchAccountDevicesForActiveAccount();
                         // If the user is returning from Stripe Checkout, show
                         // the success toast and start polling for the balance
                         // update from the webhook.
@@ -3928,13 +3994,15 @@ active: account
             ? '<div class="plan-relationship">' + relationshipLine + '</div>'
             : '';
 
-        // Expires-soon banner. Show whenever a non-expired license is within
-        // Per-card actions: Renew (always available on non-expired licenses)
-        // and Add devices (available on non-expired licenses with headroom
-        // under the 12-device cap; backend rejects extensions over 12).
-        // Renew currently opens a prefilled mailto so users can request a
-        // renewal today. Once the backend renewal endpoint ships, swap the
-        // href for /account/purchase/?mode=renew&license_id=X.
+        // Per-card actions: Renew (always available on non-expired
+        // licenses) and Add devices. The standard add-devices flow caps
+        // at 12 devices on the backend extension endpoint; for licenses
+        // already at/over that cap (custom or negotiated sizes), route
+        // the click to a prefilled mailto to sales so users with big
+        // licenses still see an action instead of an option that just
+        // vanishes. Renew also uses a mailto until the backend renewal
+        // endpoint ships, at which point the href becomes
+        // /account/purchase/?mode=renew&license_id=X.
         let actionsHtml = '';
         if (!isExpired && license.license_id) {
             const renewSubject = 'License renewal request: '
@@ -3957,23 +4025,51 @@ active: account
                 const addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
                     + encodeURIComponent(license.license_id);
                 actionsHtml += '<a class="plan-renew-link" href="' + addUrl + '">Add devices &rarr;</a>';
+            } else {
+                // Self-service extension endpoint refuses to push a
+                // license past 12 devices. For licenses already over,
+                // fall through to a mailto so the user has a path.
+                const addSubject = 'Add devices to license: '
+                    + (license.license_name || license.license_id);
+                const addBody = 'Please add devices to the following Eagle Eyes license:\n\n'
+                    + 'License: ' + (license.license_name || '') + ' (' + license.license_id + ')\n'
+                    + 'Current device count: ' + currentTotal + '\n'
+                    + (expiryDate ? 'Expiry: ' + expiryDate + '\n' : '')
+                    + '\n'
+                    + 'Number of devices to add: \n'
+                    + '\n'
+                    + 'Thanks';
+                const addMailto = 'mailto:info@eagleeyessearch.com'
+                    + '?subject=' + encodeURIComponent(addSubject)
+                    + '&body=' + encodeURIComponent(addBody);
+                actionsHtml += '<a class="plan-renew-link" href="' + planEscape(addMailto) + '">Add devices &rarr;</a>';
             }
         }
         const actionsRowHtml = actionsHtml
             ? '<div class="plan-actions">' + actionsHtml + '</div>'
             : '';
 
+        // Disclosure toggle (chevron) at the bottom of the card. Reveals
+        // the foldout details panel (license id, tier, full token list,
+        // device-release budget badge, etc.) — replaces the previous
+        // eye-icon-in-corner, which read as "view" rather than
+        // "expand". Wired by wirePlanDetailsToggle below.
+        const detailsToggleHtml =
+            '<button type="button" class="plan-details-toggle" aria-expanded="false">'
+                + '<span class="plan-details-toggle-label">Show details</span>'
+                + '<span class="chevron" aria-hidden="true">&#9662;</span>'
+            + '</button>';
+
         card.innerHTML =
-            '<button type="button" class="plan-eye-toggle" aria-expanded="false" aria-label="Toggle details">'
-                + planEyeIconHtml() + '</button>'
-            + expiringCornerTagHtml
+            expiringCornerTagHtml
             + '<h3>' + planEscape(license.license_name || 'Eagle Eyes License') + '</h3>'
             + '<div class="plan-meta">' + metaHtml + '</div>'
             + relationshipHtml
             + actionsRowHtml
-            + buildPlanDetailsHtml(license);
+            + buildPlanDetailsHtml(license)
+            + detailsToggleHtml;
 
-        wirePlanEyeToggle(card);
+        wirePlanDetailsToggle(card);
         wirePlanCopyButtons(card);
         return card;
     }
@@ -4042,6 +4138,29 @@ active: account
         if (typeof license.keys_left === 'number') {
             rows.push(planDetailRow('Devices remaining', String(license.keys_left)));
         }
+
+        // Device-release budget. Lives in the foldout because it's a
+        // detail most users won't need day-to-day (only when reinstalling
+        // / moving a device between machines). Backend ships
+        // releases_used / releases_budget / releases_remaining on each
+        // license_overview row. Color escalates as headroom shrinks:
+        // green (>25%), amber (≤25%), red (0).
+        const releasesBudget = (typeof license.releases_budget === 'number') ? license.releases_budget : null;
+        const releasesRemaining = (typeof license.releases_remaining === 'number') ? license.releases_remaining : null;
+        if (releasesBudget !== null && releasesBudget > 0 && releasesRemaining !== null) {
+            const pctRemaining = releasesRemaining / releasesBudget;
+            let releaseCls = 'green';
+            if (releasesRemaining === 0) releaseCls = 'red';
+            else if (pctRemaining <= 0.25) releaseCls = 'amber';
+            const tooltip = 'Each device slot comes with 2 releases. Releasing a device frees its slot '
+                + 'so you can activate a different (or reset) device on the same license. '
+                + 'Renewing resets the count.';
+            const pill = '<span class="plan-release-budget-pill ' + releaseCls + '" title="' + planEscape(tooltip) + '">'
+                + releasesRemaining + ' of ' + releasesBudget + ' remaining'
+                + '</span>';
+            rows.push(planDetailRow('Device releases', pill));
+        }
+
         if (license.license_owner) {
             const me = (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
             const suffix = (license.license_owner === me) ? ' <span style="color:#888;">(you)</span>' : '';
@@ -4106,6 +4225,25 @@ active: account
         });
     }
 
+    // Bottom-of-card chevron toggle for the primary license cards.
+    // Replaces the previous .plan-eye-toggle pattern; the eye icon
+    // read as "view" rather than "expand details", which is the
+    // actual action. Label flips Show ↔ Hide along with the
+    // chevron rotation handled by the [aria-expanded] CSS rule.
+    function wirePlanDetailsToggle(scope) {
+        const btn = scope.querySelector('.plan-details-toggle');
+        if (!btn) return;
+        const label = btn.querySelector('.plan-details-toggle-label');
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const details = scope.querySelector('.plan-details');
+            if (!details) return;
+            const open = details.classList.toggle('open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (label) label.textContent = open ? 'Hide details' : 'Show details';
+        });
+    }
+
     function wirePlanCopyButtons(scope) {
         scope.querySelectorAll('.plan-copy-btn').forEach(function(b) {
             b.addEventListener('click', function() {
@@ -4139,6 +4277,75 @@ active: account
             sampleEmails: cachedTokens.slice(0, 5).map(function(t) { return t.user_email || t.email; })
         });
         recomputeAndRender();
+    }
+
+    // GET /list_account_devices - rich device docs with user-given names,
+    // DJI device types, and per-device token summaries. Replaces the
+    // legacy "group cachedTokens by machine_id" approach for the Devices
+    // view. cachedTokens is still loaded separately because /
+    // get_license_tokens_overview is the only endpoint that returns
+    // signed token_keys for the Copy-key buttons; we look those up by
+    // token_id when rendering. Devices payload deliberately omits keys.
+    let cachedAccountDevices = [];
+    let accountDevicesLoaded = false;
+    let cachedAccountDevicesAccountId = null;
+
+    async function fetchAccountDevices(accountId) {
+        if (!accountId) {
+            cachedAccountDevices = [];
+            accountDevicesLoaded = true;
+            cachedAccountDevicesAccountId = null;
+            return;
+        }
+        // Memoize per-account so switching the page-title account picker
+        // doesn't re-fetch for the same account. Cleared when the active
+        // account changes.
+        if (cachedAccountDevicesAccountId === String(accountId) && accountDevicesLoaded) {
+            return;
+        }
+        try {
+            const data = await orgApiCall(
+                'list_account_devices?account_id=' + encodeURIComponent(accountId),
+                null, false, 'GET'
+            );
+            cachedAccountDevices = (data && data.devices) || [];
+            cachedAccountDevicesAccountId = String(accountId);
+            accountDevicesLoaded = true;
+        } catch (err) {
+            console.error('list_account_devices failed:', err);
+            cachedAccountDevices = [];
+            cachedAccountDevicesAccountId = String(accountId);
+            accountDevicesLoaded = true;
+        }
+    }
+
+    // POST /rename_device. Persists a user-facing device name (or clears
+    // it when name is null/blank, letting display_name fall back to the
+    // app-reported device_identifier).
+    async function renameDevice(machineId, name) {
+        const trimmed = (name == null) ? null : String(name).trim();
+        return await orgApiCall('rename_device', {
+            machine_id: machineId,
+            name: trimmed || null
+        }, false, 'POST');
+    }
+
+    // Fetch the device list for whichever account is currently active in
+    // the page-title dropdown, then re-render the Devices view if we're
+    // currently looking at it. Caller is renderActiveDevices + the
+    // accountScopeChanged listener; both paths need the same plumbing.
+    async function fetchAccountDevicesForActiveAccount() {
+        const accountId = getActiveAccountIdFromStorage();
+        // Invalidate cache when the active account changes.
+        if (String(accountId) !== String(cachedAccountDevicesAccountId)) {
+            accountDevicesLoaded = false;
+        }
+        await fetchAccountDevices(accountId);
+        // If the Devices view is currently rendered, refresh it.
+        if (activeScope === 'org' && activeView === 'devices') {
+            const source = getActiveSource();
+            if (source) renderActiveDevices(source);
+        }
     }
 
     async function fetchLicenseTokensOverview() {
@@ -4196,137 +4403,161 @@ active: account
         }
     }
     
-    // Render device token cards from data
-    function renderTokenCards(tokensOverview) {
+    // Render device rows from the list_account_devices payload. Each row
+    // is one device (machine_id), with its tokens listed inside. Signed
+    // token_key values for the Copy-key buttons come from cachedTokens
+    // (the legacy tokens overview) - the devices payload deliberately
+    // omits signed keys, so we look them up by token_id at render time.
+    function renderDeviceCards(devices) {
       const tokensGrid = document.getElementById('tokensGrid');
       tokensGrid.innerHTML = '';
 
-      if (!tokensOverview || tokensOverview.length === 0) {
+      if (!devices || devices.length === 0) {
         document.getElementById('tokensEmpty').style.display = 'block';
-        document.getElementById('tokensGrid').style.display = 'none';
+        tokensGrid.style.display = 'none';
         return;
       }
 
-      // Reveal the list + hide the empty state.
       document.getElementById('tokensEmpty').style.display = 'none';
       tokensGrid.style.display = '';
-
-      // Switch the container to the people-list look (it had grid styling
-      // baked in for the old card grid. We now want a vertical list with
-      // dividers between rows).
       tokensGrid.className = 'people-list';
 
-      // Group tokens by machine_id. One row per device, multiple licenses
-      // (tokens) shown inside the row.
-      const tokensByMachine = {};
-      const machineOrder = [];
-      tokensOverview.forEach(function(token) {
-        if (!tokensByMachine[token.machine_id]) {
-          tokensByMachine[token.machine_id] = [];
-          machineOrder.push(token.machine_id);
-        }
-        tokensByMachine[token.machine_id].push(token);
+      // Build a token_id → signed token_key lookup from cachedTokens so
+      // each device-row's Copy buttons can fetch the signed value
+      // synchronously at click time. cachedTokens is populated by
+      // fetchLicenseTokensOverview; if it hasn't landed yet the Copy
+      // button stays disabled until it does.
+      const tokenKeyByTokenId = {};
+      (cachedTokens || []).forEach(function(t) {
+        if (t.token_id) tokenKeyByTokenId[t.token_id] = t.token_key;
       });
 
-      // Reorder devices: those with at least one token on a non-expired
-      // license come first. Within each bucket we preserve the backend's
-      // original order so the visible sort is stable. "Inactive" here
-      // means every license on this device has already expired, which is
-      // the case we want to push to the bottom of the list.
+      // "Active" = device has at least one token on a non-expired license.
+      // Backend payload sorts by last_activated_at desc; we re-sort to
+      // surface active devices first (matching the existing UX), then
+      // preserve backend order within each bucket.
       const nowMs = Date.now();
-      function deviceIsActive(tokens) {
-        return (tokens || []).some(function(t) {
+      function deviceIsActive(device) {
+        return (device.tokens || []).some(function(t) {
+          if (typeof t.expiry_timestamp === 'number') return t.expiry_timestamp * 1000 > nowMs;
           if (!t.expiry_date) return true; // unknown expiry: treat as active
           const ms = new Date(t.expiry_date).getTime();
           return isNaN(ms) || ms > nowMs;
         });
       }
-      machineOrder.sort(function(a, b) {
-        const aActive = deviceIsActive(tokensByMachine[a]);
-        const bActive = deviceIsActive(tokensByMachine[b]);
+      const sorted = devices.slice().sort(function(a, b) {
+        const aActive = deviceIsActive(a);
+        const bActive = deviceIsActive(b);
         if (aActive === bActive) return 0;
         return aActive ? -1 : 1;
       });
 
       let unnamedCounter = 0;
-      machineOrder.forEach(function(machineId) {
-        const tokens = tokensByMachine[machineId];
-        const first = tokens[0] || {};
-        const userEmail = first.user_email || first.email || '';
-        const isActive = deviceIsActive(tokens);
+      sorted.forEach(function(device) {
+        const tokens = device.tokens || [];
+        const isActive = deviceIsActive(device);
+        const emails = device.emails || [];
+        const userEmail = emails[0] || '';
 
-        // Device name. Fall back to "Device N" when the app hasn't
-        // reported one yet.
-        let deviceName;
-        if (first.device_name) {
-          deviceName = first.device_name;
-        } else {
+        // display_name already resolved server-side (name → device_identifier
+        // → null). When it's still null (legacy tokens with no metadata)
+        // fall back to the "Device N" placeholder.
+        let displayName = device.display_name;
+        let isPlaceholderName = false;
+        if (!displayName) {
           unnamedCounter += 1;
-          deviceName = 'Device ' + unnamedCounter;
+          displayName = 'Device ' + unnamedCounter;
+          isPlaceholderName = true;
         }
 
-        // Avatar initial + color come from the user email (the "who"),
-        // not the device name, since email is the primary identifier
-        // and same user across multiple devices should share a colour.
-        const avatarSource = userEmail || deviceName;
+        const avatarSource = userEmail || displayName;
         const initial = (avatarSource.charAt(0) || '?').toUpperCase();
         const avatarColor = userEmail ? colorForEmail(userEmail) : '#888';
 
-        const machineIdShort = String(machineId || '');
+        const machineIdShort = String(device.machine_id || '');
         const machineIdEsc = escapeHtmlOrg(machineIdShort);
+        const nameEsc = escapeHtmlOrg(displayName);
+        const userEmailEsc = escapeHtmlOrg(userEmail);
 
         const row = document.createElement('div');
         row.className = 'people-row device-row' + (isActive ? '' : ' device-row-inactive');
+        row.dataset.machineId = machineIdShort;
+        // Stash the *raw* name (without "Device N" placeholder) so the
+        // rename prompt opens with the actual editable value.
+        row.dataset.deviceName = device.name || '';
 
         const left = document.createElement('div');
         left.className = 'people-row-left';
-        // Email is the primary text (who owns this device). Device name +
-        // machine ID + key count sit on the secondary meta line. For
-        // inactive devices an "Inactive" pill is appended so users see
-        // why those rows are at the bottom.
         const primaryText = userEmail
-          ? escapeHtmlOrg(userEmail)
+          ? userEmailEsc
           : '<span style="color:#888;font-style:italic;">No user email on record</span>';
         const inactivePillHtml = isActive
           ? ''
           : ' <span class="device-inactive-pill">Inactive</span>';
+        const djiPart = device.dji_device_type
+          ? '<span class="device-row-sep">·</span><span>' + escapeHtmlOrg(device.dji_device_type) + '</span>'
+          : '';
+        const nTokens = (typeof device.n_active_tokens === 'number')
+          ? device.n_active_tokens
+          : tokens.length;
+        // The device name lives in the secondary meta line; primary line
+        // is the user email so devices group visually by "who owns them".
+        // Rename (pencil) button is intentionally not rendered for now —
+        // the backend rename_device endpoint is ready, but we want to
+        // hold the UI until the rename flow has more thought put into it.
+        // Re-enable by appending the markup below to nameWithRename:
+        //   ' <button type="button" class="device-rename-btn" title="Rename device" aria-label="Rename device">✎</button>'
+        // (Handler + API helper are still in place: onDeviceRenameClick
+        // + renameDevice.)
+        const nameWithRename = '<span class="device-row-name-text">' + nameEsc + '</span>';
         left.innerHTML =
           '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>' +
           '<div class="people-row-body">' +
             '<div class="people-row-email">' + primaryText + inactivePillHtml + '</div>' +
             '<div class="device-row-meta">' +
-              '<span>' + escapeHtmlOrg(deviceName) + '</span>' +
+              '<span class="device-row-name' + (isPlaceholderName ? ' device-row-name-placeholder' : '') + '">' + nameWithRename + '</span>' +
+              djiPart +
               '<span class="device-row-sep">·</span>' +
               '<span class="device-row-machineid" title="' + machineIdEsc + '">' +
                 'Machine ID: <code>' + machineIdEsc + '</code>' +
               '</span>' +
               '<span class="device-row-sep">·</span>' +
-              '<span>' + tokens.length + ' key' + (tokens.length === 1 ? '' : 's') + '</span>' +
+              '<span>' + nTokens + ' license' + (nTokens === 1 ? '' : 's') + '</span>' +
             '</div>' +
           '</div>';
         row.appendChild(left);
 
-        // Right side. For single-license devices, a single inline Copy Key
-        // button. For multi-license devices, an expand toggle that reveals
-        // a per-license list with its own Copy buttons.
+        // Actions: Copy key (or expand toggle for multi-license devices).
+        // Signed key resolved by token_id from cachedTokens; if it's not
+        // there yet (tokens haven't loaded) the button is disabled.
         const actions = document.createElement('div');
         actions.className = 'people-row-actions device-row-actions';
-        if (tokens.length === 1) {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'people-icon-btn';
-          btn.textContent = '⧉ Copy key';
-          btn.onclick = function() { copyToClipboard(tokens[0].token_key, btn); };
-          actions.appendChild(btn);
-        } else {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'people-icon-btn';
-          btn.textContent = 'Show keys';
-          btn.setAttribute('aria-expanded', 'false');
-          actions.appendChild(btn);
 
-          // License sublist (collapsed by default).
+        function makeCopyBtn(token, label) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'people-icon-btn';
+          btn.textContent = label;
+          const signed = token.token_id ? tokenKeyByTokenId[token.token_id] : null;
+          if (!signed) {
+            btn.disabled = true;
+            btn.title = 'Key not loaded yet';
+          } else {
+            btn.onclick = function() { copyToClipboard(signed, btn); };
+          }
+          return btn;
+        }
+
+        if (tokens.length === 1) {
+          actions.appendChild(makeCopyBtn(tokens[0], '⧉ Copy key'));
+        } else if (tokens.length > 1) {
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'people-icon-btn';
+          toggle.textContent = 'Show keys';
+          toggle.setAttribute('aria-expanded', 'false');
+          actions.appendChild(toggle);
+
           const sub = document.createElement('div');
           sub.className = 'device-row-keys';
           sub.style.display = 'none';
@@ -4342,20 +4573,15 @@ active: account
                 '<div class="device-row-key-meta">expires ' + expiry +
                   ' · <code>' + licId + '</code></div>' +
               '</div>';
-            const copy = document.createElement('button');
-            copy.type = 'button';
-            copy.className = 'people-icon-btn';
-            copy.textContent = '⧉ Copy';
-            copy.onclick = function() { copyToClipboard(t.token_key, copy); };
-            item.appendChild(copy);
+            item.appendChild(makeCopyBtn(t, '⧉ Copy'));
             sub.appendChild(item);
           });
 
-          btn.onclick = function() {
+          toggle.onclick = function() {
             const open = sub.style.display !== 'none';
             sub.style.display = open ? 'none' : '';
-            btn.textContent = open ? 'Show keys' : 'Hide keys';
-            btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+            toggle.textContent = open ? 'Show keys' : 'Hide keys';
+            toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
           };
 
           row.appendChild(actions);
@@ -4363,9 +4589,49 @@ active: account
           tokensGrid.appendChild(row);
           return;
         }
+
         row.appendChild(actions);
         tokensGrid.appendChild(row);
       });
+
+      // Wire rename buttons after the rows are in the DOM. One handler
+      // for the whole grid via event delegation would also work; per-
+      // button is fine here since the list is small.
+      tokensGrid.querySelectorAll('.device-rename-btn').forEach(function(btn) {
+        btn.addEventListener('click', onDeviceRenameClick);
+      });
+    }
+
+    // Pencil-icon click. Prompts the user for a new name, POSTs to
+    // rename_device, then re-fetches and re-renders so the new name
+    // (and any backend-applied trimming) shows up immediately.
+    async function onDeviceRenameClick(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = e.target.closest('.device-row');
+      if (!row) return;
+      const machineId = row.dataset.machineId;
+      if (!machineId) return;
+      const currentName = row.dataset.deviceName || '';
+      const input = window.prompt(
+        'Rename device:\n(Leave blank to clear the name and fall back to the app-reported identifier.)',
+        currentName
+      );
+      if (input === null) return; // cancelled
+      const trimmed = input.trim();
+      const btn = e.target;
+      btn.disabled = true;
+      try {
+        await renameDevice(machineId, trimmed || null);
+        // Invalidate the per-account cache so the next fetch returns
+        // the updated name.
+        accountDevicesLoaded = false;
+        await fetchAccountDevicesForActiveAccount();
+      } catch (err) {
+        console.error('rename_device failed:', err);
+        window.alert('Rename failed: ' + (err && err.message ? err.message : err));
+        btn.disabled = false;
+      }
     }
     
     // Copy text to clipboard with visual feedback. Preserves the button's
@@ -5785,48 +6051,50 @@ active: account
     }
 
     function renderActiveDevices(source) {
-        if (!tokensLoaded) return;
-        const ids = source ? new Set(source.license_ids) : new Set();
-        let filtered = source
-            ? cachedTokens.filter(function(t) { return ids.has(t.license_id); })
+        // We render from cachedAccountDevices (rich, account-scoped payload
+        // from list_account_devices) filtered to the active org. If that
+        // hasn't loaded yet, kick off a fetch and bail. The fetcher will
+        // re-call this once data arrives.
+        if (!accountDevicesLoaded) {
+            fetchAccountDevicesForActiveAccount();
+            return;
+        }
+
+        const orgId = source && source.org_id;
+        let filtered = orgId
+            ? cachedAccountDevices.filter(function(d) {
+                return String(d.organization_id) === String(orgId);
+            })
             : [];
 
-        // Fallback for legacy licenses that aren't linked to the org via
-        // `license.organization_id`. Backend's `_gather_organizations` only
-        // includes such linked licenses in `org.licenses[]`, so the
-        // license_id filter above misses tokens dispensed from licenses
-        // attached only via `account.organization_ids`. When that happens,
-        // fall back to filtering by org member email. Every member's
-        // device tokens belong to this org's view by definition.
-        if (filtered.length === 0 && cachedTokens.length > 0 && source && source.org) {
+        // Email-based fallback for accounts where the backend hasn't
+        // stamped organization_id on every device doc yet. Match the
+        // device's emails[] against the org's member emails.
+        if (filtered.length === 0 && cachedAccountDevices.length > 0 && source && source.org) {
             const orgEmails = new Set(((source.org.emails) || []).map(function(e) {
                 return String(e || '').toLowerCase();
             }));
             if (orgEmails.size) {
-                filtered = cachedTokens.filter(function(t) {
-                    const e = String(t.user_email || t.email || '').toLowerCase();
-                    return e && orgEmails.has(e);
+                filtered = cachedAccountDevices.filter(function(d) {
+                    const emails = (d.emails || []).map(function(e) { return String(e || '').toLowerCase(); });
+                    return emails.some(function(e) { return e && orgEmails.has(e); });
                 });
                 if (filtered.length > 0) {
                     console.info('[devices] using email-based fallback -',
-                        filtered.length, 'tokens matched org members but the backend dashboard',
-                        'did not link their licenses to org', source.name);
+                        filtered.length, 'devices matched org members but were not stamped',
+                        'with organization_id =', orgId);
                 }
             }
         }
 
-        // Diagnostic: log what the org-scope view looks like every time so
-        // we can see why an apparently-populated account is showing empty.
         console.info('[devices] render', {
             org: source && source.name,
-            sourceLicenseIds: source ? source.license_ids : [],
-            cachedTokenCount: cachedTokens.length,
-            sampleTokenLicenseIds: cachedTokens.slice(0, 3).map(function(t) { return t.license_id; }),
-            filteredCount: filtered.length,
-            orgEmailCount: source && source.org ? (source.org.emails || []).length : 0
+            orgId: orgId,
+            cachedDeviceCount: cachedAccountDevices.length,
+            filteredCount: filtered.length
         });
 
-        renderTokenCards(filtered);
+        renderDeviceCards(filtered);
         const tokensSpinner = document.getElementById('tokensSpinner');
         if (tokensSpinner) tokensSpinner.style.display = 'none';
     }
