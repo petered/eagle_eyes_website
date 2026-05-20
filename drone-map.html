@@ -784,6 +784,61 @@
             color: #60a5fa;
             text-decoration: underline;
         }
+        /* Inline swatches for the altitude-colour legend in the attribution dialog */
+        .attribution-card .attr-swatch {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+            position: relative;
+        }
+        .attribution-card .attr-swatch-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+        }
+        .attribution-card .attr-swatch-critical {
+            width: 16px;
+            height: 16px;
+        }
+        .attribution-card .attr-swatch-critical .attr-swatch-halo {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(220, 38, 38, 0.7) 0%,
+                rgba(127, 29, 29, 0.6) 60%,
+                rgba(127, 29, 29, 0) 100%);
+            animation: adsbCriticalPulse 1.4s ease-out infinite;
+            pointer-events: none;
+        }
+        .attribution-card .attr-swatch-critical .attr-swatch-dot {
+            position: absolute;
+            inset: 2px;
+            width: 12px;
+            height: 12px;
+        }
+        .attribution-card .attr-swatch-ring {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #00CED1;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.4) inset;
+        }
+        /* Animated pulsing cyan swatch — matches the Air Sense marker ring style */
+        .attribution-card .attr-swatch-ring-pulse {
+            width: 16px;
+            height: 16px;
+            position: relative;
+            display: inline-block;
+        }
+        .attribution-card .attr-swatch-ring-pulse-anim {
+            position: absolute;
+            inset: 0;
+            border: 2px solid rgba(0, 206, 209, 0.95);
+            border-radius: 50%;
+            animation: airSensePulse 1.8s ease-out infinite;
+        }
         .attribution-card .attr-section ul li a:hover,
         .attribution-card .attr-section .attr-footnote a:hover {
             color: #93c5fd;
@@ -2694,30 +2749,133 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            margin-top: -6px;
-            margin-left: -6px;
-            width: 12px;
-            height: 12px;
+            margin-top: -13px;
+            margin-left: -13px;
+            width: 26px;
+            height: 26px;
             border: 2px solid rgba(255, 0, 0, 0.9);
             border-radius: 50%;
             animation: dronePulse 1.5s ease-out infinite;
             pointer-events: none;
             transform-origin: center center;
         }
-        
+
         @keyframes dronePulse {
             0% {
-                transform: scale(1);
+                transform: scale(0.85);
                 opacity: 0.9;
             }
             50% {
-                transform: scale(2);
-                opacity: 0.3;
+                transform: scale(1.7);
+                opacity: 0.35;
             }
             100% {
-                transform: scale(2.5);
+                transform: scale(2.2);
                 opacity: 0;
             }
+        }
+
+        /* Zoom-based opacity for METAR / TAF / NOTAM chips. Driven by the
+           --can-chip-opacity CSS custom property updated on map zoomend (see
+           updateCanChipOpacity in JS). Far-out zoom = faint, city zoom = solid.
+           The currently-selected chip overrides this with opacity:1 so the
+           stacked-popup highlight still reads at any zoom. */
+        .can-metar-chip,
+        .can-taf-chip,
+        .can-notam-chip {
+            opacity: var(--can-chip-opacity, 1);
+            transition: opacity 0.25s ease-out;
+        }
+        .can-metar-chip.can-marker-selected,
+        .can-taf-chip.can-marker-selected,
+        .can-notam-chip.can-marker-selected {
+            opacity: 1;
+        }
+
+        /* Stacked popup geometry — fixed body height with internal scroll so
+           prev/next buttons stay in the same screen position as the user
+           cycles through features with varying amounts of content. Width is
+           pinned via min/maxWidth on the L.popup options (300 px). */
+        .can-stacked-body {
+            max-height: 220px;
+            overflow-y: auto;
+            font-size: 11.5px;
+            line-height: 1.45;
+            padding-right: 4px;
+        }
+        .can-stacked-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .can-stacked-body::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.18);
+            border-radius: 3px;
+        }
+        .can-stacked-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.32);
+        }
+
+        /* Stacked-popup "this chip is the active selection" outline. Targets the
+           inner chip div inside any DivIcon-based Canadian marker (METAR / TAF /
+           NOTAM). Cyan outline + glow + small lift so the user can see which
+           chip the popup describes when cycling through overlapping features. */
+        .can-marker-selected > div {
+            outline: 2px solid #06b6d4;
+            outline-offset: 2px;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.85), 0 1px 3px rgba(0, 0, 0, 0.5);
+            border-radius: 3px;
+            transition: outline 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        /* adsb.lol marker for an aircraft that's ALSO being heard via DJI Air Sense
+           is rendered translucent + desaturated so the Air Sense marker visually
+           wins. The shadowed marker stays clickable. */
+        .adsb-lol-marker-shadowed {
+            opacity: 0.28;
+            filter: grayscale(0.85) saturate(0.6);
+            transition: opacity 0.4s ease, filter 0.4s ease;
+        }
+
+        /* Pulsing cyan ring drawn around DJI Air Sense (EDS-B-sourced) aircraft.
+           Signals the Air Sense origin and visually distinguishes them from the
+           bare adsb.lol markers. */
+        @keyframes airSensePulse {
+            0%   { transform: scale(0.85); opacity: 0.95; }
+            50%  { transform: scale(1.5);  opacity: 0.45; }
+            100% { transform: scale(2.0);  opacity: 0;    }
+        }
+        .air-sense-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -13px;
+            margin-left: -13px;
+            width: 26px;
+            height: 26px;
+            border: 2px solid rgba(0, 206, 209, 0.95);
+            border-radius: 50%;
+            animation: airSensePulse 1.8s ease-out infinite;
+            pointer-events: none;
+            transform-origin: center center;
+        }
+
+        /* Lucide drone icon shown at every active EDS-B drone marker. Replaces the
+           old solid-red dot. Rendered as a black glyph with stacked white drop-
+           shadows for a high-contrast white halo against any basemap. The
+           pulsing red ring above continues to animate around it. */
+        .drone-location-drone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -11px;
+            margin-left: -11px;
+            width: 22px;
+            height: 22px;
+            color: #000;
+            filter: drop-shadow(0 0 1.5px #fff)
+                    drop-shadow(0 0 1.5px #fff)
+                    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+            z-index: 11;
+            pointer-events: none;
         }
         
         /* Detected aircraft (ADS-B) marker: Unicode plane ✈ (native points right/90° in most fonts) */
@@ -3848,9 +4006,24 @@
                 <h4>Live overlays</h4>
                 <ul>
                     <li>EDS-B telemetry — voluntarily broadcast by Eagle Eyes-equipped drone operators</li>
-                    <li>Detected manned aircraft (EDS-B) — ADS-B receivers attached to Eagle Eyes apps, relayed via the EDS-B network. Click an aircraft for an <a href="https://opensky-network.org/" target="_blank" rel="noopener">OpenSky</a> deep-link for additional details.</li>
+                    <li>DJI Air Sense ADS-B detected manned aircraft — ADS-B transmissions broadcast by manned aircraft, picked up by DJI drones equipped with the Air Sense receiver, then relayed into the EDS-B network by the Eagle Eyes Pilot app. Click an aircraft for an <a href="https://opensky-network.org/" target="_blank" rel="noopener">OpenSky</a> deep-link.</li>
                     <li>Live ADS-B (adsb.lol) — community ADS-B aggregator at <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, volunteer feeders worldwide. Data licensed <a href="https://www.adsb.lol/privacy-license/" target="_blank" rel="noopener">CC0 (Public Domain)</a>. Routed via Eagle Eyes' airspace proxy.</li>
                 </ul>
+            </div>
+
+            <div class="attr-section">
+                <h4>Aircraft altitude colours</h4>
+                <p style="font-size:11px;color:#aaa;margin:0 0 6px;">Marker colour reflects pressure altitude. Both ADS-B sources (Air Sense + adsb.lol) share the same colour scheme. Air-Sense aircraft are additionally marked with a cyan ring around the icon.</p>
+                <ul style="list-style:none;padding-left:0;font-size:11px;line-height:1.7;">
+                    <li><span class="attr-swatch attr-swatch-critical"><span class="attr-swatch-halo"></span><span class="attr-swatch-dot" style="background:#7f1d1d;"></span></span> ≤ 500 ft — critical (drone-conflict altitude; pulses)</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#ef4444;"></span> 500 – 5,000 ft — low</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#f59e0b;"></span> 5,000 – 15,000 ft — mid</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#22c55e;"></span> 15,000 – 25,000 ft — cruise</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#3b82f6;"></span> &gt; 25,000 ft — high</li>
+                    <li><span class="attr-swatch attr-swatch-dot" style="background:#9ca3af;"></span> on ground / altitude unknown</li>
+                    <li style="margin-top:4px;"><span class="attr-swatch attr-swatch-ring-pulse"><span class="attr-swatch-ring-pulse-anim"></span></span> pulsing cyan ring = DJI Air Sense (EDS-B) aircraft — broadcast picked up by a nearby Eagle Eyes-equipped DJI drone and relayed via EDS-B</li>
+                </ul>
+                <p style="font-size:10px;color:#888;margin:6px 0 0;">⚠ Pressure altitude can differ from true altitude by up to ±1,000 ft. Don't use this layer for deconfliction.</p>
             </div>
         </div>
     </div>
@@ -3894,7 +4067,17 @@
         <div class="legend-item" data-legend="mqtt-drones">
             <div class="legend-symbol legend-drone-pulse-wrap">
                 <div class="drone-location-pulse"></div>
-                <div class="drone-location-circle"></div>
+                <svg class="drone-location-drone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 10 7 7"/>
+                    <path d="m10 14-3 3"/>
+                    <path d="m14 10 3-3"/>
+                    <path d="m14 14 3 3"/>
+                    <path d="M14.205 4.139a4 4 0 1 1 5.439 5.863"/>
+                    <path d="M19.637 14a4 4 0 1 1-5.432 5.868"/>
+                    <path d="M4.367 10a4 4 0 1 1 5.438-5.862"/>
+                    <path d="M9.795 19.862a4 4 0 1 1-5.429-5.873"/>
+                    <rect x="10" y="8" width="4" height="8" rx="1"/>
+                </svg>
             </div>
             <span>Drone live location</span>
         </div>
@@ -4053,6 +4236,15 @@
                     attributionControl: true,
                     maxZoom: 25 // Allow deeper zoom
                 });
+
+                // Custom Leaflet panes for z-ordering. Default markerPane is z=600.
+                // We want drones above all other markers (METARs, TAFs, NOTAMs, etc.)
+                // and aircraft above drones — both groups visually take priority over
+                // the airspace-context layers underneath them.
+                map.createPane('dronePane');
+                map.getPane('dronePane').style.zIndex = 650;
+                map.createPane('aircraftPane');
+                map.getPane('aircraftPane').style.zIndex = 660;
 
                 // Google Hybrid Imagery (satellite + labels) - Default
                 const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
@@ -4273,6 +4465,24 @@
                 // ---- Canadian Airspace Sub-Layers ----
                 initCanadianAirspaceLayers();
                 map.on('click', function(e) { handleCanadianMapClick(e.latlng, e.originalEvent); });
+
+                // METAR / TAF / NOTAM chips fade with zoom — at far-out zoom levels
+                // there are too many of them to read, so they recede into the basemap;
+                // zoom in past city level and they become fully opaque. Driven by a
+                // CSS custom property (--can-chip-opacity) updated on every zoomend.
+                function updateCanChipOpacity() {
+                    if (!map) return;
+                    var z = map.getZoom();
+                    var minZ = 6;    // fully faded below this
+                    var maxZ = 12;   // fully opaque at/above this
+                    var minO = 0.18;
+                    var maxO = 1.0;
+                    var t = Math.max(0, Math.min(1, (z - minZ) / (maxZ - minZ)));
+                    var op = (minO + t * (maxO - minO)).toFixed(2);
+                    document.documentElement.style.setProperty('--can-chip-opacity', op);
+                }
+                map.on('zoomend', updateCanChipOpacity);
+                updateCanChipOpacity();
 
                 // Close base map menu when clicking outside
                 document.addEventListener('click', function(event) {
@@ -5243,23 +5453,25 @@
                 }
             };
 
-            var notamStyle = { high: { color: '#dc2626', r: 8 }, medium: { color: '#ea580c', r: 6 }, low: { color: '#9ca3af', r: 5 } };
+            // NOTAM chip — same style as the METAR / TAF chips so the trio are
+            // visually consistent. Background colour encodes severity; label is
+            // always the literal word "NOTAM". Anchored above the station so a
+            // co-located METAR (left) + TAF (right) + NOTAM (above) trio doesn't
+            // overlap.
+            var notamColors = { high: '#dc2626', medium: '#ea580c', low: '#9ca3af' };
             canSubLayers.notams = {
                 kind: 'geojson', path: '/data/notams.geojson', sourceLabel: 'NOTAM',
                 visible: true, checkboxId: 'canSubNotams',
                 layer: L.geoJSON(null, {
                     pointToLayer: function(feature, latlng) {
                         var sev = (feature.properties && feature.properties.severity) || 'low';
-                        var s = notamStyle[sev] || notamStyle.low;
-                        // Solid colored fill (severity colour) with a white outline so the
-                        // dot reads cleanly against both dark and light basemaps.
-                        var m = L.circleMarker(latlng, {
-                            radius: s.r,
-                            color: '#fff',
-                            weight: 1.5,
-                            fillColor: s.color,
-                            fillOpacity: 0.85
+                        var color = notamColors[sev] || notamColors.low;
+                        var icon = L.divIcon({
+                            className: 'can-notam-chip',
+                            html: '<div style="background:' + color + ';color:#fff;border:1px solid #fff;border-radius:3px;padding:1px 5px;font:11px sans-serif;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.5);white-space:nowrap;">NOTAM</div>',
+                            iconSize: null, iconAnchor: [25, 26]
                         });
+                        var m = L.marker(latlng, { icon: icon, interactive: true });
                         m.on('click', function(ev) {
                             L.DomEvent.stopPropagation(ev);
                             handleCanadianMapClick(m.getLatLng(), ev.originalEvent);
@@ -5558,7 +5770,7 @@
                 + 'fill="' + color + '" stroke="#000" stroke-width="0.6" stroke-linejoin="round" paint-order="stroke" />'
                 + '</svg>';
         }
-        function buildAdsbLolIcon(ac) {
+        function buildAdsbLolIcon(ac, shadowed) {
             var band = adsbLolAltitudeBand(ac);
             var color = ADSB_LOL_BAND_COLOR[band];
             var track = (typeof ac.track === 'number') ? ac.track : 0;
@@ -5571,25 +5783,42 @@
                 + '</div>'
                 + '</div>';
             return L.divIcon({
-                className: 'adsb-lol-marker',
+                className: shadowed ? 'adsb-lol-marker adsb-lol-marker-shadowed' : 'adsb-lol-marker',
                 html: html,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             });
         }
+
+        // True if this ICAO hex is also being broadcast through the Air Sense /
+        // EDS-B path. Keys in mqttAircraftMarkers are "<droneId>:<aircraftId>"
+        // where aircraftId is the ICAO hex. Compared case-insensitively.
+        function isHexInAirSenseSource(hex) {
+            if (!hex) return false;
+            var target = String(hex).toLowerCase();
+            for (var key in mqttAircraftMarkers) {
+                if (!Object.prototype.hasOwnProperty.call(mqttAircraftMarkers, key)) continue;
+                var idx = key.lastIndexOf(':');
+                if (idx < 0) continue;
+                if (key.substring(idx + 1).toLowerCase() === target) return true;
+            }
+            return false;
+        }
         function buildAdsbLolMarker(ac) {
             var lat = ac.lat, lon = ac.lon;
             if (typeof lat !== 'number' || typeof lon !== 'number') return null;
             var callsign = (ac.flight || ac.r || ac.hex || '').toString().trim();
+            var shadowed = isHexInAirSenseSource(ac.hex);
             var marker = L.marker([lat, lon], {
-                icon: buildAdsbLolIcon(ac),
+                icon: buildAdsbLolIcon(ac, shadowed),
                 title: callsign,
-                interactive: true
+                interactive: true,
+                pane: 'aircraftPane'
             });
-            marker.bindPopup(buildAdsbLolPopup(ac), { autoClose: false, closeOnClick: false });
+            marker.bindPopup(buildAdsbLolPopup(ac, shadowed), { autoClose: false, closeOnClick: false });
             return marker;
         }
-        function buildAdsbLolPopup(ac) {
+        function buildAdsbLolPopup(ac, shadowed) {
             var callsign = (ac.flight || '').toString().trim();
             var reg = (ac.r || '').toString().trim();
             var altLine;
@@ -5605,6 +5834,10 @@
             var html = '<div style="font-family:system-ui,sans-serif;font-size:12px;color:#222;line-height:1.5;min-width:200px;">';
             html += '<b style="font-size:13px;">' + (callsign || reg || ac.hex || '(no callsign)') + '</b>';
             if (ac.t) html += ' <span style="color:#666;font-size:11px;">' + ac.t + '</span>';
+            html += '<br><span style="display:inline-block;margin:4px 0;padding:2px 6px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:3px;color:#475569;font-size:11px;">Source: <a href="https://www.adsb.lol/" target="_blank" rel="noopener" style="color:#475569;text-decoration:underline;">adsb.lol</a> community feeder network</span>';
+            if (shadowed) {
+                html += '<div style="margin:4px 0;padding:4px 6px;background:#fffbeb;border-left:3px solid #f59e0b;font-size:11px;color:#92400e;">Also being heard via DJI Air Sense — see the brighter Air Sense marker for full detection details.</div>';
+            }
             if (reg && reg !== callsign) html += '<br>Reg: ' + reg;
             html += '<br>Altitude: ' + altLine;
             html += '<br>Speed: ' + (ac.gs != null ? Math.round(ac.gs) + ' kt' : 'N/A')
@@ -5616,7 +5849,6 @@
                 var globeUrl = 'https://globe.adsb.lol/?icao=' + encodeURIComponent(ac.hex);
                 html += '<br><a href="' + globeUrl + '" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:underline;font-size:11px;">Track on adsb.lol globe →</a>';
             }
-            html += '<div style="font-size:10px;color:#888;margin-top:4px;border-top:1px solid #eee;padding-top:4px;">ADS-B via <a href="https://www.adsb.lol/" target="_blank" rel="noopener" style="color:#888;">adsb.lol</a></div>';
             html += '</div>';
             return html;
         }
@@ -5678,10 +5910,12 @@
                         openPopup.setLatLng(newLatLng);
                     }
                     // Always refresh the icon — track rotation and altitude-band
-                    // color/halo can change every poll. setIcon preserves any
-                    // open popup binding.
-                    existing.setIcon(buildAdsbLolIcon(ac));
-                    existing.setPopupContent(buildAdsbLolPopup(ac));
+                    // color/halo can change every poll. Shadowing is re-evaluated
+                    // each poll so Air Sense coming online or going offline updates
+                    // the visual within at most one refresh interval.
+                    var shadowedExisting = isHexInAirSenseSource(ac.hex);
+                    existing.setIcon(buildAdsbLolIcon(ac, shadowedExisting));
+                    existing.setPopupContent(buildAdsbLolPopup(ac, shadowedExisting));
                     adsbLolMarkerBands[ac.hex] = adsbLolAltitudeBand(ac);
                 } else {
                     var m = buildAdsbLolMarker(ac);
@@ -5983,7 +6217,11 @@
             if (canActivePopup) {
                 map.closePopup(canActivePopup);
             }
-            canActivePopup = L.popup({ closeButton: true, maxWidth: 340, minWidth: 220, autoPan: true })
+            // Fixed-size popup so the prev/next buttons don't jump as we cycle
+            // through overlapping features with different amounts of text. Width
+            // pinned (min === max), content body scrolls internally if it overflows
+            // the height cap. See can-stacked-body / can-stacked-nav CSS below.
+            canActivePopup = L.popup({ closeButton: true, maxWidth: 300, minWidth: 300, autoPan: true })
                 .setLatLng(latlng)
                 .on('remove', function() {
                     cleanupCanHighlight();
@@ -6001,20 +6239,27 @@
             cleanupCanHighlight();
             var feat = canActiveFeatures[canActiveIndex];
             var total = canActiveFeatures.length;
-            // Compact footer nav (matches scan2v2 Mirada pattern): single row at the
-            // bottom, prev / counter+label / next. Buttons stop propagation so the
-            // click doesn't bubble up to the map's click handler.
+            // Compact footer nav (matches scan2v2 Mirada pattern): single row at
+            // the bottom, prev / counter+label / next. Anchored OUTSIDE the
+            // scrollable body so the buttons stay in the same screen position
+            // as the user cycles through features with different content
+            // lengths. Buttons stop propagation so the click doesn't bubble up
+            // to the map's click handler.
             var navHtml;
             if (total > 1) {
-                navHtml = '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;margin-top:6px;padding-top:6px;font-size:11px;color:#6b7280;font-family:system-ui,-apple-system,sans-serif;">'
+                navHtml = '<div class="can-stacked-nav" style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;padding-top:6px;margin-top:6px;font-size:11px;color:#6b7280;font-family:system-ui,-apple-system,sans-serif;">'
                     + '<button type="button" onclick="event.stopPropagation();cycleCanPopup(-1)" style="border:1px solid #d1d5db;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4;">← prev</button>'
                     + '<span><b>' + (canActiveIndex + 1) + ' of ' + total + '</b> · ' + feat.sourceLabel + '</span>'
                     + '<button type="button" onclick="event.stopPropagation();cycleCanPopup(1)" style="border:1px solid #d1d5db;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4;">next →</button>'
                     + '</div>';
             } else {
-                navHtml = '<div style="font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;margin-top:6px;padding-top:4px;font-family:system-ui,-apple-system,sans-serif;">' + feat.sourceLabel + '</div>';
+                navHtml = '<div class="can-stacked-nav" style="font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:4px;margin-top:6px;font-family:system-ui,-apple-system,sans-serif;">' + feat.sourceLabel + '</div>';
             }
-            canActivePopup.setContent(feat.contentHtml + navHtml);
+            // Wrap content in a fixed-height scroll frame so the popup geometry
+            // is stable across cycles. Buttons (navHtml) sit OUTSIDE the scroll
+            // frame so they remain in the same place every render.
+            var framed = '<div class="can-stacked-body">' + feat.contentHtml + '</div>' + navHtml;
+            canActivePopup.setContent(framed);
             if (typeof feat.applyHighlight === 'function') {
                 canActiveHighlightCleanup = feat.applyHighlight();
             }
@@ -6108,24 +6353,69 @@
 
         function makeGeoJsonHighlight(fl) {
             return function() {
-                if (typeof fl.setStyle !== 'function') return function() {};
-                var orig = {
-                    color: fl.options.color,
-                    weight: fl.options.weight,
-                    opacity: fl.options.opacity,
-                    fillColor: fl.options.fillColor,
-                    fillOpacity: fl.options.fillOpacity,
-                    dashArray: fl.options.dashArray
-                };
-                fl.setStyle(CAN_HIGHLIGHT_STYLE);
-                if (typeof fl.bringToFront === 'function') {
-                    try { fl.bringToFront(); } catch(e) {}
-                }
-                return function() {
-                    if (fl && fl._map) {
-                        try { fl.setStyle(orig); } catch(e) {}
+                // Polygons / polylines — recolour the outline directly. Detect
+                // via getLatLngs (plural; only present on Polygon/Polyline, not
+                // on CircleMarker or Marker).
+                var isPolygon = typeof fl.getLatLngs === 'function' && typeof fl.setStyle === 'function';
+                if (isPolygon) {
+                    var origPolyStyle = {
+                        color: fl.options.color,
+                        weight: fl.options.weight,
+                        opacity: fl.options.opacity,
+                        fillColor: fl.options.fillColor,
+                        fillOpacity: fl.options.fillOpacity,
+                        dashArray: fl.options.dashArray
+                    };
+                    fl.setStyle(CAN_HIGHLIGHT_STYLE);
+                    if (typeof fl.bringToFront === 'function') {
+                        try { fl.bringToFront(); } catch(e) {}
                     }
-                };
+                    return function() {
+                        if (fl && fl._map) {
+                            try { fl.setStyle(origPolyStyle); } catch(e) {}
+                        }
+                    };
+                }
+
+                // CircleMarker dots (aerodromes) — bump weight + override to cyan
+                // outline with a translucent cyan fill so the dot itself reads as
+                // "selected" rather than just sitting under a ring.
+                if (fl instanceof L.CircleMarker) {
+                    var origDotStyle = {
+                        color: fl.options.color,
+                        weight: fl.options.weight,
+                        fillColor: fl.options.fillColor,
+                        fillOpacity: fl.options.fillOpacity,
+                        radius: fl.options.radius
+                    };
+                    fl.setStyle({
+                        color: CAN_HIGHLIGHT_STYLE.color,
+                        weight: 3,
+                        fillColor: CAN_HIGHLIGHT_STYLE.color,
+                        fillOpacity: 0.35
+                    });
+                    if (typeof fl.bringToFront === 'function') {
+                        try { fl.bringToFront(); } catch(e) {}
+                    }
+                    return function() {
+                        if (fl && fl._map) {
+                            try { fl.setStyle(origDotStyle); } catch(e) {}
+                        }
+                    };
+                }
+
+                // DivIcon-based L.Marker (METAR / TAF / NOTAM chips). Highlight the
+                // chip itself by adding a class to the marker's icon element —
+                // ringing the station lat/lng instead would be misleading because
+                // the chip is anchored offset from the station.
+                if (fl._icon) {
+                    fl._icon.classList.add('can-marker-selected');
+                    return function() {
+                        if (fl._icon) fl._icon.classList.remove('can-marker-selected');
+                    };
+                }
+
+                return function() {};
             };
         }
 
@@ -6771,15 +7061,27 @@
             let marker = mqttDroneMarkers[droneId];
 
             if (!marker) {
-                // Create new marker - smaller red circle with pulsing ring for drone location
+                // Lucide "drone" glyph (black, white-haloed) wrapped by a pulsing
+                // red ring. Replaces the previous solid red dot.
+                const droneSvg = '<svg class="drone-location-drone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                    + '<path d="M10 10 7 7"/>'
+                    + '<path d="m10 14-3 3"/>'
+                    + '<path d="m14 10 3-3"/>'
+                    + '<path d="m14 14 3 3"/>'
+                    + '<path d="M14.205 4.139a4 4 0 1 1 5.439 5.863"/>'
+                    + '<path d="M19.637 14a4 4 0 1 1-5.432 5.868"/>'
+                    + '<path d="M4.367 10a4 4 0 1 1 5.438-5.862"/>'
+                    + '<path d="M9.795 19.862a4 4 0 1 1-5.429-5.873"/>'
+                    + '<rect x="10" y="8" width="4" height="8" rx="1"/>'
+                    + '</svg>';
                 const droneIcon = L.divIcon({
                     className: 'home-point-marker',
-                    html: '<div class="drone-location-pulse"></div><div class="drone-location-circle"></div>',
-                    iconSize: [16, 16],
-                    iconAnchor: [8, 8]
+                    html: '<div class="drone-location-pulse"></div>' + droneSvg,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
                 });
 
-                marker = L.marker([lat, lng], { icon: droneIcon }).addTo(map);
+                marker = L.marker([lat, lng], { icon: droneIcon, pane: 'dronePane' }).addTo(map);
                 mqttDroneMarkers[droneId] = marker;
 
                 // Don't create label for MQTT drones by default (but marker is still clickable)
@@ -6892,8 +7194,12 @@
         }
 
         /**
-         * Update or create marker for a detected aircraft (ADS-B)
-         * Standard cyan color for all aircraft (no risk-level coloring). Label: call sign if available, otherwise ICAO id.
+         * Update or create marker for a detected aircraft (ADS-B, EDS-B-sourced via
+         * DJI Air Sense receivers). Visual language matches the adsb.lol layer:
+         *   - Plane glyph colour follows the altitude band
+         *   - Critical band (≤500 ft) gets the same pulsing red halo
+         *   - Air Sense origin is signalled by a cyan ring around the glyph,
+         *     differentiating these from the bare-glyph adsb.lol markers.
          */
         function updateOrCreateAircraftMarker(droneId, droneName, droneLat, droneLng, aircraft, aircraftId) {
             if (!map) return;
@@ -6904,36 +7210,52 @@
             const lng = Number(aircraft.lng ?? aircraft.longitude);
             if (isNaN(lat) || isNaN(lng)) return;
             const heading = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading) : 0;
-            const AIRCRAFT_CYAN = '#00CED1';
-            const altM = (aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM) != null ? Number(aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM).toFixed(0) : '—';
+            const altMRaw = aircraft.altitude_msl_m ?? aircraft.altitude_msl ?? aircraft.altitudeMslM;
+            const altM = (altMRaw != null) ? Number(altMRaw).toFixed(0) : '—';
             const headingStr = (aircraft.heading_deg ?? aircraft.heading) != null ? Number(aircraft.heading_deg ?? aircraft.heading).toFixed(0) + '°' : '—';
             const callSign = aircraft.call_sign ?? aircraft.callSign;
             const displayLabel = (callSign && String(callSign).trim()) ? String(callSign).trim() : id;
 
-            // Unicode ✈ in most fonts points right (90°); rotate so nose points at heading_deg (0=North, 90=East)
-            const rotationDeg = heading - 90;
+            // Compute altitude band from MSL metres (EDS-B payloads carry metres,
+            // not feet). Convert to feet, then reuse the adsb.lol band classifier
+            // so the two layers share band thresholds and colours exactly.
+            const altFt = (altMRaw != null) ? Number(altMRaw) * 3.28084 : null;
+            const band = adsbLolAltitudeBand({ alt_baro: altFt });
+            const bandColor = ADSB_LOL_BAND_COLOR[band];
+            const AIR_SENSE_RING_COLOR = '#00CED1'; // cyan — the Air-Sense origin badge
+
+            // SVG plane (same path used by the adsb.lol layer — points up at
+            // rotation 0). Heading degrees from north map directly to rotation,
+            // no font-glyph offset needed.
+            const halo = (band === 'critical') ? '<div class="adsb-critical-halo"></div>' : '';
+            const planeSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18">'
+                + '<path d="M16 2 L18 13 L29 18 L29 21 L18 18.5 L18 25 L20 27 L20 29 L16 28 L12 29 L12 27 L14 25 L14 18.5 L3 21 L3 18 L14 13 Z" '
+                + 'fill="' + bandColor + '" stroke="#000" stroke-width="0.6" stroke-linejoin="round" paint-order="stroke" />'
+                + '</svg>';
+            const markerHtml = '<div style="position:relative;width:34px;height:34px;">'
+                + halo
+                + '<div class="air-sense-ring"></div>'
+                + '<div style="position:absolute;left:8px;top:8px;width:18px;height:18px;line-height:0;transform:rotate(' + heading + 'deg);transform-origin:center;">'
+                + planeSvg
+                + '</div>'
+                + '</div>';
+            const icon = L.divIcon({
+                className: 'aircraft-marker-wrapper',
+                html: markerHtml,
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            });
 
             let marker = mqttAircraftMarkers[key];
             if (!marker) {
-                const icon = L.divIcon({
-                    className: 'aircraft-marker-wrapper',
-                    html: '<div style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><span class="aircraft-marker-plane" style="color:' + AIRCRAFT_CYAN + ';transform:rotate(' + rotationDeg + 'deg);">✈</span></div>',
-                    iconSize: [34, 34],
-                    iconAnchor: [17, 17]
-                });
-                marker = L.marker([lat, lng], { icon: icon });
+                marker = L.marker([lat, lng], { icon: icon, pane: 'aircraftPane' });
                 if (showDetectedAircraft) marker.addTo(map);
                 mqttAircraftMarkers[key] = marker;
             } else {
                 marker.setLatLng([lat, lng]);
-                const el = marker._icon;
-                if (el) {
-                    const planeEl = el.querySelector('.aircraft-marker-plane');
-                    if (planeEl) {
-                        planeEl.style.color = AIRCRAFT_CYAN;
-                        planeEl.style.transform = 'rotate(' + rotationDeg + 'deg)';
-                    }
-                }
+                // Rebuild the icon fully because the band (and therefore the halo)
+                // can change between updates.
+                marker.setIcon(icon);
             }
 
             const callSignLine = (callSign && String(callSign).trim()) ? `<strong>Call sign:</strong> ${String(callSign).trim()}<br>` : '';
@@ -6942,7 +7264,7 @@
             const popupContent = `
                 <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #a0a0a0;">
                     <strong>Manned aircraft ${displayLabel}</strong><br>
-                    <strong>Detected by:</strong> ${droneName}<br>
+                    <span style="display:inline-block;margin:4px 0;padding:2px 6px;background:rgba(0,206,209,0.15);border:1px solid rgba(0,206,209,0.4);border-radius:3px;color:#00CED1;font-size:11px;">Source: DJI Air Sense → EDS-B (detected by ${droneName})</span><br>
                     ${callSignLine}${icaoLine}
                     <strong>Lat:</strong> ${lat.toFixed(6)} <strong>Lng:</strong> ${lng.toFixed(6)}<br>
                     <strong>Alt (MSL):</strong> ${altM} m<br>
