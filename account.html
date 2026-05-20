@@ -2285,6 +2285,45 @@ active: account
     .device-row-key-meta code {
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
+    /* Per-license section grouping on the Devices view. Each active
+       license owns a section that lists the device slots it has filled;
+       a trailing "Devices without an active license" section catches
+       devices whose only tokens are on expired licenses. */
+    .device-license-section { margin-bottom: 28px; }
+    .device-license-section:last-child { margin-bottom: 0; }
+    .device-license-section-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #ececec;
+    }
+    .device-license-section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    .device-license-section-title.muted {
+        color: #6c757d;
+        font-weight: 500;
+    }
+    .device-license-section-meta {
+        font-size: 12px;
+        color: #888;
+    }
+    .device-license-section-meta strong { color: #1a1a2e; }
+    .device-license-empty-row {
+        padding: 10px 14px;
+        font-size: 12px;
+        color: #888;
+        font-style: italic;
+        background: #fafbfc;
+        border: 1px dashed #e3e6ea;
+        border-radius: 8px;
+    }
     .org-license-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -5057,16 +5096,42 @@ active: account
         }
     }
     
-    // Render device rows from the list_account_devices payload. Each row
-    // is one device (machine_id), with its tokens listed inside. Signed
-    // token_key values for the Copy-key buttons come from cachedTokens
-    // (the legacy tokens overview) - the devices payload deliberately
-    // omits signed keys, so we look them up by token_id at render time.
-    function renderDeviceCards(devices) {
+    // Render device rows from the list_account_devices payload, grouped
+    // under per-license section headers. Top of the view shows one
+    // section per active license assigned to this org, listing the
+    // device slots it has filled; a trailing "Devices without an active
+    // license" section catches devices whose only tokens are on expired
+    // licenses (or that have no tokens at all). Signed token_key values
+    // for the Copy buttons come from cachedTokens (loaded separately);
+    // the devices payload deliberately omits signed keys, so we look
+    // them up by token_id at render time.
+    function renderDeviceCards(devices, source) {
       const tokensGrid = document.getElementById('tokensGrid');
       tokensGrid.innerHTML = '';
 
-      if (!devices || devices.length === 0) {
+      // Source of truth for active licenses on this org. We enumerate
+      // from source.org.licenses (so empty-slot licenses still get a
+      // section) and enrich names/expiry from cachedLicenseOverview.
+      const nowMs = Date.now();
+      const orgLicenseIds = (source && source.org && source.org.licenses)
+        ? source.org.licenses.map(function(l) { return l && l.license_id; }).filter(Boolean)
+        : [];
+      const overviewByLicenseId = {};
+      (cachedLicenseOverview || []).forEach(function(lic) {
+        if (lic && lic.license_id) overviewByLicenseId[lic.license_id] = lic;
+      });
+      function licenseIsActive(lic) {
+        if (!lic) return false;
+        const expIso = lic.expiry_date;
+        if (!expIso) return true;
+        const ms = new Date(expIso).getTime();
+        return isNaN(ms) || ms > nowMs;
+      }
+      const activeLicenses = orgLicenseIds
+        .map(function(id) { return overviewByLicenseId[id] || { license_id: id }; })
+        .filter(licenseIsActive);
+
+      if ((!devices || devices.length === 0) && activeLicenses.length === 0) {
         document.getElementById('tokensEmpty').style.display = 'block';
         tokensGrid.style.display = 'none';
         return;
@@ -5074,7 +5139,7 @@ active: account
 
       document.getElementById('tokensEmpty').style.display = 'none';
       tokensGrid.style.display = '';
-      tokensGrid.className = 'people-list';
+      tokensGrid.className = '';
 
       // Build a token_id → signed token_key lookup from cachedTokens so
       // each device-row's Copy buttons can fetch the signed value
@@ -5086,30 +5151,128 @@ active: account
         if (t.token_id) tokenKeyByTokenId[t.token_id] = t.token_key;
       });
 
-      // "Active" = device has at least one token on a non-expired license.
-      // Backend payload sorts by last_activated_at desc; we re-sort to
-      // surface active devices first (matching the existing UX), then
-      // preserve backend order within each bucket.
-      const nowMs = Date.now();
-      function deviceIsActive(device) {
-        return (device.tokens || []).some(function(t) {
-          if (typeof t.expiry_timestamp === 'number') return t.expiry_timestamp * 1000 > nowMs;
-          if (!t.expiry_date) return true; // unknown expiry: treat as active
-          const ms = new Date(t.expiry_date).getTime();
-          return isNaN(ms) || ms > nowMs;
-        });
+      function tokenIsActive(t) {
+        if (!t) return false;
+        if (typeof t.expiry_timestamp === 'number') return t.expiry_timestamp * 1000 > nowMs;
+        if (!t.expiry_date) return true;
+        const ms = new Date(t.expiry_date).getTime();
+        return isNaN(ms) || ms > nowMs;
       }
-      const sorted = devices.slice().sort(function(a, b) {
-        const aActive = deviceIsActive(a);
-        const bActive = deviceIsActive(b);
-        if (aActive === bActive) return 0;
-        return aActive ? -1 : 1;
+
+      // Bucket devices by license_id of their active tokens. Devices on
+      // multiple active licenses appear once per license (one row per
+      // slot), each row's dropdown scoped to just that license's token.
+      // Devices with no active tokens land in the orphan bucket.
+      const activeLicenseIdSet = {};
+      activeLicenses.forEach(function(l) { activeLicenseIdSet[l.license_id] = true; });
+      const bucketsByLicenseId = {};
+      activeLicenses.forEach(function(l) { bucketsByLicenseId[l.license_id] = []; });
+      const orphans = [];
+      (devices || []).forEach(function(device) {
+        const activeTokens = (device.tokens || []).filter(tokenIsActive);
+        const matched = activeTokens.filter(function(t) {
+          return t.license_id && activeLicenseIdSet[t.license_id];
+        });
+        if (matched.length === 0) {
+          orphans.push(device);
+          return;
+        }
+        matched.forEach(function(t) {
+          bucketsByLicenseId[t.license_id].push({ device: device, token: t });
+        });
+      });
+
+      function tokenActivationMs(t) {
+        if (!t) return 0;
+        if (typeof t.last_activated_at === 'number') return t.last_activated_at * 1000;
+        if (t.last_activated_at) {
+          const ms = new Date(t.last_activated_at).getTime();
+          return isNaN(ms) ? 0 : ms;
+        }
+        return 0;
+      }
+      // Within each bucket, most-recently-activated device first.
+      Object.keys(bucketsByLicenseId).forEach(function(licId) {
+        bucketsByLicenseId[licId].sort(function(a, b) {
+          return tokenActivationMs(b.token) - tokenActivationMs(a.token);
+        });
+      });
+      // Licenses sort by their most-recent activation, descending. Empty
+      // buckets fall to the bottom of the active-licenses block.
+      activeLicenses.sort(function(a, b) {
+        const am = (bucketsByLicenseId[a.license_id][0] || {}).token;
+        const bm = (bucketsByLicenseId[b.license_id][0] || {}).token;
+        return tokenActivationMs(bm) - tokenActivationMs(am);
       });
 
       let unnamedCounter = 0;
-      sorted.forEach(function(device) {
-        const tokens = device.tokens || [];
-        const isActive = deviceIsActive(device);
+
+      function renderSection(titleHtml, metaHtml, entries, titleMuted) {
+        const section = document.createElement('div');
+        section.className = 'device-license-section';
+        const header = document.createElement('div');
+        header.className = 'device-license-section-header';
+        header.innerHTML =
+          '<div class="device-license-section-title' + (titleMuted ? ' muted' : '') + '">' + titleHtml + '</div>' +
+          '<div class="device-license-section-meta">' + (metaHtml || '') + '</div>';
+        section.appendChild(header);
+
+        const list = document.createElement('div');
+        list.className = 'people-list';
+        if (!entries || entries.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'device-license-empty-row';
+          empty.textContent = 'No devices using this license yet.';
+          list.appendChild(empty);
+        } else {
+          entries.forEach(function(entry) {
+            const row = buildDeviceRow(entry.device, entry.tokensToShow);
+            list.appendChild(row);
+          });
+        }
+        section.appendChild(list);
+        tokensGrid.appendChild(section);
+      }
+
+      // Render one section per active license. Header shows occupied /
+      // total slots so the user can see capacity at a glance.
+      activeLicenses.forEach(function(lic) {
+        const bucket = bucketsByLicenseId[lic.license_id] || [];
+        const totalSlots = (typeof lic.total_keys === 'number') ? lic.total_keys
+          : (typeof lic.n_tokens === 'number') ? lic.n_tokens : null;
+        const slotsStr = (totalSlots != null)
+          ? bucket.length + ' / ' + totalSlots + ' device' + (totalSlots === 1 ? '' : 's')
+          : bucket.length + ' device' + (bucket.length === 1 ? '' : 's');
+        const expiryStr = lic.expiry_date ? ' · expires ' + escapeHtmlOrg(lic.expiry_date) : '';
+        const title = escapeHtmlOrg(lic.license_name || 'Eagle Eyes License');
+        const meta = '<strong>' + slotsStr + '</strong>' + expiryStr;
+        const entries = bucket.map(function(b) {
+          return { device: b.device, tokensToShow: [b.token] };
+        });
+        renderSection(title, meta, entries, false);
+      });
+
+      // Orphan section: devices without an active license. Skip when
+      // empty so it doesn't render as a stub.
+      if (orphans.length > 0) {
+        const entries = orphans.map(function(d) { return { device: d, tokensToShow: d.tokens || [] }; });
+        const meta = '<strong>' + orphans.length + ' device' + (orphans.length === 1 ? '' : 's') + '</strong>';
+        renderSection('Devices without an active license', meta, entries, true);
+      }
+
+      // Wire rename buttons after the rows are in the DOM. One handler
+      // for the whole grid via event delegation would also work; per-
+      // button is fine here since the list is small.
+      tokensGrid.querySelectorAll('.device-rename-btn').forEach(function(btn) {
+        btn.addEventListener('click', onDeviceRenameClick);
+      });
+
+      // Per-row builder. tokensToShow controls what the dropdown lists
+      // — when a device row appears under a specific license section we
+      // pass only that license's token so the dropdown stays scoped.
+      function buildDeviceRow(device, tokensToShow) {
+        const dropdownTokens = tokensToShow || [];
+        const isActive = dropdownTokens.some(tokenIsActive);
         const emails = device.emails || [];
         const userEmail = emails[0] || '';
 
@@ -5151,9 +5314,6 @@ active: account
         const djiPart = device.dji_device_type
           ? '<span class="device-row-sep">·</span><span>' + escapeHtmlOrg(device.dji_device_type) + '</span>'
           : '';
-        const nTokens = (typeof device.n_active_tokens === 'number')
-          ? device.n_active_tokens
-          : tokens.length;
         // The device name lives in the secondary meta line; primary line
         // is the user email so devices group visually by "who owns them".
         // Rename (pencil) button is intentionally not rendered for now —
@@ -5175,8 +5335,6 @@ active: account
               '<span class="device-row-machineid" title="' + machineIdEsc + '">' +
                 'Machine ID: <code>' + machineIdEsc + '</code>' +
               '</span>' +
-              '<span class="device-row-sep">·</span>' +
-              '<span>' + nTokens + ' license' + (nTokens === 1 ? '' : 's') + '</span>' +
             '</div>' +
           '</div>';
         row.appendChild(left);
@@ -5205,8 +5363,8 @@ active: account
           return btn;
         }
 
-        if (tokens.length > 0) {
-          const isPlural = tokens.length > 1;
+        if (dropdownTokens.length > 0) {
+          const isPlural = dropdownTokens.length > 1;
           const showLabel = isPlural ? 'Show keys' : 'Show key';
           const hideLabel = isPlural ? 'Hide keys' : 'Hide key';
           const toggle = document.createElement('button');
@@ -5219,7 +5377,7 @@ active: account
           const sub = document.createElement('div');
           sub.className = 'device-row-keys';
           sub.style.display = 'none';
-          tokens.forEach(function(t) {
+          dropdownTokens.forEach(function(t) {
             const item = document.createElement('div');
             item.className = 'device-row-key';
             const licName = escapeHtmlOrg(t.license_name || 'License');
@@ -5244,20 +5402,12 @@ active: account
 
           row.appendChild(actions);
           row.appendChild(sub);
-          tokensGrid.appendChild(row);
-          return;
+          return row;
         }
 
         row.appendChild(actions);
-        tokensGrid.appendChild(row);
-      });
-
-      // Wire rename buttons after the rows are in the DOM. One handler
-      // for the whole grid via event delegation would also work; per-
-      // button is fine here since the list is small.
-      tokensGrid.querySelectorAll('.device-rename-btn').forEach(function(btn) {
-        btn.addEventListener('click', onDeviceRenameClick);
-      });
+        return row;
+      }
     }
 
     // Pencil-icon click. Prompts the user for a new name, POSTs to
@@ -6786,7 +6936,7 @@ active: account
             filteredCount: filtered.length
         });
 
-        renderDeviceCards(filtered);
+        renderDeviceCards(filtered, source);
         const tokensSpinner = document.getElementById('tokensSpinner');
         if (tokensSpinner) tokensSpinner.style.display = 'none';
     }
