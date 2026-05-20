@@ -118,12 +118,21 @@ layout: main
         margin: 0 0 24px 0;
         color: #222;
     }
+    /* When the page-title is visible the scope caption now reads
+       "[SCOPE] - [TOPIC]" (e.g. "BILLING ACCOUNT - Licenses & credits"),
+       which makes the layout-level h1 redundant. Hide it. Pages
+       without the page-title (Profile / Downloads / Support) still
+       fall through to the default rule below and render their h1
+       normally. */
     .account-content.has-page-title h1.account-subtitle {
-        font-size: 18px;
-        font-weight: 500;
-        margin: 0 0 24px 0;
-        color: #555;
+        display: none;
     }
+    /* Same goes for the inner section h2 - the caption already says
+       "Licenses & credits" or "Devices", repeating it inside the
+       section is just visual noise. Section-hint paragraphs and the
+       Rename / inline actions stay visible because they're useful
+       per-section context. */
+    .account-content.has-page-title .account-section-title { display: none; }
 
     /* Mobile: sidebar becomes a slide-out drawer */
     @media (max-width: 768px) {
@@ -171,7 +180,7 @@ layout: main
                 </svg>
             </button>
         </div>
-        {% include account-page-title.html %}
+        {% include account-page-title.html topic=page.heading %}
         {% if page.heading %}<h1 class="account-subtitle">{{ page.heading }}</h1>{% endif %}
         {{ content }}
     </main>

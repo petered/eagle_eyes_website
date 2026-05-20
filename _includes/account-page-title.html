@@ -23,11 +23,18 @@
   dedupe defined in head.html). Re-renders on auth + hashchange + when other
   components write to sessionStorage.
 -->
-<div id="accountPageTitle" class="account-page-title-wrap" style="display: none;">
-    <!-- Scope caption ("BILLING ACCOUNT" / "ORGANIZATION") sits above
-         the title so users always see *what kind of thing* the title
-         refers to, not just its name. Reinforces the account-vs-org
-         distinction without needing per-page conditional copy. -->
+<div id="accountPageTitle" class="account-page-title-wrap" style="display: none;"
+     data-page-topic="{{ include.topic | default: '' | escape }}">
+    <!-- Scope caption sits above the title and reads as
+         "[SCOPE] - [TOPIC]" (e.g. "ORGANIZATION - People").
+         The scope half ("Billing account" / "Organization") comes
+         from where we are in the URL; the topic half comes either
+         from page.heading (static pages via Liquid 'topic' include
+         arg) or from window.setAccountPageTopic(...) at runtime
+         (for pages with dynamic views like /account/). When the
+         caption renders the page topic, the layout h1 + the
+         section h2 underneath become redundant and are hidden via
+         the .has-page-title CSS rule. -->
     <div class="account-page-title-scope" id="accountPageTitleScope" aria-hidden="true"></div>
     <div class="account-page-title-row">
         <button type="button" id="accountPageTitleBtn" class="account-page-title-btn" aria-haspopup="true" aria-expanded="false">
@@ -271,6 +278,38 @@
         return pickDefaultOrgId(organizations, licenseOverview);
     }
 
+    // Compose and write the scope caption ("[SCOPE] - [TOPIC]") from
+    // the current data-scope on the wrap and the in-memory page topic.
+    // Called by renderTitle, by setAccountPageTopic (page-driven topic
+    // updates), and on initial page load to seed from data-page-topic.
+    var currentPageTopic = '';
+    function renderScopeCaption() {
+        var wrap = $('accountPageTitle');
+        var scopeEl = $('accountPageTitleScope');
+        if (!wrap || !scopeEl) return;
+        var scope = wrap.getAttribute('data-scope') || 'account';
+        var label = scope === 'org' ? 'Organization' : 'Billing account';
+        var topic = (currentPageTopic || '').trim();
+        scopeEl.textContent = topic ? label + ' - ' + topic : label;
+    }
+    // Public API for pages with dynamic content (e.g., /account/ which
+    // swaps between Licenses & credits / Account access / People /
+    // Devices / Configurations views). Pages call this whenever the
+    // active view changes; the caption updates immediately.
+    window.setAccountPageTopic = function(topic) {
+        currentPageTopic = topic || '';
+        renderScopeCaption();
+    };
+    // Seed the topic from the Liquid include arg (page.heading) at
+    // module-load time so static pages without dynamic-view JS get the
+    // right caption straight away.
+    (function seedTopicFromMarkup() {
+        var wrap = $('accountPageTitle');
+        if (!wrap) return;
+        var seeded = wrap.getAttribute('data-page-topic') || '';
+        if (seeded) currentPageTopic = seeded;
+    })();
+
     function renderTitle(scope, activeName, options, activeId, isMulti) {
         var wrap = $('accountPageTitle');
         var btn = $('accountPageTitleBtn');
@@ -283,11 +322,7 @@
         wrap.style.display = '';
         wrap.setAttribute('data-scope', scope);
         txt.textContent = activeName || '-';
-        // Scope caption above the title. Static label per scope; doesn't
-        // depend on how many accounts/orgs the user has.
-        if (scopeEl) {
-            scopeEl.textContent = scope === 'org' ? 'Organization' : 'Billing account';
-        }
+        renderScopeCaption();
         // Signal to the layout CSS that the subtitle should render smaller.
         var content = document.querySelector('.account-content');
         if (content) content.classList.add('has-page-title');

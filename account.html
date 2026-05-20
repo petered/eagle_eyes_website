@@ -4855,8 +4855,8 @@ active: account
         'device-releases': {
             title: 'Device releases',
             body: [
-                'A <strong>device release</strong> frees the seat a device is using on this license so a different device can activate on it. You release when you replace a tablet, reset one to factory defaults, or rotate a device between users.',
-                'Each device slot on the license comes with <strong>two releases</strong>. That covers the common cases (initial mistake, one swap during the term) without anyone having to ask for support. Renewing the license resets the counter.',
+                'A <strong>device release</strong> frees the slot a device is using on this license, so a different device can activate in its place. You release a slot when you replace a controller, reset a device to factory defaults, or rotate a device between users.',
+                'Each device slot comes with a limited number of releases per license term. That covers the common cases such as an initial mistake, or one swap during the term, without anyone having to contact support. Renewing the license resets the counter.',
                 'If you hit the cap and need more, contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we can extend it.'
             ]
         }
@@ -6245,8 +6245,14 @@ active: account
             const plansTitle = document.getElementById('plansSectionTitle');
             const purchaseCta = document.getElementById('overviewPurchaseCta');
             const isAccessView = (activeView === 'access');
-            if (plansTitle) {
-                plansTitle.textContent = isAccessView ? 'Account access' : 'Licenses & credits';
+            const accountTopic = isAccessView ? 'Account access' : 'Licenses & credits';
+            if (plansTitle) plansTitle.textContent = accountTopic;
+            // Page-title scope caption mirrors the current view so the
+            // top of the page reads "BILLING ACCOUNT - Licenses & credits"
+            // or "BILLING ACCOUNT - Account access" depending on which
+            // inner view is active.
+            if (typeof window.setAccountPageTopic === 'function') {
+                window.setAccountPageTopic(accountTopic);
             }
 
             Object.keys(sections).forEach(function(view) {
@@ -6313,6 +6319,18 @@ active: account
 
         const devicesTitle = document.getElementById('devicesSectionTitle');
         if (devicesTitle) devicesTitle.textContent = 'Devices';
+
+        // Page-title scope caption mirrors the active org-scope view so
+        // the top of the page reads "ORGANIZATION - People" /
+        // "ORGANIZATION - Devices" / "ORGANIZATION - Configurations".
+        if (typeof window.setAccountPageTopic === 'function') {
+            const orgTopicMap = {
+                'people': 'People',
+                'devices': 'Devices',
+                'configurations': 'Configurations'
+            };
+            window.setAccountPageTopic(orgTopicMap[activeView] || '');
+        }
 
         Object.keys(sections).forEach(function(view) {
             if (!sections[view]) return;
@@ -6810,9 +6828,14 @@ active: account
         // Header. Org name + member/admin counts + Rename action.
         const header = document.createElement('div');
         header.className = 'members-header';
+        // Header reads as "Hinton SAR members" so the row stands on
+        // its own outside the page-title scope context (e.g., in a
+        // user's screenshot or shared link). Previously this was just
+        // the bare org name, which read as "Hinton SAR" - ambiguous
+        // about what you were looking at.
         header.innerHTML =
             '<div class="members-header-left org-name-row" data-org-id="' + orgIdAttr + '">' +
-              '<h4 class="members-header-name org-name">' + escapeHtmlOrg(org.name || 'Organization') + '</h4>' +
+              '<h4 class="members-header-name org-name">' + escapeHtmlOrg(org.name || 'Organization') + ' members</h4>' +
               '<span class="members-header-meta">'
                 + memberEmails.length + ' ' + (memberEmails.length === 1 ? 'person' : 'people')
                 + (adminEmails.length ? ' · ' + adminEmails.length + ' admin' + (adminEmails.length === 1 ? '' : 's') : '')
@@ -7210,7 +7233,13 @@ active: account
         const row = btn.closest('.org-name-row');
         if (!row || row.querySelector('input.org-rename-input')) return;
         const nameEl = row.querySelector('.org-name');
-        const currentName = nameEl ? nameEl.textContent : '';
+        // Heading reads "{orgName} members" but the rename should
+        // operate on the bare org name. Strip the trailing " members"
+        // suffix so the input opens prefilled with just "Hinton SAR".
+        let currentName = nameEl ? nameEl.textContent : '';
+        if (currentName.endsWith(' members')) {
+            currentName = currentName.slice(0, -(' members'.length));
+        }
         // Stash original markup so cancel can restore it cleanly
         row.dataset.originalHtml = row.innerHTML;
         row.innerHTML =
