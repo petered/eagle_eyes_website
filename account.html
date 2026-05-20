@@ -4322,7 +4322,15 @@ active: account
     }
 
     function buildPlanUsersHtml(license) {
-        // Prefer derived data from cachedTokens (per-user device count).
+        // The user list comes from cachedTokens (one row per dispensed
+        // device key). Tokens load on a separate request from the
+        // dashboard, so they may not have landed yet when a card first
+        // renders; show a quiet "Loading…" so we don't briefly claim
+        // "No active devices" on a license that actually has plenty.
+        if (!tokensLoaded) {
+            return '<span style="color:#888;">Loading…</span>';
+        }
+
         const tokens = (cachedTokens || []).filter(function(t) {
             return t && t.license_id === license.license_id;
         });
@@ -4332,16 +4340,41 @@ active: account
                 const k = t.user_email || t.email || 'unknown';
                 byUser[k] = (byUser[k] || 0) + 1;
             });
-            const items = Object.keys(byUser).map(function(u) {
+            // Stable sort: most devices first, then alphabetical.
+            const emails = Object.keys(byUser).sort(function(a, b) {
+                const diff = byUser[b] - byUser[a];
+                if (diff !== 0) return diff;
+                return a.localeCompare(b);
+            });
+            // Format: "email" when the user has a single device,
+            // "email (N)" when they have more than one. Per the spec
+            // we only render the (N) suffix when N > 1.
+            const items = emails.map(function(u) {
                 const n = byUser[u];
-                return '<li>' + planEscape(u) + ' <span style="color:#888;">(' + n + ' ' + (n === 1 ? 'device' : 'devices') + ')</span></li>';
+                const suffix = n > 1
+                    ? ' <span style="color:#888;">(' + n + ')</span>'
+                    : '';
+                return '<li>' + planEscape(u) + suffix + '</li>';
             });
             return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
         }
-        // Fall back to license.keys_used_by if present.
+
+        // Fall back to license.keys_used_by when cachedTokens has loaded
+        // but is empty for this license (e.g., a stale tokens cache that
+        // doesn't yet include freshly-dispensed keys).
         if (Array.isArray(license.keys_used_by) && license.keys_used_by.length) {
             const items = license.keys_used_by.map(function(s) {
-                return '<li>' + planEscape(String(s).replace(/\((\d+) tokens\)/g, '($1 devices)')) + '</li>';
+                // Legacy format: "user@example.com (3 tokens)". Normalize
+                // to the new "(N)" shape and strip the noun.
+                const raw = String(s)
+                    .replace(/\s*\(\d+\s*tokens?\)/i, '')
+                    .replace(/\s*\(\d+\s*devices?\)/i, '');
+                const match = String(s).match(/\((\d+)\s*(?:token|device)s?\)/i);
+                const n = match ? Number(match[1]) : 1;
+                const suffix = n > 1
+                    ? ' <span style="color:#888;">(' + n + ')</span>'
+                    : '';
+                return '<li>' + planEscape(raw.trim()) + suffix + '</li>';
             });
             return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
         }
