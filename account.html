@@ -5181,9 +5181,12 @@ active: account
           '</div>';
         row.appendChild(left);
 
-        // Actions: Copy key (or expand toggle for multi-license devices).
-        // Signed key resolved by token_id from cachedTokens; if it's not
-        // there yet (tokens haven't loaded) the button is disabled.
+        // Actions: every device gets the same Show key(s) toggle that
+        // reveals a per-license dropdown underneath. Keeps the row UX
+        // consistent whether a device has 1 token or many. Signed keys
+        // resolve at click time from cachedTokens (loaded separately by
+        // get_license_tokens_overview); if a key hasn't landed yet the
+        // per-row Copy button stays disabled until the next render.
         const actions = document.createElement('div');
         actions.className = 'people-row-actions device-row-actions';
 
@@ -5202,13 +5205,14 @@ active: account
           return btn;
         }
 
-        if (tokens.length === 1) {
-          actions.appendChild(makeCopyBtn(tokens[0], '⧉ Copy key'));
-        } else if (tokens.length > 1) {
+        if (tokens.length > 0) {
+          const isPlural = tokens.length > 1;
+          const showLabel = isPlural ? 'Show keys' : 'Show key';
+          const hideLabel = isPlural ? 'Hide keys' : 'Hide key';
           const toggle = document.createElement('button');
           toggle.type = 'button';
           toggle.className = 'people-icon-btn';
-          toggle.textContent = 'Show keys';
+          toggle.textContent = showLabel;
           toggle.setAttribute('aria-expanded', 'false');
           actions.appendChild(toggle);
 
@@ -5234,7 +5238,7 @@ active: account
           toggle.onclick = function() {
             const open = sub.style.display !== 'none';
             sub.style.display = open ? 'none' : '';
-            toggle.textContent = open ? 'Show keys' : 'Hide keys';
+            toggle.textContent = open ? showLabel : hideLabel;
             toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
           };
 
