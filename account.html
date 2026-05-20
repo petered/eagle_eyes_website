@@ -733,6 +733,80 @@ active: account
         opacity: 0.75;
         font-weight: 400;
     }
+    /* Non-owner variant - same outline style as a regular action
+       button but rendered as a <button> (no href) so the global
+       click handler can intercept and open the contact-owners modal
+       instead of navigating. Subtitle prompts the user that this is
+       a gated action. */
+    .plan-primary-card button.plan-action-btn {
+        cursor: pointer;
+        font-family: inherit;
+        width: 100%;
+    }
+
+    /* Contact-owners modal. Pops when a non-owner clicks Renew or
+       Add devices on a license they have access to via an org but
+       don't pay for. Lists the owners' emails as mailto links so the
+       user can ask one of them to make the change. */
+    .contact-owners-modal {
+        position: fixed; inset: 0; z-index: 9100;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .contact-owners-backdrop {
+        position: absolute; inset: 0;
+        background: rgba(20, 30, 50, 0.55);
+        backdrop-filter: blur(2px);
+    }
+    .contact-owners-dialog {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        width: 460px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        padding: 26px 28px;
+        box-shadow: 0 18px 48px rgba(0,0,0,0.18);
+        font-family: inherit;
+    }
+    .contact-owners-close {
+        position: absolute; top: 12px; right: 12px;
+        background: transparent; border: none; color: #888;
+        cursor: pointer; padding: 6px; border-radius: 6px;
+        font-size: 20px; line-height: 1;
+    }
+    .contact-owners-close:hover { background: #f3f4f6; color: #222; }
+    .contact-owners-title {
+        font-size: 18px; font-weight: 600; color: #1a1a2e;
+        margin: 0 0 8px 0;
+    }
+    .contact-owners-body {
+        font-size: 13px; color: #555; margin: 0 0 14px 0; line-height: 1.55;
+    }
+    .contact-owners-body strong { color: #1a1a2e; }
+    .contact-owners-list {
+        list-style: none; padding: 0; margin: 0 0 8px 0;
+        display: flex; flex-direction: column; gap: 6px;
+    }
+    .contact-owners-list li a {
+        display: block;
+        padding: 8px 12px;
+        border: 1px solid #cfd6dc;
+        border-radius: 7px;
+        font-size: 13px;
+        color: #1077dc;
+        text-decoration: none;
+        word-break: break-all;
+        background: #fff;
+        transition: background-color 0.12s, border-color 0.12s;
+    }
+    .contact-owners-list li a:hover { background: #f3f9ff; border-color: #1e90ff; }
+    .contact-owners-footer {
+        margin-top: 14px;
+        font-size: 11px;
+        color: #999;
+        line-height: 1.5;
+    }
     /* Passive "Renewal queued" status badge shown in place of the
        Renew button on licenses that already have a future-dated
        renewal (successor_license_id is set). Same dimensions as
@@ -3878,6 +3952,12 @@ active: account
                 const st = getLicenseExpiryStatus(l);
                 if (st.daysLeft === null) return;
                 if (st.isTrial) return;
+                // Only nag about renewal when the license is actually
+                // approaching expiry. The per-card "Expiring soon" tag
+                // already covers the same window; the top notice should
+                // match that bar, not surface a year out for licenses
+                // that have plenty of runway.
+                if (!st.expiringSoon) return;
                 // Licenses that already have a future-dated renewal queued
                 // don't need a renew prompt - the per-card "Renewal queued"
                 // status carries that information instead.
@@ -3955,6 +4035,38 @@ active: account
     // which license. A single license can be shared by multiple orgs. List
     // them all. Personal licenses (not assigned to any org) get the
     // "Personal" call-out instead.
+    // Is the current user an owner of the account that pays for this
+    // license? Used to gate the per-card Renew / Add devices actions:
+    // owners get the standard purchase-page deep-link; non-owners see
+    // the same buttons but a click pops the "contact an owner" modal
+    // instead. Falls back to license.license_owner (a single email)
+    // when the account isn't in cachedAccounts (rare - user has access
+    // to a license via an org but isn't a member of the funding
+    // account at all).
+    function getLicenseOwnership(license) {
+        const myEmail = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
+        if (!license || license.account_id == null) {
+            return { isOwner: false, ownerEmails: [], accountName: '' };
+        }
+        const acc = (cachedAccounts || []).find(function(a) {
+            return String(a.account_id != null ? a.account_id : a.id) === String(license.account_id);
+        });
+        if (acc) {
+            const members = acc.members || {};
+            const ownerEmails = Object.keys(members).filter(function(e) {
+                return String(members[e]).toLowerCase() === 'owner';
+            }).sort();
+            const isOwner = ownerEmails.some(function(e) { return e.toLowerCase() === myEmail; });
+            return { isOwner: isOwner, ownerEmails: ownerEmails, accountName: acc.name || '' };
+        }
+        const fallback = license.license_owner || '';
+        return {
+            isOwner: !!(myEmail && fallback.toLowerCase() === myEmail),
+            ownerEmails: fallback ? [fallback] : [],
+            accountName: ''
+        };
+    }
+
     function buildLicenseRelationshipLine(license) {
         if (!license || !license.license_id) return null;
 
@@ -4120,6 +4232,21 @@ active: account
         //     set by the backend) show a passive "Renewal queued"
         //     status pill instead of the Renew button — the user can't
         //     queue a second renewal on top of a pending one.
+        // Ownership of the underlying license. Determines whether the
+        // Renew + Add devices buttons route to the standard
+        // purchase-page deep-link (owner) or open a "contact an owner"
+        // modal (non-owner who has access via an org but can't make
+        // billing changes).
+        const ownership = getLicenseOwnership(license);
+        const ownerEmailsAttr = ownership.ownerEmails.length
+            ? ' data-owner-emails="' + planEscape(ownership.ownerEmails.join(',')) + '"'
+            : '';
+        const ownerAccountAttr = ownership.accountName
+            ? ' data-owner-account="' + planEscape(ownership.accountName) + '"'
+            : '';
+        const licenseNameAttr = ' data-license-name="' + planEscape(license.license_name || '') + '"';
+        const licenseIdAttr = ' data-license-id="' + planEscape(license.license_id || '') + '"';
+
         let actionsHtml = '';
         if (!isExpired && license.license_id) {
             const hasQueuedRenewal = !!license.successor_license_id;
@@ -4134,7 +4261,7 @@ active: account
                         ? '<span class="plan-action-status-sub">Starts ' + planEscape(queuedDate) + '</span>'
                         : '<span class="plan-action-status-sub">Starts at expiry.</span>')
                     + '</div>';
-            } else {
+            } else if (ownership.isOwner) {
                 const renewUrl = '{{ "/account/purchase/" | relative_url }}?mode=renew&license_id='
                     + encodeURIComponent(license.license_id);
                 actionsHtml +=
@@ -4142,36 +4269,57 @@ active: account
                     +   '<span class="plan-action-btn-label">Renew for 1 year</span>'
                     +   '<span class="plan-action-btn-sub">Extends this license. Starts at expiry.</span>'
                     + '</a>';
+            } else {
+                // Non-owner: button stays visible but opens the
+                // contact-owners modal on click. data-* attrs carry
+                // everything the modal needs.
+                actionsHtml +=
+                    '<button type="button" class="plan-action-btn plan-action-btn-non-owner"'
+                    +   ' data-non-owner-action="renew"'
+                    +   licenseIdAttr + licenseNameAttr + ownerEmailsAttr + ownerAccountAttr + '>'
+                    +   '<span class="plan-action-btn-label">Renew for 1 year</span>'
+                    +   '<span class="plan-action-btn-sub">Owner action - tap to see who to contact.</span>'
+                    + '</button>';
             }
 
             const currentTotal = (typeof totalKeys === 'number') ? totalKeys : 0;
-            let addUrl;
-            if (currentTotal < 12) {
-                addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
-                    + encodeURIComponent(license.license_id);
+            if (ownership.isOwner) {
+                let addUrl;
+                if (currentTotal < 12) {
+                    addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
+                        + encodeURIComponent(license.license_id);
+                } else {
+                    // Self-service extension endpoint refuses to push a
+                    // license past 12 devices. For licenses already over,
+                    // fall through to a mailto so the user has a path.
+                    const addSubject = 'Add devices to license: '
+                        + (license.license_name || license.license_id);
+                    const addBody = 'Please add devices to the following Eagle Eyes license:\n\n'
+                        + 'License: ' + (license.license_name || '') + ' (' + license.license_id + ')\n'
+                        + 'Current device count: ' + currentTotal + '\n'
+                        + (expiryDate ? 'Expiry: ' + expiryDate + '\n' : '')
+                        + '\n'
+                        + 'Number of devices to add: \n'
+                        + '\n'
+                        + 'Thanks';
+                    addUrl = 'mailto:info@eagleeyessearch.com'
+                        + '?subject=' + encodeURIComponent(addSubject)
+                        + '&body=' + encodeURIComponent(addBody);
+                }
+                actionsHtml +=
+                    '<a class="plan-action-btn" href="' + planEscape(addUrl) + '">'
+                    +   '<span class="plan-action-btn-label">+ Add devices</span>'
+                    +   '<span class="plan-action-btn-sub">Prorated to current expiry.</span>'
+                    + '</a>';
             } else {
-                // Self-service extension endpoint refuses to push a
-                // license past 12 devices. For licenses already over,
-                // fall through to a mailto so the user has a path.
-                const addSubject = 'Add devices to license: '
-                    + (license.license_name || license.license_id);
-                const addBody = 'Please add devices to the following Eagle Eyes license:\n\n'
-                    + 'License: ' + (license.license_name || '') + ' (' + license.license_id + ')\n'
-                    + 'Current device count: ' + currentTotal + '\n'
-                    + (expiryDate ? 'Expiry: ' + expiryDate + '\n' : '')
-                    + '\n'
-                    + 'Number of devices to add: \n'
-                    + '\n'
-                    + 'Thanks';
-                addUrl = 'mailto:info@eagleeyessearch.com'
-                    + '?subject=' + encodeURIComponent(addSubject)
-                    + '&body=' + encodeURIComponent(addBody);
+                actionsHtml +=
+                    '<button type="button" class="plan-action-btn plan-action-btn-non-owner"'
+                    +   ' data-non-owner-action="add_devices"'
+                    +   licenseIdAttr + licenseNameAttr + ownerEmailsAttr + ownerAccountAttr + '>'
+                    +   '<span class="plan-action-btn-label">+ Add devices</span>'
+                    +   '<span class="plan-action-btn-sub">Owner action - tap to see who to contact.</span>'
+                    + '</button>';
             }
-            actionsHtml +=
-                '<a class="plan-action-btn" href="' + planEscape(addUrl) + '">'
-                +   '<span class="plan-action-btn-label">+ Add devices</span>'
-                +   '<span class="plan-action-btn-sub">Prorated to current expiry.</span>'
-                + '</a>';
         }
         const actionsColHtml = actionsHtml
             ? '<div class="plan-card-actions">' + actionsHtml + '</div>'
@@ -4322,18 +4470,52 @@ active: account
     }
 
     function buildPlanUsersHtml(license) {
-        // Two possible data sources for the user list, in order of
-        // preference:
-        //   1. cachedAccountDevices (from list_account_devices) - the
-        //      newer, rich payload that always carries emails[] per
-        //      device and tokens[].email per token.
-        //   2. cachedTokens (from get_license_tokens_overview) - the
-        //      older payload. Fields here aren't always populated;
-        //      when token.email is missing we cross-reference
-        //      cachedAccountDevices by machine_id to fill the gap.
-        // Both load asynchronously and a license card can render before
-        // either lands, so we show "Loading…" until at least one is
-        // available rather than briefly claiming "No active devices."
+        // Data sources for the user list, in order of preference:
+        //
+        //   1. license.keys_used_by - shipped on every license_overview
+        //      row, pre-formatted as "email (N tokens)" strings (or
+        //      just "email" when N == 1). Most reliable because the
+        //      backend already aggregated it; doesn't depend on the
+        //      tokens-overview / devices fetches landing.
+        //   2. cachedAccountDevices (from list_account_devices) - the
+        //      rich devices payload, scoped to the active account.
+        //   3. cachedTokens (from get_license_tokens_overview) - the
+        //      older payload.
+        //
+        // Earlier versions ordered these the other way around, but
+        // (2) and (3) frequently produced "unknown" rows because not
+        // every token / device row carries an email field; the
+        // backend-aggregated (1) sidesteps that entirely.
+
+        // (1) Backend-aggregated list - prefer this when present.
+        if (Array.isArray(license.keys_used_by) && license.keys_used_by.length) {
+            // Parse "email" or "email (N tokens)" / "email (N devices)"
+            // entries into [{email, n}] and re-emit in the
+            // "email (N)" shape, dropping the (N) suffix when N == 1.
+            const parsed = license.keys_used_by.map(function(s) {
+                const raw = String(s || '');
+                const m = raw.match(/^(.*?)\s*\((\d+)\s*(?:token|device)s?\)\s*$/i);
+                if (m) return { email: m[1].trim(), n: Number(m[2]) || 1 };
+                return { email: raw.trim(), n: 1 };
+            }).filter(function(e) { return e.email; });
+            // Stable sort: most devices first, then alphabetical.
+            parsed.sort(function(a, b) {
+                const diff = b.n - a.n;
+                if (diff !== 0) return diff;
+                return a.email.localeCompare(b.email);
+            });
+            const items = parsed.map(function(p) {
+                const suffix = p.n > 1
+                    ? ' <span style="color:#888;">(' + p.n + ')</span>'
+                    : '';
+                return '<li>' + planEscape(p.email) + suffix + '</li>';
+            });
+            return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
+        }
+
+        // No keys_used_by - fall back to the device / token derivations.
+        // These are slower to land (separate fetches) so show
+        // "Loading…" while waiting on either of them.
         const haveDevices = !!(typeof accountDevicesLoaded !== 'undefined' && accountDevicesLoaded);
         if (!tokensLoaded && !haveDevices) {
             return '<span style="color:#888;">Loading…</span>';
@@ -4348,22 +4530,17 @@ active: account
             if (e) emailByMachineId[d.machine_id] = e;
         });
 
-        // Primary path: derive users from cachedAccountDevices when it's
-        // loaded - it's authoritative and consistent.
         const byUser = {};
         if (haveDevices && cachedAccountDevices.length) {
             cachedAccountDevices.forEach(function(d) {
                 (d.tokens || []).forEach(function(t) {
                     if (!t || t.license_id !== license.license_id) return;
-                    const k = t.email || (d.emails && d.emails[0]) || 'unknown';
-                    byUser[k] = (byUser[k] || 0) + 1;
+                    const k = t.email || (d.emails && d.emails[0]);
+                    if (k) byUser[k] = (byUser[k] || 0) + 1;
                 });
             });
         }
 
-        // Backfill / primary path: derive from cachedTokens. Use the
-        // device lookup to recover emails when the token row itself
-        // doesn't include one.
         if (!Object.keys(byUser).length) {
             const tokens = (cachedTokens || []).filter(function(t) {
                 return t && t.license_id === license.license_id;
@@ -4371,47 +4548,23 @@ active: account
             tokens.forEach(function(t) {
                 const direct = t.user_email || t.email;
                 const fromDevice = t.machine_id ? emailByMachineId[t.machine_id] : null;
-                const k = direct || fromDevice || 'unknown';
-                byUser[k] = (byUser[k] || 0) + 1;
+                const k = direct || fromDevice;
+                if (k) byUser[k] = (byUser[k] || 0) + 1;
             });
         }
 
         if (Object.keys(byUser).length) {
-            // Stable sort: most devices first, then alphabetical.
             const emails = Object.keys(byUser).sort(function(a, b) {
                 const diff = byUser[b] - byUser[a];
                 if (diff !== 0) return diff;
                 return a.localeCompare(b);
             });
-            // Format: "email" when the user has a single device,
-            // "email (N)" when they have more than one. Per the spec
-            // we only render the (N) suffix when N > 1.
             const items = emails.map(function(u) {
                 const n = byUser[u];
                 const suffix = n > 1
                     ? ' <span style="color:#888;">(' + n + ')</span>'
                     : '';
                 return '<li>' + planEscape(u) + suffix + '</li>';
-            });
-            return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
-        }
-
-        // Fall back to license.keys_used_by when cachedTokens has loaded
-        // but is empty for this license (e.g., a stale tokens cache that
-        // doesn't yet include freshly-dispensed keys).
-        if (Array.isArray(license.keys_used_by) && license.keys_used_by.length) {
-            const items = license.keys_used_by.map(function(s) {
-                // Legacy format: "user@example.com (3 tokens)". Normalize
-                // to the new "(N)" shape and strip the noun.
-                const raw = String(s)
-                    .replace(/\s*\(\d+\s*tokens?\)/i, '')
-                    .replace(/\s*\(\d+\s*devices?\)/i, '');
-                const match = String(s).match(/\((\d+)\s*(?:token|device)s?\)/i);
-                const n = match ? Number(match[1]) : 1;
-                const suffix = n > 1
-                    ? ' <span style="color:#888;">(' + n + ')</span>'
-                    : '';
-                return '<li>' + planEscape(raw.trim()) + suffix + '</li>';
             });
             return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
         }
@@ -4448,6 +4601,104 @@ active: account
             if (label) label.textContent = open ? 'Hide details' : 'Show details';
         });
     }
+
+    // Open a "contact one of the owners" modal when a non-owner clicks
+    // Renew / Add devices on a license they have access to via an org
+    // but don't pay for. Lists owner emails as mailto links prefilled
+    // for the chosen action.
+    function showContactOwnersModal(opts) {
+        const action = opts.action || 'renew';
+        const ownerEmails = (opts.ownerEmails || []).filter(Boolean);
+        const accountName = opts.accountName || '';
+        const licenseName = opts.licenseName || 'this license';
+        const licenseId = opts.licenseId || '';
+
+        const actionVerb = action === 'add_devices'
+            ? 'add devices to'
+            : 'renew';
+        const subject = action === 'add_devices'
+            ? 'Add devices to ' + licenseName
+            : 'Renew ' + licenseName;
+        const bodyLines = action === 'add_devices'
+            ? [
+                'Hi,', '',
+                'Could you add some devices to our Eagle Eyes license? Details:',
+                '  License: ' + licenseName + (licenseId ? ' (' + licenseId + ')' : ''),
+                '  Number of devices to add: ',
+                '',
+                'Thanks!'
+              ]
+            : [
+                'Hi,', '',
+                'Could you renew our Eagle Eyes license? Details:',
+                '  License: ' + licenseName + (licenseId ? ' (' + licenseId + ')' : ''),
+                '  Renewal should start when the current license expires',
+                '  so there is no service interruption.',
+                '',
+                'Thanks!'
+              ];
+        function mailtoFor(email) {
+            return 'mailto:' + email
+                + '?subject=' + encodeURIComponent(subject)
+                + '&body=' + encodeURIComponent(bodyLines.join('\n'));
+        }
+
+        const accountSpan = accountName
+            ? 'the <strong>' + planEscape(accountName) + '</strong> account'
+            : 'the account that funds this license';
+        const ownersHtml = ownerEmails.length
+            ? ownerEmails.map(function(e) {
+                return '<li><a href="' + planEscape(mailtoFor(e)) + '">' + planEscape(e) + '</a></li>';
+            }).join('')
+            : '<li>(No owners listed - contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>.)</li>';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'contact-owners-modal';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.innerHTML =
+            '<div class="contact-owners-backdrop"></div>'
+            + '<div class="contact-owners-dialog">'
+            +   '<button type="button" class="contact-owners-close" aria-label="Close">&times;</button>'
+            +   '<h3 class="contact-owners-title">Owner action required</h3>'
+            +   '<p class="contact-owners-body">'
+            +     'To ' + actionVerb + ' this license you need to be an owner of '
+            +     accountSpan + '. Your organization has access to this license but doesn\'t pay for it, '
+            +     'so changes go through one of the owners.'
+            +   '</p>'
+            +   '<p class="contact-owners-body">Pick an owner to email:</p>'
+            +   '<ul class="contact-owners-list">' + ownersHtml + '</ul>'
+            +   '<p class="contact-owners-footer">Clicking opens your email client with the request pre-filled. They can renew or add devices on the account\'s behalf.</p>'
+            + '</div>';
+
+        function close() {
+            try { overlay.remove(); } catch (e) {}
+            document.removeEventListener('keydown', onKey);
+        }
+        function onKey(e) { if (e.key === 'Escape') close(); }
+
+        overlay.querySelector('.contact-owners-backdrop').addEventListener('click', close);
+        overlay.querySelector('.contact-owners-close').addEventListener('click', close);
+        document.addEventListener('keydown', onKey);
+        document.body.appendChild(overlay);
+    }
+
+    // Click delegation for the non-owner action buttons rendered by
+    // buildPlanPrimaryCard. Lives at document level so dynamically-
+    // rendered cards (account switch, refetches) don't need re-wiring.
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.plan-action-btn-non-owner');
+        if (!btn) return;
+        e.preventDefault();
+        const emailsStr = btn.getAttribute('data-owner-emails') || '';
+        showContactOwnersModal({
+            action: btn.getAttribute('data-non-owner-action') || 'renew',
+            licenseName: btn.getAttribute('data-license-name') || '',
+            licenseId: btn.getAttribute('data-license-id') || '',
+            ownerEmails: emailsStr ? emailsStr.split(',').filter(Boolean) : [],
+            accountName: btn.getAttribute('data-owner-account') || ''
+        });
+    });
 
     function wirePlanCopyButtons(scope) {
         scope.querySelectorAll('.plan-copy-btn').forEach(function(b) {
