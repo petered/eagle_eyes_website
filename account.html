@@ -2285,6 +2285,37 @@ active: account
     .device-row-key-meta code {
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
+    /* Segmented toggle at the top of the Devices view. Swaps between
+       the per-license grouping (default, capacity lens) and a flat
+       all-devices list (fleet/history lens). */
+    .devices-view-toggle {
+        display: inline-flex;
+        margin-bottom: 16px;
+        background: #f3f5f7;
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+    }
+    .devices-view-toggle-btn {
+        appearance: none;
+        background: transparent;
+        border: none;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #555;
+        cursor: pointer;
+        border-radius: 6px;
+        font-family: inherit;
+        transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .devices-view-toggle-btn:hover { color: #1a1a2e; }
+    .devices-view-toggle-btn.is-active {
+        background: #fff;
+        color: #1a1a2e;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
     /* Per-license section grouping on the Devices view. Each active
        license owns a section that lists the device slots it has filled;
        a trailing "Devices without an active license" section catches
@@ -2672,6 +2703,10 @@ active: account
                 <p class="account-section-hint">Devices activated on this organization's licenses. Device-specific license keys are available here if you need to reinstall or reactivate. A key is specific to a device and cannot be used on another device. If you run into trouble, contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>.</p>
             </header>
             <div id="deviceTokensContainer">
+                <div id="devicesViewToggle" class="devices-view-toggle" role="tablist" aria-label="Devices view">
+                    <button type="button" class="devices-view-toggle-btn is-active" data-mode="by-license" aria-pressed="true" role="tab">By license</button>
+                    <button type="button" class="devices-view-toggle-btn" data-mode="all" aria-pressed="false" role="tab">All devices</button>
+                </div>
                 <div id="tokensSpinner" class="loading-spinner">
                     <div class="spinner"></div>
                 </div>
@@ -5113,11 +5148,14 @@ active: account
     function renderDeviceCards(devices, source) {
       const tokensGrid = document.getElementById('tokensGrid');
       tokensGrid.innerHTML = '';
+      syncDevicesToggleUI();
 
-      // Source of truth for active licenses on this org. We enumerate
-      // from source.org.licenses (so empty-slot licenses still get a
-      // section) and enrich names/expiry from cachedLicenseOverview.
+      const mode = activeDevicesMode;
       const nowMs = Date.now();
+
+      // Source of truth for active licenses on this org. Used by the
+      // by-license mode to enumerate sections (so empty-slot licenses
+      // still get a header). Names/expiry come from cachedLicenseOverview.
       const orgLicenseIds = (source && source.org && source.org.licenses)
         ? source.org.licenses.map(function(l) { return l && l.license_id; }).filter(Boolean)
         : [];
@@ -5136,7 +5174,14 @@ active: account
         .map(function(id) { return overviewByLicenseId[id] || { license_id: id }; })
         .filter(licenseIsActive);
 
-      if ((!devices || devices.length === 0) && activeLicenses.length === 0) {
+      // Empty-state criteria differ by mode. By-license shows the empty
+      // card only when there are no devices AND no active licenses to
+      // display headers for. All-devices is simply "any devices?".
+      const isEmpty = mode === 'all'
+        ? (!devices || devices.length === 0)
+        : ((!devices || devices.length === 0) && activeLicenses.length === 0);
+
+      if (isEmpty) {
         document.getElementById('tokensEmpty').style.display = 'block';
         tokensGrid.style.display = 'none';
         return;
@@ -5163,6 +5208,46 @@ active: account
         const ms = new Date(t.expiry_date).getTime();
         return isNaN(ms) || ms > nowMs;
       }
+      function tokenActivationMs(t) {
+        if (!t) return 0;
+        if (typeof t.last_activated_at === 'number') return t.last_activated_at * 1000;
+        if (t.last_activated_at) {
+          const ms = new Date(t.last_activated_at).getTime();
+          return isNaN(ms) ? 0 : ms;
+        }
+        return 0;
+      }
+
+      let unnamedCounter = 0;
+
+      // All-devices mode: flat list of every device. Each row's dropdown
+      // shows every token on the device (active + expired) so users can
+      // audit history. Sort active devices first, then by most-recent
+      // activation across any token.
+      if (mode === 'all') {
+        const sortedDevices = (devices || []).slice().sort(function(a, b) {
+          const aActive = (a.tokens || []).some(tokenIsActive);
+          const bActive = (b.tokens || []).some(tokenIsActive);
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          const aRecent = (a.tokens || []).reduce(function(m, t) {
+            const ms = tokenActivationMs(t); return ms > m ? ms : m;
+          }, 0);
+          const bRecent = (b.tokens || []).reduce(function(m, t) {
+            const ms = tokenActivationMs(t); return ms > m ? ms : m;
+          }, 0);
+          return bRecent - aRecent;
+        });
+        const list = document.createElement('div');
+        list.className = 'people-list';
+        sortedDevices.forEach(function(device) {
+          const tokensForRow = (device.tokens || []).slice().sort(function(a, b) {
+            return tokenActivationMs(b) - tokenActivationMs(a);
+          });
+          list.appendChild(buildDeviceRow(device, tokensForRow));
+        });
+        tokensGrid.appendChild(list);
+        return;
+      }
 
       // Bucket devices by license_id of their active tokens. Devices on
       // multiple active licenses appear once per license (one row per
@@ -5187,15 +5272,6 @@ active: account
         });
       });
 
-      function tokenActivationMs(t) {
-        if (!t) return 0;
-        if (typeof t.last_activated_at === 'number') return t.last_activated_at * 1000;
-        if (t.last_activated_at) {
-          const ms = new Date(t.last_activated_at).getTime();
-          return isNaN(ms) ? 0 : ms;
-        }
-        return 0;
-      }
       // Within each bucket, most-recently-activated device first.
       Object.keys(bucketsByLicenseId).forEach(function(licId) {
         bucketsByLicenseId[licId].sort(function(a, b) {
@@ -5209,8 +5285,6 @@ active: account
         const bm = (bucketsByLicenseId[b.license_id][0] || {}).token;
         return tokenActivationMs(bm) - tokenActivationMs(am);
       });
-
-      let unnamedCounter = 0;
 
       function renderSection(titleHtml, metaHtml, entries, titleMuted) {
         const section = document.createElement('div');
@@ -6267,8 +6341,16 @@ active: account
     function buildHashAccount(view) {
         return '#view=' + encodeURIComponent(view);
     }
-    function buildHashOrg(orgId, view) {
-        return '#org=' + encodeURIComponent(orgId) + '&view=' + encodeURIComponent(view);
+    function buildHashOrg(orgId, view, extras) {
+        let hash = '#org=' + encodeURIComponent(orgId) + '&view=' + encodeURIComponent(view);
+        if (extras) {
+            Object.keys(extras).forEach(function(k) {
+                const v = extras[k];
+                if (v === undefined || v === null || v === '') return;
+                hash += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
+            });
+        }
+        return hash;
     }
 
     function writeHashAccount(view, replace) {
@@ -6278,8 +6360,8 @@ active: account
         if (replace) history.replaceState(null, '', url);
         else history.pushState(null, '', url);
     }
-    function writeHashOrg(orgId, view, replace) {
-        const next = buildHashOrg(orgId, view);
+    function writeHashOrg(orgId, view, replace, extras) {
+        const next = buildHashOrg(orgId, view, extras);
         if (window.location.hash === next) return;
         const url = window.location.pathname + window.location.search + next;
         if (replace) history.replaceState(null, '', url);
@@ -6315,9 +6397,48 @@ active: account
         return view;
     }
 
+    // Devices view mode (segmented toggle at the top of /devices).
+    // 'by-license' (default) groups devices by the license they're
+    // activated on; 'all' is a flat list of every device with full
+    // token history in the dropdown. Round-trips through the URL hash
+    // as &devices=all so the choice survives reload + share.
+    let activeDevicesMode = 'by-license';
+    function canonicalizeDevicesMode(mode) {
+        return mode === 'all' ? 'all' : 'by-license';
+    }
+    function getDevicesExtrasForHash() {
+        return activeDevicesMode === 'all' ? { devices: 'all' } : null;
+    }
+    function syncDevicesToggleUI() {
+        const wrap = document.getElementById('devicesViewToggle');
+        if (!wrap) return;
+        wrap.querySelectorAll('.devices-view-toggle-btn').forEach(function(btn) {
+            const isActive = btn.getAttribute('data-mode') === activeDevicesMode;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+    }
+    function setDevicesMode(mode) {
+        const next = canonicalizeDevicesMode(mode);
+        if (next === activeDevicesMode) return;
+        activeDevicesMode = next;
+        if (activeScope === 'org' && activeSourceId) {
+            writeHashOrg(activeSourceId, activeView, true, getDevicesExtrasForHash());
+        }
+        syncDevicesToggleUI();
+        renderActiveDevices(getActiveSource());
+    }
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.devices-view-toggle-btn');
+        if (!btn) return;
+        e.preventDefault();
+        setDevicesMode(btn.getAttribute('data-mode'));
+    });
+
     function applyHashToState() {
         const params = parseHashParams();
         const orgIds = cachedOrganizations.map(function(o) { return String(o.org_id); });
+        activeDevicesMode = canonicalizeDevicesMode(params.devices);
 
         // Backwards-compat: the old `#org=X&view=licenses` URL has moved.
         // Rewrite to the account-scope Overview view.
@@ -6335,7 +6456,7 @@ active: account
             activeSourceId = params.org;
             const wantedView = params.view || 'people';
             activeView = isOrgView(wantedView) ? canonicalizeOrgView(wantedView) : 'people';
-            writeHashOrg(activeSourceId, activeView, true);
+            writeHashOrg(activeSourceId, activeView, true, getDevicesExtrasForHash());
         } else if (params.view && isAccountView(params.view)) {
             // Account scope (explicit). Canonicalize legacy 'licenses' → 'overview'.
             activeScope = 'account';
@@ -6349,7 +6470,7 @@ active: account
                 activeScope = 'org';
                 activeSourceId = def;
                 activeView = canonicalizeOrgView(params.view);
-                writeHashOrg(def, activeView, true);
+                writeHashOrg(def, activeView, true, getDevicesExtrasForHash());
             } else {
                 activeScope = 'account';
                 activeSourceId = null;
