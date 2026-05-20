@@ -680,6 +680,66 @@ active: account
     .plan-release-budget-pill.green { background: #e6f6ed; color: #1f7a52; }
     .plan-release-budget-pill.amber { background: #fff3cd; color: #856404; }
     .plan-release-budget-pill.red { background: #fde2e2; color: #b32525; }
+    /* Two-column card layout: info on the left, action buttons stacked
+       on the right. The buttons are the primary affordance on each card
+       (Renew + Add devices), so they get more visual weight than the
+       previous inline text-link pattern. Below 600px the columns stack
+       so the buttons land below the meta on mobile. */
+    .plan-primary-card .plan-card-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .plan-primary-card .plan-card-info {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .plan-primary-card .plan-card-info h3 { margin-top: 0; }
+    .plan-primary-card .plan-card-actions {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 180px;
+        align-items: stretch;
+    }
+    .plan-primary-card .plan-action-btn {
+        display: block;
+        padding: 9px 14px;
+        text-align: center;
+        border: 1px solid #1e90ff;
+        border-radius: 7px;
+        color: #1e90ff;
+        background: #fff;
+        text-decoration: none;
+        font-family: inherit;
+        line-height: 1.25;
+        transition: background-color 0.15s, color 0.15s;
+    }
+    .plan-primary-card .plan-action-btn:hover {
+        background: #1e90ff;
+        color: #fff;
+        text-decoration: none;
+    }
+    .plan-primary-card .plan-action-btn-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .plan-primary-card .plan-action-btn-sub {
+        display: block;
+        font-size: 11px;
+        margin-top: 2px;
+        opacity: 0.75;
+        font-weight: 400;
+    }
+    @media (max-width: 600px) {
+        .plan-primary-card .plan-card-main { flex-direction: column; }
+        .plan-primary-card .plan-card-actions { width: 100%; min-width: 0; }
+    }
+
+    /* Legacy class retained for the secondary "other licenses" rows
+       which still render via buildPlanOtherRow. */
     .plan-primary-card .plan-renew-link {
         display: inline-block;
         margin-top: 10px;
@@ -688,8 +748,6 @@ active: account
         text-decoration: none;
     }
     .plan-primary-card .plan-renew-link:hover { text-decoration: underline; }
-    /* Action row at the bottom of a license card. Holds Renew + Add devices
-       side by side. Uses the same anchor styling as .plan-renew-link. */
     .plan-primary-card .plan-actions {
         display: flex;
         flex-wrap: wrap;
@@ -3994,15 +4052,18 @@ active: account
             ? '<div class="plan-relationship">' + relationshipLine + '</div>'
             : '';
 
-        // Per-card actions: Renew (always available on non-expired
-        // licenses) and Add devices. The standard add-devices flow caps
-        // at 12 devices on the backend extension endpoint; for licenses
-        // already at/over that cap (custom or negotiated sizes), route
-        // the click to a prefilled mailto to sales so users with big
-        // licenses still see an action instead of an option that just
-        // vanishes. Renew also uses a mailto until the backend renewal
-        // endpoint ships, at which point the href becomes
-        // /account/purchase/?mode=renew&license_id=X.
+        // Per-card actions, rendered as two stacked outline buttons in
+        // the card's right column so they read as obvious actions
+        // rather than buried inline links. Each button carries a
+        // two-line label (primary + small subtitle) so users know
+        // exactly what's about to happen.
+        //   Renew → opens a prefilled mailto until the renew_license
+        //     endpoint is wired into the purchase page (renew mode is
+        //     drafted but not yet on the Continue dispatcher).
+        //   Add devices → standard purchase page when the license has
+        //     headroom under the 12-device backend cap, otherwise a
+        //     mailto so customers with custom-sized licenses (>12
+        //     devices) still see an action.
         let actionsHtml = '';
         if (!isExpired && license.license_id) {
             const renewSubject = 'License renewal request: '
@@ -4018,13 +4079,17 @@ active: account
             const renewMailto = 'mailto:info@eagleeyessearch.com'
                 + '?subject=' + encodeURIComponent(renewSubject)
                 + '&body=' + encodeURIComponent(renewBody);
-            actionsHtml += '<a class="plan-renew-link" href="' + planEscape(renewMailto) + '">Renew &rarr;</a>';
+            actionsHtml +=
+                '<a class="plan-action-btn" href="' + planEscape(renewMailto) + '">'
+                +   '<span class="plan-action-btn-label">Renew for 1 year</span>'
+                +   '<span class="plan-action-btn-sub">Extends this license. Starts at expiry.</span>'
+                + '</a>';
 
             const currentTotal = (typeof totalKeys === 'number') ? totalKeys : 0;
+            let addUrl;
             if (currentTotal < 12) {
-                const addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
+                addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
                     + encodeURIComponent(license.license_id);
-                actionsHtml += '<a class="plan-renew-link" href="' + addUrl + '">Add devices &rarr;</a>';
             } else {
                 // Self-service extension endpoint refuses to push a
                 // license past 12 devices. For licenses already over,
@@ -4039,33 +4104,44 @@ active: account
                     + 'Number of devices to add: \n'
                     + '\n'
                     + 'Thanks';
-                const addMailto = 'mailto:info@eagleeyessearch.com'
+                addUrl = 'mailto:info@eagleeyessearch.com'
                     + '?subject=' + encodeURIComponent(addSubject)
                     + '&body=' + encodeURIComponent(addBody);
-                actionsHtml += '<a class="plan-renew-link" href="' + planEscape(addMailto) + '">Add devices &rarr;</a>';
             }
+            actionsHtml +=
+                '<a class="plan-action-btn" href="' + planEscape(addUrl) + '">'
+                +   '<span class="plan-action-btn-label">+ Add devices</span>'
+                +   '<span class="plan-action-btn-sub">Prorated to current expiry.</span>'
+                + '</a>';
         }
-        const actionsRowHtml = actionsHtml
-            ? '<div class="plan-actions">' + actionsHtml + '</div>'
+        const actionsColHtml = actionsHtml
+            ? '<div class="plan-card-actions">' + actionsHtml + '</div>'
             : '';
 
         // Disclosure toggle (chevron) at the bottom of the card. Reveals
         // the foldout details panel (license id, tier, full token list,
-        // device-release budget badge, etc.) — replaces the previous
-        // eye-icon-in-corner, which read as "view" rather than
-        // "expand". Wired by wirePlanDetailsToggle below.
+        // device-release budget badge, etc.) - replaces the previous
+        // eye-icon-in-corner, which read as "view" rather than "expand".
+        // Wired by wirePlanDetailsToggle below.
         const detailsToggleHtml =
             '<button type="button" class="plan-details-toggle" aria-expanded="false">'
                 + '<span class="plan-details-toggle-label">Show details</span>'
                 + '<span class="chevron" aria-hidden="true">&#9662;</span>'
             + '</button>';
 
+        // Two-column main row: title / meta / relationship on the left,
+        // action buttons stacked on the right. Foldout details + the
+        // bottom chevron toggle span the full card width below.
         card.innerHTML =
             expiringCornerTagHtml
-            + '<h3>' + planEscape(license.license_name || 'Eagle Eyes License') + '</h3>'
-            + '<div class="plan-meta">' + metaHtml + '</div>'
-            + relationshipHtml
-            + actionsRowHtml
+            + '<div class="plan-card-main">'
+            +   '<div class="plan-card-info">'
+            +     '<h3>' + planEscape(license.license_name || 'Eagle Eyes License') + '</h3>'
+            +     '<div class="plan-meta">' + metaHtml + '</div>'
+            +     relationshipHtml
+            +   '</div>'
+            +   actionsColHtml
+            + '</div>'
             + buildPlanDetailsHtml(license)
             + detailsToggleHtml;
 

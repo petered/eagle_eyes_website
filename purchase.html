@@ -389,31 +389,28 @@ active: purchase
     }
     .pay-row.is-active .pay-row-inputs { display: block; }
 
-    /* Invoice details fields. Two-column grid so PO + payment-terms sit
-       side by side on wider screens; collapses to single column on
-       narrow screens. Address + memo + attention are always full-width. */
-    .invoice-fields {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 14px 18px;
-    }
-    .invoice-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-    .invoice-field-wide { grid-column: 1 / -1; }
-    .invoice-field label {
+    /* Invoice details panel. Reference fields stack vertically; each
+       row is "Field name" + "Value" + remove button. Up to 4 entries
+       per Stripe's invoice custom_fields limit. */
+    .invoice-fields { display: flex; flex-direction: column; gap: 12px; }
+    .invoice-fields-intro {
         font-size: 12px;
-        font-weight: 600;
-        color: #444;
-        letter-spacing: 0.02em;
+        color: #666;
+        margin: 0 0 4px 0;
+        line-height: 1.4;
     }
-    .invoice-field-optional {
-        color: #999;
-        font-weight: 400;
-        font-size: 11px;
-        text-transform: lowercase;
+    .custom-field-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
-    .invoice-field input[type="text"],
-    .invoice-field select,
-    .invoice-field textarea {
+    .custom-field-row {
+        display: grid;
+        grid-template-columns: minmax(110px, 0.4fr) 1fr auto;
+        gap: 8px;
+        align-items: center;
+    }
+    .custom-field-row input[type="text"] {
         padding: 8px 11px;
         border: 1px solid #cfd6dc;
         border-radius: 6px;
@@ -427,10 +424,40 @@ active: purchase
         -moz-appearance: auto;
         appearance: auto;
     }
-    .invoice-field textarea {
+    .custom-field-row input.custom-field-name {
+        background: #f8f9fa;
+        font-weight: 500;
+        color: #333;
+    }
+    .custom-field-remove {
+        background: transparent;
+        border: none;
+        color: #999;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0 6px;
+        cursor: pointer;
         font-family: inherit;
-        resize: vertical;
-        min-height: 60px;
+    }
+    .custom-field-remove:hover { color: #c0392b; }
+    .custom-field-row.is-hidden { display: none; }
+    .custom-field-add {
+        align-self: flex-start;
+        background: transparent;
+        border: 1px dashed #cfd6dc;
+        color: #1e90ff;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 7px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .custom-field-add:hover { background: #f3f9ff; border-color: #1e90ff; }
+    .custom-field-add[disabled] { opacity: 0.5; cursor: not-allowed; }
+    @media (max-width: 480px) {
+        .custom-field-row { grid-template-columns: 1fr auto; }
+        .custom-field-row .custom-field-name { grid-column: 1 / -1; }
     }
     .invoice-field-hint {
         font-size: 11px;
@@ -784,22 +811,34 @@ active: purchase
                          as a labeled block — easy to migrate later. -->
                     <div class="pay-row-inputs" id="invoiceDetailsPanel">
                         <div class="invoice-fields">
-                            <div class="invoice-field invoice-field-wide">
-                                <label for="invoicePO">PO number <span class="invoice-field-optional">(optional)</span></label>
-                                <input type="text" id="invoicePO" maxlength="120" placeholder="e.g. PO-2026-0142" autocomplete="off">
+                            <p class="invoice-fields-intro">
+                                Reference details (all optional). Each entry prints on the hosted invoice,
+                                the PDF, and Stripe's export. Max 4 entries, 30 characters per field.
+                            </p>
+                            <div id="invoiceCustomFieldRows" class="custom-field-rows">
+                                <!-- Pre-seeded with two canonical entries (PO Number / Reference);
+                                     names are editable so customers can rename or extend as needed.
+                                     Empty rows are filtered out before submit. -->
+                                <div class="custom-field-row" data-row-index="0">
+                                    <input type="text" class="custom-field-name" value="PO Number" maxlength="30" placeholder="Field name">
+                                    <input type="text" class="custom-field-value" maxlength="30" placeholder="e.g. PO-2026-0142">
+                                    <button type="button" class="custom-field-remove" title="Remove field" aria-label="Remove field">&times;</button>
+                                </div>
+                                <div class="custom-field-row" data-row-index="1">
+                                    <input type="text" class="custom-field-name" value="Reference" maxlength="30" placeholder="Field name">
+                                    <input type="text" class="custom-field-value" maxlength="30" placeholder="e.g. Project Alpha">
+                                    <button type="button" class="custom-field-remove" title="Remove field" aria-label="Remove field">&times;</button>
+                                </div>
                             </div>
-                            <div class="invoice-field invoice-field-wide">
-                                <label for="invoiceAttn">Attention <span class="invoice-field-optional">(optional)</span></label>
-                                <input type="text" id="invoiceAttn" maxlength="160" placeholder="e.g. Accounts Payable, Jane Smith" autocomplete="off">
-                            </div>
+                            <button type="button" id="invoiceAddFieldBtn" class="custom-field-add">+ Add another field</button>
                             <div class="invoice-recipient" id="invoiceRecipient" aria-live="polite">
                                 <!-- Populated by renderInvoiceRecipient() with the signed-in user's
                                      name + email so they see who's about to receive the invoice. -->
                             </div>
                             <p class="invoice-field-hint" style="margin-top: 4px;">
-                                Payment terms are NET-30 by default. Stripe collects the billing address on
-                                the hosted invoice page. Email info@eagleeyessearch.com for non-standard terms
-                                or other questions.
+                                Payment terms are NET-30 by default. Stripe Tax computes sales tax using your
+                                billing address — if none is set, we'll prompt you to add one. Email
+                                info@eagleeyessearch.com for non-standard terms.
                             </p>
                         </div>
                     </div>
@@ -843,6 +882,8 @@ active: purchase
         </div>
     </div>
 </div>
+
+{% include billing-address-modal.html %}
 
 <script>
 (function() {
@@ -1220,22 +1261,45 @@ active: purchase
     // stay as empty strings so the caller can decide whether to send /
     // include each field. days_until_due always has a sensible numeric
     // default since the select is never blank.
-    function readInvoiceFields() {
-        // days_until_due is fixed at the vendor default (NET-30); payment
-        // terms are a vendor policy, not a buyer choice. Billing address
-        // is collected by Stripe on the hosted invoice page. Notes/memo
-        // was removed for simplicity (low signal, low usage).
-        return {
-            po_number: ($('invoicePO').value || '').trim(),
-            days_until_due: 30,
-            attention: ($('invoiceAttn').value || '').trim()
-        };
+    // Reference details (PO, project ref, etc) come through as structured
+    // `custom_fields` on the invoice / quote create payload. Read the
+    // rows, trim and dedupe empties, cap at 4 (Stripe's limit), and
+    // truncate names/values to 30 chars defensively (the inputs already
+    // have maxlength="30" but trimming after .trim() can sometimes leave
+    // 31+).
+    function readInvoiceCustomFields() {
+        var rows = document.querySelectorAll('#invoiceCustomFieldRows .custom-field-row');
+        var fields = [];
+        rows.forEach(function(row) {
+            if (row.classList.contains('is-hidden')) return;
+            var name = (row.querySelector('.custom-field-name').value || '').trim().slice(0, 30);
+            var value = (row.querySelector('.custom-field-value').value || '').trim().slice(0, 30);
+            if (name && value) fields.push({ name: name, value: value });
+        });
+        return fields.slice(0, 4);
     }
-    function buildInvoiceFooter(f) {
-        var blocks = [];
-        if (f.po_number) blocks.push('PO: ' + f.po_number);
-        if (f.attention) blocks.push('Attn: ' + f.attention);
-        return blocks.join('\n\n');
+    function visibleCustomFieldRowCount() {
+        return document.querySelectorAll('#invoiceCustomFieldRows .custom-field-row:not(.is-hidden)').length;
+    }
+    function syncAddFieldButton() {
+        var btn = $('invoiceAddFieldBtn');
+        if (!btn) return;
+        btn.disabled = visibleCustomFieldRowCount() >= 4;
+    }
+    function appendCustomFieldRow() {
+        var container = $('invoiceCustomFieldRows');
+        if (!container) return;
+        if (visibleCustomFieldRowCount() >= 4) return;
+        var row = document.createElement('div');
+        row.className = 'custom-field-row';
+        row.innerHTML =
+            '<input type="text" class="custom-field-name" maxlength="30" placeholder="Field name">' +
+            '<input type="text" class="custom-field-value" maxlength="30" placeholder="Value">' +
+            '<button type="button" class="custom-field-remove" title="Remove field" aria-label="Remove field">&times;</button>';
+        container.appendChild(row);
+        var nameInput = row.querySelector('.custom-field-name');
+        if (nameInput) nameInput.focus();
+        syncAddFieldButton();
     }
 
     // Plain-English recipient line so the user can see, before clicking
@@ -1533,11 +1597,30 @@ active: purchase
         return data;
     }
 
+    // Look up the active account's billing address from the cached
+    // dashboard so the 409 retry modal can pre-fill what we know.
+    function activeAccountAddress() {
+        var acc = (state.accounts || []).find(function(a) {
+            return String(accountIdOf(a)) === String(state.activeAccountId);
+        });
+        return (acc && acc.address) || null;
+    }
+
+    // Build the invoice / quote request body (shared between paths).
+    function buildBillingRequestBody() {
+        return {
+            account_id: parseInt(state.activeAccountId, 10),
+            line_items: cartCatalogLineItems(),
+            days_until_due: 30,
+            custom_fields: readInvoiceCustomFields()
+        };
+    }
+
     // POST /request_invoice_for_self. Creates a finalized Stripe Invoice
-    // and emails it to the account owner. Reads the invoice-details panel
-    // (PO, address, attention, memo, days-until-due) and packages them
-    // into the request — until the backend grows structured fields, the
-    // PO + address + attention + memo ride in `footer` as a labeled block.
+    // and emails it to the account owner. Reads custom_fields from the
+    // reference-details panel. Handles the 409 billing_address_required
+    // refusal by popping the shared address modal and retrying once on
+    // success.
     async function onInvoice() {
         clearCtaStatus();
         var btn = $('ctaContinue');
@@ -1552,26 +1635,44 @@ active: purchase
             showCtaError('Select an account before requesting an invoice.');
             return;
         }
-        var fields = readInvoiceFields();
-        var footer = buildInvoiceFooter(fields);
+        var body = buildBillingRequestBody();
+        // Don't include `custom_fields` when empty — backend rejects an
+        // empty array with the "non-empty name and value" validator.
+        if (!body.custom_fields || body.custom_fields.length === 0) delete body.custom_fields;
+
         btn.disabled = true;
         var orig = btn.textContent;
         btn.textContent = 'Creating invoice…';
         try {
-            var body = {
-                account_id: parseInt(state.activeAccountId, 10),
-                line_items: items,
-                days_until_due: fields.days_until_due
-            };
-            if (footer) body.footer = footer;
-            // Send structured fields too so the backend can adopt them
-            // when it ships proper invoice metadata; current handler
-            // ignores unknown fields gracefully.
-            if (fields.po_number) body.po_number = fields.po_number;
-            if (fields.attention) body.attention = fields.attention;
-
-            var resp = await postBillingJson('request_invoice_for_self', body);
-            var inv = resp && resp.invoice;
+            var inv;
+            try {
+                var resp = await postBillingJson('request_invoice_for_self', body);
+                inv = resp && resp.invoice;
+            } catch (err1) {
+                // 409 billing_address_required: open the shared address
+                // modal, capture an address, set it, and retry once.
+                if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
+                    var addr = window.eeBillingAddress
+                        ? await window.eeBillingAddress.open({
+                            accountId: err1.data.account_id || parseInt(state.activeAccountId, 10),
+                            currentAddress: activeAccountAddress(),
+                            reason: 'invoice'
+                        })
+                        : null;
+                    if (!addr) { return; } // user cancelled; bail (no error toast)
+                    // The modal already POSTed to /set_billing_address.
+                    // Patch the in-memory state so subsequent attempts
+                    // don't 409 again.
+                    var acc = (state.accounts || []).find(function(a) {
+                        return String(accountIdOf(a)) === String(state.activeAccountId);
+                    });
+                    if (acc) acc.address = addr;
+                    var resp2 = await postBillingJson('request_invoice_for_self', body);
+                    inv = resp2 && resp2.invoice;
+                } else {
+                    throw err1;
+                }
+            }
             if (!inv || !inv.hosted_url) throw new Error('Backend did not return an invoice URL.');
             window.open(inv.hosted_url, '_blank', 'noopener');
             showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
@@ -1602,15 +1703,43 @@ active: purchase
             showCtaError('Select an account before requesting a quote.');
             return;
         }
+        var customFields = readInvoiceCustomFields();
+        var body = {
+            account_id: parseInt(state.activeAccountId, 10),
+            line_items: items,
+            valid_for_days: 30
+        };
+        if (customFields.length) body.custom_fields = customFields;
+
         var prev = link.textContent;
         link.textContent = 'Creating quote…';
         try {
-            var resp = await postBillingJson('request_quote_for_self', {
-                account_id: parseInt(state.activeAccountId, 10),
-                line_items: items,
-                valid_for_days: 30
-            });
-            var quote = resp && resp.quote;
+            var quote;
+            try {
+                var resp = await postBillingJson('request_quote_for_self', body);
+                quote = resp && resp.quote;
+            } catch (err1) {
+                // Same 409 billing_address_required retry pattern as
+                // onInvoice. Open modal, set address, retry once.
+                if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
+                    var addr = window.eeBillingAddress
+                        ? await window.eeBillingAddress.open({
+                            accountId: err1.data.account_id || parseInt(state.activeAccountId, 10),
+                            currentAddress: activeAccountAddress(),
+                            reason: 'quote'
+                        })
+                        : null;
+                    if (!addr) { return; }
+                    var acc = (state.accounts || []).find(function(a) {
+                        return String(accountIdOf(a)) === String(state.activeAccountId);
+                    });
+                    if (acc) acc.address = addr;
+                    var resp2 = await postBillingJson('request_quote_for_self', body);
+                    quote = resp2 && resp2.quote;
+                } else {
+                    throw err1;
+                }
+            }
             if (!quote || !quote.hosted_url) throw new Error('Backend did not return a quote URL.');
             window.open(quote.hosted_url, '_blank', 'noopener');
             showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
@@ -1925,6 +2054,24 @@ active: purchase
         // (Pay now with credit card) so it doesn't read "Continue" for
         // a moment before applyPaymentUI runs.
         applyPaymentUI();
+
+        // Wire the invoice custom-fields panel: + Add another field
+        // appends a new row (capped at 4 visible rows), and per-row ×
+        // removes the row (via event delegation so dynamic rows are
+        // covered without re-wiring).
+        var addBtn = $('invoiceAddFieldBtn');
+        if (addBtn) addBtn.addEventListener('click', appendCustomFieldRow);
+        var rows = $('invoiceCustomFieldRows');
+        if (rows) {
+            rows.addEventListener('click', function(e) {
+                var btn = e.target.closest('.custom-field-remove');
+                if (!btn) return;
+                var row = btn.closest('.custom-field-row');
+                if (row) row.remove();
+                syncAddFieldButton();
+            });
+        }
+        syncAddFieldButton();
 
         // Stepper +/− buttons for the add-devices count.
         var minus = $('addDevicesMinus');

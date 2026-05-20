@@ -144,6 +144,22 @@ active: billing
         font-style: italic;
         padding: 10px 0;
     }
+    /* Multi-line address display for the Billing address card. Newlines
+       get preserved so the address reads like an envelope address block. */
+    .billing-address-lines {
+        font-size: 14px;
+        color: #222;
+        line-height: 1.55;
+        white-space: pre-line;
+        padding: 4px 0;
+    }
+    .billing-address-lines .billing-address-country {
+        font-size: 12px;
+        color: #888;
+        margin-top: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
     .billing-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .billing-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
 
@@ -199,7 +215,26 @@ active: billing
 
         <!-- Account-owners + funds info live on /account/ (Overview). The
              streaming-credits balance widget moved to Overview too, so this
-             page is now focused on payment method + purchase history. -->
+             page is now focused on billing address + payment method +
+             purchase history. -->
+
+        <!-- Billing address. Required by Stripe Tax for invoice / quote
+             flows; checkout flows self-collect via Stripe's hosted form.
+             Card shows the current address (or a "Not set" banner) with an
+             Edit button that opens the shared billing-address modal. -->
+        <div class="billing-card">
+            <div class="billing-card-header">
+                <div>
+                    <h3 class="billing-card-title">Billing address</h3>
+                    <p class="billing-card-sub">Used by Stripe to compute sales tax on invoices and quotes.</p>
+                </div>
+                <button type="button" id="billingAddressEditBtn" class="billing-btn secondary">Edit</button>
+            </div>
+            <div id="billingAddressDisplay">
+                <div class="billing-empty" id="billingAddressEmpty">No billing address on file. Add one before requesting an invoice or quote.</div>
+                <div id="billingAddressLines" class="billing-address-lines" style="display:none;"></div>
+            </div>
+        </div>
 
         <!-- Payment method -->
         <div class="billing-card">
@@ -231,6 +266,8 @@ active: billing
         </div>
     </div>
 </div>
+
+{% include billing-address-modal.html %}
 
 <script>
 (function() {
@@ -375,6 +412,80 @@ active: billing
     // only renders billing-specific surfaces (credits, payment, invoices).
     function renderAccountSummary() { /* no-op */ }
 
+    // Look up the active account's billing address (new field in
+    // accounts[], shipped 2026-05-20). Returns the address object or
+    // null if none is set.
+    function activeAccountAddress() {
+        var acc = (state.accounts || []).find(function(a) {
+            var id = accountIdOf(a);
+            return String(id) === String(state.activeAccountId);
+        });
+        return (acc && acc.address) || null;
+    }
+
+    function formatAddressLines(addr) {
+        if (!addr) return '';
+        var line1 = addr.line1 || '';
+        var line2 = addr.line2 || '';
+        var city = addr.city || '';
+        var st = addr.state || '';
+        var pc = addr.postal_code || '';
+        var lines = [];
+        if (line1) lines.push(line1);
+        if (line2) lines.push(line2);
+        var cityLine = [city, [st, pc].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+        if (cityLine) lines.push(cityLine);
+        return lines.join('\n');
+    }
+
+    function renderBillingAddressCard() {
+        var addr = activeAccountAddress();
+        var emptyEl = $('billingAddressEmpty');
+        var linesEl = $('billingAddressLines');
+        var editBtn = $('billingAddressEditBtn');
+        if (!emptyEl || !linesEl || !editBtn) return;
+        if (!addr) {
+            emptyEl.style.display = '';
+            linesEl.style.display = 'none';
+            linesEl.innerHTML = '';
+            editBtn.textContent = 'Add address';
+            return;
+        }
+        emptyEl.style.display = 'none';
+        linesEl.style.display = '';
+        var body = formatAddressLines(addr);
+        var country = addr.country ? ('<div class="billing-address-country">' + escapeHtml(addr.country) + '</div>') : '';
+        linesEl.innerHTML = escapeHtml(body) + country;
+        editBtn.textContent = 'Edit';
+    }
+
+    function openBillingAddressEditor() {
+        if (!window.eeBillingAddress || !state.activeAccountId) return;
+        window.eeBillingAddress.open({
+            accountId: Number(state.activeAccountId),
+            currentAddress: activeAccountAddress(),
+            reason: 'profile'
+        }).then(function(saved) {
+            if (!saved) return;
+            // Patch the in-memory account record so the card renders
+            // instantly without waiting for a dashboard refetch.
+            var acc = (state.accounts || []).find(function(a) {
+                return String(accountIdOf(a)) === String(state.activeAccountId);
+            });
+            if (acc) acc.address = saved;
+            renderBillingAddressCard();
+        });
+    }
+
+    document.addEventListener('billingAddressUpdated', function(e) {
+        if (!e.detail || String(e.detail.account_id) !== String(state.activeAccountId)) return;
+        var acc = (state.accounts || []).find(function(a) {
+            return String(accountIdOf(a)) === String(state.activeAccountId);
+        });
+        if (acc) acc.address = e.detail.address;
+        renderBillingAddressCard();
+    });
+
     // The account picker lives in the page-title dropdown (see
     // account-page-title.html). It writes to sessionStorage and dispatches
     // `accountScopeChanged`; we listen below and re-fetch the timeline.
@@ -384,6 +495,7 @@ active: billing
         if (!newId) return;
         state.activeAccountId = String(newId);
         renderAccountSummary();
+        renderBillingAddressCard();
         loadBillingTimeline(state.activeAccountId);
     }
 
@@ -525,7 +637,15 @@ active: billing
         $('billingLoading').style.display = 'none';
         $('billingContent').style.display = '';
         renderAccountSummary();
+        renderBillingAddressCard();
         loadBillingTimeline(state.activeAccountId);
+
+        // Hook the Edit button once the form is in the DOM.
+        var editBtn = $('billingAddressEditBtn');
+        if (editBtn && !editBtn._wired) {
+            editBtn._wired = true;
+            editBtn.addEventListener('click', openBillingAddressEditor);
+        }
     }
 
     function initSignedOut() {

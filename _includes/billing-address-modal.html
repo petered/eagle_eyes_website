@@ -1,0 +1,519 @@
+<!--
+    Shared billing-address modal. Include this once on any page that
+    needs to capture / edit an account's billing address. Then call
+    `window.eeBillingAddress.open({ accountId, currentAddress, reason })`
+    which returns a Promise that resolves with the new address (on save)
+    or null (on cancel).
+
+    The modal:
+      - Renders a country / line1 / line2 / city / state / postal-code form
+      - Validates client-side (mirroring backend validation in
+        FRONTEND_BILLING_AND_INVOICES.md §1) for snappier UX
+      - POSTs to /set_billing_address on save
+      - Resolves the promise with the saved address on 200
+
+    Used from:
+      - /account/billing/ (Purchase history page) - "Billing address" card
+        with an Edit button.
+      - /account/purchase/ - the 409 `billing_address_required` retry flow
+        on invoice and quote payment methods.
+-->
+<div id="eeBillingAddressOverlay" class="ee-ba-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="eeBillingAddressTitle">
+    <div class="ee-ba-backdrop" data-ee-ba-cancel></div>
+    <div class="ee-ba-dialog">
+        <button type="button" class="ee-ba-close" aria-label="Close" data-ee-ba-cancel>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M6 6 L18 18 M6 18 L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"></path>
+            </svg>
+        </button>
+        <h3 id="eeBillingAddressTitle" class="ee-ba-title">Billing address</h3>
+        <p class="ee-ba-intro" id="eeBillingAddressIntro">
+            We need this to compute sales tax correctly on your invoices and quotes.
+        </p>
+        <form id="eeBillingAddressForm" class="ee-ba-form" novalidate>
+            <div class="ee-ba-field">
+                <label for="eeBaCountry">Country <span class="ee-ba-req">*</span></label>
+                <select id="eeBaCountry" required></select>
+            </div>
+            <div class="ee-ba-field">
+                <label for="eeBaLine1">Street address <span class="ee-ba-req">*</span></label>
+                <input type="text" id="eeBaLine1" maxlength="200" autocomplete="address-line1" required>
+            </div>
+            <div class="ee-ba-field">
+                <label for="eeBaLine2">Apt / Suite / Unit <span class="ee-ba-optional">(optional)</span></label>
+                <input type="text" id="eeBaLine2" maxlength="200" autocomplete="address-line2">
+            </div>
+            <div class="ee-ba-row">
+                <div class="ee-ba-field ee-ba-field-grow">
+                    <label for="eeBaCity">City <span class="ee-ba-req">*</span></label>
+                    <input type="text" id="eeBaCity" maxlength="100" autocomplete="address-level2" required>
+                </div>
+                <div class="ee-ba-field" id="eeBaStateWrap">
+                    <label for="eeBaState"><span class="ee-ba-state-label">Province</span> <span class="ee-ba-req ee-ba-state-req">*</span></label>
+                    <select id="eeBaStateSelect"></select>
+                    <input type="text" id="eeBaStateInput" maxlength="100" autocomplete="address-level1" style="display:none;">
+                </div>
+            </div>
+            <div class="ee-ba-field" id="eeBaPostalWrap">
+                <label for="eeBaPostal"><span class="ee-ba-postal-label">Postal code</span> <span class="ee-ba-req ee-ba-postal-req">*</span></label>
+                <input type="text" id="eeBaPostal" maxlength="20" autocomplete="postal-code">
+            </div>
+            <div id="eeBaError" class="ee-ba-error" style="display:none;"></div>
+            <div class="ee-ba-actions">
+                <button type="button" class="ee-ba-btn-secondary" data-ee-ba-cancel>Cancel</button>
+                <button type="submit" class="ee-ba-btn-primary" id="eeBaSaveBtn">Save address</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .ee-ba-overlay {
+        position: fixed; inset: 0; z-index: 9000;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .ee-ba-backdrop {
+        position: absolute; inset: 0;
+        background: rgba(20, 30, 50, 0.55);
+        backdrop-filter: blur(2px);
+    }
+    .ee-ba-dialog {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        width: 460px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        padding: 26px 28px;
+        box-shadow: 0 18px 48px rgba(0,0,0,0.18);
+        font-family: inherit;
+    }
+    .ee-ba-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: transparent;
+        border: none;
+        color: #888;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+    }
+    .ee-ba-close:hover { background: #f3f4f6; color: #222; }
+    .ee-ba-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin: 0 0 6px 0;
+    }
+    .ee-ba-intro {
+        font-size: 13px;
+        color: #666;
+        margin: 0 0 18px 0;
+        line-height: 1.5;
+    }
+    .ee-ba-form { display: flex; flex-direction: column; gap: 14px; }
+    .ee-ba-row { display: flex; gap: 12px; }
+    .ee-ba-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .ee-ba-field-grow { flex: 1 1 auto; min-width: 0; }
+    .ee-ba-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #444;
+        letter-spacing: 0.02em;
+    }
+    .ee-ba-req { color: #c0392b; font-weight: 500; }
+    .ee-ba-optional { color: #999; font-weight: 400; font-size: 11px; }
+    .ee-ba-field input[type="text"],
+    .ee-ba-field select {
+        padding: 9px 11px;
+        border: 1px solid #d8dce0;
+        border-radius: 7px;
+        font: inherit;
+        font-size: 14px;
+        background: #fff;
+        color: #222;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        appearance: auto;
+        -webkit-appearance: auto;
+        -moz-appearance: auto;
+    }
+    .ee-ba-field input:focus,
+    .ee-ba-field select:focus {
+        outline: none;
+        border-color: #1e90ff;
+        box-shadow: 0 0 0 3px rgba(30,144,255,0.15);
+    }
+    .ee-ba-error {
+        background: #fde2e2;
+        color: #a01818;
+        border-radius: 6px;
+        padding: 9px 12px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .ee-ba-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 6px;
+    }
+    .ee-ba-btn-primary {
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        padding: 9px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .ee-ba-btn-primary:hover { background: #1077dc; }
+    .ee-ba-btn-primary[disabled] { opacity: 0.6; cursor: not-allowed; }
+    .ee-ba-btn-secondary {
+        background: #fff;
+        color: #333;
+        border: 1px solid #d8dce0;
+        border-radius: 7px;
+        padding: 9px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .ee-ba-btn-secondary:hover { background: #f4f6f8; }
+
+    @media (max-width: 480px) {
+        .ee-ba-dialog { padding: 20px; }
+        .ee-ba-row { flex-direction: column; }
+    }
+</style>
+
+<script>
+(function() {
+    // Singleton init guard - the include might end up on a page twice
+    // if multiple sub-includes pull it in. Only register the module once.
+    if (window.eeBillingAddress && window.eeBillingAddress._initialized) return;
+
+    // Top-of-list ISO 3166-1 alpha-2 codes per the spec, then a curated
+    // long-tail. Keeps the dropdown short enough to scan without truly
+    // requiring an "Other" free-text input. If a country we don't list
+    // ever comes up, the option to add it is here in one place.
+    var TOP_COUNTRIES = [
+        ['CA', 'Canada'],
+        ['US', 'United States'],
+        ['GB', 'United Kingdom'],
+        ['AU', 'Australia'],
+        ['DE', 'Germany'],
+        ['NL', 'Netherlands'],
+        ['NZ', 'New Zealand'],
+        ['FR', 'France']
+    ];
+    var OTHER_COUNTRIES = [
+        ['AT', 'Austria'], ['BE', 'Belgium'], ['BR', 'Brazil'], ['CH', 'Switzerland'],
+        ['CL', 'Chile'], ['CZ', 'Czechia'], ['DK', 'Denmark'], ['EE', 'Estonia'],
+        ['ES', 'Spain'], ['FI', 'Finland'], ['GR', 'Greece'], ['HK', 'Hong Kong'],
+        ['HU', 'Hungary'], ['IE', 'Ireland'], ['IL', 'Israel'], ['IN', 'India'],
+        ['IS', 'Iceland'], ['IT', 'Italy'], ['JP', 'Japan'], ['KR', 'South Korea'],
+        ['LU', 'Luxembourg'], ['LV', 'Latvia'], ['LT', 'Lithuania'], ['MX', 'Mexico'],
+        ['NO', 'Norway'], ['PH', 'Philippines'], ['PL', 'Poland'], ['PT', 'Portugal'],
+        ['RO', 'Romania'], ['SE', 'Sweden'], ['SG', 'Singapore'], ['SI', 'Slovenia'],
+        ['SK', 'Slovakia'], ['TH', 'Thailand'], ['TW', 'Taiwan'], ['UA', 'Ukraine'],
+        ['VN', 'Vietnam'], ['ZA', 'South Africa']
+    ];
+    var CA_PROVINCES = [
+        ['AB', 'Alberta'], ['BC', 'British Columbia'], ['MB', 'Manitoba'],
+        ['NB', 'New Brunswick'], ['NL', 'Newfoundland and Labrador'],
+        ['NS', 'Nova Scotia'], ['NT', 'Northwest Territories'], ['NU', 'Nunavut'],
+        ['ON', 'Ontario'], ['PE', 'Prince Edward Island'], ['QC', 'Quebec'],
+        ['SK', 'Saskatchewan'], ['YT', 'Yukon']
+    ];
+    var US_STATES = [
+        ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+        ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],
+        ['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],
+        ['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],
+        ['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],
+        ['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],
+        ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],
+        ['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],
+        ['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
+        ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],
+        ['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],
+        ['WY','Wyoming']
+    ];
+
+    var overlay = document.getElementById('eeBillingAddressOverlay');
+    var form = document.getElementById('eeBillingAddressForm');
+    var countrySel = document.getElementById('eeBaCountry');
+    var line1Inp = document.getElementById('eeBaLine1');
+    var line2Inp = document.getElementById('eeBaLine2');
+    var cityInp = document.getElementById('eeBaCity');
+    var stateWrap = document.getElementById('eeBaStateWrap');
+    var stateSel = document.getElementById('eeBaStateSelect');
+    var stateInp = document.getElementById('eeBaStateInput');
+    var postalInp = document.getElementById('eeBaPostal');
+    var postalWrap = document.getElementById('eeBaPostalWrap');
+    var saveBtn = document.getElementById('eeBaSaveBtn');
+    var errEl = document.getElementById('eeBaError');
+    var introEl = document.getElementById('eeBaIntroOverride') || document.getElementById('eeBillingAddressIntro');
+    var titleEl = document.getElementById('eeBillingAddressTitle');
+
+    if (!overlay || !form) return; // include missing or DOM stripped
+
+    // Build the country dropdown once.
+    (function populateCountries() {
+        var html = '<option value="" disabled selected>Select country…</option>';
+        TOP_COUNTRIES.forEach(function(c) {
+            html += '<option value="' + c[0] + '">' + c[1] + '</option>';
+        });
+        html += '<option disabled>──────────</option>';
+        OTHER_COUNTRIES.forEach(function(c) {
+            html += '<option value="' + c[0] + '">' + c[1] + '</option>';
+        });
+        countrySel.innerHTML = html;
+    })();
+
+    var pendingResolve = null; // single in-flight open() promise resolver
+
+    function setError(msg) {
+        if (!msg) { errEl.style.display = 'none'; errEl.textContent = ''; return; }
+        errEl.style.display = '';
+        errEl.textContent = msg;
+    }
+
+    // Show / hide state + postal fields based on selected country. CA + US
+    // are the only ones where the backend strictly requires them, so other
+    // countries fall back to a free-text state input that's optional.
+    function syncStateForCountry() {
+        var c = (countrySel.value || '').toUpperCase();
+        var stateReq = document.querySelector('.ee-ba-state-req');
+        var stateLabel = document.querySelector('.ee-ba-state-label');
+        var postalReq = document.querySelector('.ee-ba-postal-req');
+        var postalLabel = document.querySelector('.ee-ba-postal-label');
+        if (c === 'CA') {
+            stateSel.innerHTML = '<option value="" disabled>Select province…</option>' +
+                CA_PROVINCES.map(function(p) { return '<option value="' + p[0] + '">' + p[1] + '</option>'; }).join('');
+            stateSel.style.display = '';
+            stateInp.style.display = 'none';
+            if (stateLabel) stateLabel.textContent = 'Province';
+            if (stateReq) stateReq.style.display = '';
+            if (postalLabel) postalLabel.textContent = 'Postal code';
+            if (postalReq) postalReq.style.display = '';
+            postalInp.required = true;
+        } else if (c === 'US') {
+            stateSel.innerHTML = '<option value="" disabled>Select state…</option>' +
+                US_STATES.map(function(s) { return '<option value="' + s[0] + '">' + s[1] + '</option>'; }).join('');
+            stateSel.style.display = '';
+            stateInp.style.display = 'none';
+            if (stateLabel) stateLabel.textContent = 'State';
+            if (stateReq) stateReq.style.display = '';
+            if (postalLabel) postalLabel.textContent = 'ZIP code';
+            if (postalReq) postalReq.style.display = '';
+            postalInp.required = true;
+        } else {
+            stateSel.style.display = 'none';
+            stateInp.style.display = '';
+            if (stateLabel) stateLabel.textContent = 'State / region';
+            if (stateReq) stateReq.style.display = 'none';
+            if (postalLabel) postalLabel.textContent = 'Postal code';
+            if (postalReq) postalReq.style.display = 'none';
+            postalInp.required = false;
+        }
+    }
+    countrySel.addEventListener('change', function() {
+        syncStateForCountry();
+        // When switching countries, clear the now-irrelevant state value
+        stateSel.value = '';
+        stateInp.value = '';
+    });
+
+    function readForm() {
+        var country = (countrySel.value || '').toUpperCase().trim();
+        var line1 = (line1Inp.value || '').trim();
+        var line2 = (line2Inp.value || '').trim();
+        var city = (cityInp.value || '').trim();
+        var state;
+        if (country === 'CA' || country === 'US') {
+            state = (stateSel.value || '').toUpperCase().trim();
+        } else {
+            state = (stateInp.value || '').trim();
+        }
+        var postal = (postalInp.value || '').trim();
+        return {
+            country: country,
+            line1: line1,
+            line2: line2 || null,
+            city: city,
+            state: state,
+            postal_code: postal
+        };
+    }
+
+    function validate(addr) {
+        if (!addr.country) return "Country is required.";
+        if (!/^[A-Z]{2}$/.test(addr.country)) return "Country must be a 2-letter ISO code.";
+        if (!addr.line1) return "Street address is required.";
+        if (!addr.city) return "City is required.";
+        if (addr.country === 'CA' && !addr.state) return "Province is required for Canada.";
+        if (addr.country === 'CA' && !addr.postal_code) return "Postal code is required for Canada.";
+        if (addr.country === 'US' && !addr.state) return "State is required for the United States.";
+        if (addr.country === 'US' && !addr.postal_code) return "ZIP code is required for the United States.";
+        return null;
+    }
+
+    function showOverlay() {
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        setTimeout(function() { line1Inp.focus(); }, 30);
+    }
+    function hideOverlay() {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    function resolveAndClose(value) {
+        var resolver = pendingResolve;
+        pendingResolve = null;
+        hideOverlay();
+        if (resolver) resolver(value);
+    }
+
+    // Cancel handlers (× button, backdrop click, Cancel button, Escape).
+    overlay.querySelectorAll('[data-ee-ba-cancel]').forEach(function(el) {
+        el.addEventListener('click', function() { resolveAndClose(null); });
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.style.display === 'flex') {
+            resolveAndClose(null);
+        }
+    });
+
+    var currentAccountId = null;
+    var currentReason = 'profile';
+
+    function applyReasonCopy(reason) {
+        currentReason = reason || 'profile';
+        if (!introEl || !titleEl) return;
+        if (reason === 'invoice') {
+            titleEl.textContent = 'Billing address required';
+            introEl.textContent = 'Stripe needs a billing address on this account before we can send an invoice. Add one and we will retry the invoice request immediately.';
+        } else if (reason === 'quote') {
+            titleEl.textContent = 'Billing address required';
+            introEl.textContent = 'Stripe needs a billing address on this account before we can prepare a quote. Add one and we will retry the quote request immediately.';
+        } else {
+            titleEl.textContent = 'Billing address';
+            introEl.textContent = 'We need this to compute sales tax correctly on your invoices and quotes.';
+        }
+    }
+
+    function prefillForm(addr) {
+        // Clear first
+        countrySel.value = '';
+        line1Inp.value = '';
+        line2Inp.value = '';
+        cityInp.value = '';
+        stateSel.value = '';
+        stateInp.value = '';
+        postalInp.value = '';
+        if (addr && typeof addr === 'object') {
+            if (addr.country) countrySel.value = String(addr.country).toUpperCase();
+            if (addr.line1) line1Inp.value = String(addr.line1);
+            if (addr.line2) line2Inp.value = String(addr.line2);
+            if (addr.city) cityInp.value = String(addr.city);
+            syncStateForCountry();
+            if (addr.state) {
+                if (addr.country === 'CA' || addr.country === 'US') {
+                    stateSel.value = String(addr.state).toUpperCase();
+                } else {
+                    stateInp.value = String(addr.state);
+                }
+            }
+            if (addr.postal_code) postalInp.value = String(addr.postal_code);
+        } else {
+            syncStateForCountry();
+        }
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        setError('');
+        var addr = readForm();
+        var err = validate(addr);
+        if (err) { setError(err); return; }
+
+        if (!currentAccountId) {
+            setError('No account selected. Refresh and try again.');
+            return;
+        }
+
+        saveBtn.disabled = true;
+        var origLabel = saveBtn.textContent;
+        saveBtn.textContent = 'Saving…';
+        try {
+            var user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            if (!user) throw new Error('Not signed in.');
+            var idToken = await user.getIdToken();
+            var host = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+            var resp = await fetch(host + '/set_billing_address', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ account_id: currentAccountId, address: addr })
+            });
+            var text = await resp.text();
+            var data = {};
+            if (text) { try { data = JSON.parse(text); } catch (_) { data = { message: text }; } }
+            if (!resp.ok) {
+                throw new Error((data && data.message) || ('Request failed (' + resp.status + ')'));
+            }
+            // Invalidate the shared dashboard cache so the next read
+            // reflects the new address.
+            try {
+                if (window.eeDashboard) window.eeDashboard.invalidate(user.uid);
+            } catch (_) {}
+            // Dispatch a global event so any open page can refresh its
+            // "current billing address" display without polling.
+            try {
+                document.dispatchEvent(new CustomEvent('billingAddressUpdated', {
+                    detail: { account_id: currentAccountId, address: data.address || addr }
+                }));
+            } catch (_) {}
+            resolveAndClose(data.address || addr);
+        } catch (e2) {
+            console.error('set_billing_address failed:', e2);
+            setError(e2.message || 'Could not save address. Try again.');
+            saveBtn.disabled = false;
+            saveBtn.textContent = origLabel;
+            return;
+        }
+        saveBtn.disabled = false;
+        saveBtn.textContent = origLabel;
+    });
+
+    window.eeBillingAddress = {
+        _initialized: true,
+        // Returns a Promise that resolves with the saved address on success
+        // or null on cancel.
+        open: function(options) {
+            options = options || {};
+            currentAccountId = options.accountId || null;
+            applyReasonCopy(options.reason);
+            prefillForm(options.currentAddress || null);
+            setError('');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save address';
+            return new Promise(function(resolve) {
+                pendingResolve = resolve;
+                showOverlay();
+            });
+        }
+    };
+})();
+</script>
