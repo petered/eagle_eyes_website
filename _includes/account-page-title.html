@@ -24,6 +24,11 @@
   components write to sessionStorage.
 -->
 <div id="accountPageTitle" class="account-page-title-wrap" style="display: none;">
+    <!-- Scope caption ("BILLING ACCOUNT" / "ORGANIZATION") sits above
+         the title so users always see *what kind of thing* the title
+         refers to, not just its name. Reinforces the account-vs-org
+         distinction without needing per-page conditional copy. -->
+    <div class="account-page-title-scope" id="accountPageTitleScope" aria-hidden="true"></div>
     <div class="account-page-title-row">
         <button type="button" id="accountPageTitleBtn" class="account-page-title-btn" aria-haspopup="true" aria-expanded="false">
             <span class="account-page-title-text" id="accountPageTitleText">-</span>
@@ -39,6 +44,20 @@
     .account-page-title-wrap {
         margin: 0 0 4px 0;
     }
+    /* Small uppercase scope caption sitting above the title. Always
+       visible (no count-based branching), so the data-model frame
+       ("billing account" vs "organization") is consistent across
+       single-account and multi-account users. */
+    .account-page-title-scope {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8a96a8;
+        margin-bottom: 2px;
+        line-height: 1.2;
+    }
+    .account-page-title-scope:empty { display: none; }
     .account-page-title-row {
         position: relative;
         display: inline-block;
@@ -256,6 +275,7 @@
         var wrap = $('accountPageTitle');
         var btn = $('accountPageTitleBtn');
         var txt = $('accountPageTitleText');
+        var scopeEl = $('accountPageTitleScope');
         var chev = btn.querySelector('.account-page-title-chevron');
         var menu = $('accountPageTitleMenu');
         if (!wrap || !btn || !txt || !chev || !menu) return;
@@ -263,6 +283,11 @@
         wrap.style.display = '';
         wrap.setAttribute('data-scope', scope);
         txt.textContent = activeName || '-';
+        // Scope caption above the title. Static label per scope; doesn't
+        // depend on how many accounts/orgs the user has.
+        if (scopeEl) {
+            scopeEl.textContent = scope === 'org' ? 'Organization' : 'Billing account';
+        }
         // Signal to the layout CSS that the subtitle should render smaller.
         var content = document.querySelector('.account-content');
         if (content) content.classList.add('has-page-title');

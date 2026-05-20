@@ -992,6 +992,14 @@ active: account
         padding: 3px 0;
         color: #444;
     }
+    /* Org suffix appended to each user entry in the foldout's
+       "Users with a device" list. Muted grey so the email stays the
+       primary information and the org context reads as the secondary
+       label. */
+    .plan-detail-user-org {
+        color: #777;
+        font-size: 12px;
+    }
 
     .plan-expand {
         display: block;
@@ -4107,7 +4115,6 @@ active: account
         }
 
         var accessNames = access.map(function(o) { return bold(o.org_name); });
-        var usedNames   = used.map(function(o) { return bold(o.org_name); });
 
         // Single-org license. Keep the existing terse line.
         if (access.length === 1) {
@@ -4116,16 +4123,15 @@ active: account
                 : 'Available to ' + accessNames[0] + ' &middot; not used yet';
         }
 
-        // Multi-org (umbrella) license. Two-line treatment, with shortcuts for
-        // "nobody has activated yet" and "everyone funded has activated".
+        // Multi-org (umbrella) license. Drop the "Used by A, B, C" tail
+        // - the foldout's per-user list now carries the org context
+        // for each active user, which is more useful than the aggregate
+        // org list and avoids saying the same thing twice.
         var accessLine = 'Available to ' + joinAnd(accessNames);
         if (used.length === 0) {
             return accessLine + ' &middot; not used yet';
         }
-        if (used.length === access.length) {
-            return accessLine + ' &middot; used by all';
-        }
-        return accessLine + '<br>Used by ' + joinAnd(usedNames);
+        return accessLine;
     }
 
     function planEyeIconHtml() {
@@ -4487,11 +4493,57 @@ active: account
         // every token / device row carries an email field; the
         // backend-aggregated (1) sidesteps that entirely.
 
+        // Per-email org-name lookup. We pull this from cachedAccountDevices
+        // (which knows each device's organization_id) so we can label
+        // each entry in the user list with which org they're flying
+        // under. Falls back to no-org-label when devices haven't loaded
+        // or when an email has no device record for this account.
+        function buildOrgByEmail() {
+            const orgByEmail = {};
+            (typeof cachedAccountDevices !== 'undefined' ? cachedAccountDevices : []).forEach(function(d) {
+                if (!d) return;
+                const hasTokenOnLicense = (d.tokens || []).some(function(t) {
+                    return t && t.license_id === license.license_id;
+                });
+                if (!hasTokenOnLicense) return;
+                const orgId = d.organization_id;
+                let orgName = '';
+                if (orgId != null && typeof cachedOrganizations !== 'undefined') {
+                    const org = cachedOrganizations.find(function(o) {
+                        return String(o.org_id) === String(orgId);
+                    });
+                    if (org && org.name) orgName = org.name;
+                }
+                if (!orgName) return;
+                (d.emails || []).forEach(function(e) {
+                    if (!e) return;
+                    if (!orgByEmail[e]) orgByEmail[e] = new Set();
+                    orgByEmail[e].add(orgName);
+                });
+                (d.tokens || []).forEach(function(t) {
+                    if (!t || t.license_id !== license.license_id) return;
+                    const e = t.email;
+                    if (!e) return;
+                    if (!orgByEmail[e]) orgByEmail[e] = new Set();
+                    orgByEmail[e].add(orgName);
+                });
+            });
+            return orgByEmail;
+        }
+        function orgSuffixFor(email, orgByEmail) {
+            const set = orgByEmail[email];
+            if (!set || !set.size) return '';
+            const names = Array.from(set).sort();
+            return ' <span class="plan-detail-user-org">- ' + names.map(planEscape).join(', ') + '</span>';
+        }
+
         // (1) Backend-aggregated list - prefer this when present.
         if (Array.isArray(license.keys_used_by) && license.keys_used_by.length) {
+            const orgByEmail = buildOrgByEmail();
             // Parse "email" or "email (N tokens)" / "email (N devices)"
             // entries into [{email, n}] and re-emit in the
-            // "email (N)" shape, dropping the (N) suffix when N == 1.
+            // "email (N) - Org" shape, dropping the (N) suffix when
+            // N == 1 and the org suffix when we don't know it.
             const parsed = license.keys_used_by.map(function(s) {
                 const raw = String(s || '');
                 const m = raw.match(/^(.*?)\s*\((\d+)\s*(?:token|device)s?\)\s*$/i);
@@ -4505,10 +4557,10 @@ active: account
                 return a.email.localeCompare(b.email);
             });
             const items = parsed.map(function(p) {
-                const suffix = p.n > 1
+                const countSuffix = p.n > 1
                     ? ' <span style="color:#888;">(' + p.n + ')</span>'
                     : '';
-                return '<li>' + planEscape(p.email) + suffix + '</li>';
+                return '<li>' + planEscape(p.email) + countSuffix + orgSuffixFor(p.email, orgByEmail) + '</li>';
             });
             return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
         }
@@ -4554,6 +4606,7 @@ active: account
         }
 
         if (Object.keys(byUser).length) {
+            const orgByEmail = buildOrgByEmail();
             const emails = Object.keys(byUser).sort(function(a, b) {
                 const diff = byUser[b] - byUser[a];
                 if (diff !== 0) return diff;
@@ -4561,10 +4614,10 @@ active: account
             });
             const items = emails.map(function(u) {
                 const n = byUser[u];
-                const suffix = n > 1
+                const countSuffix = n > 1
                     ? ' <span style="color:#888;">(' + n + ')</span>'
                     : '';
-                return '<li>' + planEscape(u) + suffix + '</li>';
+                return '<li>' + planEscape(u) + countSuffix + orgSuffixFor(u, orgByEmail) + '</li>';
             });
             return '<ul class="plan-detail-users">' + items.join('') + '</ul>';
         }
