@@ -657,29 +657,67 @@ active: account
     }
     .plan-primary-card .plan-relationship strong { color: #222; font-weight: 600; }
 
-    /* Device-release budget badge. Each license has a per-license cap on
-       how many times a device slot can be released (freed so a different
-       device can claim it via the standard activation flow). The badge
-       surfaces remaining capacity so users notice before they hit the
-       wall mid-deployment. Color escalates as headroom shrinks: green
-       (>25% remaining), amber (≤25%), red (0). Default budget is
-       n_tokens × 2; renewal resets the counter. */
-    .plan-primary-card .plan-release-budget {
-        margin-top: 8px;
-    }
-    .plan-release-budget-pill {
+    /* Small clickable "?" icon next to detail values that benefit from
+       an inline explanation. Used by the "Device releases" row in the
+       foldout - click opens an explainer modal rather than relying on
+       a hover-tooltip (mobile users have no hover). */
+    .plan-detail-help {
         display: inline-flex;
         align-items: center;
-        padding: 2px 9px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        cursor: help;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        margin-left: 4px;
+        padding: 0;
+        border: 1px solid #c8d6e2;
+        border-radius: 50%;
+        background: #fff;
+        color: #5a6a7f;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        vertical-align: middle;
+        font-family: inherit;
+        transition: background-color 0.12s, color 0.12s, border-color 0.12s;
     }
-    .plan-release-budget-pill.green { background: #e6f6ed; color: #1f7a52; }
-    .plan-release-budget-pill.amber { background: #fff3cd; color: #856404; }
-    .plan-release-budget-pill.red { background: #fde2e2; color: #b32525; }
+    .plan-detail-help:hover {
+        background: #1e90ff;
+        color: #fff;
+        border-color: #1e90ff;
+    }
+
+    /* Detail explainer modal (re-uses contact-owners-modal chrome). */
+    .detail-help-modal { position: fixed; inset: 0; z-index: 9100;
+        display: flex; align-items: center; justify-content: center; }
+    .detail-help-backdrop {
+        position: absolute; inset: 0;
+        background: rgba(20,30,50,0.55);
+        backdrop-filter: blur(2px);
+    }
+    .detail-help-dialog {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        width: 480px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        padding: 26px 28px;
+        box-shadow: 0 18px 48px rgba(0,0,0,0.18);
+        font-family: inherit;
+    }
+    .detail-help-close {
+        position: absolute; top: 12px; right: 12px;
+        background: transparent; border: none; color: #888;
+        cursor: pointer; padding: 6px; border-radius: 6px;
+        font-size: 20px; line-height: 1;
+    }
+    .detail-help-close:hover { background: #f3f4f6; color: #222; }
+    .detail-help-title { font-size: 18px; font-weight: 600; color: #1a1a2e; margin: 0 0 10px 0; }
+    .detail-help-body { font-size: 14px; color: #444; line-height: 1.55; margin: 0 0 10px 0; }
+    .detail-help-body strong { color: #1a1a2e; }
+    .detail-help-body:last-child { margin-bottom: 0; }
     /* Two-column card layout: info on the left, action buttons stacked
        on the right. The buttons are the primary affordance on each card
        (Renew + Add devices), so they get more visual weight than the
@@ -4256,6 +4294,15 @@ active: account
         let actionsHtml = '';
         if (!isExpired && license.license_id) {
             const hasQueuedRenewal = !!license.successor_license_id;
+            // The Renew button is only relevant when the license is
+            // actually approaching expiry. Outside the 90-day window
+            // (7 days for trials) there's nothing to do; surfacing the
+            // button anyway just adds noise. Same threshold as the
+            // top-of-section renewal notice + the corner "Expiring soon"
+            // tag. The Renewal queued status badge keeps its own gate
+            // (always shown when a successor exists) - that's
+            // informational, not an action prompt.
+            const showRenew = hasQueuedRenewal || expiryStatus.expiringSoon;
             if (hasQueuedRenewal) {
                 let queuedDate = license.successor_starts_at_iso
                     ? formatRenewalStartDate(license.successor_starts_at_iso)
@@ -4267,15 +4314,15 @@ active: account
                         ? '<span class="plan-action-status-sub">Starts ' + planEscape(queuedDate) + '</span>'
                         : '<span class="plan-action-status-sub">Starts at expiry.</span>')
                     + '</div>';
-            } else if (ownership.isOwner) {
+            } else if (showRenew && ownership.isOwner) {
                 const renewUrl = '{{ "/account/purchase/" | relative_url }}?mode=renew&license_id='
                     + encodeURIComponent(license.license_id);
                 actionsHtml +=
                     '<a class="plan-action-btn" href="' + renewUrl + '">'
                     +   '<span class="plan-action-btn-label">Renew for 1 year</span>'
-                    +   '<span class="plan-action-btn-sub">Extends this license. Starts at expiry.</span>'
+                    +   '<span class="plan-action-btn-sub">Extend now to avoid interruptions.</span>'
                     + '</a>';
-            } else {
+            } else if (showRenew) {
                 // Non-owner: button stays visible but opens the
                 // contact-owners modal on click. data-* attrs carry
                 // everything the modal needs.
@@ -4437,17 +4484,16 @@ active: account
         const releasesBudget = (typeof license.releases_budget === 'number') ? license.releases_budget : null;
         const releasesRemaining = (typeof license.releases_remaining === 'number') ? license.releases_remaining : null;
         if (releasesBudget !== null && releasesBudget > 0 && releasesRemaining !== null) {
-            const pctRemaining = releasesRemaining / releasesBudget;
-            let releaseCls = 'green';
-            if (releasesRemaining === 0) releaseCls = 'red';
-            else if (pctRemaining <= 0.25) releaseCls = 'amber';
-            const tooltip = 'Each device slot comes with 2 releases. Releasing a device frees its slot '
-                + 'so you can activate a different (or reset) device on the same license. '
-                + 'Renewing resets the count.';
-            const pill = '<span class="plan-release-budget-pill ' + releaseCls + '" title="' + planEscape(tooltip) + '">'
-                + releasesRemaining + ' of ' + releasesBudget + ' remaining'
-                + '</span>';
-            rows.push(planDetailRow('Device releases', pill));
+            // Plain text "N of M remaining" + a clickable "?" icon next
+            // to it that opens the explainer modal. No background pill,
+            // no color treatment, no hover tooltip - the explainer
+            // carries the full explanation when the user wants it.
+            const valueHtml =
+                releasesRemaining + ' of ' + releasesBudget + ' remaining'
+                + ' <button type="button" class="plan-detail-help"'
+                + '   data-help-topic="device-releases"'
+                + '   aria-label="What are device releases?">?</button>';
+            rows.push(planDetailRow('Device releases', valueHtml));
         }
 
         if (license.license_owner) {
@@ -4751,6 +4797,54 @@ active: account
             ownerEmails: emailsStr ? emailsStr.split(',').filter(Boolean) : [],
             accountName: btn.getAttribute('data-owner-account') || ''
         });
+    });
+
+    // Inline help modal for "?" icons next to detail values. Topic is
+    // carried via data-help-topic so we can serve different copy from
+    // a single click handler.
+    const PLAN_DETAIL_HELP_TOPICS = {
+        'device-releases': {
+            title: 'Device releases',
+            body: [
+                'A <strong>device release</strong> frees the seat a device is using on this license so a different device can activate on it. You release when you replace a tablet, reset one to factory defaults, or rotate a device between users.',
+                'Each device slot on the license comes with <strong>two releases</strong>. That covers the common cases (initial mistake, one swap during the term) without anyone having to ask for support. Renewing the license resets the counter.',
+                'If you hit the cap and need more, contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we can extend it.'
+            ]
+        }
+    };
+    function showPlanDetailHelp(topic) {
+        const t = PLAN_DETAIL_HELP_TOPICS[topic];
+        if (!t) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'detail-help-modal';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        const bodyHtml = (t.body || []).map(function(p) {
+            return '<p class="detail-help-body">' + p + '</p>';
+        }).join('');
+        overlay.innerHTML =
+            '<div class="detail-help-backdrop"></div>'
+            + '<div class="detail-help-dialog">'
+            +   '<button type="button" class="detail-help-close" aria-label="Close">&times;</button>'
+            +   '<h3 class="detail-help-title">' + planEscape(t.title) + '</h3>'
+            +   bodyHtml
+            + '</div>';
+        function close() {
+            try { overlay.remove(); } catch (e) {}
+            document.removeEventListener('keydown', onKey);
+        }
+        function onKey(e) { if (e.key === 'Escape') close(); }
+        overlay.querySelector('.detail-help-backdrop').addEventListener('click', close);
+        overlay.querySelector('.detail-help-close').addEventListener('click', close);
+        document.addEventListener('keydown', onKey);
+        document.body.appendChild(overlay);
+    }
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.plan-detail-help');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        showPlanDetailHelp(btn.getAttribute('data-help-topic') || '');
     });
 
     function wirePlanCopyButtons(scope) {
