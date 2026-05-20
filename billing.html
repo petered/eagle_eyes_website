@@ -163,8 +163,8 @@ active: billing
     .billing-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .billing-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
 
-    /* Billing timeline. Rows of charges / invoices / quotes from
-       list_account_billing. One row per Stripe object, sorted newest-first. */
+    /* Billing timeline. One row per charge / invoice / quote, sorted
+       newest-first. Sourced from list_account_billing. */
     .billing-item-row {
         display: flex;
         align-items: center;
@@ -194,9 +194,20 @@ active: billing
     .billing-item-sub { font-size: 12px; color: #888; margin-top: 2px; }
     .billing-item-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .billing-item-amount { font-size: 14px; font-weight: 600; color: #222; }
+    /* Action links (View / PDF / Receipt). Fixed min-width so View
+       and PDF align as a tidy pair instead of "View" being narrower
+       than "PDF" by virtue of having more characters. */
     .billing-item-link {
-        font-size: 12px; color: #1e90ff; text-decoration: none;
-        padding: 4px 10px; border: 1px solid #1e90ff; border-radius: 6px;
+        display: inline-block;
+        min-width: 64px;
+        text-align: center;
+        font-size: 12px;
+        color: #1e90ff;
+        text-decoration: none;
+        padding: 4px 10px;
+        border: 1px solid #1e90ff;
+        border-radius: 6px;
+        box-sizing: border-box;
     }
     .billing-item-link:hover { background: #e8f3ff; text-decoration: none; }
 </style>
@@ -218,15 +229,16 @@ active: billing
              page is now focused on billing address + payment method +
              purchase history. -->
 
-        <!-- Billing address. Required by Stripe Tax for invoice / quote
-             flows; checkout flows self-collect via Stripe's hosted form.
-             Card shows the current address (or a "Not set" banner) with an
-             Edit button that opens the shared billing-address modal. -->
+        <!-- Billing address. Required by the tax engine for invoice /
+             quote flows; checkout flows self-collect via the hosted
+             form. Card shows the current address (or a "Not set"
+             banner) with an Edit button that opens the shared
+             billing-address modal. -->
         <div class="billing-card">
             <div class="billing-card-header">
                 <div>
                     <h3 class="billing-card-title">Billing address</h3>
-                    <p class="billing-card-sub">Used by Stripe to compute sales tax on invoices and quotes.</p>
+                    <p class="billing-card-sub">Used to compute sales tax on invoices and quotes.</p>
                 </div>
                 <button type="button" id="billingAddressEditBtn" class="billing-btn secondary">Edit</button>
             </div>
@@ -241,24 +253,24 @@ active: billing
             <div class="billing-card-header">
                 <div>
                     <h3 class="billing-card-title">Payment method</h3>
-                    <p class="billing-card-sub">Manage your card on file via Stripe's secure portal.</p>
+                    <p class="billing-card-sub">Manage your card on file via our secure payment portal.</p>
                 </div>
                 <button type="button" id="billingPortalBtn" class="billing-btn secondary" disabled>Manage payment method</button>
             </div>
             <div class="billing-empty" id="billingPortalStatus">Available after your first purchase.</div>
         </div>
 
-        <!-- Invoices, receipts, and quotes. Live from Stripe via list_account_billing -->
+        <!-- Invoices, receipts, and quotes -->
         <div class="billing-card">
             <div class="billing-card-header">
                 <div>
                     <h3 class="billing-card-title">Invoices &amp; receipts</h3>
-                    <p class="billing-card-sub">Live from Stripe. Receipts are also emailed to the account owner.</p>
+                    <p class="billing-card-sub">Receipts are also emailed to the account owner.</p>
                 </div>
             </div>
             <div id="billingTimelineLoading" class="billing-empty" style="display: none;">Loading billing history…</div>
             <div id="billingTimelineEmpty" class="billing-empty" style="display: none;">
-                No Stripe records yet for this account. If you've paid by invoice or check
+                No records yet for this account. If you've paid by invoice or check
                 in the past, contact <a href="mailto:info@eagleeyessearch.com" style="color: #1e90ff;">info@eagleeyessearch.com</a>
                 for a copy of your receipt.
             </div>
