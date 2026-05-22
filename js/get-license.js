@@ -17,8 +17,6 @@ const urlParams = new URLSearchParams(window.location.search);
 
 console.log("Machine ID: " + machineId);
 
-thisURLwithJustMachineIDArg = window.location.origin + '/get_licensed/?machine_id=' + machineId;
-
 // Wait for the HTML to load
 document.addEventListener("DOMContentLoaded", function () 
 {
@@ -123,39 +121,9 @@ function checkLicenseIDFromArgsAndUpdateAvailableLicenses() {
 
 
 
-function getParamFromURL(paramName, defaultValue = undefined) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(paramName) || defaultValue;
-}
-
-function getMachineIdFromURL() {
-    // const urlParams = new URLSearchParams(window.location.search);
-    // // upper case
-    // return urlParams.get('machine_id').toUpperCase();
-    return getParamFromURL('machine_id')?.toUpperCase();
-}
-
-// Mirrors the backend validator (normalize_machine_id). Any change here MUST
-// stay in sync with the server, or the user sees a 400 they could have been
-// stopped from causing.
-const MACHINE_ID_SENTINELS = new Set([
-    'NONE', 'NULL', 'UNDEFINED', 'NIL',
-    'TEST', 'FAKE', 'PLACEHOLDER',
-    '(NONE PROVIDED)', '*',
-]);
-
-function isRealMachineId(value) {
-    if (!value) return false;
-    const v = String(value).trim().toUpperCase();
-    if (v.length < 8 || v.length > 64) return false;
-    if (!/^[A-Z0-9]+$/.test(v)) return false;
-    if (MACHINE_ID_SENTINELS.has(v)) return false;
-    // All-same-char strings (e.g. AAAAAAAA, 00000000)
-    if (/^(.)\1+$/.test(v)) return false;
-    return true;
-}
-
-const MACHINE_ID_DESKTOP_HINT = "Open this page from the 🔑 button in the Eagle Eyes Scan desktop app, or use the \"Change\" button above to paste your Machine ID.";
+// getParamFromURL, getMachineIdFromURL, getIsEmulatorFromURL, isRealMachineId,
+// MACHINE_ID_SENTINELS, and MACHINE_ID_DESKTOP_HINT are defined in shared.js
+// (loaded before this script).
 
 // Reflect machine_id state into the UI: warning banner near the Machine ID
 // display, plus disable the "Issue Key" button so users can't trigger a 400.
@@ -170,11 +138,6 @@ function refreshMachineIdGate() {
         $warning.text("⚠️ No valid Machine ID detected. " + MACHINE_ID_DESKTOP_HINT).show();
         $issueBtn.prop('disabled', true).addClass('non-clickable').attr('title', MACHINE_ID_DESKTOP_HINT);
     }
-}
-
-function getIsEmulatorFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('is_emulator') === 'true';
 }
 
 function reCheckLicense() {

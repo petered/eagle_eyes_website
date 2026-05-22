@@ -1142,6 +1142,7 @@ noindex: true
 </style>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="{{ '/shared.js' | relative_url }}"></script>
 
 <!-- Sign-in overlay -->
 <div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
@@ -1741,9 +1742,9 @@ async function handleSetupCode() {
             }
 
             // Populate device info if available
-            if (data.device_identifier || data.machine_id) {
+            if (data.device_identifier || isRealMachineId(data.machine_id)) {
                 if (data.device_identifier) document.getElementById('setupDeviceName').textContent = data.device_identifier;
-                if (data.machine_id) document.getElementById('setupMachineId').textContent = data.machine_id;
+                if (isRealMachineId(data.machine_id)) document.getElementById('setupMachineId').textContent = String(data.machine_id).trim().toUpperCase();
                 document.getElementById('setupDeviceInfo').style.display = '';
             }
 
@@ -1962,7 +1963,7 @@ async function lpLoadUserLicenses() {
     try {
         var token = await getIdToken();
 
-        if (machineId) {
+        if (isRealMachineId(machineId)) {
             // Activation flow (device context): check_available_licenses_and_tokens
             // returns per-device dispensing info (remaining keys, has_existing_key).
             var resp = await fetch(API_BASE + 'check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineId), {
@@ -2295,6 +2296,9 @@ async function lpAddLicense() {
     try {
         var token = await getIdToken();
         var machineId = document.getElementById('setupMachineId').textContent || '';
+        if (!isRealMachineId(machineId)) {
+            throw new Error('No valid device context for adding a license. ' + MACHINE_ID_DESKTOP_HINT);
+        }
         var resp = await fetch(API_BASE + 'check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineId) + '&license_id=' + encodeURIComponent(licenseId), {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
@@ -4596,10 +4600,10 @@ async function deleteConfigurationByIndex(index) {
             // Populate device info if available from URL
             var urlDeviceName = urlSetupParams.get('device_name');
             var urlMachineId = urlSetupParams.get('machine_id');
-            if (urlDeviceName || urlMachineId) {
+            if (urlDeviceName || isRealMachineId(urlMachineId)) {
                 var deviceInfoEl = document.getElementById('setupDeviceInfo');
                 if (urlDeviceName) document.getElementById('setupDeviceName').textContent = urlDeviceName;
-                if (urlMachineId) document.getElementById('setupMachineId').textContent = urlMachineId;
+                if (isRealMachineId(urlMachineId)) document.getElementById('setupMachineId').textContent = String(urlMachineId).trim().toUpperCase();
                 deviceInfoEl.style.display = '';
             }
 
