@@ -2666,12 +2666,12 @@ active: account
                 <div class="streaming-credits-right">
                     <div class="streaming-credits-badges" id="streamingCreditsBadges"></div>
                     <a class="streaming-credits-cta owner-only-cta" id="streamingBuyCreditsCta"
-                       href="{{ '/account/purchase/?mode=streaming' | relative_url }}"
+                       href="{{ '/account/purchase/?add=credits:payg' | relative_url }}"
                        style="display: none;">+ Add credits</a>
                 </div>
             </div>
             <div id="streamingCreditsEmpty" class="overview-empty" style="display: none;">
-                No streaming credits yet. <a href="{{ '/account/purchase/?mode=streaming' | relative_url }}">Add your first credits &rarr;</a>
+                No streaming credits yet. <a href="{{ '/account/purchase/?add=credits:payg' | relative_url }}">Add your first credits &rarr;</a>
             </div>
 
             <!-- Active licenses subsection. The primary actions live on
@@ -4140,18 +4140,12 @@ active: account
             if (soonest) {
                 const dayWord = soonest._daysLeft === 1 ? 'day' : 'days';
                 const noun = soonest._isTrial ? 'trial' : 'license';
-                const renewSubject = 'License renewal request: '
-                    + (soonest.license_name || soonest.license_id || '');
-                const renewBody = 'Please renew the following Eagle Eyes license:\n\n'
-                    + 'License: ' + (soonest.license_name || '') + ' (' + (soonest.license_id || '') + ')\n'
-                    + (soonest.expiry_date ? 'Current expiry: ' + soonest.expiry_date + '\n' : '')
-                    + '\n'
-                    + 'We would like the renewal to start when the current license expires, '
-                    + 'with no interruption to service.\n\n'
-                    + 'Thanks';
-                const renewMailto = 'mailto:info@eagleeyessearch.com'
-                    + '?subject=' + encodeURIComponent(renewSubject)
-                    + '&body=' + encodeURIComponent(renewBody);
+                // Route to the cart with the soonest-expiring license
+                // pre-added as a renewal item. Cart page handles owner
+                // gating (non-owners see the "contact an owner" panel
+                // there), so we don't need to branch by ownership here.
+                const renewUrl = '{{ "/account/purchase/" | relative_url }}?add=renew:'
+                    + encodeURIComponent(soonest.license_id || '');
                 const callToAction = soonest._expiringSoon
                     ? 'Renew now to prevent service interruptions.'
                     : 'Renew anytime to avoid interruptions after expiry.';
@@ -4165,7 +4159,7 @@ active: account
                     + ' expires in <strong>' + soonest._daysLeft + ' ' + dayWord + '</strong>. '
                     + callToAction
                     + '</mark>'
-                    + ' <a href="' + planEscape(renewMailto) + '">Renew &rarr;</a>';
+                    + ' <a href="' + planEscape(renewUrl) + '">Renew &rarr;</a>';
                 noticeEl.className = 'plans-expiry-notice' + (soonest._expiringSoon ? ' urgent' : '');
                 noticeEl.style.display = '';
             }
@@ -4387,13 +4381,13 @@ active: account
         // the card's right column. Each button carries a two-line label
         // (primary + small subtitle) so users know what's about to
         // happen.
-        //   Renew → /account/purchase/?mode=renew&license_id=X. The
-        //     purchase page's renew mode calls the renew_license
-        //     endpoint (payment_method = checkout / invoice / quote).
-        //   Add devices → standard purchase page when the license has
-        //     headroom under the 12-device backend cap, otherwise a
-        //     mailto so customers with custom-sized licenses still see
-        //     an action.
+        //   Renew → /account/purchase/?add=renew:<id>. The purchase
+        //     page pre-adds a license_renewal cart item; user picks
+        //     Pay now / Email invoice / Request quote at the bottom.
+        //   Add devices → /account/purchase/?add=devices:<id>. Same
+        //     cart model. Cap-exceeded licenses (>= 12 devices) still
+        //     route to the cart; the cart surfaces a backend
+        //     license_device_cap_exceeded inline.
         //   Already-renewed licenses (those with successor_license_id
         //     set by the backend) show a passive "Renewal queued"
         //     status pill instead of the Renew button — the user can't
@@ -4437,7 +4431,7 @@ active: account
                         : '<span class="plan-action-status-sub">Starts at expiry.</span>')
                     + '</div>';
             } else if (showRenew && ownership.isOwner) {
-                const renewUrl = '{{ "/account/purchase/" | relative_url }}?mode=renew&license_id='
+                const renewUrl = '{{ "/account/purchase/" | relative_url }}?add=renew:'
                     + encodeURIComponent(license.license_id);
                 actionsHtml +=
                     '<a class="plan-action-btn" href="' + renewUrl + '">'
@@ -4457,30 +4451,13 @@ active: account
                     + '</button>';
             }
 
-            const currentTotal = (typeof totalKeys === 'number') ? totalKeys : 0;
             if (ownership.isOwner) {
-                let addUrl;
-                if (currentTotal < 12) {
-                    addUrl = '{{ "/account/purchase/" | relative_url }}?mode=add_devices&license_id='
-                        + encodeURIComponent(license.license_id);
-                } else {
-                    // Self-service extension endpoint refuses to push a
-                    // license past 12 devices. For licenses already over,
-                    // fall through to a mailto so the user has a path.
-                    const addSubject = 'Add devices to license: '
-                        + (license.license_name || license.license_id);
-                    const addBody = 'Please add devices to the following Eagle Eyes license:\n\n'
-                        + 'License: ' + (license.license_name || '') + ' (' + license.license_id + ')\n'
-                        + 'Current device count: ' + currentTotal + '\n'
-                        + (expiryDate ? 'Expiry: ' + expiryDate + '\n' : '')
-                        + '\n'
-                        + 'Number of devices to add: \n'
-                        + '\n'
-                        + 'Thanks';
-                    addUrl = 'mailto:info@eagleeyessearch.com'
-                        + '?subject=' + encodeURIComponent(addSubject)
-                        + '&body=' + encodeURIComponent(addBody);
-                }
+                // Always route to the cart, even when the license is at
+                // the 12-device backend cap — the cart surfaces an inline
+                // license_device_cap_exceeded message rather than failing
+                // silently or bouncing to a mailto.
+                const addUrl = '{{ "/account/purchase/" | relative_url }}?add=devices:'
+                    + encodeURIComponent(license.license_id);
                 actionsHtml +=
                     '<a class="plan-action-btn" href="' + planEscape(addUrl) + '">'
                     +   '<span class="plan-action-btn-label">+ Add devices</span>'
@@ -7069,6 +7046,50 @@ active: account
                     console.info('[devices] using email-based fallback -',
                         filtered.length, 'devices matched org members but were not stamped',
                         'with organization_id =', orgId);
+                }
+            }
+        }
+
+        // Token-based fallback for accounts where list_account_devices
+        // returns nothing (404 or empty payload — happens on accounts
+        // that pre-date the devices index). Group cachedTokens by
+        // machine_id, scoped to this org's license_ids, so the user
+        // still sees their devices instead of an empty "No devices"
+        // card. Lacks dji_device_type + user-given names since those
+        // only live on the devices payload.
+        if (filtered.length === 0 && source && source.org) {
+            const orgLicIdSet = new Set(
+                (source.org.licenses || [])
+                    .map(function(l) { return l && l.license_id; })
+                    .filter(Boolean)
+            );
+            if (orgLicIdSet.size && (cachedTokens || []).length) {
+                const byMachine = {};
+                cachedTokens.forEach(function(t) {
+                    if (!t || !t.machine_id) return;
+                    if (!orgLicIdSet.has(t.license_id)) return;
+                    const mid = String(t.machine_id);
+                    if (!byMachine[mid]) {
+                        byMachine[mid] = {
+                            machine_id: mid,
+                            display_name: t.device_identifier || null,
+                            emails: [],
+                            tokens: [],
+                            organization_id: orgId || null
+                        };
+                    }
+                    byMachine[mid].tokens.push(t);
+                    const email = (t.user_email || t.email || '').toLowerCase();
+                    if (email && byMachine[mid].emails.indexOf(email) === -1) {
+                        byMachine[mid].emails.push(email);
+                    }
+                });
+                const synthetic = Object.values(byMachine);
+                if (synthetic.length) {
+                    filtered = synthetic;
+                    console.info('[devices] using cachedTokens fallback -',
+                        synthetic.length, 'devices reconstructed from tokens because',
+                        'list_account_devices returned no data');
                 }
             }
         }
