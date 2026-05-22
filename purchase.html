@@ -777,8 +777,14 @@ active: purchase
     var RENEWAL_WINDOW_DAYS_PAID = 90;
     var RENEWAL_WINDOW_DAYS_TRIAL = 7;
 
-    // Stubs. Flip to false when backend ships create_purchase_*.
-    var STUB_ENDPOINTS = true;
+    // Cart endpoints live on per-function Cloud Run URLs in prod.
+    // Emulator mode falls through to getHostUrl() + '/' + endpoint.
+    var CART_ENDPOINT_URLS = {
+        preview_cart: 'https://preview-cart-rvoe3nzu5q-uc.a.run.app',
+        create_purchase_checkout: 'https://create-purchase-checkout-rvoe3nzu5q-uc.a.run.app',
+        create_purchase_invoice: 'https://create-purchase-invoice-rvoe3nzu5q-uc.a.run.app',
+        create_purchase_quote: 'https://create-purchase-quote-rvoe3nzu5q-uc.a.run.app'
+    };
 
     // ===== State =====
     var state = {
@@ -1471,9 +1477,7 @@ active: purchase
         }
         var payload = buildCartPayload('preview');
         try {
-            var resp = STUB_ENDPOINTS
-                ? await stubPreviewCart(payload)
-                : await postBillingJson('preview_cart', payload);
+            var resp = await postBillingJson('preview_cart', payload);
             state.previewSummary = resp && resp.cart_summary;
             state.previewError = null;
         } catch (err) {
@@ -2169,7 +2173,11 @@ active: purchase
         var user = firebase.auth().currentUser;
         if (!user) throw new Error('Not signed in');
         var idToken = await user.getIdToken();
-        var r = await fetch(getHostUrl() + '/' + endpoint, {
+        var useEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        var url = (!useEmulator && CART_ENDPOINT_URLS[endpoint])
+            ? CART_ENDPOINT_URLS[endpoint]
+            : (getHostUrl() + '/' + endpoint);
+        var r = await fetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + idToken,
@@ -2191,9 +2199,7 @@ active: purchase
     }
     async function postWithAddressRetry(endpoint, body, reason) {
         try {
-            return STUB_ENDPOINTS && endpoint.indexOf('create_purchase_') === 0
-                ? await stubCreatePurchase(endpoint, body)
-                : await postBillingJson(endpoint, body);
+            return await postBillingJson(endpoint, body);
         } catch (err1) {
             if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
                 var addr = window.eeBillingAddress
@@ -2206,9 +2212,7 @@ active: purchase
                 if (!addr) return null;
                 var acc = activeAccount();
                 if (acc) acc.address = addr;
-                return STUB_ENDPOINTS && endpoint.indexOf('create_purchase_') === 0
-                    ? await stubCreatePurchase(endpoint, body)
-                    : await postBillingJson(endpoint, body);
+                return await postBillingJson(endpoint, body);
             }
             throw err1;
         }
@@ -2239,169 +2243,6 @@ active: purchase
             payload.is_emulator = true;
         }
         return payload;
-    }
-
-    // ===== Stubs (until backend ships create_purchase_*) =====
-    function validateCartPayloadShape(payload) {
-        var errs = [];
-        if (!payload || typeof payload !== 'object') errs.push('payload must be object');
-        if (typeof payload.account_id !== 'number') errs.push('account_id must be number');
-        if (!Array.isArray(payload.items)) errs.push('items must be array');
-        (payload.items || []).forEach(function(it, idx) {
-            if (!it || typeof it !== 'object') return errs.push('items[' + idx + '] not object');
-            var allowedSkus = ['license_renewal', 'additional_devices', 'streaming_topup_payg',
-                'streaming_topup_pro_bundle', 'license_new'];
-            if (allowedSkus.indexOf(it.sku) === -1) errs.push('items[' + idx + '].sku unknown: ' + it.sku);
-            if (it.sku === 'license_renewal') {
-                if (!it.license_id) errs.push('items[' + idx + '].license_id required');
-                if (typeof it.duration_days !== 'number') errs.push('items[' + idx + '].duration_days required');
-                if (typeof it.new_n_tokens !== 'number') errs.push('items[' + idx + '].new_n_tokens required');
-            }
-            if (it.sku === 'additional_devices') {
-                if (!it.license_id) errs.push('items[' + idx + '].license_id required');
-                if (typeof it.additional_devices !== 'number') errs.push('items[' + idx + '].additional_devices required');
-            }
-            if (it.sku === 'streaming_topup_payg' && typeof it.amount_usd !== 'number') {
-                errs.push('items[' + idx + '].amount_usd required');
-            }
-            if (it.sku === 'license_new' && !it.product_id) {
-                errs.push('items[' + idx + '].product_id required');
-            }
-        });
-        return errs;
-    }
-    async function stubPreviewCart(payload) {
-        console.log('[STUB] preview_cart payload', JSON.parse(JSON.stringify(payload)));
-        var shapeErrs = validateCartPayloadShape(payload);
-        if (shapeErrs.length) {
-            console.warn('[STUB] preview_cart shape errors', shapeErrs);
-            var err = new Error(shapeErrs.join('; '));
-            err.status = 400; err.data = { code: 'stub_shape_error', message: shapeErrs.join('; ') };
-            throw err;
-        }
-        // Validate business rules (mirror error codes the backend will return).
-        var bizErr = stubValidateBusinessRules(payload);
-        if (bizErr) {
-            var e = new Error(bizErr.message);
-            e.status = 409; e.data = bizErr;
-            throw e;
-        }
-        // Build a cart_summary from client estimates.
-        var line_items = (payload.items || []).map(function(it, idx) {
-            var lic = it.license_id ? findLicenseById(it.license_id) : null;
-            var amt = 0;
-            if (it.sku === 'license_renewal') amt = priceForRenewal(lic, it.new_n_tokens);
-            else if (it.sku === 'additional_devices') amt = priceForAddDevices(lic, it.additional_devices);
-            else if (it.sku === 'streaming_topup_payg') amt = it.amount_usd || 0;
-            else if (it.sku === 'streaming_topup_pro_bundle') amt = streamingPricing.bundle_price;
-            else if (it.sku === 'license_new') {
-                var m = /sar_1y_(\d+)dev/.exec(it.product_id || '');
-                amt = priceForNew(m ? parseInt(m[1], 10) : 1);
-            }
-            return {
-                description: stubDescribe(it),
-                amount_usd: amt,
-                sku: it.sku,
-                external_id: 'cart:stub:item:' + idx
-            };
-        });
-        var subtotal = line_items.reduce(function(s, li) { return s + li.amount_usd; }, 0);
-        return {
-            cart_summary: {
-                subtotal_usd: subtotal,
-                tax_usd: null,
-                total_usd: subtotal,
-                line_items: line_items
-            }
-        };
-    }
-    function stubValidateBusinessRules(payload) {
-        var items = payload.items || [];
-        if (!items.length) return { code: 'cart_empty', message: 'Cart is empty.' };
-        // Renewal + additional_devices for same license.
-        var renewals = {};
-        var extensions = {};
-        for (var i = 0; i < items.length; i++) {
-            var it = items[i];
-            if (it.sku === 'license_renewal') renewals[it.license_id] = true;
-            if (it.sku === 'additional_devices') extensions[it.license_id] = true;
-        }
-        var dup = Object.keys(renewals).find(function(lid) { return extensions[lid]; });
-        if (dup) {
-            return {
-                code: 'renewal_and_devices_same_license',
-                message: 'Cart contains both a renewal and a device extension for license ' + dup + '. '
-                    + 'Raise device count via the renewal\'s Devices field instead.'
-            };
-        }
-        // PAYG minimum
-        for (var j = 0; j < items.length; j++) {
-            var it2 = items[j];
-            if (it2.sku === 'streaming_topup_payg' && it2.amount_usd < streamingPricing.payg_min) {
-                return { code: 'payg_below_minimum',
-                    message: 'PAYG minimum is $' + streamingPricing.payg_min + '.' };
-            }
-            if (it2.sku === 'additional_devices') {
-                var lic = findLicenseById(it2.license_id);
-                if (lic && deviceCountOf(lic) + (it2.additional_devices || 0) > DEVICE_CAP) {
-                    return { code: 'license_device_cap_exceeded',
-                        message: "That's more devices than we cover with self-service. "
-                            + "Email info@eagleeyessearch.com and we'll set it up for you." };
-                }
-            }
-            if (it2.sku === 'license_renewal') {
-                var lic2 = findLicenseById(it2.license_id);
-                if (lic2 && lic2.successor_license_id) {
-                    return { code: 'license_already_has_renewal_queued',
-                        message: 'A renewal is already queued for this license.' };
-                }
-            }
-        }
-        return null;
-    }
-    function stubDescribe(item) {
-        var lic = item.license_id ? findLicenseById(item.license_id) : null;
-        var name = (lic && (lic.license_name || lic.license_id)) || item.license_id || '';
-        if (item.sku === 'license_renewal') {
-            return 'Renewal of ' + name + ' (' + (item.new_n_tokens || 0) + ' devices, 1 year)';
-        }
-        if (item.sku === 'additional_devices') {
-            return '+' + (item.additional_devices || 0) + ' devices on ' + name;
-        }
-        if (item.sku === 'streaming_topup_payg') return 'Streaming credits (PAYG)';
-        if (item.sku === 'streaming_topup_pro_bundle') return 'Streaming Pro Bundle';
-        if (item.sku === 'license_new') return 'New SAR license (' + (item.product_id || '?') + ')';
-        return item.sku;
-    }
-    async function stubCreatePurchase(endpoint, payload) {
-        console.log('[STUB] ' + endpoint + ' payload', JSON.parse(JSON.stringify(payload)));
-        var shapeErrs = validateCartPayloadShape(payload);
-        if (shapeErrs.length) {
-            var e = new Error(shapeErrs.join('; '));
-            e.status = 400; e.data = { code: 'stub_shape_error', message: shapeErrs.join('; ') };
-            throw e;
-        }
-        var biz = stubValidateBusinessRules(payload);
-        if (biz) {
-            var e2 = new Error(biz.message);
-            e2.status = 409; e2.data = biz;
-            throw e2;
-        }
-        var resp = await stubPreviewCart(payload);
-        var summary = resp.cart_summary;
-        if (endpoint === 'create_purchase_checkout') {
-            return { checkout_url: 'about:blank#stub-checkout', session_id: 'cs_stub_' + Date.now(),
-                cart_summary: summary };
-        }
-        if (endpoint === 'create_purchase_invoice') {
-            return { invoice_id: 'in_stub_' + Date.now(), hosted_invoice_url: 'about:blank#stub-invoice',
-                invoice_pdf: 'about:blank#stub-invoice-pdf', cart_summary: summary };
-        }
-        if (endpoint === 'create_purchase_quote') {
-            return { quote_id: 'qt_stub_' + Date.now(), hosted_quote_url: 'about:blank#stub-quote',
-                quote_pdf: 'about:blank#stub-quote-pdf', cart_summary: summary };
-        }
-        throw new Error('Unknown stub endpoint: ' + endpoint);
     }
 
     // ===== CTA handlers =====
@@ -2446,16 +2287,9 @@ active: purchase
         await withCtaInflight($('ctaPayNow'), 'Redirecting…', async function() {
             try {
                 var payload = buildCartPayload('checkout');
-                var resp = STUB_ENDPOINTS
-                    ? await stubCreatePurchase('create_purchase_checkout', payload)
-                    : await postBillingJson('create_purchase_checkout', payload);
+                var resp = await postBillingJson('create_purchase_checkout', payload);
                 if (!resp || !resp.checkout_url) throw new Error('No checkout URL returned.');
                 clearCart();
-                if (resp.checkout_url.indexOf('about:blank') === 0) {
-                    showCtaSuccess('[STUB] Pay now → would redirect to: ' + resp.checkout_url);
-                    renderAll();
-                    return;
-                }
                 window.location.href = resp.checkout_url;
             } catch (err) {
                 console.error('Pay now failed:', err);
@@ -2470,10 +2304,6 @@ active: purchase
                 var resp = await postWithAddressRetry('create_purchase_invoice', payload, 'invoice');
                 if (resp === null) return; // user cancelled the address modal
                 if (!resp || !resp.hosted_invoice_url) throw new Error('No invoice URL returned.');
-                if (resp.hosted_invoice_url.indexOf('about:blank') === 0) {
-                    showCtaSuccess('[STUB] Email invoice → would open: ' + resp.hosted_invoice_url);
-                    clearCart(); renderAll(); return;
-                }
                 window.open(resp.hosted_invoice_url, '_blank', 'noopener');
                 clearCart(); renderAll();
                 showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
@@ -2490,10 +2320,6 @@ active: purchase
                 var resp = await postWithAddressRetry('create_purchase_quote', payload, 'quote');
                 if (resp === null) return;
                 if (!resp || !resp.hosted_quote_url) throw new Error('No quote URL returned.');
-                if (resp.hosted_quote_url.indexOf('about:blank') === 0) {
-                    showCtaSuccess('[STUB] Request quote → would open: ' + resp.hosted_quote_url);
-                    clearCart(); renderAll(); return;
-                }
                 window.open(resp.hosted_quote_url, '_blank', 'noopener');
                 clearCart(); renderAll();
                 showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
@@ -2514,6 +2340,7 @@ active: purchase
         if (code === 'billing_address_required') {
             return 'Add a billing address to this account first.';
         }
+        if (err.data && err.data.message) return err.data.message;
         return err.message || String(err);
     }
     function fallbackQuoteMailto() {
@@ -2670,11 +2497,24 @@ active: purchase
             state.cart = loadCart();
         }
 
-        // Apply URL deep-link items (once).
+        // Apply URL deep-link items (once). Preserve any user edits made
+        // in a prior visit: if the slot already holds an item pointing at
+        // the same target (same license / product), skip the URL add.
         if (!state.urlAddsApplied) {
             state.urlAddsApplied = true;
             var urlItems = parseUrlAddItems();
-            urlItems.forEach(function(it) { cartAdd(it); });
+            urlItems.forEach(function(it) {
+                var slot = catalogSlotForSku(it.sku);
+                var existing = slot && state.cart.items.find(function(x) {
+                    return catalogSlotForSku(x.sku) === slot;
+                });
+                var sameTarget = !!existing
+                    && existing.sku === it.sku
+                    && (existing.license_id || null) === (it.license_id || null)
+                    && (existing.product_id || null) === (it.product_id || null);
+                if (sameTarget) return;
+                cartAdd(it);
+            });
         }
 
         loadCredits(user).then(function(c) {
