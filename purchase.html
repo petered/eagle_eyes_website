@@ -656,6 +656,21 @@ active: purchase
         Sign in to purchase or renew a license.
     </div>
 
+    <!-- No-account state. User is signed in but isn't a member of any
+         billing account (e.g. org-only admin). Distinct from the non-owner
+         state below — there's no account to be a non-owner of. -->
+    <div id="purchaseNoAccount" class="purchase-non-owner" style="display: none;">
+        <div class="non-owner-card">
+            <div class="non-owner-icon" aria-hidden="true">🏷️</div>
+            <div class="non-owner-title">No billing account on file</div>
+            <p class="non-owner-hint">
+                You're signed in as <strong id="noAccountEmail">this user</strong>, but you're not a member of any
+                billing account, so there's nothing to purchase against. If you expected to see an account here,
+                email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we'll get you set up.
+            </p>
+        </div>
+    </div>
+
     <!-- Non-owner blocked state. -->
     <div id="purchaseNonOwner" class="purchase-non-owner" style="display: none;">
         <div class="non-owner-card">
@@ -1414,18 +1429,13 @@ active: purchase
             return r.json();
         } catch (e) { return null; }
     }
-    async function loadStreamingPackages(user) {
+    // Streaming-package config ships embedded in get_account_dashboard
+    // (backend confirmed 2026-05-21: no standalone /get_streaming_packages
+    // endpoint exists). If the dashboard didn't include it, fall back to
+    // the hardcoded defaults in streamingPricing — they match pricing.py.
+    function loadStreamingPackages(user) {
         var dash = window.eeDashboard ? window.eeDashboard.read(user.uid) : null;
-        if (dash && dash.streaming_packages) return dash.streaming_packages;
-        try {
-            var idToken = await user.getIdToken();
-            var r = await fetch(getHostUrl() + '/get_streaming_packages', {
-                method: 'GET',
-                headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
-            });
-            if (r.ok) return r.json();
-        } catch (e) { /* endpoint not deployed yet */ }
-        return null;
+        return Promise.resolve((dash && dash.streaming_packages) || null);
     }
     function applyPackageConfig(pkgs) {
         if (!pkgs) return;
@@ -2531,18 +2541,33 @@ active: purchase
         window.location.href = url;
     }
 
-    // ===== Non-owner panel =====
+    // ===== Non-owner / no-account panels =====
     function applyOwnerVisibility() {
         var acc = activeAccount();
+        var hasAccount = !!acc;
         var isOwner = !!(acc && acc.is_owner);
-        if (isOwner) {
+        if (!hasAccount) {
+            $('purchaseContent').style.display = 'none';
+            $('purchaseNonOwner').style.display = 'none';
+            renderNoAccountPanel();
+            $('purchaseNoAccount').style.display = '';
+        } else if (isOwner) {
+            $('purchaseNoAccount').style.display = 'none';
             $('purchaseNonOwner').style.display = 'none';
             $('purchaseContent').style.display = '';
         } else {
             $('purchaseContent').style.display = 'none';
+            $('purchaseNoAccount').style.display = 'none';
             renderNonOwnerPanel(acc);
             $('purchaseNonOwner').style.display = '';
         }
+    }
+    function renderNoAccountPanel() {
+        var emailEl = $('noAccountEmail');
+        if (!emailEl) return;
+        var email = '';
+        try { email = ((firebase.auth().currentUser || {}).email || ''); } catch (e) {}
+        emailEl.textContent = email || 'this user';
     }
     function renderNonOwnerPanel(acc) {
         var nameEl = $('nonOwnerAccountName');
@@ -2627,6 +2652,11 @@ active: purchase
             state.activeAccountId = stored;
         } else {
             state.activeAccountId = firstId != null ? String(firstId) : null;
+            // Stored id no longer resolves (account deleted, user removed, etc.) —
+            // clear it so other pages don't keep pointing at the dead id.
+            if (stored) {
+                try { sessionStorage.removeItem('ee-active-account:' + user.uid); } catch (e) {}
+            }
         }
 
         // Load cart for active account.
