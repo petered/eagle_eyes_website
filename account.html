@@ -2285,6 +2285,110 @@ active: account
     .device-row-key-meta code {
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
+    /* Per-token action cluster (Copy + Release) on the right side of each
+       row in the keys dropdown. Wraps so Release can sit alongside Copy
+       without overflowing on narrow rows. */
+    .device-row-key-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .device-row-key-no-budget {
+        font-size: 11px;
+        color: #888;
+        white-space: nowrap;
+    }
+    .device-row-key-no-budget a { color: #1e90ff; text-decoration: none; }
+    .device-row-key-no-budget a:hover { text-decoration: underline; }
+    /* Inline confirm panel — appears under the token row while a release
+       is pending user confirmation. Destructive treatment (warm red) to
+       distinguish from the neutral row. */
+    .device-row-key-confirm {
+        flex: 1 1 100%;
+        margin-top: 6px;
+        padding: 10px 12px;
+        background: #fdf2f0;
+        border: 1px solid #f0c4be;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .device-row-key-confirm-msg {
+        font-size: 12px;
+        color: #5b1a0e;
+        line-height: 1.45;
+    }
+    .device-row-key-confirm-msg strong { color: #1a1a2e; }
+    .device-row-key-confirm-msg .hint {
+        display: block;
+        margin-top: 4px;
+        color: #7a3a2a;
+        font-size: 11px;
+    }
+    .device-row-key-confirm-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+    /* Releases-left chip in the by-license section header meta. Color
+       escalates as headroom shrinks; the ⓘ button opens the inline help
+       explaining that reinstalls on the same device don't cost a release. */
+    .device-license-section-releases { color: #888; }
+    .device-license-section-releases.warn { color: #b76b00; font-weight: 600; }
+    .device-license-section-releases.exhausted { color: #c0392b; font-weight: 600; }
+    .device-license-section-releases-help {
+        background: transparent;
+        border: none;
+        color: #1e90ff;
+        cursor: pointer;
+        font-size: 11px;
+        font-family: inherit;
+        padding: 0 0 0 4px;
+        opacity: 0.75;
+    }
+    .device-license-section-releases-help:hover { opacity: 1; }
+    /* Release history foldout inside the license card details. Lazy-fetch
+       on first expand; rows are append-only newest-first. */
+    .plan-release-history {
+        margin-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .plan-release-history-empty,
+    .plan-release-history-loading,
+    .plan-release-history-error {
+        font-size: 12px;
+        color: #888;
+        padding: 4px 0;
+    }
+    .plan-release-history-error { color: #c0392b; }
+    .plan-release-history-row {
+        font-size: 12px;
+        color: #555;
+        padding: 6px 0;
+        border-bottom: 1px dashed #ececec;
+        line-height: 1.45;
+    }
+    .plan-release-history-row:last-child { border-bottom: none; }
+    .plan-release-history-row .when { color: #888; font-size: 11px; }
+    .plan-release-history-row .who { font-weight: 600; color: #1a1a2e; }
+    .plan-release-history-row .target { color: #1a1a2e; }
+    .plan-release-history-loadmore { align-self: flex-start; margin-top: 4px; }
+    .plan-release-history-toggle {
+        background: transparent;
+        border: none;
+        color: #1e90ff;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: inherit;
+        padding: 0;
+    }
+    .plan-release-history-toggle:hover { text-decoration: underline; }
     /* Segmented toggle at the top of the Devices view. Swaps between
        the per-license grouping (default, capacity lens) and a flat
        all-devices list (fleet/history lens). */
@@ -4596,6 +4700,23 @@ active: account
             rows.push(planDetailRow('Device releases', valueHtml));
         }
 
+        // Release history foldout. Lazy-fetch on first expand so we
+        // don't pay the round-trip for licenses no-one inspects. Rows
+        // are newest-first, paged 50 at a time via list_license_releases.
+        // Lives in the same details body as Device releases since
+        // they're the same conceptual feature (one is "how many left",
+        // the other is "where did the used ones go").
+        if (license.license_id) {
+            const historyHtml =
+                '<button type="button" class="plan-release-history-toggle"' +
+                  ' data-license-id="' + planEscape(license.license_id) + '"' +
+                  ' aria-expanded="false">Show release history</button>' +
+                '<div class="plan-release-history"' +
+                  ' data-license-id="' + planEscape(license.license_id) + '"' +
+                  ' style="display:none;"></div>';
+            rows.push(planDetailRow('Release history', historyHtml));
+        }
+
         if (license.license_owner) {
             const me = (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
             const suffix = (license.license_owner === me) ? ' <span style="color:#888;">(you)</span>' : '';
@@ -4907,6 +5028,7 @@ active: account
             title: 'Device releases',
             body: [
                 'A <strong>device release</strong> frees the slot a device is using on this license, so a different device can activate in its place. You release a slot when you replace a controller, reset a device to factory defaults, or rotate a device between users.',
+                '<strong>Reinstalling the Eagle Eyes app on the same device does not require a release.</strong> The app re-uses the existing slot on activation. Only use Release when the slot needs to move to a different physical device.',
                 'Each device slot comes with a limited number of releases per license term. That covers the common cases such as an initial mistake, or one swap during the term, without anyone having to contact support. Renewing the license resets the counter.',
                 'If you hit the cap and need more, contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we can extend it.'
             ]
@@ -5032,6 +5154,187 @@ active: account
             name: trimmed || null
         }, false, 'POST');
     }
+
+    // POST /release_device_token. Frees a license slot. Always sends
+    // token_id (unambiguous across multi-token devices). Backend returns
+    // updated releases_used/budget/remaining + keys_left so callers can
+    // update license_overview in place; release_id lets the history
+    // foldout optimistically prepend without a refetch.
+    async function releaseDeviceToken(tokenId) {
+        return await orgApiCall('release_device_token', { token_id: tokenId }, false, 'POST');
+    }
+
+    // GET /list_license_releases. Paged audit log for a license; newest
+    // first. cursor is the released_at epoch of the last item from the
+    // previous page (null/omitted for first page).
+    async function listLicenseReleases(licenseId, cursor, limit) {
+        const params = ['license_id=' + encodeURIComponent(licenseId)];
+        if (cursor != null) params.push('cursor=' + encodeURIComponent(cursor));
+        if (limit) params.push('limit=' + encodeURIComponent(limit));
+        return await orgApiCall(
+            'list_license_releases?' + params.join('&'),
+            null, false, 'GET'
+        );
+    }
+
+    // In-memory release-history cache, keyed by license_id. Populated
+    // lazily on first foldout expand; appended to on Load-more; the
+    // release_id from a successful release_device_token call is
+    // prepended optimistically so the user sees their own action
+    // reflected immediately.
+    const releaseHistoryByLicenseId = {};
+
+    // Format a release timestamp for the history row. Backend can ship
+    // either a numeric epoch (released_at) or ISO string (released_at_iso);
+    // we accept whichever is non-null. Falls back to the raw value if
+    // parsing fails (better than blanking the row entirely).
+    function formatReleaseTimestamp(d) {
+        if (d == null) return '';
+        try {
+            const ms = (typeof d === 'number') ? d * 1000 : new Date(d).getTime();
+            if (isNaN(ms)) return planEscape(String(d));
+            const date = new Date(ms);
+            const pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+            return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) +
+                ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+        } catch (e) {
+            return planEscape(String(d));
+        }
+    }
+
+    // Lazy-load on first expand. Subsequent expands re-use the cache;
+    // we deliberately do not auto-revalidate — the user can collapse
+    // and re-expand if they want to refresh, and successful releases
+    // optimistically prepend through handleReleaseSuccess.
+    async function toggleReleaseHistoryFoldout(toggleBtn) {
+        const licenseId = toggleBtn.getAttribute('data-license-id');
+        if (!licenseId) return;
+        const containers = document.querySelectorAll(
+            '.plan-release-history[data-license-id="' + licenseId.replace(/(["\\])/g, '\\$1') + '"]'
+        );
+        if (!containers.length) return;
+        const open = toggleBtn.getAttribute('aria-expanded') === 'true';
+        if (open) {
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            toggleBtn.textContent = 'Show release history';
+            containers.forEach(function(c) { c.style.display = 'none'; });
+            return;
+        }
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        toggleBtn.textContent = 'Hide release history';
+        containers.forEach(function(c) { c.style.display = ''; });
+        if (!releaseHistoryByLicenseId[licenseId]) {
+            await fetchReleaseHistory(licenseId);
+        } else {
+            renderReleaseHistoryRows(licenseId);
+        }
+    }
+
+    async function fetchReleaseHistory(licenseId) {
+        releaseHistoryByLicenseId[licenseId] = {
+            items: [], next_cursor: null, loading: true, error: null
+        };
+        renderReleaseHistoryRows(licenseId);
+        try {
+            const resp = await listLicenseReleases(licenseId, null, 50);
+            releaseHistoryByLicenseId[licenseId] = {
+                items: (resp && resp.releases) || [],
+                next_cursor: (resp && resp.next_cursor != null) ? resp.next_cursor : null,
+                loading: false,
+                error: null
+            };
+        } catch (err) {
+            console.error('list_license_releases failed:', err);
+            releaseHistoryByLicenseId[licenseId] = {
+                items: [], next_cursor: null, loading: false,
+                error: (err && err.message) || 'Failed to load history'
+            };
+        }
+        renderReleaseHistoryRows(licenseId);
+    }
+
+    async function loadMoreReleaseHistory(licenseId) {
+        const cache = releaseHistoryByLicenseId[licenseId];
+        if (!cache || cache.loading || cache.next_cursor == null) return;
+        cache.loading = true;
+        renderReleaseHistoryRows(licenseId);
+        try {
+            const resp = await listLicenseReleases(licenseId, cache.next_cursor, 50);
+            cache.items = cache.items.concat((resp && resp.releases) || []);
+            cache.next_cursor = (resp && resp.next_cursor != null) ? resp.next_cursor : null;
+            cache.loading = false;
+            cache.error = null;
+        } catch (err) {
+            console.error('list_license_releases (load more) failed:', err);
+            cache.loading = false;
+            cache.error = (err && err.message) || 'Failed to load more';
+        }
+        renderReleaseHistoryRows(licenseId);
+    }
+
+    function renderReleaseHistoryRows(licenseId) {
+        const cache = releaseHistoryByLicenseId[licenseId];
+        const containers = document.querySelectorAll(
+            '.plan-release-history[data-license-id="' + licenseId.replace(/(["\\])/g, '\\$1') + '"]'
+        );
+        containers.forEach(function(container) {
+            if (!cache || (cache.loading && cache.items.length === 0)) {
+                container.innerHTML = '<div class="plan-release-history-loading">Loading…</div>';
+                return;
+            }
+            if (cache.error && cache.items.length === 0) {
+                container.innerHTML =
+                    '<div class="plan-release-history-error">' + planEscape(cache.error) + '</div>';
+                return;
+            }
+            if (cache.items.length === 0) {
+                container.innerHTML =
+                    '<div class="plan-release-history-empty">No releases yet on this license.</div>';
+                return;
+            }
+            const rowsHtml = cache.items.map(function(r) {
+                const when = formatReleaseTimestamp(r.released_at_iso || r.released_at);
+                const who = planEscape(r.released_by_email || 'unknown');
+                const targetName = planEscape(r.device_display_name || r.machine_id || 'a device');
+                const targetEmail = r.device_email ? ' (' + planEscape(r.device_email) + ')' : '';
+                return '<div class="plan-release-history-row">' +
+                    '<span class="when">' + planEscape(when) + '</span> · ' +
+                    '<span class="who">' + who + '</span> released ' +
+                    '<span class="target">' + targetName + targetEmail + '</span>' +
+                '</div>';
+            }).join('');
+            const moreHtml = (cache.next_cursor != null)
+                ? '<button type="button" class="people-icon-btn plan-release-history-loadmore"' +
+                    ' data-license-id="' + planEscape(licenseId) + '"' +
+                    (cache.loading ? ' disabled' : '') + '>' +
+                    (cache.loading ? 'Loading…' : 'Load more') +
+                  '</button>'
+                : (cache.error
+                    ? '<div class="plan-release-history-error">' + planEscape(cache.error) + '</div>'
+                    : '');
+            container.innerHTML = rowsHtml + moreHtml;
+        });
+    }
+
+    // Global delegation for the history foldout. The toggle button and
+    // load-more button live inside HTML strings produced by
+    // buildPlanDetailsBodyHtml + renderReleaseHistoryRows, so attaching
+    // listeners per-render is awkward; delegation keeps it tidy.
+    document.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('.plan-release-history-toggle');
+        if (toggleBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleReleaseHistoryFoldout(toggleBtn);
+            return;
+        }
+        const moreBtn = e.target.closest('.plan-release-history-loadmore');
+        if (moreBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            loadMoreReleaseHistory(moreBtn.getAttribute('data-license-id'));
+        }
+    });
 
     // Fetch the device list for whichever account is currently active in
     // the page-title dropdown, then re-render the Devices view if we're
@@ -5393,7 +5696,27 @@ active: account
         const expiryStr = lic.expiry_date ? ' · expires ' + escapeHtmlOrg(lic.expiry_date) : '';
         const title = '<span class="device-license-section-prefix">License:</span>'
           + escapeHtmlOrg(lic.license_name || 'Eagle Eyes License');
-        const meta = '<strong>' + slotsStr + '</strong>' + expiryStr;
+        // Releases-left segment: pulled from cachedLicenseOverview (the
+        // dashboard's per-license budget snapshot). Hidden when budget
+        // data is missing (e.g., older licenses pre-rollout). Color
+        // escalates as headroom shrinks so it grabs attention only when
+        // it matters; the ⓘ delegates to showPlanDetailHelp's existing
+        // "device-releases" topic for the reinstall hint.
+        const budget = getLicenseReleaseBudget(lic.license_id);
+        let releasesHtml = '';
+        if (budget) {
+          const r = budget.releases_remaining;
+          const cls = r === 0 ? 'exhausted' : (r <= 2 ? 'warn' : '');
+          const wordCount = r + ' release' + (r === 1 ? '' : 's') + ' left';
+          releasesHtml =
+            ' · <span class="device-license-section-releases' + (cls ? ' ' + cls : '') + '">' +
+              escapeHtmlOrg(wordCount) +
+              '<button type="button" class="plan-detail-help device-license-section-releases-help"' +
+                ' data-help-topic="device-releases"' +
+                ' aria-label="What are device releases?">?</button>' +
+            '</span>';
+        }
+        const meta = '<strong>' + slotsStr + '</strong>' + expiryStr + releasesHtml;
         const entries = bucket.map(function(b) {
           return { device: b.device, tokensToShow: [b.token] };
         });
@@ -5545,16 +5868,57 @@ active: account
           dropdownTokens.forEach(function(t) {
             const item = document.createElement('div');
             item.className = 'device-row-key';
+            item.dataset.tokenId = t.token_id || '';
+            item.dataset.licenseId = t.license_id || '';
+            item.dataset.licenseName = t.license_name || '';
+            item.dataset.deviceDisplayName = displayName;
+            item.dataset.deviceEmail = (t.email || userEmail || '');
             const licName = escapeHtmlOrg(t.license_name || 'License');
             const expiry = escapeHtmlOrg(t.expiry_date || '-');
             const licId = escapeHtmlOrg(t.license_id || '');
-            item.innerHTML =
-              '<div class="device-row-key-info">' +
-                '<div class="device-row-key-name">' + licName + '</div>' +
-                '<div class="device-row-key-meta">expires ' + expiry +
-                  ' · <code>' + licId + '</code></div>' +
-              '</div>';
-            item.appendChild(makeCopyBtn(t, '⧉ Copy'));
+            const info = document.createElement('div');
+            info.className = 'device-row-key-info';
+            info.innerHTML =
+              '<div class="device-row-key-name">' + licName + '</div>' +
+              '<div class="device-row-key-meta">expires ' + expiry +
+                ' · <code>' + licId + '</code></div>';
+            item.appendChild(info);
+
+            // Actions cluster: Copy stays; Release sits next to it for
+            // tokens that still have budget on the license. When the
+            // license is exhausted we replace Release with a plain
+            // "contact support" hint so the state is explicit rather
+            // than a tooltip on a disabled button.
+            const itemActions = document.createElement('div');
+            itemActions.className = 'device-row-key-actions';
+            itemActions.appendChild(makeCopyBtn(t, '⧉ Copy'));
+
+            const budget = getLicenseReleaseBudget(t.license_id);
+            // Only active tokens are releasable. Already-expired tokens
+            // sometimes show in the dropdown (by-machine / by-email
+            // modes show full history); release on those is a no-op
+            // semantically.
+            const isReleasable = tokenIsActive(t);
+            if (isReleasable) {
+              if (budget && budget.releases_remaining === 0) {
+                const note = document.createElement('span');
+                note.className = 'device-row-key-no-budget';
+                note.innerHTML = 'No releases left · '
+                  + '<a href="mailto:support@eagleeyessearch.com'
+                  + '?subject=' + encodeURIComponent('Device release request: ' + (t.license_name || 'license'))
+                  + '">contact support</a>';
+                itemActions.appendChild(note);
+              } else {
+                const rel = document.createElement('button');
+                rel.type = 'button';
+                rel.className = 'people-icon-btn danger';
+                rel.textContent = 'Release';
+                rel.title = 'Free this license slot so it can be activated on a different device';
+                rel.addEventListener('click', onReleaseTokenClick);
+                itemActions.appendChild(rel);
+              }
+            }
+            item.appendChild(itemActions);
             sub.appendChild(item);
           });
 
@@ -5573,6 +5937,26 @@ active: account
         row.appendChild(actions);
         return row;
       }
+    }
+
+    // Look up a license's release-budget snapshot from cachedLicenseOverview.
+    // Returns null when the dashboard hasn't loaded yet or when the license
+    // doc isn't on this account (e.g., orphan tokens). Callers use this for
+    // both the per-token Release button preempt and the section-header
+    // "N releases left" segment.
+    function getLicenseReleaseBudget(licenseId) {
+      if (!licenseId) return null;
+      const overview = (cachedLicenseOverview || []).find(function(l) {
+        return l && l.license_id === licenseId;
+      });
+      if (!overview) return null;
+      if (typeof overview.releases_remaining !== 'number'
+          || typeof overview.releases_budget !== 'number') return null;
+      return {
+        releases_used: overview.releases_used || 0,
+        releases_budget: overview.releases_budget,
+        releases_remaining: overview.releases_remaining
+      };
     }
 
     // Pencil-icon click. Prompts the user for a new name, POSTs to
@@ -5605,6 +5989,233 @@ active: account
         window.alert('Rename failed: ' + (err && err.message ? err.message : err));
         btn.disabled = false;
       }
+    }
+
+    // Click handler for the per-token Release button. Slides an inline
+    // confirm panel into the row in place of the Copy/Release actions
+    // (no modal: this is a row-scoped action and modals are heavy).
+    // Submit triggers releaseDeviceToken, which optimistically mutates
+    // local caches + re-renders so the user sees their action take
+    // effect immediately, then refetches after ~1s so the device-doc
+    // trigger's recomputed values land.
+    function onReleaseTokenClick(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const item = e.target.closest('.device-row-key');
+      if (!item) return;
+      // Guard: already showing the confirm panel for this token.
+      if (item.querySelector('.device-row-key-confirm')) return;
+
+      const tokenId = item.dataset.tokenId || '';
+      const licenseId = item.dataset.licenseId || '';
+      const licenseName = item.dataset.licenseName || 'this license';
+      const deviceDisplayName = item.dataset.deviceDisplayName || 'this device';
+      const deviceEmail = item.dataset.deviceEmail || '';
+      if (!tokenId) {
+        showToast('Cannot release: missing token id.', 'error');
+        return;
+      }
+
+      const budget = getLicenseReleaseBudget(licenseId);
+      let costLine = '';
+      if (budget) {
+        const r = budget.releases_remaining;
+        costLine = (r === 1)
+          ? 'This will use your last release on this license.'
+          : 'Costs 1 of ' + r + ' releases left on this license.';
+      }
+      const userLine = deviceEmail
+        ? ' currently used by <strong>' + escapeHtmlOrg(deviceEmail) + '</strong>'
+        : '';
+
+      const actionsEl = item.querySelector('.device-row-key-actions');
+      if (actionsEl) actionsEl.style.display = 'none';
+
+      const panel = document.createElement('div');
+      panel.className = 'device-row-key-confirm';
+      panel.innerHTML =
+        '<div class="device-row-key-confirm-msg">' +
+          'Release <strong>' + escapeHtmlOrg(deviceDisplayName) + '</strong>' + userLine +
+          ' from <strong>' + escapeHtmlOrg(licenseName) + '</strong>?' +
+          (costLine ? ' ' + escapeHtmlOrg(costLine) : '') +
+          '<span class="hint">Reinstalling the app on the same device doesn’t need a release — only use this to move the slot to a different device.</span>' +
+        '</div>' +
+        '<div class="device-row-key-confirm-actions">' +
+          '<button type="button" class="people-icon-btn" data-act="cancel">Cancel</button>' +
+          '<button type="button" class="people-icon-btn danger" data-act="confirm">Release</button>' +
+        '</div>';
+      item.appendChild(panel);
+
+      function restore() {
+        if (panel.parentNode) panel.parentNode.removeChild(panel);
+        if (actionsEl) actionsEl.style.display = '';
+      }
+
+      const cancelBtn = panel.querySelector('[data-act="cancel"]');
+      const confirmBtn = panel.querySelector('[data-act="confirm"]');
+      cancelBtn.addEventListener('click', restore);
+      confirmBtn.addEventListener('click', async function() {
+        cancelBtn.disabled = true;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Releasing…';
+        try {
+          const resp = await releaseDeviceToken(tokenId);
+          handleReleaseSuccess(resp, item, licenseId);
+        } catch (err) {
+          handleReleaseError(err, panel, cancelBtn, confirmBtn, item, licenseId);
+        }
+      });
+    }
+
+    // Optimistic local mutation + re-render after a successful release.
+    // Updates cachedLicenseOverview (so the section header's "releases
+    // left" + license card's "Device releases" row reflect the new
+    // count) and cachedAccountDevices (so the released token disappears
+    // from its device's tokens[]). The 1s refetch reconciles against
+    // the device-doc trigger's recomputed n_active_tokens / emails.
+    function handleReleaseSuccess(resp, item, licenseId) {
+      // Update license-overview cache. The dashboard endpoint will
+      // overwrite this on the next fetch, but updating in place keeps
+      // the UI consistent for the moment.
+      if (resp && resp.license_id) {
+        (cachedLicenseOverview || []).forEach(function(l) {
+          if (l && l.license_id === resp.license_id) {
+            if (typeof resp.releases_used === 'number') l.releases_used = resp.releases_used;
+            if (typeof resp.releases_budget === 'number') l.releases_budget = resp.releases_budget;
+            if (typeof resp.releases_remaining === 'number') l.releases_remaining = resp.releases_remaining;
+            if (typeof resp.keys_left === 'number') l.keys_left = resp.keys_left;
+          }
+        });
+      }
+
+      // Remove the released token from cachedAccountDevices so the
+      // immediate re-render drops it. On the matching device, if no
+      // tokens remain we leave the device in place — the trigger may
+      // recompute n_active_tokens by the time we refetch.
+      const releasedTokenId = (resp && resp.token_id) || item.dataset.tokenId;
+      (cachedAccountDevices || []).forEach(function(d) {
+        if (!d || !Array.isArray(d.tokens)) return;
+        const before = d.tokens.length;
+        d.tokens = d.tokens.filter(function(t) { return t.token_id !== releasedTokenId; });
+        if (d.tokens.length !== before && typeof d.n_active_tokens === 'number') {
+          d.n_active_tokens = Math.max(0, d.n_active_tokens - 1);
+        }
+      });
+
+      // Prepend the new history entry optimistically so the foldout
+      // shows it the moment the user expands it (without a refetch).
+      if (resp && resp.release_id && licenseId) {
+        const cache = releaseHistoryByLicenseId[licenseId];
+        if (cache && Array.isArray(cache.items)) {
+          cache.items.unshift({
+            release_id: resp.release_id,
+            license_id: resp.license_id,
+            license_name: resp.license_name,
+            machine_id: resp.machine_id,
+            device_display_name: item.dataset.deviceDisplayName || '',
+            device_email: resp.email || item.dataset.deviceEmail || '',
+            released_by_email: (firebase.auth().currentUser && firebase.auth().currentUser.email) || '',
+            released_at: Math.floor(Date.now() / 1000),
+            released_at_iso: new Date().toISOString()
+          });
+          renderReleaseHistoryRows(licenseId);
+        }
+      }
+
+      showToast('Released ' + (item.dataset.deviceDisplayName || 'device') + '. The user will need to re-activate from the app.', 'success', 4500);
+
+      // Re-render Devices view immediately from the mutated caches.
+      // (Doesn't refetch — that's deferred 1s below.)
+      if (activeScope === 'org' && activeView === 'devices') {
+        const source = getActiveSource();
+        if (source) renderActiveDevices(source);
+      }
+      // Re-render license cards so the foldout's "Device releases" row
+      // reflects the new count. Cheap; no network.
+      if (activeScope === 'account' && activeView !== 'access') {
+        renderActiveAccountLicenses();
+      }
+
+      // Reconcile with backend after the device-doc trigger has run.
+      setTimeout(function() {
+        accountDevicesLoaded = false;
+        fetchAccountDevicesForActiveAccount();
+      }, 1000);
+    }
+
+    // Error branches: 404 → race (another tab/user beat us; silent refetch).
+    // 409 with no_release_budget_remaining → swap the panel for a
+    // contact-support message in place. Anything else → re-enable
+    // buttons and toast the message.
+    function handleReleaseError(err, panel, cancelBtn, confirmBtn, item, licenseId) {
+      const status = err && err.status;
+      const data = (err && err.data) || {};
+      console.warn('release_device_token failed:', err);
+
+      if (status === 404) {
+        // The token was already released elsewhere. Drop it from the
+        // local cache and refetch so the UI catches up; no error toast.
+        const releasedTokenId = item.dataset.tokenId;
+        (cachedAccountDevices || []).forEach(function(d) {
+          if (!d || !Array.isArray(d.tokens)) return;
+          d.tokens = d.tokens.filter(function(t) { return t.token_id !== releasedTokenId; });
+        });
+        accountDevicesLoaded = false;
+        fetchAccountDevicesForActiveAccount();
+        return;
+      }
+
+      if (status === 409 && data.code === 'no_release_budget_remaining') {
+        // Reflect the now-exhausted state back into the overview cache
+        // so the section header and the Release buttons on other tokens
+        // of this license update on the next render.
+        if (data.license_id) {
+          (cachedLicenseOverview || []).forEach(function(l) {
+            if (l && l.license_id === data.license_id) {
+              if (typeof data.releases_used === 'number') l.releases_used = data.releases_used;
+              if (typeof data.releases_budget === 'number') l.releases_budget = data.releases_budget;
+              l.releases_remaining = 0;
+            }
+          });
+        }
+        const licName = data.license_name || item.dataset.licenseName || 'this license';
+        const supportHref = 'mailto:support@eagleeyessearch.com'
+          + '?subject=' + encodeURIComponent('Device release request: ' + licName)
+          + '&body=' + encodeURIComponent(
+              'Hi,\n\nI’ve used all my device releases on "' + licName + '"'
+              + (data.license_id ? ' (' + data.license_id + ')' : '')
+              + ' and need to release another device. Could you help?\n\nThanks.'
+            );
+        panel.innerHTML =
+          '<div class="device-row-key-confirm-msg">' +
+            'All releases used on <strong>' + escapeHtmlOrg(licName) + '</strong>. ' +
+            '<a href="' + supportHref + '">Contact support</a> to request more, or wait for the next renewal (counter resets).' +
+          '</div>' +
+          '<div class="device-row-key-confirm-actions">' +
+            '<button type="button" class="people-icon-btn" data-act="dismiss">Close</button>' +
+          '</div>';
+        const dismiss = panel.querySelector('[data-act="dismiss"]');
+        if (dismiss) dismiss.addEventListener('click', function() {
+          // Re-render so the Release button on this token is replaced
+          // with the same "No releases left" pointer in the dropdown.
+          if (activeScope === 'org' && activeView === 'devices') {
+            const source = getActiveSource();
+            if (source) renderActiveDevices(source);
+          }
+        });
+        return;
+      }
+
+      // Generic failure: re-enable and toast. Leaving the panel open
+      // lets the user retry without re-opening the confirm.
+      cancelBtn.disabled = false;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Release';
+      showToast(
+        'Release failed: ' + (err && err.message ? err.message : 'unknown error'),
+        'error',
+        5000
+      );
     }
     
     // Copy text to clipboard with visual feedback. Preserves the button's
