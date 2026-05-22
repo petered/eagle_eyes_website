@@ -122,7 +122,7 @@ function checkLicenseIDFromArgsAndUpdateAvailableLicenses() {
 
 
 // getParamFromURL, getMachineIdFromURL, getIsEmulatorFromURL, isRealMachineId,
-// MACHINE_ID_SENTINELS, and MACHINE_ID_DESKTOP_HINT are defined in shared.js
+// MACHINE_ID_SENTINELS, and MACHINE_ID_INSTRUCTION are defined in shared.js
 // (loaded before this script).
 
 // Reflect machine_id state into the UI: warning banner near the Machine ID
@@ -135,8 +135,8 @@ function refreshMachineIdGate() {
         $warning.hide();
         $issueBtn.prop('disabled', false).removeClass('non-clickable').attr('title', '');
     } else {
-        $warning.text("⚠️ No valid Machine ID detected. " + MACHINE_ID_DESKTOP_HINT).show();
-        $issueBtn.prop('disabled', true).addClass('non-clickable').attr('title', MACHINE_ID_DESKTOP_HINT);
+        $warning.text("⚠️ No valid Machine ID detected. " + MACHINE_ID_INSTRUCTION).show();
+        $issueBtn.prop('disabled', true).addClass('non-clickable').attr('title', MACHINE_ID_INSTRUCTION);
     }
 }
 
@@ -254,7 +254,7 @@ function getKeyForThisLicense(licenseID, user) {
     if (!isRealMachineId(machineId)) {
         $('#final-status-box').hide();
         refreshMachineIdGate();
-        showError("Can't issue a key: no valid Machine ID is connected to your session.\n\n" + MACHINE_ID_DESKTOP_HINT);
+        showError("Can't issue a key: no valid Machine ID is connected to your session.\n\n" + MACHINE_ID_INSTRUCTION);
         return;
     }
     // Get the key for this license
@@ -417,7 +417,7 @@ function requestErrorHandler(jqXHR, textStatus, errorThrown) {
             // instead of a misleading "license not found" message.
             if (status === 400 && (errorCode === 'invalid_machine_id' || errorCode === 'missing_machine_id')) {
                 refreshMachineIdGate();
-                showError("Can't continue: no valid Machine ID is connected to your session.\n\n" + MACHINE_ID_DESKTOP_HINT);
+                showError("Can't continue: no valid Machine ID is connected to your session.\n\n" + MACHINE_ID_INSTRUCTION);
                 return;
             }
 
@@ -837,10 +837,10 @@ function updateMachineId() {
     var errorEl = document.getElementById("new-machine-id-error");
     if (!isRealMachineId(newMachineId)) {
         if (errorEl) {
-            errorEl.textContent = "That doesn't look like a valid Machine ID. " + MACHINE_ID_DESKTOP_HINT;
+            errorEl.textContent = "That doesn't look like a valid Machine ID. " + MACHINE_ID_INSTRUCTION;
             errorEl.style.display = 'block';
         } else {
-            alert("That doesn't look like a valid Machine ID. " + MACHINE_ID_DESKTOP_HINT);
+            alert("That doesn't look like a valid Machine ID. " + MACHINE_ID_INSTRUCTION);
         }
         return;
     }
