@@ -41,9 +41,11 @@ function fillMachineIDFromArgs() {
     // Get machine id, if any from url and fill it in with jquery to the machine-id box
     machine_id = urlParams.get('machine_id');
     console.log("Machine ID from URL? "+machine_id);
-    if (machine_id) {
-        $('#machine-id').text(machine_id);
+    if (machine_id && isRealMachineId(machine_id)) {
+        $('#machine-id').text(machine_id.toUpperCase());
     }
+    // Whatever happened above, sync the UI gate to reality.
+    refreshMachineIdGate();
     // Get the argument and convert it to a boolean.  It should default to true if not present.
     // var isEarlyAdopterMode = urlParams.get('early_adopter') === 'true';
     // var isEarlyAdopterMode = urlParams.get('early_adopter') !== 'false';
@@ -131,6 +133,43 @@ function getMachineIdFromURL() {
     // // upper case
     // return urlParams.get('machine_id').toUpperCase();
     return getParamFromURL('machine_id')?.toUpperCase();
+}
+
+// Mirrors the backend validator (normalize_machine_id). Any change here MUST
+// stay in sync with the server, or the user sees a 400 they could have been
+// stopped from causing.
+const MACHINE_ID_SENTINELS = new Set([
+    'NONE', 'NULL', 'UNDEFINED', 'NIL',
+    'TEST', 'FAKE', 'PLACEHOLDER',
+    '(NONE PROVIDED)', '*',
+]);
+
+function isRealMachineId(value) {
+    if (!value) return false;
+    const v = String(value).trim().toUpperCase();
+    if (v.length < 8 || v.length > 64) return false;
+    if (!/^[A-Z0-9]+$/.test(v)) return false;
+    if (MACHINE_ID_SENTINELS.has(v)) return false;
+    // All-same-char strings (e.g. AAAAAAAA, 00000000)
+    if (/^(.)\1+$/.test(v)) return false;
+    return true;
+}
+
+const MACHINE_ID_DESKTOP_HINT = "Open this page from the 🔑 button in the Eagle Eyes Scan desktop app, or use the \"Change\" button above to paste your Machine ID.";
+
+// Reflect machine_id state into the UI: warning banner near the Machine ID
+// display, plus disable the "Issue Key" button so users can't trigger a 400.
+function refreshMachineIdGate() {
+    const ok = isRealMachineId(machineId);
+    const $warning = $('#machine-id-warning');
+    const $issueBtn = $('#issueKeyButton');
+    if (ok) {
+        $warning.hide();
+        $issueBtn.prop('disabled', false).removeClass('non-clickable').attr('title', '');
+    } else {
+        $warning.text("⚠️ No valid Machine ID detected. " + MACHINE_ID_DESKTOP_HINT).show();
+        $issueBtn.prop('disabled', true).addClass('non-clickable').attr('title', MACHINE_ID_DESKTOP_HINT);
+    }
 }
 
 function getIsEmulatorFromURL() {
@@ -249,8 +288,10 @@ function getKeyForThisLicense(licenseID, user) {
     // Make sure not to proceed if machine ID is missing
     
     $('#final-status-box').text('⏳ Issuing key...').css('display', 'block').show()
-    if (!machineId || machineId == "") { 
-        alert('There is no machine ID connected to your session. Please request a key from the "Check License" menu in Eagle Eyes Scan desktop app.');
+    if (!isRealMachineId(machineId)) {
+        $('#final-status-box').hide();
+        refreshMachineIdGate();
+        showError("Can't issue a key: no valid Machine ID is connected to your session.\n\n" + MACHINE_ID_DESKTOP_HINT);
         return;
     }
     // Get the key for this license
@@ -401,8 +442,22 @@ function requestErrorHandler(jqXHR, textStatus, errorThrown) {
         } else {
             // HTTP error response from the server, handle accordingly
             let status = jqXHR.status;
-            let errorMessage = jqXHR.responseText || jqXHR.responseJSON?.error || jqXHR.statusText || "Unknown error";
-            
+            let parsedBody = jqXHR.responseJSON;
+            if (!parsedBody && jqXHR.responseText) {
+                try { parsedBody = JSON.parse(jqXHR.responseText); } catch (_) { /* not JSON */ }
+            }
+            let errorCode = parsedBody && parsedBody.error;
+            let errorMessage = (parsedBody && parsedBody.message) || jqXHR.responseText || jqXHR.statusText || "Unknown error";
+
+            // Backend's structured machine_id rejections — handle BEFORE the
+            // legacy 500-heuristic below so the user gets the desktop-app hint
+            // instead of a misleading "license not found" message.
+            if (status === 400 && (errorCode === 'invalid_machine_id' || errorCode === 'missing_machine_id')) {
+                refreshMachineIdGate();
+                showError("Can't continue: no valid Machine ID is connected to your session.\n\n" + MACHINE_ID_DESKTOP_HINT);
+                return;
+            }
+
             // Check for specific error patterns to provide user-friendly messages
             if (status === 500 && errorMessage.includes("'NoneType' object has no attribute 'expiry_timestamp'")) {
                 // This specific error means the license ID doesn't exist
@@ -702,6 +757,9 @@ function selectLicense() {
     }
     $('#select-license-info').show();
     $('#issue-key').show();
+    // selectLicense() removes the disabled styling from #issueKeyButton above,
+    // so re-apply the machine_id gate after it gets re-shown.
+    refreshMachineIdGate();
     // $('html, body').animate({
     //     scrollTop: $("#issue-key").offset().top
     // }, 1000); // 1000 milliseconds = 1 second
@@ -812,7 +870,18 @@ function closeMachineIdDialog() {
 
 function updateMachineId() {
     // Get the new machine ID
-    var newMachineId = document.getElementById("new-machine-id").value.toUpperCase();
+    var newMachineId = document.getElementById("new-machine-id").value.trim().toUpperCase();
+    var errorEl = document.getElementById("new-machine-id-error");
+    if (!isRealMachineId(newMachineId)) {
+        if (errorEl) {
+            errorEl.textContent = "That doesn't look like a valid Machine ID. " + MACHINE_ID_DESKTOP_HINT;
+            errorEl.style.display = 'block';
+        } else {
+            alert("That doesn't look like a valid Machine ID. " + MACHINE_ID_DESKTOP_HINT);
+        }
+        return;
+    }
+    if (errorEl) errorEl.style.display = 'none';
     // Update the displayed machine ID
     document.getElementById("machine-id").textContent = newMachineId;
     // Close the dialog
