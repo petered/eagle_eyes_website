@@ -28,256 +28,305 @@ active: purchase
         color: #666;
         margin: 0 0 14px 0;
     }
-    .mode-row {
+    .purchase-card-title .cart-count {
+        color: #1e90ff;
+        margin-left: 4px;
+        font-weight: 700;
+    }
+
+    /* Hint banner — used to surface the partial-license-id resolver
+       outcome (came from a low-balance email, etc.). Lives at the top
+       of the page above the cart so it's hard to miss. */
+    .hint-banner {
         display: flex;
         align-items: flex-start;
         gap: 12px;
-        padding: 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        border: 1px solid transparent;
-    }
-    .mode-row:hover { background: #f6f8fa; }
-    .mode-row.is-active {
-        background: #e8f3ff;
-        border-color: #c8e1ff;
-    }
-    .mode-row.is-disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    /* The legacy theme (core.min.css) blanket-styles `input` with
-       `width:100%` and `padding:1.3rem 2.5rem` for form fields. Override
-       here so the radio renders as a 16x16 control rather than a
-       full-width block that pushes the body off the row. */
-    .mode-row input[type="radio"] {
-        width: auto !important;
-        padding: 0 !important;
-        margin: 4px 0 0 0 !important;
-        flex: 0 0 auto;
-        appearance: auto !important;
-        -webkit-appearance: auto !important;
-        -moz-appearance: auto !important;
-    }
-    .mode-row-body { flex: 1 1 auto; min-width: 0; }
-    .mode-row-label {
-        font-weight: 600;
-        color: #222;
-        margin-bottom: 4px;
-    }
-    .mode-row-desc {
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: #f3f9ff;
+        border: 1px solid #c8e1ff;
+        margin: 0 0 16px 0;
         font-size: 13px;
-        color: #666;
+        color: #1a3a5c;
         line-height: 1.5;
     }
-    .mode-row-inputs {
-        display: none;
-        flex-wrap: wrap;
-        gap: 14px;
-        align-items: center;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed #e0e6ec;
+    .hint-banner.is-warn {
+        background: #fff8e6;
+        border-color: #f0d68a;
+        color: #5a4220;
     }
-    .mode-row.is-active .mode-row-inputs { display: flex; }
-    .mode-row-inputs .mode-input-label {
-        font-size: 13px;
-        color: #444;
-        margin-right: 4px;
+    .hint-banner.is-error {
+        background: #fff3f3;
+        border-color: #f0c0c0;
+        color: #7a2a2a;
     }
-    .mode-row-inputs select,
-    .mode-row-inputs input[type="number"] {
-        padding: 6px 10px;
-        border: 1px solid #cfd6dc;
-        border-radius: 6px;
-        font: inherit;
-        font-size: 13px;
-        background: #fff;
-        margin: 0;
-        width: auto;
-        -webkit-appearance: auto;
-        -moz-appearance: auto;
-        appearance: auto;
+    .hint-banner-body { flex: 1 1 auto; }
+    .hint-banner-body strong { font-weight: 600; }
+    .hint-banner-dismiss {
+        flex: 0 0 auto;
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0 4px;
+        cursor: pointer;
+        font-family: inherit;
+        opacity: 0.6;
     }
-    .mode-row-inputs input[type="number"] { width: 80px; }
+    .hint-banner-dismiss:hover { opacity: 1; }
 
-    /* License-picker cards. Modeled on the saved-configuration cards in
-       setup.html (.config-card): white card with a blue left-accent bar,
-       hover lift, bold dark title, smaller grey detail line. The whole
-       card is a radio target; the selected card gets a thicker accent and
-       a light tint. */
-    .license-list {
+    /* Cart panel — each item is a row with an inline editable field
+       (where applicable), price on the right, × to remove. */
+    .cart-empty {
+        font-size: 14px;
+        color: #888;
+        padding: 8px 0 4px 0;
+    }
+    .cart-list {
         display: flex;
         flex-direction: column;
         gap: 10px;
-        width: 100%;
     }
-    .license-row {
-        position: relative;
-        display: flex;
+    .cart-item {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 12px;
         align-items: center;
-        gap: 14px;
+        padding: 14px 16px;
         background: #fff;
         border: 1px solid #e9ecef;
         border-left: 4px solid #1e90ff;
-        border-radius: 4px;
-        padding: 14px 16px;
+        border-radius: 6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-        cursor: pointer;
-        transition: box-shadow 0.2s, transform 0.2s, background-color 0.15s;
-        margin: 0;
     }
-    .license-row:hover {
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-        transform: translateY(-1px);
+    .cart-item.has-error {
+        border-left-color: #c0392b;
+        background: #fffaf9;
     }
-    .license-row.is-active {
-        background: #f3f9ff;
-        border-left-color: #1077dc;
-        border-left-width: 6px;
-        padding-left: 14px; /* compensate for the wider accent so content doesn't shift */
-    }
-    .license-row input[type="radio"] {
-        width: auto !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        flex: 0 0 auto;
-        appearance: auto !important;
-        -webkit-appearance: auto !important;
-        -moz-appearance: auto !important;
-    }
-    .license-row-body { flex: 1 1 auto; min-width: 0; }
-    .license-row-name {
-        font-size: 16px;
-        font-weight: 700;
-        color: #1a1a2e;
-        margin: 0 0 4px 0;
-        letter-spacing: -0.01em;
-    }
-    .license-row-meta {
-        font-size: 14px;
-        color: #888;
-    }
-    .license-row-meta-warn { color: #c0392b; font-weight: 600; }
-
-    /* Step blocks. Two-step add-devices flow. Step 1 = pick license,
-       Step 2 = pick count. Step 2 is hidden until Step 1 has a pick. */
-    .step-block { margin-top: 18px; }
-    .step-block:first-child { margin-top: 8px; }
-    .step-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-    .step-pill {
-        display: inline-block;
-        background: #1e90ff;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        padding: 3px 10px;
-        border-radius: 999px;
-    }
-    .step-title {
+    .cart-item-body { min-width: 0; }
+    .cart-item-title {
         font-size: 15px;
         font-weight: 600;
         color: #1a1a2e;
+        margin-bottom: 4px;
     }
-
-    /* Step 2 stepper card. Bigger, more deliberate than a tiny input.
-       The − / + buttons hint at the process nature: tap to adjust. */
-    .step2-card {
-        background: #fff;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
-        padding: 14px 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    .cart-item-meta {
+        font-size: 12px;
+        color: #777;
+        line-height: 1.5;
     }
-    .step2-context {
-        font-size: 13px;
-        color: #555;
-        margin-bottom: 12px;
-    }
-    .step2-context strong { color: #1a1a2e; }
-    .step2-stepper {
+    .cart-item-edit {
         display: flex;
-        align-items: center;
-        gap: 10px;
         flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 13px;
+        color: #444;
     }
-    .step2-step-btn {
-        width: 38px;
-        height: 38px;
-        border-radius: 6px;
-        border: 1px solid #cfd6dc;
-        background: #fff;
+    .cart-item-edit select,
+    .cart-item-edit input[type="number"] {
+        padding: 5px 8px !important;
+        border: 1px solid #cfd6dc !important;
+        border-radius: 5px !important;
+        font: inherit !important;
+        font-size: 13px !important;
+        background: #fff !important;
+        margin: 0 !important;
+        width: auto !important;
+        -webkit-appearance: auto !important;
+        -moz-appearance: auto !important;
+        appearance: auto !important;
+    }
+    .cart-item-edit input[type="number"] { width: 80px !important; }
+    .cart-item-error {
+        font-size: 12px;
+        color: #c0392b;
+        margin-top: 6px;
+        line-height: 1.4;
+    }
+    .cart-item-note {
+        font-size: 12px;
+        color: #1077dc;
+        margin-top: 6px;
+        font-style: italic;
+        line-height: 1.4;
+    }
+    .cart-item-price {
+        font-size: 15px;
+        font-weight: 600;
         color: #1a1a2e;
-        font-size: 20px;
-        font-weight: 700;
+        white-space: nowrap;
+    }
+    .cart-item-remove {
+        background: transparent;
+        border: none;
+        color: #999;
+        font-size: 22px;
         line-height: 1;
+        padding: 4px 8px;
         cursor: pointer;
         font-family: inherit;
-        padding: 0 !important;
-        margin: 0 !important;
+        border-radius: 4px;
     }
-    .step2-step-btn:hover { background: #f4f6f8; border-color: #1e90ff; color: #1e90ff; }
-    .step2-step-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
-    .step2-stepper input[type="number"] {
-        width: 64px !important;
-        text-align: center;
-        font-size: 18px;
-        font-weight: 600;
-        padding: 6px 8px !important;
-        border: 1px solid #cfd6dc;
-        border-radius: 6px;
+    .cart-item-remove:hover { color: #c0392b; background: #fff3f3; }
+    .cart-subtotal {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid #ececec;
+        font-size: 14px;
+        color: #444;
+    }
+    .cart-subtotal-label { color: #555; }
+    .cart-subtotal-value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .cart-subtotal-note {
+        font-size: 12px;
+        color: #888;
+        margin-top: 6px;
+        text-align: right;
+    }
+
+    /* Catalog — 3 high-level buttons that expand inline into a picker. */
+    .catalog-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .catalog-row {
         background: #fff;
-        margin: 0 !important;
-        -webkit-appearance: auto;
-        -moz-appearance: auto;
-        appearance: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
     }
-    .step2-result {
-        font-size: 13px;
-        color: #555;
-        margin-left: 6px;
-    }
-    .step2-result strong { color: #1a1a2e; }
-
-    .payg-minutes-display {
-        margin-left: 6px;
-        font-size: 13px;
+    .catalog-row.is-disabled { opacity: 0.55; }
+    .catalog-row-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        background: transparent;
+        border: none;
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
         color: #1077dc;
-        font-weight: 500;
+        cursor: pointer;
     }
+    .catalog-row-trigger:hover { background: #f3f9ff; }
+    .catalog-row.is-disabled .catalog-row-trigger { cursor: not-allowed; color: #888; }
+    .catalog-row.is-disabled .catalog-row-trigger:hover { background: transparent; }
+    .catalog-row-arrow {
+        font-size: 18px;
+        color: #999;
+        transition: transform 0.15s;
+    }
+    .catalog-row.is-open .catalog-row-arrow { transform: rotate(90deg); color: #1077dc; }
+    .catalog-already {
+        padding: 12px 16px;
+        background: #f6f8fa;
+        font-size: 13px;
+        color: #666;
+        border-top: 1px solid #ececec;
+        font-style: italic;
+    }
+    .catalog-picker {
+        padding: 14px 16px 16px 16px;
+        background: #fbfcfd;
+        border-top: 1px solid #ececec;
+    }
+    .picker-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        color: #444;
+    }
+    .picker-row-label {
+        font-size: 13px;
+        color: #444;
+        flex: 0 0 110px;
+    }
+    .picker-row select,
+    .picker-row input[type="number"],
+    .picker-row input[type="text"] {
+        padding: 7px 10px !important;
+        border: 1px solid #cfd6dc !important;
+        border-radius: 6px !important;
+        font: inherit !important;
+        font-size: 13px !important;
+        background: #fff !important;
+        margin: 0 !important;
+        width: auto !important;
+        -webkit-appearance: auto !important;
+        -moz-appearance: auto !important;
+        appearance: auto !important;
+    }
+    .picker-row select { min-width: 260px; }
+    .picker-row input[type="number"] { width: 90px !important; }
+    .picker-row-hint { font-size: 12px; color: #777; }
+    .picker-row-estimate {
+        font-size: 13px;
+        color: #1a1a2e;
+        font-weight: 600;
+    }
+    .picker-error {
+        font-size: 12px;
+        color: #c0392b;
+        margin: 6px 0 10px 0;
+    }
+    .picker-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+    }
+    .picker-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .picker-btn.primary { background: #1e90ff; color: #fff; }
+    .picker-btn.primary:hover { background: #1077dc; }
+    .picker-btn.primary[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .picker-btn.secondary {
+        background: #fff;
+        border-color: #cfd6dc;
+        color: #555;
+    }
+    .picker-btn.secondary:hover { background: #f6f8fa; }
 
-    /* Streaming-credits sub-package selector. Lives inside the "Buy
-       streaming credits" mode-row when that mode is active. */
-    .streaming-options {
-        display: none;
+    /* Streaming sub-picker (package picker inside the credits picker). */
+    .pkg-list {
+        display: flex;
         flex-direction: column;
         gap: 8px;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed #e0e6ec;
         width: 100%;
     }
-    .mode-row.is-active .streaming-options { display: flex; }
-    .streaming-row {
+    .pkg-row {
         display: flex;
         align-items: flex-start;
         gap: 10px;
         padding: 10px 12px;
-        border-radius: 8px;
+        border-radius: 6px;
         border: 1px solid #e5e7eb;
         background: #fff;
         cursor: pointer;
     }
-    .streaming-row:hover { border-color: #cdd5dd; }
-    .streaming-row.is-active { border-color: #1e90ff; background: #f3f9ff; }
-    .streaming-row input[type="radio"] {
+    .pkg-row:hover { border-color: #cdd5dd; }
+    .pkg-row.is-active { border-color: #1e90ff; background: #f3f9ff; }
+    .pkg-row input[type="radio"] {
         width: auto !important;
         padding: 0 !important;
         margin: 3px 0 0 0 !important;
@@ -286,17 +335,84 @@ active: purchase
         -webkit-appearance: auto !important;
         -moz-appearance: auto !important;
     }
-    .streaming-row-body { flex: 1 1 auto; min-width: 0; }
-    .streaming-row-label { font-weight: 600; color: #222; font-size: 14px; margin-bottom: 2px; }
-    .streaming-row-desc { font-size: 12px; color: #666; line-height: 1.5; }
-    .streaming-row-inputs {
+    .pkg-row-body { flex: 1 1 auto; min-width: 0; }
+    .pkg-row-label { font-weight: 600; color: #222; font-size: 14px; margin-bottom: 2px; }
+    .pkg-row-desc { font-size: 12px; color: #666; line-height: 1.5; }
+    .pkg-row-inputs {
         display: none;
         margin-top: 8px;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
     }
-    .streaming-row.is-active .streaming-row-inputs { display: flex; }
+    .pkg-row.is-active .pkg-row-inputs { display: flex; }
+    .payg-minutes-display {
+        margin-left: 4px;
+        font-size: 12px;
+        color: #1077dc;
+        font-weight: 500;
+    }
 
+    /* Quantity stepper. Used wherever the user adjusts a small integer
+       (devices to add, etc.) — the native number input arrows are too
+       small to click comfortably, so we wrap a styled input between
+       explicit − and + buttons. The buttons disable themselves at min
+       and max bounds. */
+    .qty-stepper {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid #cfd6dc;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #fff;
+        height: 34px;
+        vertical-align: middle;
+    }
+    .qty-stepper button {
+        width: 34px !important;
+        border: none !important;
+        background: #f8f9fa !important;
+        color: #1a1a2e !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        cursor: pointer;
+        font-family: inherit !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    .qty-stepper button:hover:not([disabled]) {
+        background: #e8f0f7 !important;
+        color: #1077dc !important;
+    }
+    .qty-stepper button[disabled] { opacity: 0.35; cursor: not-allowed; }
+    .qty-stepper input[type="number"] {
+        width: 50px !important;
+        text-align: center;
+        border: none !important;
+        border-left: 1px solid #e9ecef !important;
+        border-right: 1px solid #e9ecef !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+        -moz-appearance: textfield !important;
+        appearance: textfield !important;
+        margin: 0 !important;
+        padding: 0 6px !important;
+        font: inherit !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        height: auto !important;
+        min-width: 0 !important;
+    }
+    .qty-stepper input[type="number"]::-webkit-outer-spin-button,
+    .qty-stepper input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .qty-stepper.is-wide input[type="number"] { width: 80px !important; }
+
+    /* Order summary line. */
     .summary-line {
         display: flex;
         align-items: baseline;
@@ -320,19 +436,21 @@ active: purchase
         margin-top: 6px;
     }
 
-    .cta-stack {
-        margin-top: 24px;
+    /* Checkout footer: 3 CTAs. */
+    .checkout-cta-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 4px;
     }
-    /* Single primary CTA at the bottom (Buy now). Invoice + quote moved
-       to the top alt-cta bar so the bottom row stays a clean single
-       commit action. */
     .cta-btn {
-        display: inline-block;
-        padding: 14px 28px;
-        font-size: 16px;
+        flex: 1 1 auto;
+        min-width: 160px;
+        padding: 14px 18px;
+        font-size: 15px;
         font-weight: 600;
         border-radius: 8px;
-        border: none;
+        border: 1px solid transparent;
         cursor: pointer;
         text-decoration: none;
         text-align: center;
@@ -340,162 +458,111 @@ active: purchase
     }
     .cta-btn.primary { background: #1e90ff; color: #fff; }
     .cta-btn.primary:hover { background: #1077dc; }
-    .cta-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
-
-    /* Payment-method rows. Same visual language as .mode-row (the "What
-       are you buying?" radios) for consistency: subtle row, active row
-       gets a blue tint + border, sub-inputs appear inside the active
-       row only. Invoice has a multi-field details panel revealed when
-       it's the active option. */
-    .pay-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        border: 1px solid transparent;
-    }
-    .pay-row:hover { background: #f6f8fa; }
-    .pay-row.is-active {
-        background: #e8f3ff;
-        border-color: #c8e1ff;
-    }
-    .pay-row input[type="radio"] {
-        width: auto !important;
-        padding: 0 !important;
-        margin: 4px 0 0 0 !important;
-        flex: 0 0 auto;
-        appearance: auto !important;
-        -webkit-appearance: auto !important;
-        -moz-appearance: auto !important;
-    }
-    .pay-row-body { flex: 1 1 auto; min-width: 0; }
-    .pay-row-label {
-        font-weight: 600;
-        color: #222;
-        margin-bottom: 4px;
-    }
-    .pay-row-desc {
-        font-size: 13px;
-        color: #666;
-        line-height: 1.5;
-    }
-    .pay-row-inputs {
-        display: none;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed #e0e6ec;
-    }
-    .pay-row.is-active .pay-row-inputs { display: block; }
-
-    /* Invoice details panel. Reference fields stack vertically; each
-       row is "Field name" + "Value" + remove button. Up to 4 entries
-       per Stripe's invoice custom_fields limit. */
-    .invoice-fields { display: flex; flex-direction: column; gap: 12px; }
-    .invoice-fields-intro {
-        font-size: 12px;
-        color: #666;
-        margin: 0 0 4px 0;
-        line-height: 1.4;
-    }
-    .custom-field-rows {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .custom-field-row {
-        display: grid;
-        grid-template-columns: minmax(110px, 0.4fr) 1fr auto;
-        gap: 8px;
-        align-items: center;
-    }
-    .custom-field-row input[type="text"] {
-        padding: 8px 11px;
-        border: 1px solid #cfd6dc;
-        border-radius: 6px;
-        font: inherit;
-        font-size: 13px;
+    .cta-btn.secondary {
         background: #fff;
-        margin: 0;
-        width: 100%;
-        box-sizing: border-box;
-        -webkit-appearance: auto;
-        -moz-appearance: auto;
-        appearance: auto;
+        border-color: #cfd6dc;
+        color: #1077dc;
     }
-    .custom-field-row input.custom-field-name {
-        background: #f8f9fa;
-        font-weight: 500;
-        color: #333;
-    }
-    .custom-field-remove {
+    .cta-btn.secondary:hover { background: #f3f9ff; border-color: #1e90ff; }
+    .cta-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+    /* Collapsible reference-details (PO / Reference / Company / VAT)
+       block. Appears as a single disclosure toggle by default; on
+       expand, reveals the field grid. Backend stamps PO/Reference on
+       both Pay Now and Invoice/Quote — same fields, same form. */
+    .ref-details-toggle {
         background: transparent;
         border: none;
-        color: #999;
-        font-size: 18px;
-        line-height: 1;
-        padding: 0 6px;
-        cursor: pointer;
-        font-family: inherit;
-    }
-    .custom-field-remove:hover { color: #c0392b; }
-    .custom-field-row.is-hidden { display: none; }
-    .custom-field-add {
-        align-self: flex-start;
-        background: transparent;
-        border: 1px dashed #cfd6dc;
-        color: #1e90ff;
+        color: #1077dc;
         font-size: 13px;
         font-weight: 500;
-        padding: 7px 14px;
-        border-radius: 6px;
+        padding: 6px 0;
+        margin-top: 12px;
         cursor: pointer;
         font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
-    .custom-field-add:hover { background: #f3f9ff; border-color: #1e90ff; }
-    .custom-field-add[disabled] { opacity: 0.5; cursor: not-allowed; }
-    @media (max-width: 480px) {
-        .custom-field-row { grid-template-columns: 1fr auto; }
-        .custom-field-row .custom-field-name { grid-column: 1 / -1; }
+    .ref-details-toggle:hover { text-decoration: underline; }
+    .ref-details-toggle .arrow { font-size: 11px; }
+    .ref-details {
+        display: none;
+        margin-top: 12px;
+        padding: 14px 16px;
+        background: #fbfcfd;
+        border: 1px solid #ececec;
+        border-radius: 8px;
     }
-    .invoice-field-hint {
-        font-size: 11px;
-        color: #888;
-        margin: 0;
+    .ref-details.is-open { display: block; }
+    .ref-details-intro {
+        font-size: 12px;
+        color: #666;
+        margin: 0 0 12px 0;
         line-height: 1.4;
     }
-    /* Recipient confirmation. Sits inside the invoice details panel and
-       tells the user (in plain English) which email will receive the
-       invoice — so they don't wonder where the Stripe email is going.
-       Soft blue tint matches the active pay-row treatment. */
-    .invoice-recipient {
-        grid-column: 1 / -1;
+    .ref-details-grid {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 10px 12px;
+        align-items: center;
+    }
+    .ref-details-grid label {
+        font-size: 13px;
+        color: #444;
+        margin: 0;
+    }
+    .ref-details-grid input[type="text"] {
+        padding: 8px 11px !important;
+        border: 1px solid #cfd6dc !important;
+        border-radius: 6px !important;
+        font: inherit !important;
+        font-size: 13px !important;
+        background: #fff !important;
+        margin: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box;
+        -webkit-appearance: auto !important;
+        -moz-appearance: auto !important;
+        appearance: auto !important;
+    }
+    .ref-details-hint {
+        font-size: 11px;
+        color: #888;
+        margin: 10px 0 0 0;
+        line-height: 1.4;
+    }
+    .ref-details-recipient {
+        margin-top: 10px;
+        padding: 10px 12px;
         background: #fff;
         border: 1px solid #d8e8fa;
         border-radius: 6px;
-        padding: 10px 12px;
         font-size: 13px;
         color: #2a3a52;
         line-height: 1.4;
     }
-    .invoice-recipient strong { color: #1a1a2e; font-weight: 600; }
-    .invoice-recipient code {
+    .ref-details-recipient strong { color: #1a1a2e; font-weight: 600; }
+    .ref-details-recipient code {
         font-family: SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 12px;
         color: #1077dc;
         background: transparent;
         padding: 0;
     }
-    @media (max-width: 600px) {
-        .invoice-fields { grid-template-columns: 1fr; }
+    @media (max-width: 480px) {
+        .ref-details-grid { grid-template-columns: 1fr; }
+        .ref-details-grid label { margin-bottom: -6px; }
     }
 
     .purchase-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .purchase-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
 
-    /* Non-owner blocked state. Replaces the purchase form for members
-       of the account who don't have purchase authority. */
+    /* Non-owner blocked state. Account members who aren't owners still
+       land on this page (e.g., via the sidebar link), but they can't
+       actually buy anything. Server enforces with a 403. We swap the
+       purchase UI for a friendly explainer + the list of owners they
+       can contact. */
     .non-owner-card {
         background: #fff;
         border: 1px solid #ececec;
@@ -505,11 +572,7 @@ active: purchase
         margin: 8px 0;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
-    .non-owner-icon {
-        font-size: 28px;
-        line-height: 1;
-        margin-bottom: 10px;
-    }
+    .non-owner-icon { font-size: 28px; line-height: 1; margin-bottom: 10px; }
     .non-owner-title {
         font-size: 18px;
         font-weight: 700;
@@ -565,11 +628,7 @@ active: purchase
         color: #1a1a2e;
         word-break: break-all;
     }
-    .non-owner-owner-mail {
-        color: #1e90ff;
-        text-decoration: none;
-        font-size: 12px;
-    }
+    .non-owner-owner-mail { color: #1e90ff; text-decoration: none; font-size: 12px; }
     .non-owner-owner-mail:hover { text-decoration: underline; }
     .non-owner-contact-btn {
         display: inline-block;
@@ -588,17 +647,16 @@ active: purchase
         color: #c0392b;
         margin-top: 10px;
     }
-    .purchase-disabled-note {
-        font-size: 12px;
-        color: #888;
-        margin-top: 6px;
-        font-style: italic;
+    .purchase-success {
+        font-size: 13px;
+        color: #1f7a52;
+        margin-top: 10px;
     }
 </style>
 
 <div class="purchase-page">
     <p class="purchase-intro">
-        Buy a new license, add devices to one you already have, or top up your streaming credits.
+        Add what you need to your order — renew a license, add devices, or top up streaming credits — then check out in one transaction.
     </p>
 
     <div id="purchaseLoading" class="purchase-loading" style="text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
@@ -610,11 +668,7 @@ active: purchase
         Sign in to purchase or renew a license.
     </div>
 
-    <!-- Non-owner blocked state. Account members who aren't owners still
-         land on this page (e.g., via the sidebar link), but they can't
-         actually buy anything. Server enforces with a 403. We swap the
-         purchase UI for a friendly explainer + the list of owners they
-         can contact. -->
+    <!-- Non-owner blocked state. -->
     <div id="purchaseNonOwner" class="purchase-non-owner" style="display: none;">
         <div class="non-owner-card">
             <div class="non-owner-icon" aria-hidden="true">🔒</div>
@@ -631,311 +685,183 @@ active: purchase
     </div>
 
     <div id="purchaseContent" style="display: none;">
-        <!-- What are you buying? -->
+
+        <!-- Hint banner (from low-balance email's license_hint resolver). -->
+        <div id="hintBanner" class="hint-banner" style="display: none;">
+            <div class="hint-banner-body" id="hintBannerBody"></div>
+            <button type="button" class="hint-banner-dismiss" id="hintBannerDismiss" aria-label="Dismiss">&times;</button>
+        </div>
+
+        <!-- Your order (cart) -->
         <div class="purchase-card">
-            <h3 class="purchase-card-title">What are you buying?</h3>
-
-            <!-- Renew license. Shown when the account already has at least
-                 one active license; first-license accounts see "New license"
-                 instead (the two are mutually exclusive). For now Renew
-                 sends a mailto on Buy now until the backend renewal
-                 endpoint ships; the renewal starts when the current
-                 license ends so there is no service interruption. -->
-            <div class="mode-row" data-mode="renew" id="modeRowRenew" style="display: none;">
-                <input type="radio" name="purchaseMode" value="renew">
-                <div class="mode-row-body">
-                    <div class="mode-row-label">Renew an existing license</div>
-                    <div class="mode-row-desc">Extends the term of one of your active licenses. Starts when the current license ends, so there is no interruption.</div>
-                    <div class="mode-row-inputs" style="flex-direction: column; align-items: stretch;">
-                        <div class="step-block">
-                            <div class="step-header">
-                                <span class="step-pill">Step 1</span>
-                                <span class="step-title">Choose a license to renew</span>
-                            </div>
-                            <div class="license-list" id="renewLicenseList"></div>
-                        </div>
-                    </div>
-                    <div class="purchase-disabled-note" id="renewEmpty" style="display: none;">
-                        No active licenses on this account yet.
-                    </div>
-                </div>
+            <h3 class="purchase-card-title">
+                Your order<span class="cart-count" id="cartCount"></span>
+            </h3>
+            <div id="cartEmpty" class="cart-empty">Your order is empty. Add an item below to get started.</div>
+            <div id="cartList" class="cart-list"></div>
+            <div id="cartSubtotal" class="cart-subtotal" style="display: none;">
+                <span class="cart-subtotal-label">Subtotal</span>
+                <span class="cart-subtotal-value" id="cartSubtotalValue">$0.00</span>
             </div>
-
-            <!-- New license. <div> wrappers (not <label>) because the
-                 legacy core.min.css applies global `label{...}` rules that
-                 collapse our flex layout. Activation is handled by the
-                 row-click listener at the bottom of this file. Hidden
-                 when the account already has at least one active license
-                 (users renew or add devices instead of stacking new ones). -->
-            <div class="mode-row" data-mode="new" id="modeRowNew">
-                <input type="radio" name="purchaseMode" value="new" checked>
-                <div class="mode-row-body">
-                    <div class="mode-row-label">New license</div>
-                    <div class="mode-row-desc">$400 / year for the first device, +$150 / year per additional device. 1 year term.</div>
-                    <div class="mode-row-inputs">
-                        <span class="mode-input-label">Devices:</span>
-                        <select id="newDeviceCount">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3" selected>3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                            <option value="11">11</option>
-                            <option value="12">12</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add devices to existing license. Two-step process:
-                 Step 1. Pick a license from a list of cards (each shows
-                 name + expiry + current device count).
-                 Step 2. Pick how many devices to add. Hidden until a
-                 license is selected so the flow reads top-to-bottom. -->
-            <div class="mode-row" data-mode="add_devices" id="modeRowAddDevices">
-                <input type="radio" name="purchaseMode" value="add_devices">
-                <div class="mode-row-body">
-                    <div class="mode-row-label">Add devices to an existing license</div>
-                    <div class="mode-row-desc">Prorated to the license's current expiry. $20 / month / added device.</div>
-                    <div class="mode-row-inputs" style="flex-direction: column; align-items: stretch;">
-
-                        <!-- Step 1. Choose a license -->
-                        <div class="step-block">
-                            <div class="step-header">
-                                <span class="step-pill">Step 1</span>
-                                <span class="step-title">Choose a license</span>
-                            </div>
-                            <div class="license-list" id="addDevicesLicenseList"></div>
-                        </div>
-
-                        <!-- Step 2. How many devices. Hidden until Step 1 has a selection. -->
-                        <div class="step-block" id="addDevicesStep2" style="display: none;">
-                            <div class="step-header">
-                                <span class="step-pill">Step 2</span>
-                                <span class="step-title">How many devices to add?</span>
-                            </div>
-                            <div class="step2-card">
-                                <div class="step2-context" id="step2Context"></div>
-                                <div class="step2-stepper">
-                                    <button type="button" class="step2-step-btn" id="addDevicesMinus" aria-label="Decrease">−</button>
-                                    <input type="number" id="addDevicesCount" min="1" max="10" value="1">
-                                    <button type="button" class="step2-step-btn" id="addDevicesPlus" aria-label="Increase">+</button>
-                                    <span class="step2-result" id="step2NewTotal"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="purchase-disabled-note" id="addDevicesEmpty" style="display: none;">
-                        No active licenses on this account yet. Buy a new license first.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Buy streaming credits. Three sub-packages: PAYG (open
-                 amount, min $25), Pro Bundle ($500 → $600, 20% bonus),
-                 Annual Unlimited ($1,200 / year subscription). Each
-                 hits a different endpoint on Buy now. -->
-            <div class="mode-row" data-mode="streaming">
-                <input type="radio" name="purchaseMode" value="streaming">
-                <div class="mode-row-body">
-                    <div class="mode-row-label">Add streaming credits</div>
-                    <div class="mode-row-desc">
-                        Credits are deducted at $<span data-rate-per-minute>0.06</span> / minute
-                        while streaming from Eagle Eyes Pilot to other viewers.
-                    </div>
-                    <div class="streaming-options">
-                        <div class="streaming-row" data-package="payg">
-                            <input type="radio" name="streamingPkg" value="payg" checked>
-                            <div class="streaming-row-body">
-                                <div class="streaming-row-label">Pay as you go</div>
-                                <div class="streaming-row-desc">Top up any amount. Minimum $25. Credits never expire while you have an active license.</div>
-                                <div class="streaming-row-inputs">
-                                    <span class="mode-input-label">Top up:</span>
-                                    <input type="number" id="paygAmount" min="25" step="1" value="50">
-                                    <span class="mode-input-label">USD</span>
-                                    <span id="paygMinutesDisplay" class="payg-minutes-display"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="streaming-row" data-package="pro_bundle">
-                            <input type="radio" name="streamingPkg" value="pro_bundle">
-                            <div class="streaming-row-body">
-                                <div class="streaming-row-label">Pro Bundle. 20% bonus</div>
-                                <div class="streaming-row-desc">$500 → $600 in credits. Best value for active users.</div>
-                            </div>
-                        </div>
-                        <div class="streaming-row" data-package="unlimited">
-                            <input type="radio" name="streamingPkg" value="unlimited">
-                            <div class="streaming-row-body">
-                                <div class="streaming-row-label">Annual Unlimited</div>
-                                <div class="streaming-row-desc">$1,200 / year. Unlimited streaming for the rest of your license term.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div id="cartSubtotalNote" class="cart-subtotal-note" style="display: none;">
+                Final price + tax computed at checkout.
             </div>
         </div>
 
-        <!-- How do you want to pay? Three options: credit card (Stripe
-             Checkout), invoice (Stripe Invoice, NET-30), quote (Stripe
-             Quote). The Continue button at the bottom branches on this
-             radio. Invoice is the only one with extra fields (PO, address,
-             memo, etc.), revealed in a sub-panel below when selected. -->
+        <!-- Add more to your order (catalog) -->
         <div class="purchase-card">
-            <h3 class="purchase-card-title">How do you want to pay?</h3>
-
-            <div class="pay-row" data-pay="card">
-                <input type="radio" name="paymentMethod" value="card" checked>
-                <div class="pay-row-body">
-                    <div class="pay-row-label">Pay now with a credit card</div>
-                    <div class="pay-row-desc">Charged immediately via our secure payment portal. License or credits are issued the moment payment succeeds.</div>
-                </div>
-            </div>
-
-            <div class="pay-row" data-pay="invoice">
-                <input type="radio" name="paymentMethod" value="invoice">
-                <div class="pay-row-body">
-                    <div class="pay-row-label">Request an invoice</div>
-                    <div class="pay-row-desc">We'll email you an invoice with a secure pay link. NET-30 by default. Best for agencies that need a PO before payment.</div>
-
-                    <!-- Invoice details panel. Revealed only when this row
-                         is active. All fields are optional; on Continue
-                         they're packaged into the request_invoice_for_self
-                         call. Until the backend grows structured fields,
-                         everything except days_until_due rides in `footer`
-                         as a labeled block — easy to migrate later. -->
-                    <div class="pay-row-inputs" id="invoiceDetailsPanel">
-                        <div class="invoice-fields">
-                            <p class="invoice-fields-intro">
-                                Reference details (all optional). Each entry prints on the invoice
-                                and the PDF. Max 4 entries, 30 characters per field.
-                            </p>
-                            <div id="invoiceCustomFieldRows" class="custom-field-rows">
-                                <!-- Pre-seeded with two canonical entries (PO Number / Reference);
-                                     names are editable so customers can rename or extend as needed.
-                                     Empty rows are filtered out before submit. -->
-                                <div class="custom-field-row" data-row-index="0">
-                                    <input type="text" class="custom-field-name" value="PO Number" maxlength="30" placeholder="Field name">
-                                    <input type="text" class="custom-field-value" maxlength="30" placeholder="e.g. PO-2026-0142">
-                                    <button type="button" class="custom-field-remove" title="Remove field" aria-label="Remove field">&times;</button>
-                                </div>
-                                <div class="custom-field-row" data-row-index="1">
-                                    <input type="text" class="custom-field-name" value="Reference" maxlength="30" placeholder="Field name">
-                                    <input type="text" class="custom-field-value" maxlength="30" placeholder="e.g. Project Alpha">
-                                    <button type="button" class="custom-field-remove" title="Remove field" aria-label="Remove field">&times;</button>
-                                </div>
-                            </div>
-                            <button type="button" id="invoiceAddFieldBtn" class="custom-field-add">+ Add another field</button>
-                            <div class="invoice-recipient" id="invoiceRecipient" aria-live="polite">
-                                <!-- Populated by renderInvoiceRecipient() with the signed-in user's
-                                     name + email so they see who's about to receive the invoice. -->
-                            </div>
-                            <p class="invoice-field-hint" style="margin-top: 4px;">
-                                Payment terms are NET-30 by default. Sales tax is computed from your
-                                billing address. If none is set, we'll prompt you to add one. Email
-                                info@eagleeyessearch.com for non-standard terms.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pay-row" data-pay="quote">
-                <input type="radio" name="paymentMethod" value="quote">
-                <div class="pay-row-body">
-                    <div class="pay-row-label">Request a quote</div>
-                    <div class="pay-row-desc">We'll email you a finalized quote document, valid for 30 days. Use this when procurement needs a quote before approving the spend.</div>
-                </div>
-            </div>
+            <h3 class="purchase-card-title">Add more to your order</h3>
+            <div id="catalogList" class="catalog-list"></div>
         </div>
 
-        <!-- Order summary -->
-        <div class="purchase-card">
-            <h3 class="purchase-card-title">Order summary</h3>
-            <div class="summary-line">
-                <span id="summaryLineLabel">-</span>
-                <span id="summaryLineAmount">$0.00</span>
+        <!-- Complete your order -->
+        <div class="purchase-card" id="checkoutCard">
+            <h3 class="purchase-card-title">Complete your order</h3>
+            <div class="checkout-cta-row">
+                <button type="button" class="cta-btn primary" id="ctaPayNow">Pay now</button>
+                <button type="button" class="cta-btn secondary" id="ctaInvoice">Email invoice</button>
+                <button type="button" class="cta-btn secondary" id="ctaQuote">Request quote</button>
             </div>
-            <div class="summary-line total">
-                <span>Estimated total</span>
-                <span id="summaryTotal">$0.00</span>
-            </div>
-            <div class="summary-note">Final price + applicable taxes are calculated at checkout.</div>
-        </div>
 
-        <!-- Single Continue button. Branches by paymentMethod radio:
-             card → Stripe Checkout (get_stripe_payment_link),
-             invoice → request_invoice_for_self (with the invoice-fields
-                       panel data),
-             quote → request_quote_for_self.
-             The previous direct-to-action top buttons (Request invoice /
-             Request quote that fired the API immediately on click) were
-             surprising — users expect a discrete Confirm step. -->
-        <div class="cta-stack">
-            <button type="button" id="ctaContinue" class="cta-btn primary">Continue</button>
-            <div id="ctaError" class="purchase-error" style="display: none;"></div>
+            <button type="button" class="ref-details-toggle" id="refDetailsToggle">
+                <span class="arrow">▸</span>
+                <span id="refDetailsToggleLabel">Add reference details (optional)</span>
+            </button>
+
+            <div id="refDetails" class="ref-details">
+                <p class="ref-details-intro">
+                    Optional. These appear on the receipt / invoice / quote PDF and on Stripe's exports.
+                    Customers with procurement or accounts-payable often need a PO Number or Reference.
+                </p>
+                <div class="ref-details-grid">
+                    <label for="refCompany">Company</label>
+                    <input type="text" id="refCompany" maxlength="120" placeholder="Acme Search &amp; Rescue">
+
+                    <label for="refPoNumber">PO Number</label>
+                    <input type="text" id="refPoNumber" maxlength="30" placeholder="PO-2026-0142">
+
+                    <label for="refReference">Reference</label>
+                    <input type="text" id="refReference" maxlength="30" placeholder="Project Alpha">
+
+                    <label for="refVatId">VAT ID</label>
+                    <input type="text" id="refVatId" maxlength="40" placeholder="GB123456789 (if applicable)">
+                </div>
+                <div class="ref-details-recipient" id="refDetailsRecipient" aria-live="polite"></div>
+                <p class="ref-details-hint">
+                    Invoice payment terms are NET-30 by default. Sales tax is computed from your billing address;
+                    if none is on file we'll prompt you for one before sending the invoice / quote. Email
+                    info@eagleeyessearch.com for non-standard terms.
+                </p>
+            </div>
+
+            <div id="ctaStatus" class="purchase-error" style="display: none;"></div>
         </div>
     </div>
 </div>
 
-{% include billing-address-modal.html %}
-
 <script>
 (function() {
-    var SALES_EMAIL = 'info@eagleeyessearch.com';
+    'use strict';
 
+    // ===== Constants =====
+    var SALES_EMAIL = 'info@eagleeyessearch.com';
+    // Self-service extension cap (backend-enforced). We don't show this
+    // number in customer-facing copy — error wording stays generic.
+    var DEVICE_CAP = 50;
+    // New-license catalog caps out at 12 because that's the highest
+    // sar_1y_Ndev product in pricing.py. Independent of DEVICE_CAP above.
+    var NEW_LICENSE_MAX_DEVICES = 12;
+    var PAYG_MIN_DEFAULT = 25;
+    var RENEWAL_WINDOW_DAYS_PAID = 90;
+    var RENEWAL_WINDOW_DAYS_TRIAL = 7;
+
+    // Stubs. Flip to false when backend ships create_purchase_*.
+    var STUB_ENDPOINTS = true;
+
+    // ===== State =====
     var state = {
         accounts: [],
         organizations: [],
         licenses: [],
-        credits: null,             // streaming credits balance for active account
+        credits: null,
         activeAccountId: null,
-        activeLicenseId: null,     // selected license for add_devices mode
-        renewLicenseId: null,      // selected license for renew mode
-        mode: 'new',               // new | renew | add_devices | streaming
-        streamingPkg: 'payg',      // payg | pro_bundle | unlimited
-        paymentMethod: 'card'      // card | invoice | quote
+        cart: { items: [] },        // synced from localStorage, per-account
+        previewSummary: null,       // last preview_cart response (or stub equivalent)
+        previewError: null,         // backend-returned validation error from preview_cart
+        submitting: false,
+        activePicker: null,         // null | 'renew' | 'devices' | 'credits' | 'new'
+        pickerDraft: null,          // per-slot working values
+        pickerError: null,
+        licenseHint: null,          // raw 5-char prefix from URL
+        hintBannerDismissed: false,
+        refDetailsOpen: false,
+        urlAddsApplied: false,      // applied URL deep-links once at init
+        deepLinkBlocked: null       // {reason, license} when a ?add=... refused to add (e.g. cap exceeded)
     };
 
+    // ===== DOM helpers =====
     function $(id) { return document.getElementById(id); }
     function getHostUrl() {
         return window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
     }
+    function esc(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function uuid() {
+        return 'i-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    }
+    function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
-    async function loadDashboard(user) {
-        if (window.eeDashboard) {
-            var cached = window.eeDashboard.read(user.uid);
-            if (cached) {
-                window.eeDashboard.fetch(user).catch(function() {});
-                return cached;
-            }
-            return window.eeDashboard.fetch(user);
-        }
-        // Fallback if shared cache isn't available
-        var idToken = await user.getIdToken();
-        var r = await fetch(getHostUrl() + '/get_account_dashboard', {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
-        });
-        if (!r.ok) throw new Error('Dashboard load failed (' + r.status + ')');
-        return r.json();
+    // Inline +/− stepper. The +/- buttons dispatch a `change` event on
+    // the inner input so existing data-edit-field / data-picker-field
+    // change handlers fire as if the user typed.
+    //   opts.fieldAttrs — string of HTML attrs to splice onto the input
+    //                     (e.g. 'data-picker-field="additional_devices"').
+    function qtyStepperHtml(opts) {
+        var min = (opts.min != null) ? opts.min : 1;
+        var max = (opts.max != null) ? opts.max : 99;
+        var step = opts.step || 1;
+        var val = (opts.value != null) ? opts.value : min;
+        val = clamp(val, min, max);
+        var decDis = val <= min ? ' disabled' : '';
+        var incDis = val >= max ? ' disabled' : '';
+        var inputClass = opts.wideInput ? ' class="wide"' : '';
+        return '<div class="qty-stepper' + (opts.wideInput ? ' is-wide' : '') + '">'
+            +   '<button type="button" data-action="stepper-dec" data-step="' + step
+            +     '" aria-label="Decrease"' + decDis + '>−</button>'
+            +   '<input type="number"' + inputClass + ' ' + (opts.fieldAttrs || '')
+            +     ' min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '">'
+            +   '<button type="button" data-action="stepper-inc" data-step="' + step
+            +     '" aria-label="Increase"' + incDis + '>+</button>'
+            + '</div>';
     }
 
+    // ===== Accounts / licenses =====
     function accountIdOf(a) { return (a.account_id != null) ? a.account_id : a.id; }
-
-    // The active account drives which licenses appear in the "Add devices"
-    // picker. Filter cachedLicenseOverview by accounts[].organization_ids →
-    // org.licenses[] just like account.html does.
-    function licensesForActiveAccount() {
-        if (state.accounts.length <= 1) return state.licenses;
-        var acc = state.accounts.find(function(a) {
+    function activeAccount() {
+        return (state.accounts || []).find(function(a) {
             return String(accountIdOf(a)) === String(state.activeAccountId);
-        });
+        }) || state.accounts[0] || null;
+    }
+    function activeAccountName() {
+        var acc = activeAccount();
+        return acc && acc.name ? acc.name : null;
+    }
+    function activeAccountAddress() {
+        var acc = activeAccount();
+        return (acc && acc.address) || null;
+    }
+    function activeAccountIsOwner() {
+        var acc = activeAccount();
+        return !!(acc && acc.is_owner);
+    }
+
+    function licensesForActiveAccount() {
+        if (!state.accounts.length) return state.licenses;
+        if (state.accounts.length <= 1) return state.licenses;
+        var acc = activeAccount();
         if (!acc) return state.licenses;
         var orgIds = acc.organization_ids || [];
         var licIdSet = {};
@@ -948,13 +874,99 @@ active: purchase
         return state.licenses.filter(function(l) { return licIdSet[l.license_id]; });
     }
 
-    function activeAccountName() {
-        var acc = state.accounts.find(function(a) {
-            return String(accountIdOf(a)) === String(state.activeAccountId);
-        }) || state.accounts[0];
-        return acc && acc.name ? acc.name : null;
+    function findLicenseById(id) {
+        if (!id) return null;
+        return licensesForActiveAccount().find(function(l) { return l.license_id === id; }) || null;
+    }
+    function findOrgForLicense(license) {
+        if (!license || !license.license_id) return null;
+        for (var j = 0; j < state.organizations.length; j++) {
+            var org = state.organizations[j];
+            if ((org.licenses || []).some(function(l) { return l.license_id === license.license_id; })) {
+                return org;
+            }
+        }
+        return null;
     }
 
+    // === License-name generator (mirrors backend generate_license_name) ===
+    // Format: "{Term} {License|Trial} {YY|YY/YY} - {team}"
+    // Examples: "Annual License 29/30 - SAR Alberta"
+    //           "3-Month License 26 - Marin County SAR"
+    //           "1-Week Trial 26 - Test Volunteer"
+    function termLabel(days) {
+        var d = parseInt(days, 10) || 0;
+        if (360 <= d && d <= 370) return 'Annual';
+        if (85 <= d && d <= 95) return '3-Month';
+        if (28 <= d && d <= 32) return '1-Month';
+        if (6 <= d && d <= 8) return '1-Week';
+        return d + '-Day';
+    }
+    function pad2(n) { return n < 10 ? '0' + n : String(n); }
+    function teamNameFor(sourceLicense) {
+        // Precedence: organization name → billing account name → email
+        // prefix → "Unnamed". Matches the backend chain so the frontend
+        // preview reads the same as the eventual stored name.
+        // Backend canonical field is `.name`; the dashboard response
+        // sometimes denormalizes to `.organization_name`. Prefer `.name`
+        // (what the backend actually uses) and fall back to the other.
+        if (sourceLicense) {
+            var org = findOrgForLicense(sourceLicense);
+            if (org) {
+                var n = org.name || org.organization_name;
+                if (n) return n;
+            }
+        }
+        var acc = activeAccount();
+        if (acc && acc.name) return acc.name;
+        try {
+            var user = firebase.auth && firebase.auth().currentUser;
+            if (user && user.email) return user.email.split('@')[0];
+        } catch (e) {}
+        return 'Unnamed';
+    }
+    function generateLicenseName(opts) {
+        var term = termLabel(opts.durationDays);
+        var suffix = opts.isTrial ? 'Trial' : 'License';
+        var startYy = new Date(opts.startAtTs * 1000).getFullYear() % 100;
+        var expiryYy = new Date(opts.expiryTs * 1000).getFullYear() % 100;
+        var yySpan = (startYy === expiryYy) ? pad2(startYy) : (pad2(startYy) + '/' + pad2(expiryYy));
+        return term + ' ' + suffix + ' ' + yySpan + ' - ' + teamNameFor(opts.sourceLicense);
+    }
+    // Convenience: renewal starts at the source license's current expiry
+    // and runs for duration_days.
+    function renewedLicenseName(sourceLicense, durationDays) {
+        if (!sourceLicense) return '';
+        var expiryMs = expiryToTs(sourceLicense.expiry_date);
+        if (!expiryMs) return '';
+        var dur = parseInt(durationDays, 10) || 365;
+        var startSec = Math.floor(expiryMs / 1000);
+        var expirySec = startSec + dur * 24 * 3600;
+        return generateLicenseName({
+            sourceLicense: sourceLicense,
+            durationDays: dur,
+            startAtTs: startSec,
+            expiryTs: expirySec,
+            isTrial: false
+        });
+    }
+    // For new licenses: starts now, runs 1 year. No source license, so
+    // team_name falls back to the active account's name.
+    function newLicenseDisplayName() {
+        var nowSec = Math.floor(Date.now() / 1000);
+        return generateLicenseName({
+            sourceLicense: null,
+            durationDays: 365,
+            startAtTs: nowSec,
+            expiryTs: nowSec + 365 * 24 * 3600,
+            isTrial: false
+        });
+    }
+    function deviceCountOf(license) {
+        if (!license) return 0;
+        return (typeof license.total_keys === 'number') ? license.total_keys
+            : (typeof license.n_tokens === 'number') ? license.n_tokens : 0;
+    }
     function expiryToTs(expiry) {
         if (expiry == null || expiry === '') return null;
         if (typeof expiry === 'number') return expiry < 1e12 ? expiry * 1000 : expiry;
@@ -962,58 +974,49 @@ active: purchase
         var t = d.getTime();
         return isNaN(t) ? null : t;
     }
-    // Returns the calendar-month difference rounded up, matching the backend
-    // formula in stripe_request_handlers.py line 557.
     function remainingMonthsFor(license) {
         if (!license) return 0;
         var expTs = expiryToTs(license.expiry_date);
         if (!expTs) return 0;
         var remainingMs = expTs - Date.now();
         if (remainingMs <= 0) return 0;
-        var months = remainingMs / (30.44 * 24 * 3600 * 1000);
-        return Math.ceil(months);
+        return Math.ceil(remainingMs / (30.44 * 24 * 3600 * 1000));
+    }
+    function daysToExpiry(license) {
+        var expTs = expiryToTs(license && license.expiry_date);
+        if (!expTs) return Infinity;
+        return Math.ceil((expTs - Date.now()) / (24 * 3600 * 1000));
+    }
+    function isTrialLicense(license) {
+        return !!(license && /trial/i.test(license.tier || ''));
+    }
+    function isRenewalEligible(license) {
+        if (!license || !license.license_id) return false;
+        if (remainingMonthsFor(license) <= 0) return false;
+        if (license.successor_license_id) return false;
+        var window = isTrialLicense(license) ? RENEWAL_WINDOW_DAYS_TRIAL : RENEWAL_WINDOW_DAYS_PAID;
+        return daysToExpiry(license) <= window;
+    }
+    function isExtendableLicense(license) {
+        if (!license || !license.license_id) return false;
+        if (remainingMonthsFor(license) <= 0) return false;
+        return deviceCountOf(license) < DEVICE_CAP;
+    }
+    function licensesEligibleToRenew() {
+        return licensesForActiveAccount().filter(isRenewalEligible);
+    }
+    function licensesEligibleToExtend() {
+        return licensesForActiveAccount().filter(isExtendableLicense);
+    }
+    function anyActiveLicenses() {
+        return licensesForActiveAccount().some(function(l) { return remainingMonthsFor(l) > 0; });
     }
 
-    function formatPrice(usd) {
-        if (typeof usd !== 'number' || isNaN(usd)) return '$0.00';
-        return '$' + usd.toFixed(2);
-    }
-
-    function priceForNew(deviceCount) {
-        var n = Math.max(1, Math.min(12, parseInt(deviceCount, 10) || 1));
-        return 400 + (n - 1) * 150;
-    }
-    function priceForAddDevices(license, addCount) {
-        if (!license || !addCount) return 0;
-        var months = remainingMonthsFor(license);
-        return months * 20 * addCount;
-    }
-
-    function findLicenseById(id) {
-        return licensesForActiveAccount().find(function(l) { return l.license_id === id; });
-    }
-
-    function deviceCountOf(license) {
-        return (typeof license.total_keys === 'number') ? license.total_keys
-            : (typeof license.n_tokens === 'number') ? license.n_tokens : 0;
-    }
-    function esc(s) {
-        if (s == null) return '';
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    // ---- Streaming pricing ----
-    // PAYG and Pro Bundle defaults match the current backend config in
-    // configurations/streaming_packages. When the dashboard or a future
-    // endpoint exposes the package config, applyPackageConfig overrides.
-    // per_minute_rate gets refreshed from get_streaming_credits at runtime;
-    // 0.06 is the current default ($0.06 / minute).
+    // ===== Pricing (client estimates only; preview_cart is authoritative) =====
     var streamingPricing = {
-        payg_min: 25,
+        payg_min: PAYG_MIN_DEFAULT,
         bundle_price: 500,
         bundle_credits: 600,
-        unlimited_annual: 1200,
         per_minute_rate: 0.06
     };
     function currentPerMinuteRate() {
@@ -1022,70 +1025,390 @@ active: purchase
         }
         return streamingPricing.per_minute_rate;
     }
+    function formatPrice(usd) {
+        if (typeof usd !== 'number' || isNaN(usd)) return '$0.00';
+        return '$' + usd.toFixed(2);
+    }
+    function priceForNew(deviceCount) {
+        var n = clamp(parseInt(deviceCount, 10) || 1, 1, NEW_LICENSE_MAX_DEVICES);
+        return 400 + (n - 1) * 150;
+    }
+    // Extension price: $150 per full year of remaining license + $20 per
+    // remaining month (rounded up), per added device. So a 41-month
+    // remaining license = 3 yr + 5 mo = $150×3 + $20×5 = $550/device.
+    function extensionPerDevicePrice(license) {
+        if (!license) return { months: 0, fullYears: 0, partialMonths: 0, perDevice: 0 };
+        var months = remainingMonthsFor(license);
+        var fullYears = Math.floor(months / 12);
+        var partialMonths = months - fullYears * 12;
+        var perDevice = fullYears * 150 + partialMonths * 20;
+        return { months: months, fullYears: fullYears, partialMonths: partialMonths, perDevice: perDevice };
+    }
+    function priceForAddDevices(license, addCount) {
+        if (!license || !addCount) return 0;
+        return extensionPerDevicePrice(license).perDevice * addCount;
+    }
+    // Compact textual breakdown e.g. "3 yr × $150 + 5 mo × $20 = $550/device".
+    function extensionPriceBreakdownText(license) {
+        var bd = extensionPerDevicePrice(license);
+        var parts = [];
+        if (bd.fullYears) parts.push(bd.fullYears + ' yr × $150');
+        if (bd.partialMonths) parts.push(bd.partialMonths + ' mo × $20');
+        if (!parts.length) return '';
+        return parts.join(' + ') + ' = $' + bd.perDevice + '/device';
+    }
+    function priceForRenewal(license, newDeviceCount) {
+        if (!license) return 0;
+        var n = newDeviceCount || deviceCountOf(license);
+        return priceForNew(n);
+    }
 
-    async function loadStreamingPackages(user) {
-        // Forward-compat: prefer streaming_packages bundled into the
-        // dashboard. Falls back to a (possibly nonexistent today)
-        // get_streaming_packages endpoint, then to the hardcoded defaults.
-        var dash = window.eeDashboard ? window.eeDashboard.read(user.uid) : null;
-        if (dash && dash.streaming_packages) return dash.streaming_packages;
-        try {
-            var idToken = await user.getIdToken();
-            var r = await fetch(getHostUrl() + '/get_streaming_packages', {
-                method: 'GET',
-                headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
-            });
-            if (r.ok) return r.json();
-        } catch (e) { /* endpoint not deployed yet */ }
+    // ===== Cart state + localStorage =====
+    // Catalog-slot categories. SKUs map 1:1 except 'credits' which covers
+    // both streaming_topup_payg and streaming_topup_pro_bundle (one of
+    // either, not both).
+    var CREDITS_SKUS = ['streaming_topup_payg', 'streaming_topup_pro_bundle'];
+    function isCreditsSku(sku) { return CREDITS_SKUS.indexOf(sku) !== -1; }
+    function catalogSlotForSku(sku) {
+        if (sku === 'license_renewal') return 'renew';
+        if (sku === 'additional_devices') return 'devices';
+        if (sku === 'license_new') return 'new';
+        if (isCreditsSku(sku)) return 'credits';
         return null;
     }
-    function applyPackageConfig(pkgs) {
-        if (!pkgs) return;
-        var payg = pkgs.payg || {};
-        var bundle = pkgs.pro_bundle || pkgs.bundle || {};
-        var unlim = pkgs.unlimited || pkgs.annual_unlimited || {};
-        if (typeof payg.min_amount_usd === 'number') {
-            streamingPricing.payg_min = payg.min_amount_usd;
-            var paygInput = $('paygAmount');
-            if (paygInput) {
-                paygInput.min = String(payg.min_amount_usd);
-                if (parseFloat(paygInput.value) < payg.min_amount_usd) {
-                    paygInput.value = String(payg.min_amount_usd);
+
+    function cartStorageKey() {
+        return 'ee-cart:' + (state.activeAccountId || 'anon');
+    }
+    function loadCart() {
+        try {
+            var raw = localStorage.getItem(cartStorageKey());
+            if (!raw) return { items: [] };
+            var parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.items)) return { items: [] };
+            // Drop any items whose referenced license no longer exists
+            // on the active account (account swap, license deleted).
+            parsed.items = parsed.items.filter(function(it) {
+                if (it.license_id) {
+                    return !!findLicenseById(it.license_id);
+                }
+                return true;
+            });
+            return parsed;
+        } catch (e) { return { items: [] }; }
+    }
+    function saveCart() {
+        try {
+            localStorage.setItem(cartStorageKey(), JSON.stringify({
+                account_id: state.activeAccountId,
+                items: state.cart.items
+            }));
+        } catch (e) { /* quota / private mode — silent */ }
+    }
+    function clearCart() {
+        state.cart = { items: [] };
+        try { localStorage.removeItem(cartStorageKey()); } catch (e) {}
+    }
+
+    function cartFindBySku(sku) {
+        return state.cart.items.find(function(it) { return it.sku === sku; }) || null;
+    }
+    function cartFindByCategory(slot) {
+        return state.cart.items.find(function(it) { return catalogSlotForSku(it.sku) === slot; }) || null;
+    }
+    function cartHasCategory(slot) { return !!cartFindByCategory(slot); }
+    function cartHasLicenseRenewal(licenseId) {
+        return state.cart.items.some(function(it) {
+            return it.sku === 'license_renewal' && it.license_id === licenseId;
+        });
+    }
+    function cartHasLicenseExtension(licenseId) {
+        return state.cart.items.some(function(it) {
+            return it.sku === 'additional_devices' && it.license_id === licenseId;
+        });
+    }
+    function cartAdd(item) {
+        item.id = item.id || uuid();
+        // Replace any existing item in the same catalog slot.
+        var slot = catalogSlotForSku(item.sku);
+        if (slot) {
+            state.cart.items = state.cart.items.filter(function(it) {
+                return catalogSlotForSku(it.sku) !== slot;
+            });
+        }
+        state.cart.items.push(item);
+        saveCart();
+    }
+    function cartUpdate(id, patch) {
+        var it = state.cart.items.find(function(x) { return x.id === id; });
+        if (!it) return;
+        Object.keys(patch).forEach(function(k) { it[k] = patch[k]; });
+        saveCart();
+    }
+    function cartRemove(id) {
+        state.cart.items = state.cart.items.filter(function(it) { return it.id !== id; });
+        saveCart();
+    }
+
+    // ===== URL deep-link translator =====
+    // Stackable ?add=... + legacy ?mode= / ?license_id= / ?device_count=
+    // / ?package=. Returns an array of CartItem objects to push.
+    function parseUrlAddItems() {
+        var params = new URLSearchParams(window.location.search);
+        var items = [];
+
+        // ?add=... (stackable)
+        params.getAll('add').forEach(function(spec) {
+            var item = parseAddSpec(spec);
+            if (item) items.push(item);
+        });
+
+        // Legacy translator (only when no add= present, or as additive).
+        var legacyItem = parseLegacyParams(params);
+        if (legacyItem) {
+            // Avoid double-add when both ?mode= and ?add= would yield
+            // the same catalog slot.
+            var slot = catalogSlotForSku(legacyItem.sku);
+            var alreadyHas = items.some(function(it) {
+                return catalogSlotForSku(it.sku) === slot;
+            });
+            if (!alreadyHas) items.push(legacyItem);
+        }
+
+        return items;
+    }
+    function parseAddSpec(spec) {
+        if (!spec) return null;
+        var parts = spec.split(':');
+        var kind = parts[0];
+        if (kind === 'renew' && parts[1]) {
+            var lic = findLicenseById(parts[1]);
+            if (!lic) return null;
+            return {
+                id: uuid(),
+                sku: 'license_renewal',
+                license_id: lic.license_id,
+                duration_days: 365,
+                new_n_tokens: deviceCountOf(lic)
+            };
+        }
+        if (kind === 'devices' && parts[1]) {
+            var dlic = findLicenseById(parts[1]);
+            if (!dlic) return null;
+            var current = deviceCountOf(dlic);
+            // License already at/over the self-service cap → don't create a
+            // broken cart item. Surface a banner so the user understands why.
+            if (current >= DEVICE_CAP) {
+                state.deepLinkBlocked = { reason: 'device_cap_exceeded', license: dlic };
+                return null;
+            }
+            var addN = parts[2] ? parseInt(parts[2], 10) : 1;
+            if (isNaN(addN) || addN < 1) addN = 1;
+            addN = Math.min(addN, DEVICE_CAP - current);
+            return {
+                id: uuid(),
+                sku: 'additional_devices',
+                license_id: dlic.license_id,
+                additional_devices: addN
+            };
+        }
+        if (kind === 'credits') {
+            var pkg = parts[1];
+            if (pkg === 'payg') {
+                var amt = parts[2] ? parseFloat(parts[2]) : streamingPricing.payg_min;
+                if (isNaN(amt) || amt < streamingPricing.payg_min) amt = streamingPricing.payg_min;
+                return { id: uuid(), sku: 'streaming_topup_payg', amount_usd: amt };
+            }
+            if (pkg === 'pro_bundle') {
+                return { id: uuid(), sku: 'streaming_topup_pro_bundle' };
+            }
+            return null;
+        }
+        if (kind === 'new' && parts[1]) {
+            return { id: uuid(), sku: 'license_new', product_id: parts[1] };
+        }
+        return null;
+    }
+    function parseLegacyParams(params) {
+        var mode = params.get('mode');
+        var licenseId = params.get('license_id');
+        var deviceCount = parseInt(params.get('device_count') || '', 10);
+        var pkg = params.get('package');
+
+        if (mode === 'renew' && licenseId) {
+            var lic = findLicenseById(licenseId);
+            if (!lic) return null;
+            return {
+                id: uuid(), sku: 'license_renewal',
+                license_id: lic.license_id, duration_days: 365,
+                new_n_tokens: deviceCountOf(lic)
+            };
+        }
+        if ((mode === 'add_devices' || mode === 'extend') && licenseId) {
+            var dlic = findLicenseById(licenseId);
+            if (!dlic) return null;
+            var current = deviceCountOf(dlic);
+            if (current >= DEVICE_CAP) {
+                state.deepLinkBlocked = { reason: 'device_cap_exceeded', license: dlic };
+                return null;
+            }
+            var n = (isNaN(deviceCount) || deviceCount < 1) ? 1 : deviceCount;
+            n = Math.min(n, DEVICE_CAP - current);
+            return {
+                id: uuid(), sku: 'additional_devices',
+                license_id: dlic.license_id, additional_devices: n
+            };
+        }
+        if (mode === 'streaming' || mode === 'credits') {
+            if (pkg === 'pro_bundle') {
+                return { id: uuid(), sku: 'streaming_topup_pro_bundle' };
+            }
+            // unlimited is deferred in v1 — silently fall through to PAYG.
+            var amt = streamingPricing.payg_min;
+            return { id: uuid(), sku: 'streaming_topup_payg', amount_usd: amt };
+        }
+        if (mode === 'new') {
+            var dc = (!isNaN(deviceCount) && deviceCount >= 1 && deviceCount <= NEW_LICENSE_MAX_DEVICES) ? deviceCount : 3;
+            return { id: uuid(), sku: 'license_new', product_id: 'sar_1y_' + dc + 'dev' };
+        }
+        return null;
+    }
+    function parseLicenseHintFromUrl() {
+        var v = (new URLSearchParams(window.location.search).get('license_hint') || '').trim();
+        if (!v) return null;
+        return v.toUpperCase().slice(0, 16);
+    }
+
+    // ===== License hint resolver =====
+    // Outcomes: { kind: 'owner' | 'member' | 'multi' | 'none', matches: [...] }
+    // matches are { license, account }.
+    function resolveLicenseHint(hint) {
+        if (!hint) return { kind: 'none', matches: [] };
+        var upper = hint.toUpperCase();
+        var allLicenses = state.licenses || [];
+        var matches = [];
+        allLicenses.forEach(function(l) {
+            if (!l.license_id) return;
+            if (String(l.license_id).toUpperCase().indexOf(upper) !== 0) return;
+            var acc = findAccountForLicense(l);
+            matches.push({ license: l, account: acc });
+        });
+        if (matches.length === 0) return { kind: 'none', matches: [] };
+        var ownerMatches = matches.filter(function(m) { return m.account && m.account.is_owner; });
+        if (ownerMatches.length === 1) return { kind: 'owner', matches: ownerMatches };
+        if (ownerMatches.length > 1) return { kind: 'multi', matches: ownerMatches };
+        return { kind: 'member', matches: matches };
+    }
+    function findAccountForLicense(license) {
+        if (!license || !license.license_id) return null;
+        for (var i = 0; i < state.accounts.length; i++) {
+            var acc = state.accounts[i];
+            var orgIds = acc.organization_ids || [];
+            for (var j = 0; j < state.organizations.length; j++) {
+                var org = state.organizations[j];
+                if (orgIds.indexOf(org.org_id) === -1) continue;
+                if ((org.licenses || []).some(function(l) { return l.license_id === license.license_id; })) {
+                    return acc;
                 }
             }
         }
-        if (typeof bundle.price_usd === 'number') streamingPricing.bundle_price = bundle.price_usd;
-        if (typeof bundle.credits_usd === 'number') streamingPricing.bundle_credits = bundle.credits_usd;
-        if (typeof unlim.annual_price_usd === 'number') streamingPricing.unlimited_annual = unlim.annual_price_usd;
+        // Fallback for single-account dashboards.
+        return state.accounts[0] || null;
     }
+    function applyLicenseHintResolution() {
+        var banner = $('hintBanner');
+        var body = $('hintBannerBody');
+        banner.classList.remove('is-warn', 'is-error');
 
-    // Per-minute rate display in the streaming mode-row description. Updated
-    // when state.credits arrives (it carries per_minute_rate_usd).
-    function applyPerMinuteRate(rate) {
-        if (typeof rate !== 'number') return;
-        streamingPricing.per_minute_rate = rate;
-        var rateStr = rate.toFixed(2);
-        document.querySelectorAll('[data-rate-per-minute]').forEach(function(el) {
-            el.textContent = rateStr;
-        });
-        renderPaygMinutes();
-    }
-
-    // Live "≈ N minutes" preview next to the PAYG amount input so users see
-    // immediately what their top-up converts to.
-    function renderPaygMinutes() {
-        var disp = $('paygMinutesDisplay');
-        var input = $('paygAmount');
-        if (!disp || !input) return;
-        var amt = parseFloat(input.value);
-        var rate = currentPerMinuteRate();
-        if (isNaN(amt) || amt <= 0 || rate <= 0) {
-            disp.textContent = '';
-            return;
+        // Deep-link blocked (e.g. ?add=devices:<id> for a license already at
+        // the cap) takes priority over the license_hint banner — it's the
+        // more actionable signal and the cart is otherwise empty.
+        if (state.deepLinkBlocked && !state.hintBannerDismissed) {
+            var blk = state.deepLinkBlocked;
+            if (blk.reason === 'device_cap_exceeded') {
+                var lic = blk.license || {};
+                var name = lic.license_name || ('License ' + (lic.license_id || ''));
+                body.innerHTML = "Looks like you're trying to add more devices to <strong>" + esc(name)
+                    + "</strong> than we can set up self-service. "
+                    + 'Email <a href="mailto:' + SALES_EMAIL + '">' + SALES_EMAIL + '</a> '
+                    + "and we'll take care of it for you.";
+                banner.classList.add('is-warn');
+                banner.style.display = '';
+                return null;
+            }
         }
-        var mins = Math.floor(amt / rate);
-        disp.textContent = '≈ ' + mins.toLocaleString() + ' minute' + (mins === 1 ? '' : 's')
-            + ' at $' + rate.toFixed(2) + ' / min';
+
+        if (!state.licenseHint || state.hintBannerDismissed) {
+            banner.style.display = 'none';
+            return null;
+        }
+        var resolution = resolveLicenseHint(state.licenseHint);
+
+        if (resolution.kind === 'owner') {
+            var m = resolution.matches[0];
+            // Switch active account if needed.
+            var targetId = m.account ? String(accountIdOf(m.account)) : state.activeAccountId;
+            if (targetId !== String(state.activeAccountId)) {
+                state.activeAccountId = targetId;
+                state.cart = loadCart();
+            }
+            var licName = m.license.license_name || ('License ' + m.license.license_id);
+            var accName = (m.account && m.account.name) || 'this account';
+            body.innerHTML = 'Pre-filled from your low-balance email — credits will be added to '
+                + '<strong>' + esc(licName) + '</strong> on the <strong>' + esc(accName) + '</strong> account.';
+            banner.style.display = '';
+            return m;
+        }
+        if (resolution.kind === 'multi') {
+            // Show a brief picker as text — v1 lets the user pick by switching
+            // the active account themselves via the page header.
+            var names = resolution.matches.map(function(m) {
+                return (m.license.license_name || m.license.license_id)
+                    + ' (' + ((m.account && m.account.name) || '—') + ')';
+            }).join(', ');
+            body.innerHTML = 'Multiple licenses on your accounts start with '
+                + '<strong>' + esc(state.licenseHint) + '</strong>: ' + esc(names)
+                + '. Switch to the right account to top up.';
+            banner.classList.add('is-warn');
+            banner.style.display = '';
+            return null;
+        }
+        if (resolution.kind === 'member') {
+            var lm = resolution.matches[0];
+            var lmAcc = lm.account ? (lm.account.name || 'this account') : 'an account';
+            body.innerHTML = 'The license referenced in your email is on <strong>' + esc(lmAcc)
+                + '</strong>, where you have access but aren\'t an owner. Owners need to top up — '
+                + 'check the contact panel below after switching to that account.';
+            banner.classList.add('is-warn');
+            banner.style.display = '';
+            return null;
+        }
+        // none
+        body.innerHTML = 'This top-up link references a license we don\'t see on your accounts. '
+            + 'The email was sent to the account that owns it — sign out and sign in with that email, '
+            + 'or contact <a href="mailto:' + SALES_EMAIL + '">' + SALES_EMAIL + '</a>.';
+        banner.classList.add('is-error');
+        banner.style.display = '';
+        return null;
+    }
+
+    // ===== Loaders =====
+    async function loadDashboard(user) {
+        if (window.eeDashboard) {
+            var cached = window.eeDashboard.read(user.uid);
+            if (cached) {
+                window.eeDashboard.fetch(user).catch(function() {});
+                return cached;
+            }
+            return window.eeDashboard.fetch(user);
+        }
+        var idToken = await user.getIdToken();
+        var r = await fetch(getHostUrl() + '/get_account_dashboard', {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
+        });
+        if (!r.ok) throw new Error('Dashboard load failed (' + r.status + ')');
+        return r.json();
     }
     async function loadCredits(user) {
         if (!state.activeAccountId) return null;
@@ -1104,306 +1427,697 @@ active: purchase
             return r.json();
         } catch (e) { return null; }
     }
-
-    // ---- Render ----
-
-    // List of active (non-expired) licenses on the active account that
-    // are eligible to renew. Excludes licenses that already have a
-    // future-dated renewal queued (successor_license_id is set).
-    function licensesEligibleToRenew() {
-        return licensesForActiveAccount().filter(function(l) {
-            if (remainingMonthsFor(l) <= 0) return false;
-            if (l.successor_license_id) return false;
-            return true;
-        });
+    async function loadStreamingPackages(user) {
+        var dash = window.eeDashboard ? window.eeDashboard.read(user.uid) : null;
+        if (dash && dash.streaming_packages) return dash.streaming_packages;
+        try {
+            var idToken = await user.getIdToken();
+            var r = await fetch(getHostUrl() + '/get_streaming_packages', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
+            });
+            if (r.ok) return r.json();
+        } catch (e) { /* endpoint not deployed yet */ }
+        return null;
+    }
+    function applyPackageConfig(pkgs) {
+        if (!pkgs) return;
+        var payg = pkgs.payg || {};
+        var bundle = pkgs.pro_bundle || pkgs.bundle || {};
+        if (typeof payg.min_amount_usd === 'number') {
+            streamingPricing.payg_min = payg.min_amount_usd;
+        }
+        if (typeof bundle.price_usd === 'number') streamingPricing.bundle_price = bundle.price_usd;
+        if (typeof bundle.credits_usd === 'number') streamingPricing.bundle_credits = bundle.credits_usd;
+        renderCatalog();
+        renderCart();
+    }
+    function applyPerMinuteRate(rate) {
+        if (typeof rate !== 'number') return;
+        streamingPricing.per_minute_rate = rate;
     }
 
-    function renderRenewLicenseList() {
-        var listEl = $('renewLicenseList');
-        var emptyNote = $('renewEmpty');
-        if (!listEl) return;
-        var avail = licensesEligibleToRenew();
-        var renewRow = $('modeRowRenew');
-        if (!avail.length) {
-            listEl.innerHTML = '';
-            if (emptyNote) emptyNote.style.display = '';
-            if (renewRow) {
-                renewRow.classList.add('is-disabled');
-                var r = renewRow.querySelector('input[type="radio"]');
-                if (r) r.disabled = true;
+    // ===== Preview cart =====
+    var previewDebounceTimer = null;
+    function schedulePreview() {
+        if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
+        previewDebounceTimer = setTimeout(callPreviewCart, 250);
+    }
+    async function callPreviewCart() {
+        previewDebounceTimer = null;
+        if (!state.cart.items.length) {
+            state.previewSummary = null;
+            state.previewError = null;
+            renderOrderSummary();
+            renderCart();
+            return;
+        }
+        var payload = buildCartPayload('preview');
+        try {
+            var resp = STUB_ENDPOINTS
+                ? await stubPreviewCart(payload)
+                : await postBillingJson('preview_cart', payload);
+            state.previewSummary = resp && resp.cart_summary;
+            state.previewError = null;
+        } catch (err) {
+            state.previewSummary = null;
+            state.previewError = (err && err.data && err.data.code)
+                ? { code: err.data.code, message: err.data.message || err.message }
+                : { code: 'unknown', message: (err && err.message) || 'Preview failed.' };
+        }
+        renderOrderSummary();
+        renderCart();
+    }
+
+    // ===== Catalog UI =====
+    function catalogSlots() {
+        var slots = [];
+        slots.push({
+            slot: 'devices',
+            label: '+ Add device slots to an existing license',
+            available: licensesEligibleToExtend().length > 0,
+            unavailableReason: 'No active licenses with room to add devices.'
+        });
+        slots.push({
+            slot: 'renew',
+            label: '+ Renew a license',
+            available: licensesEligibleToRenew().length > 0,
+            unavailableReason: 'No licenses are within their renewal window yet (≤90 days from expiry, ≤7 for trials).'
+        });
+        slots.push({
+            slot: 'credits',
+            label: '+ Add streaming credits',
+            available: true
+        });
+        if (!anyActiveLicenses()) {
+            slots.push({
+                slot: 'new',
+                label: '+ Buy a new license',
+                available: true
+            });
+        }
+        return slots;
+    }
+    function renderCatalog() {
+        var list = $('catalogList');
+        if (!list) return;
+        var slots = catalogSlots();
+        var html = '';
+        slots.forEach(function(s) {
+            // Already in the cart → hide the row entirely. Remove from the
+            // cart to bring it back.
+            if (cartHasCategory(s.slot)) return;
+            var open = state.activePicker === s.slot;
+            var disabled = !s.available;
+            html += '<div class="catalog-row'
+                + (open ? ' is-open' : '')
+                + (disabled ? ' is-disabled' : '')
+                + '" data-slot="' + esc(s.slot) + '">';
+            html += '<button type="button" class="catalog-row-trigger" data-action="open-picker" data-slot="'
+                + esc(s.slot) + '"' + (disabled ? ' disabled' : '') + '>'
+                + '<span>' + esc(s.label) + '</span>'
+                + '<span class="catalog-row-arrow">▸</span>'
+                + '</button>';
+            if (disabled && s.unavailableReason) {
+                html += '<div class="catalog-already" style="font-style:normal;">' + esc(s.unavailableReason) + '</div>';
             }
-            return;
-        }
-        if (emptyNote) emptyNote.style.display = 'none';
-        if (renewRow) {
-            renewRow.classList.remove('is-disabled');
-            var r2 = renewRow.querySelector('input[type="radio"]');
-            if (r2) r2.disabled = false;
-        }
-
-        var selectedId = state.renewLicenseId;
-        if (!selectedId || !avail.some(function(l) { return l.license_id === selectedId; })) {
-            selectedId = avail[0].license_id;
-            state.renewLicenseId = selectedId;
-        }
-
-        var html = '';
-        avail.forEach(function(l) {
-            var isSel = l.license_id === selectedId;
-            var devices = deviceCountOf(l);
-            var expiry = l.expiry_date || 'unknown';
-            html += '<label class="license-row' + (isSel ? ' is-active' : '') + '" data-renew-license-id="' + esc(l.license_id) + '">'
-                + '<input type="radio" name="renewPick" value="' + esc(l.license_id) + '"' + (isSel ? ' checked' : '') + '>'
-                + '<div class="license-row-body">'
-                +   '<div class="license-row-name">' + esc(l.license_name || 'License ' + l.license_id) + '</div>'
-                +   '<div class="license-row-meta">'
-                +     devices + ' device' + (devices === 1 ? '' : 's') + ' · expires ' + esc(expiry)
-                +     ' · renewal will run for 1 year starting at expiry'
-                +   '</div>'
-                + '</div>'
-                + '</label>';
+            if (open) {
+                html += '<div class="catalog-picker">' + renderPickerHtml(s.slot) + '</div>';
+            }
+            html += '</div>';
         });
-        listEl.innerHTML = html;
+        list.innerHTML = html;
+        wirePickerDom();
     }
-
-    function renderLicenseList() {
-        var listEl = $('addDevicesLicenseList');
-        var emptyNote = $('addDevicesEmpty');
-        var inputs = document.querySelector('#modeRowAddDevices .mode-row-inputs');
-        if (!listEl) return;
-
-        var avail = licensesForActiveAccount().filter(function(l) {
-            // Only show non-expired, sub-12-device licenses (the extension
-            // endpoint refuses to push a license past 12 devices).
-            if (remainingMonthsFor(l) <= 0) return false;
-            return deviceCountOf(l) < 12;
+    function openPicker(slot) {
+        state.activePicker = slot;
+        state.pickerError = null;
+        state.pickerDraft = defaultPickerDraft(slot);
+        renderCatalog();
+    }
+    function closePicker() {
+        state.activePicker = null;
+        state.pickerDraft = null;
+        state.pickerError = null;
+        renderCatalog();
+    }
+    function defaultPickerDraft(slot) {
+        if (slot === 'renew') {
+            var renewables = licensesEligibleToRenew();
+            // Skip licenses already in an additional_devices cart item.
+            renewables = renewables.filter(function(l) { return !cartHasLicenseExtension(l.license_id); });
+            var first = renewables[0];
+            return {
+                license_id: first ? first.license_id : null,
+                new_n_tokens: first ? deviceCountOf(first) : 1
+            };
+        }
+        if (slot === 'devices') {
+            var extendables = licensesEligibleToExtend();
+            extendables = extendables.filter(function(l) { return !cartHasLicenseRenewal(l.license_id); });
+            var fe = extendables[0];
+            return {
+                license_id: fe ? fe.license_id : null,
+                additional_devices: 1
+            };
+        }
+        if (slot === 'credits') {
+            return {
+                package: 'payg',
+                amount_usd: streamingPricing.payg_min
+            };
+        }
+        if (slot === 'new') {
+            return { device_count: 1 };
+        }
+        return {};
+    }
+    function renderPickerHtml(slot) {
+        if (slot === 'renew') return renderRenewPicker();
+        if (slot === 'devices') return renderDevicesPicker();
+        if (slot === 'credits') return renderCreditsPicker();
+        if (slot === 'new') return renderNewPicker();
+        return '';
+    }
+    function renderRenewPicker() {
+        var d = state.pickerDraft || {};
+        // Available renewables, with renewal-conflict licenses filtered out.
+        var renewables = licensesEligibleToRenew().filter(function(l) {
+            return !cartHasLicenseExtension(l.license_id);
         });
-
-        var addDevicesRow = $('modeRowAddDevices');
-        if (!avail.length) {
-            listEl.innerHTML = '';
-            if (inputs) inputs.style.display = 'none';
-            emptyNote.style.display = '';
-            addDevicesRow.classList.add('is-disabled');
-            addDevicesRow.querySelector('input[type="radio"]').disabled = true;
-            return;
+        if (!renewables.length) {
+            return '<p class="picker-error">No licenses are eligible for renewal right now. '
+                + 'A renewal becomes available within 90 days of expiry (7 for trials).</p>'
+                + renderPickerActionsHtml(true);
         }
-        emptyNote.style.display = 'none';
-        addDevicesRow.classList.remove('is-disabled');
-        addDevicesRow.querySelector('input[type="radio"]').disabled = false;
-
-        // Preserve the selected license if it's still available; otherwise
-        // default to the first one.
-        var selectedId = state.activeLicenseId;
-        if (!selectedId || !avail.some(function(l) { return l.license_id === selectedId; })) {
-            selectedId = avail[0].license_id;
-            state.activeLicenseId = selectedId;
+        var lic = findLicenseById(d.license_id) || renewables[0];
+        if (!d.license_id || !renewables.some(function(l) { return l.license_id === d.license_id; })) {
+            d.license_id = lic.license_id;
+            d.new_n_tokens = deviceCountOf(lic);
         }
+        var currentDevices = deviceCountOf(lic);
+        var newN = d.new_n_tokens || currentDevices;
+        var est = priceForRenewal(lic, newN);
 
-        var html = '';
-        avail.forEach(function(l) {
-            var isSel = l.license_id === selectedId;
-            var devices = deviceCountOf(l);
+        var licOptions = renewables.map(function(l) {
             var months = remainingMonthsFor(l);
-            var expiry = l.expiry_date || 'unknown';
-            var monthsWarn = months <= 2;
-            html += '<label class="license-row' + (isSel ? ' is-active' : '') + '" data-license-id="' + esc(l.license_id) + '">'
-                + '<input type="radio" name="addDevicesPick" value="' + esc(l.license_id) + '"' + (isSel ? ' checked' : '') + '>'
-                + '<div class="license-row-body">'
-                +   '<div class="license-row-name">' + esc(l.license_name || 'License ' + l.license_id) + '</div>'
-                +   '<div class="license-row-meta">'
-                +     devices + ' device' + (devices === 1 ? '' : 's') + ' · '
-                +     '<span class="' + (monthsWarn ? 'license-row-meta-warn' : '') + '">expires ' + esc(expiry) + '</span>'
-                +     ' · ' + months + ' month' + (months === 1 ? '' : 's') + ' left'
-                +   '</div>'
-                + '</div>'
-                + '</label>';
-        });
-        listEl.innerHTML = html;
-        renderStep2();
+            var sel = l.license_id === d.license_id ? ' selected' : '';
+            var label = (l.license_name || ('License ' + l.license_id))
+                + ' — ' + deviceCountOf(l) + ' dev, exp. ' + (l.expiry_date || '?')
+                + (months <= 2 ? ' (' + months + ' mo left)' : '');
+            return '<option value="' + esc(l.license_id) + '"' + sel + '>' + esc(label) + '</option>';
+        }).join('');
+
+        // Dropdown runs 1 → current+10. Users can downsize on renewal as
+        // of 2026-05-21: backend dropped the renewal_cannot_shrink_devices
+        // rule. At renewal cutover, the first N devices to be active keep
+        // their slots; any excess hit the existing renewal_full 409 and
+        // need a release_device_token from the Devices page.
+        var deviceOptions = '';
+        var maxDevicesInDropdown = Math.min(DEVICE_CAP, currentDevices + 10);
+        for (var n = 1; n <= maxDevicesInDropdown; n++) {
+            var sel = n === newN ? ' selected' : '';
+            var label = String(n);
+            if (n === currentDevices) label += ' (current)';
+            else if (n < currentDevices) label += ' (−' + (currentDevices - n) + ')';
+            else label += ' (+' + (n - currentDevices) + ')';
+            deviceOptions += '<option value="' + n + '"' + sel + '>' + label + '</option>';
+        }
+
+        var newName = renewedLicenseName(lic, 365);
+        return '<div class="picker-row">'
+            +   '<span class="picker-row-label">License</span>'
+            +   '<select data-picker-field="license_id">' + licOptions + '</select>'
+            + '</div>'
+            + '<div class="picker-row">'
+            +   '<span class="picker-row-label">Devices</span>'
+            +   '<select data-picker-field="new_n_tokens">' + deviceOptions + '</select>'
+            +   '<span class="picker-row-hint">' + (newN < currentDevices
+                    ? 'Downsizing — at renewal start, the first ' + newN
+                      + ' devices to be active keep slots. Release others from the Devices page if needed.'
+                    : 'Raise to add devices in the same renewal.')
+            +   '</span>'
+            + '</div>'
+            + '<div class="picker-row">'
+            +   '<span class="picker-row-label">Estimate</span>'
+            +   '<span class="picker-row-estimate">' + formatPrice(est) + '</span>'
+            +   '<span class="picker-row-hint">1 year. Final price + tax computed at checkout.</span>'
+            + '</div>'
+            + (newName ? '<div class="picker-row"><span class="picker-row-label">Named</span>'
+                + '<span class="picker-row-hint" style="font-style:italic;">' + esc(newName) + '</span></div>' : '')
+            + renderPickerErrorHtml()
+            + renderPickerActionsHtml(false);
     }
-
-    // Reveal Step 2 only after Step 1 has a selection, so the page reads
-    // top-to-bottom as a process: pick → specify count → buy. Also caps the
-    // count input at (12 - current) to mirror the backend's hard device cap.
-    function renderStep2() {
-        var step2 = $('addDevicesStep2');
-        var ctx = $('step2Context');
-        var totalEl = $('step2NewTotal');
-        var input = $('addDevicesCount');
-        var minus = $('addDevicesMinus');
-        var plus = $('addDevicesPlus');
-        if (!step2 || !ctx || !totalEl || !input) return;
-
-        if (state.mode !== 'add_devices') {
-            step2.style.display = 'none';
-            return;
+    function renderDevicesPicker() {
+        var d = state.pickerDraft || {};
+        var extendables = licensesEligibleToExtend().filter(function(l) {
+            return !cartHasLicenseRenewal(l.license_id);
+        });
+        if (!extendables.length) {
+            return '<p class="picker-error">No active licenses can take more devices right now. '
+                + "If you need a lot more on a single license, email info@eagleeyessearch.com.</p>"
+                + renderPickerActionsHtml(true);
         }
-        var lic = findLicenseById(state.activeLicenseId);
-        if (!lic) {
-            step2.style.display = 'none';
-            return;
+        var lic = findLicenseById(d.license_id) || extendables[0];
+        if (!d.license_id || !extendables.some(function(l) { return l.license_id === d.license_id; })) {
+            d.license_id = lic.license_id;
         }
-        step2.style.display = '';
-
         var current = deviceCountOf(lic);
-        var maxAdd = Math.max(1, Math.min(10, 12 - current));
-        input.max = String(maxAdd);
-        var n = parseInt(input.value, 10);
-        if (isNaN(n) || n < 1) n = 1;
-        if (n > maxAdd) n = maxAdd;
-        input.value = String(n);
+        var maxAdd = Math.max(1, Math.min(10, DEVICE_CAP - current));
+        var addN = clamp(d.additional_devices || 1, 1, maxAdd);
+        d.additional_devices = addN;
+        var est = priceForAddDevices(lic, addN);
+        var bd = extensionPerDevicePrice(lic);
+        var termTxt = '';
+        if (bd.fullYears && bd.partialMonths) termTxt = bd.fullYears + ' yr ' + bd.partialMonths + ' mo';
+        else if (bd.fullYears) termTxt = bd.fullYears + ' yr';
+        else if (bd.partialMonths) termTxt = bd.partialMonths + ' mo';
 
-        ctx.innerHTML = 'Adding to: <strong>' + esc(lic.license_name || lic.license_id) + '</strong>'
-            + ' · currently <strong>' + current + '</strong> device' + (current === 1 ? '' : 's')
-            + ' · expires <strong>' + esc(lic.expiry_date || 'unknown') + '</strong>';
+        var licOptions = extendables.map(function(l) {
+            var sel = l.license_id === d.license_id ? ' selected' : '';
+            var label = (l.license_name || ('License ' + l.license_id))
+                + ' — ' + deviceCountOf(l) + ' dev, exp. ' + (l.expiry_date || '?');
+            return '<option value="' + esc(l.license_id) + '"' + sel + '>' + esc(label) + '</option>';
+        }).join('');
 
-        var newTotal = current + n;
-        totalEl.innerHTML = '= <strong>' + newTotal + '</strong> total device'
-            + (newTotal === 1 ? '' : 's') + ' after extension';
-
-        if (minus) minus.disabled = n <= 1;
-        if (plus) plus.disabled = n >= maxAdd;
+        return '<div class="picker-row">'
+            +   '<span class="picker-row-label">License</span>'
+            +   '<select data-picker-field="license_id">' + licOptions + '</select>'
+            + '</div>'
+            + '<div class="picker-row">'
+            +   '<span class="picker-row-label">Add devices</span>'
+            +   qtyStepperHtml({
+                    value: addN, min: 1, max: maxAdd,
+                    fieldAttrs: 'data-picker-field="additional_devices"'
+                })
+            +   '<span class="picker-row-hint">Max ' + maxAdd + ' available on this license.</span>'
+            + '</div>'
+            + '<div class="picker-row">'
+            +   '<span class="picker-row-label">Estimate</span>'
+            +   '<span class="picker-row-estimate">' + formatPrice(est) + '</span>'
+            +   '<span class="picker-row-hint">$150/yr + $20 per remaining month, per device'
+            +     (termTxt ? ' (' + termTxt + ' left)' : '') + '.</span>'
+            + '</div>'
+            + renderPickerErrorHtml()
+            + renderPickerActionsHtml(false);
     }
+    function renderCreditsPicker() {
+        var d = state.pickerDraft || { package: 'payg', amount_usd: streamingPricing.payg_min };
+        var pkg = d.package || 'payg';
+        var amt = (typeof d.amount_usd === 'number') ? d.amount_usd : streamingPricing.payg_min;
+        var rate = currentPerMinuteRate();
+        var mins = (rate > 0 && amt > 0) ? Math.floor(amt / rate) : 0;
 
-    // Decide which top-level modes are visible. The mutual-exclusion
-     // policy: when the account already has at least one active
-     // (non-expired, non-already-renewed) license, hide "New license"
-     // and show "Renew" instead. First-license accounts see "New
-     // license"; renewing accounts see "Renew an existing license".
-     // "Add devices" and "Add streaming credits" stay visible always
-     // (subject to their own internal availability checks).
-    function applyAvailableModes() {
-        var newRow = $('modeRowNew');
-        var renewRow = $('modeRowRenew');
-        var addDevicesRow = $('modeRowAddDevices');
-        if (!newRow || !renewRow) return;
-        var renewable = licensesEligibleToRenew();
-        var hasRenewable = renewable.length > 0;
-        // Also consider whether any active licenses exist at all (not
-        // just renewable ones) so an account with only already-renewed
-        // licenses still hides "New license" — the user is mid-renewal,
-        // a new license would be redundant.
-        var anyActive = (state.licenses || []).some(function(l) {
-            return remainingMonthsFor(l) > 0;
-        });
-        if (anyActive) {
-            newRow.style.display = 'none';
-            renewRow.style.display = hasRenewable ? '' : 'none';
-        } else {
-            newRow.style.display = '';
-            renewRow.style.display = 'none';
+        // Build the "≈ N min at $X/min" subline as a discrete variable —
+        // safer than splicing it inline into a deep concat (line-continued
+        // ternaries are a foot-gun).
+        var minsHtml = '';
+        if (mins > 0) {
+            minsHtml = '<span class="payg-minutes-display">'
+                + '≈ ' + mins.toLocaleString() + ' min at $' + rate.toFixed(2) + '/min'
+                + '</span>';
         }
-        // If the URL preselected a mode that's now hidden, fall back
-        // to a visible one. Same for the default 'new' state.
-        if (state.mode === 'new' && anyActive) {
-            state.mode = hasRenewable ? 'renew' : 'add_devices';
-        } else if (state.mode === 'renew' && !hasRenewable) {
-            state.mode = anyActive ? 'add_devices' : 'new';
+        var stepperHtml = qtyStepperHtml({
+            value: amt,
+            min: streamingPricing.payg_min,
+            max: 5000,
+            step: 5,
+            wideInput: true,
+            fieldAttrs: 'data-picker-field="amount_usd"'
+        });
+
+        return '<div class="pkg-list">'
+            +   '<label class="pkg-row' + (pkg === 'payg' ? ' is-active' : '') + '" data-pkg="payg">'
+            +     '<input type="radio" name="creditsPkgPick" value="payg"' + (pkg === 'payg' ? ' checked' : '') + '>'
+            +     '<div class="pkg-row-body">'
+            +       '<div class="pkg-row-label">Pay as you go</div>'
+            +       '<div class="pkg-row-desc">Top up any amount. Minimum $' + streamingPricing.payg_min
+            +         '. Credits don\'t expire while you have an active license.</div>'
+            +       '<div class="pkg-row-inputs">'
+            +         '<span class="picker-row-label" style="flex:0 0 auto;">Top up:</span>'
+            +         stepperHtml
+            +         '<span class="picker-row-label" style="flex:0 0 auto;">USD</span>'
+            +         minsHtml
+            +       '</div>'
+            +     '</div>'
+            +   '</label>'
+            +   '<label class="pkg-row' + (pkg === 'pro_bundle' ? ' is-active' : '') + '" data-pkg="pro_bundle">'
+            +     '<input type="radio" name="creditsPkgPick" value="pro_bundle"' + (pkg === 'pro_bundle' ? ' checked' : '') + '>'
+            +     '<div class="pkg-row-body">'
+            +       '<div class="pkg-row-label">Pro Bundle · 20% bonus</div>'
+            +       '<div class="pkg-row-desc">$' + streamingPricing.bundle_price + ' → $'
+            +         streamingPricing.bundle_credits + ' in credits. Best value for active users.</div>'
+            +     '</div>'
+            +   '</label>'
+            + '</div>'
+            + renderPickerErrorHtml()
+            + renderPickerActionsHtml(false);
+    }
+    function renderNewPicker() {
+        var d = state.pickerDraft || { device_count: 1 };
+        var n = clamp(d.device_count || 1, 1, NEW_LICENSE_MAX_DEVICES);
+        d.device_count = n;
+        var price = priceForNew(n);
+        var options = '';
+        for (var i = 1; i <= NEW_LICENSE_MAX_DEVICES; i++) {
+            options += '<option value="' + i + '"' + (i === n ? ' selected' : '') + '>' + i + '</option>';
         }
+        var newName = newLicenseDisplayName();
+        return '<div class="picker-row">'
+            +   '<span class="picker-row-label">Devices</span>'
+            +   '<select data-picker-field="device_count">' + options + '</select>'
+            +   '<span class="picker-row-hint">1 year. $400 for the first device, $150 each extra.</span>'
+            + '</div>'
+            + '<div class="picker-row">'
+            +   '<span class="picker-row-label">Estimate</span>'
+            +   '<span class="picker-row-estimate">' + formatPrice(price) + '</span>'
+            + '</div>'
+            + (newName ? '<div class="picker-row"><span class="picker-row-label">Named</span>'
+                + '<span class="picker-row-hint" style="font-style:italic;">' + esc(newName) + '</span></div>' : '')
+            + renderPickerErrorHtml()
+            + renderPickerActionsHtml(false);
     }
-
-    function applyModeUI() {
-        document.querySelectorAll('.mode-row').forEach(function(row) {
-            var isActive = row.getAttribute('data-mode') === state.mode;
-            row.classList.toggle('is-active', isActive);
-            // Only set the radio's checked state for the *outer* mode picker.
-            // Sub-radios (streamingPkg, addDevicesPick) live inside mode-row
-            // but aren't the mode selector itself.
-            var radio = row.querySelector(':scope > input[type="radio"]');
-            if (radio) radio.checked = isActive;
+    function renderPickerErrorHtml() {
+        if (!state.pickerError) return '';
+        return '<p class="picker-error">' + esc(state.pickerError) + '</p>';
+    }
+    function renderPickerActionsHtml(disabled) {
+        return '<div class="picker-actions">'
+            +   '<button type="button" class="picker-btn primary" data-action="commit-picker"'
+            +     (disabled ? ' disabled' : '') + '>Add to order</button>'
+            +   '<button type="button" class="picker-btn secondary" data-action="close-picker">Cancel</button>'
+            + '</div>';
+    }
+    function wirePickerDom() {
+        var picker = document.querySelector('.catalog-row.is-open .catalog-picker');
+        if (!picker) return;
+        // Listen only to `change` (commits on blur / Enter / stepper-click).
+        // Listening to `input` here re-renders on every keystroke and
+        // steals focus from the field the user is typing in.
+        picker.querySelectorAll('[data-picker-field]').forEach(function(el) {
+            el.addEventListener('change', onPickerFieldChange);
         });
-        // Highlight the active streaming sub-package row.
-        document.querySelectorAll('.streaming-row').forEach(function(row) {
-            var isActive = row.getAttribute('data-package') === state.streamingPkg;
-            row.classList.toggle('is-active', isActive);
-            var radio = row.querySelector(':scope > input[type="radio"]');
-            if (radio) radio.checked = isActive;
+        picker.querySelectorAll('input[name="creditsPkgPick"]').forEach(function(el) {
+            el.addEventListener('change', function(e) {
+                state.pickerDraft.package = e.target.value;
+                renderCatalog();
+            });
         });
     }
+    function onPickerFieldChange(e) {
+        var field = e.target.getAttribute('data-picker-field');
+        if (!field) return;
+        var val = e.target.value;
+        if (e.target.type === 'number') val = parseFloat(val);
+        if (field === 'new_n_tokens' || field === 'device_count' || field === 'additional_devices') {
+            val = parseInt(val, 10);
+        }
+        state.pickerDraft[field] = val;
+        // Re-render only the picker (no full catalog re-render needed for
+        // simple field updates — but a re-render also updates the estimate).
+        renderCatalog();
+    }
+    function commitPicker() {
+        var slot = state.activePicker;
+        if (!slot) return;
+        var d = state.pickerDraft || {};
+        var item = null;
+        state.pickerError = null;
 
-    // Toggle the active state on the "How do you want to pay?" rows and
-    // adjust the Continue button label so the action verb matches the
-    // chosen method. The label change is the main signal that this isn't
-    // a generic "next step" — it's a discrete commitment to the chosen
-    // payment path.
-    function applyPaymentUI() {
-        document.querySelectorAll('.pay-row').forEach(function(row) {
-            var isActive = row.getAttribute('data-pay') === state.paymentMethod;
-            row.classList.toggle('is-active', isActive);
-            var radio = row.querySelector(':scope > input[type="radio"]');
-            if (radio) radio.checked = isActive;
-        });
-        var continueBtn = $('ctaContinue');
-        if (continueBtn) {
-            if (state.paymentMethod === 'card') {
-                continueBtn.textContent = 'Continue to checkout';
-            } else if (state.paymentMethod === 'invoice') {
-                continueBtn.textContent = 'Send invoice';
-            } else if (state.paymentMethod === 'quote') {
-                continueBtn.textContent = 'Create quote';
+        if (slot === 'renew') {
+            var rlic = findLicenseById(d.license_id);
+            if (!rlic) { state.pickerError = 'Pick a license to renew.'; renderCatalog(); return; }
+            var devs = parseInt(d.new_n_tokens, 10) || deviceCountOf(rlic);
+            if (devs < 1 || devs > DEVICE_CAP) {
+                state.pickerError = 'Pick at least 1 device.';
+                renderCatalog(); return;
+            }
+            item = {
+                sku: 'license_renewal',
+                license_id: rlic.license_id,
+                duration_days: 365,
+                new_n_tokens: devs
+            };
+        } else if (slot === 'devices') {
+            var elic = findLicenseById(d.license_id);
+            if (!elic) { state.pickerError = 'Pick a license.'; renderCatalog(); return; }
+            var addN = parseInt(d.additional_devices, 10) || 1;
+            var maxAdd = Math.max(1, Math.min(10, DEVICE_CAP - deviceCountOf(elic)));
+            if (addN < 1 || addN > maxAdd) {
+                state.pickerError = 'Pick between 1 and ' + maxAdd + ' devices to add.';
+                renderCatalog(); return;
+            }
+            item = {
+                sku: 'additional_devices',
+                license_id: elic.license_id,
+                additional_devices: addN
+            };
+        } else if (slot === 'credits') {
+            if (d.package === 'pro_bundle') {
+                item = { sku: 'streaming_topup_pro_bundle' };
             } else {
-                continueBtn.textContent = 'Continue';
+                var amt = parseFloat(d.amount_usd);
+                if (isNaN(amt) || amt < streamingPricing.payg_min) {
+                    state.pickerError = 'Minimum top-up is $' + streamingPricing.payg_min + '.';
+                    renderCatalog(); return;
+                }
+                item = { sku: 'streaming_topup_payg', amount_usd: Math.round(amt * 100) / 100 };
+            }
+        } else if (slot === 'new') {
+            var dc = parseInt(d.device_count, 10);
+            if (isNaN(dc) || dc < 1 || dc > NEW_LICENSE_MAX_DEVICES) {
+                state.pickerError = 'Pick between 1 and ' + NEW_LICENSE_MAX_DEVICES + ' devices.';
+                renderCatalog(); return;
+            }
+            item = { sku: 'license_new', product_id: 'sar_1y_' + dc + 'dev' };
+        }
+
+        if (!item) return;
+        cartAdd(item);
+        closePicker();
+        renderAll();
+        schedulePreview();
+    }
+
+    // ===== Cart panel UI =====
+    function describeItem(item) {
+        if (item.sku === 'license_renewal') {
+            var lic = findLicenseById(item.license_id);
+            var name = (lic && lic.license_name) || ('License ' + item.license_id);
+            var n = item.new_n_tokens || (lic ? deviceCountOf(lic) : 0);
+            var raised = lic && n > deviceCountOf(lic) ? ' (+' + (n - deviceCountOf(lic)) + ' devices)' : '';
+            var newName = lic ? renewedLicenseName(lic, item.duration_days || 365) : '';
+            return {
+                title: 'Renew ' + name,
+                meta: n + ' device' + (n === 1 ? '' : 's') + ', 1 year' + raised
+                    + (lic && lic.expiry_date ? ' · starts at expiry ' + lic.expiry_date : ''),
+                note: newName ? '→ ' + newName : null
+            };
+        }
+        if (item.sku === 'additional_devices') {
+            var lic2 = findLicenseById(item.license_id);
+            var name2 = (lic2 && lic2.license_name) || ('License ' + item.license_id);
+            var n2 = item.additional_devices || 1;
+            var current = lic2 ? deviceCountOf(lic2) : 0;
+            var breakdown = lic2 ? extensionPriceBreakdownText(lic2) : '';
+            return {
+                title: '+ ' + n2 + ' device' + (n2 === 1 ? '' : 's') + ' on ' + name2,
+                meta: (current ? current + ' → ' + (current + n2) + ' devices · ' : '')
+                    + (breakdown || 'prorated to current expiry')
+                    + (lic2 && lic2.expiry_date ? ' (until ' + lic2.expiry_date + ')' : '')
+            };
+        }
+        if (item.sku === 'streaming_topup_payg') {
+            var rate = currentPerMinuteRate();
+            var amt = item.amount_usd || 0;
+            var mins = (rate > 0 && amt > 0) ? Math.floor(amt / rate) : 0;
+            return {
+                title: 'Streaming credits',
+                meta: 'Pay as you go top-up'
+                    + (mins > 0 ? ' · ≈ ' + mins.toLocaleString() + ' min at $' + rate.toFixed(2) + '/min' : '')
+            };
+        }
+        if (item.sku === 'streaming_topup_pro_bundle') {
+            return {
+                title: 'Pro Bundle streaming credits',
+                meta: '$' + streamingPricing.bundle_price + ' → $' + streamingPricing.bundle_credits + ' in credits'
+            };
+        }
+        if (item.sku === 'license_new') {
+            var m = /sar_1y_(\d+)dev/.exec(item.product_id || '');
+            var devs = m ? parseInt(m[1], 10) : 1;
+            return {
+                title: 'New SAR license',
+                meta: devs + ' device' + (devs === 1 ? '' : 's') + ', 1 year',
+                note: '→ ' + newLicenseDisplayName()
+            };
+        }
+        return { title: item.sku, meta: '' };
+    }
+    function clientPriceFor(item) {
+        if (item.sku === 'license_renewal') {
+            var lic = findLicenseById(item.license_id);
+            return priceForRenewal(lic, item.new_n_tokens);
+        }
+        if (item.sku === 'additional_devices') {
+            var lic2 = findLicenseById(item.license_id);
+            return priceForAddDevices(lic2, item.additional_devices || 1);
+        }
+        if (item.sku === 'streaming_topup_payg') return item.amount_usd || 0;
+        if (item.sku === 'streaming_topup_pro_bundle') return streamingPricing.bundle_price;
+        if (item.sku === 'license_new') {
+            var m = /sar_1y_(\d+)dev/.exec(item.product_id || '');
+            return priceForNew(m ? parseInt(m[1], 10) : 1);
+        }
+        return 0;
+    }
+    function priceFor(item, idx) {
+        // Prefer backend-authoritative price from preview_cart when available.
+        if (state.previewSummary && Array.isArray(state.previewSummary.line_items)
+            && typeof state.previewSummary.line_items[idx] === 'object'
+            && typeof state.previewSummary.line_items[idx].amount_usd === 'number') {
+            return state.previewSummary.line_items[idx].amount_usd;
+        }
+        return clientPriceFor(item);
+    }
+    function renderCart() {
+        var listEl = $('cartList');
+        var emptyEl = $('cartEmpty');
+        var subEl = $('cartSubtotal');
+        var subNote = $('cartSubtotalNote');
+        var countEl = $('cartCount');
+        var items = state.cart.items || [];
+
+        countEl.textContent = items.length ? ' (' + items.length + ')' : '';
+
+        if (!items.length) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = '';
+            subEl.style.display = 'none';
+            subNote.style.display = 'none';
+            updateCtaState();
+            return;
+        }
+        emptyEl.style.display = 'none';
+        var subtotal = 0;
+        var html = items.map(function(item, idx) {
+            var d = describeItem(item);
+            var p = priceFor(item, idx);
+            subtotal += p;
+            var errMsg = errorMessageForItem(item);
+            var rowClass = 'cart-item' + (errMsg ? ' has-error' : '');
+            var inline = inlineEditHtml(item, idx);
+            return '<div class="' + rowClass + '" data-item-id="' + esc(item.id) + '">'
+                +   '<div class="cart-item-body">'
+                +     '<div class="cart-item-title">' + esc(d.title) + '</div>'
+                +     '<div class="cart-item-meta">' + esc(d.meta) + '</div>'
+                +     (d.note ? '<div class="cart-item-note">' + esc(d.note) + '</div>' : '')
+                +     (inline ? '<div class="cart-item-edit">' + inline + '</div>' : '')
+                +     (errMsg ? '<div class="cart-item-error">' + esc(errMsg) + '</div>' : '')
+                +   '</div>'
+                +   '<div class="cart-item-price">' + formatPrice(p) + '</div>'
+                +   '<button type="button" class="cart-item-remove" data-action="remove-item" data-id="' + esc(item.id) + '" aria-label="Remove">&times;</button>'
+                + '</div>';
+        }).join('');
+        listEl.innerHTML = html;
+        wireCartInlineEdits();
+
+        subEl.style.display = '';
+        subNote.style.display = '';
+        // If preview gave us an authoritative subtotal, use it.
+        var displaySubtotal = (state.previewSummary && typeof state.previewSummary.subtotal_usd === 'number')
+            ? state.previewSummary.subtotal_usd
+            : subtotal;
+        $('cartSubtotalValue').textContent = formatPrice(displaySubtotal);
+
+        updateCtaState();
+    }
+    function inlineEditHtml(item, idx) {
+        if (item.sku === 'license_renewal') {
+            var lic = findLicenseById(item.license_id);
+            if (!lic) return '';
+            var current = deviceCountOf(lic);
+            var n = item.new_n_tokens || current;
+            var options = '';
+            var maxInDropdown = Math.min(DEVICE_CAP, current + 10);
+            for (var i = 1; i <= maxInDropdown; i++) {
+                var lbl = String(i);
+                if (i === current) lbl += ' (current)';
+                else if (i < current) lbl += ' (−' + (current - i) + ')';
+                else lbl += ' (+' + (i - current) + ')';
+                options += '<option value="' + i + '"' + (i === n ? ' selected' : '') + '>' + lbl + '</option>';
+            }
+            return 'Devices: <select data-edit-field="new_n_tokens" data-id="' + esc(item.id) + '">'
+                + options + '</select>';
+        }
+        if (item.sku === 'additional_devices') {
+            var lic2 = findLicenseById(item.license_id);
+            if (!lic2) return '';
+            var current2 = deviceCountOf(lic2);
+            var maxAdd = Math.max(1, Math.min(10, DEVICE_CAP - current2));
+            return 'Devices to add: ' + qtyStepperHtml({
+                value: item.additional_devices || 1, min: 1, max: maxAdd,
+                fieldAttrs: 'data-edit-field="additional_devices" data-id="' + esc(item.id) + '"'
+            });
+        }
+        if (item.sku === 'streaming_topup_payg') {
+            return 'Amount: <input type="number" data-edit-field="amount_usd" data-id="'
+                + esc(item.id) + '" min="' + streamingPricing.payg_min + '" step="1" value="'
+                + (item.amount_usd || streamingPricing.payg_min) + '"> USD';
+        }
+        return '';
+    }
+    function wireCartInlineEdits() {
+        document.querySelectorAll('#cartList [data-edit-field]').forEach(function(el) {
+            el.addEventListener('change', onCartEdit);
+        });
+    }
+    function onCartEdit(e) {
+        var field = e.target.getAttribute('data-edit-field');
+        var id = e.target.getAttribute('data-id');
+        if (!field || !id) return;
+        var val = e.target.value;
+        if (e.target.type === 'number') val = parseFloat(val);
+        if (field === 'new_n_tokens' || field === 'additional_devices') val = parseInt(val, 10);
+        var patch = {};
+        patch[field] = val;
+        cartUpdate(id, patch);
+        renderCart();
+        schedulePreview();
+    }
+    function errorMessageForItem(item) {
+        // Client-side guards in addition to backend preview errors.
+        if (item.sku === 'streaming_topup_payg') {
+            if ((item.amount_usd || 0) < streamingPricing.payg_min) {
+                return 'PAYG minimum is $' + streamingPricing.payg_min + '.';
             }
         }
-        // Refresh the "invoice will be emailed to …" line whenever we
-        // toggle to / between payment methods. Cheap enough to run
-        // unconditionally; keeps the recipient line in sync if the
-        // user's profile name changed in another tab.
-        renderInvoiceRecipient();
+        if (item.sku === 'additional_devices') {
+            var lic = findLicenseById(item.license_id);
+            if (lic) {
+                var newTotal = deviceCountOf(lic) + (item.additional_devices || 0);
+                if (newTotal > DEVICE_CAP) {
+                    return "That's more devices than we cover with self-service. "
+                        + "Email info@eagleeyessearch.com and we'll set it up for you.";
+                }
+            }
+        }
+        return null;
     }
 
-    // Read the invoice-details panel into a plain object. Empty strings
-    // stay as empty strings so the caller can decide whether to send /
-    // include each field. days_until_due always has a sensible numeric
-    // default since the select is never blank.
-    // Reference details (PO, project ref, etc) come through as structured
-    // `custom_fields` on the invoice / quote create payload. Read the
-    // rows, trim and dedupe empties, cap at 4 (Stripe's limit), and
-    // truncate names/values to 30 chars defensively (the inputs already
-    // have maxlength="30" but trimming after .trim() can sometimes leave
-    // 31+).
-    function readInvoiceCustomFields() {
-        var rows = document.querySelectorAll('#invoiceCustomFieldRows .custom-field-row');
-        var fields = [];
-        rows.forEach(function(row) {
-            if (row.classList.contains('is-hidden')) return;
-            var name = (row.querySelector('.custom-field-name').value || '').trim().slice(0, 30);
-            var value = (row.querySelector('.custom-field-value').value || '').trim().slice(0, 30);
-            if (name && value) fields.push({ name: name, value: value });
-        });
-        return fields.slice(0, 4);
+    // ===== Invoice details (reference fields) =====
+    function readInvoiceDetails() {
+        var company = ($('refCompany').value || '').trim();
+        var po = ($('refPoNumber').value || '').trim().slice(0, 30);
+        var ref = ($('refReference').value || '').trim().slice(0, 30);
+        var vat = ($('refVatId').value || '').trim();
+        var out = {};
+        if (company) out.company = company;
+        if (po) out.po_number = po;
+        if (ref) out.reference = ref;
+        if (vat) out.vat_id = vat;
+        return out;
     }
-    function visibleCustomFieldRowCount() {
-        return document.querySelectorAll('#invoiceCustomFieldRows .custom-field-row:not(.is-hidden)').length;
-    }
-    function syncAddFieldButton() {
-        var btn = $('invoiceAddFieldBtn');
-        if (!btn) return;
-        btn.disabled = visibleCustomFieldRowCount() >= 4;
-    }
-    function appendCustomFieldRow() {
-        var container = $('invoiceCustomFieldRows');
-        if (!container) return;
-        if (visibleCustomFieldRowCount() >= 4) return;
-        var row = document.createElement('div');
-        row.className = 'custom-field-row';
-        row.innerHTML =
-            '<input type="text" class="custom-field-name" maxlength="30" placeholder="Field name">' +
-            '<input type="text" class="custom-field-value" maxlength="30" placeholder="Value">' +
-            '<button type="button" class="custom-field-remove" title="Remove field" aria-label="Remove field">&times;</button>';
-        container.appendChild(row);
-        var nameInput = row.querySelector('.custom-field-name');
-        if (nameInput) nameInput.focus();
-        syncAddFieldButton();
-    }
-
-    // Plain-English recipient line so the user can see, before clicking
-    // Send invoice, which email address will receive the Stripe invoice.
-    // Picks first/last name in the same priority order as the navbar
-    // trigger and the profile form (localStorage draft → dashboard
-    // form_data → displayName → email handle) so the value matches what
-    // they see elsewhere in the app.
     function pickInvoiceRecipientName(user) {
         try {
             var draft = JSON.parse(localStorage.getItem('profileDraft') || '{}');
@@ -1421,11 +2135,11 @@ active: purchase
                 }
             }
         } catch (e) {}
-        if (user.displayName) return String(user.displayName).trim();
+        if (user && user.displayName) return String(user.displayName).trim();
         return '';
     }
     function renderInvoiceRecipient() {
-        var el = $('invoiceRecipient');
+        var el = $('refDetailsRecipient');
         if (!el) return;
         var user = (firebase.auth && firebase.auth().currentUser) || null;
         if (!user) { el.innerHTML = ''; return; }
@@ -1434,291 +2148,26 @@ active: purchase
         var nameLine = name
             ? '<strong>' + esc(name) + '</strong> at <code>' + esc(email) + '</code>'
             : '<code>' + esc(email) + '</code>';
-        el.innerHTML = 'The invoice will be emailed to ' + nameLine + '.';
+        el.innerHTML = 'Invoices and receipts are emailed to ' + nameLine + '.';
     }
 
-    function recomputeSummary() {
-        var labelEl = $('summaryLineLabel');
-        var amountEl = $('summaryLineAmount');
-        var totalEl = $('summaryTotal');
-        var total = 0;
-        var label = '-';
-
-        if (state.mode === 'new') {
-            var n = parseInt($('newDeviceCount').value, 10) || 1;
-            total = priceForNew(n);
-            label = 'Pro license, ' + n + ' device' + (n === 1 ? '' : 's') + ', 1 year';
-        } else if (state.mode === 'renew') {
-            var rlic = findLicenseById(state.renewLicenseId);
-            if (rlic) {
-                var devs = deviceCountOf(rlic);
-                // Renewals price at the same per-year rate as new licenses
-                // with the same device count. Backend final-prices via the
-                // catalog SKU; this is an estimate for the summary line.
-                total = priceForNew(devs);
-                label = 'Renew "' + (rlic.license_name || rlic.license_id) + '" - '
-                    + devs + ' device' + (devs === 1 ? '' : 's') + ', 1 year';
-            } else {
-                label = 'Renew a license';
-            }
-        } else if (state.mode === 'add_devices') {
-            var lic = findLicenseById(state.activeLicenseId);
-            var addN = parseInt($('addDevicesCount').value, 10) || 1;
-            if (lic) {
-                var months = remainingMonthsFor(lic);
-                total = priceForAddDevices(lic, addN);
-                label = '+' + addN + ' device' + (addN === 1 ? '' : 's')
-                    + ' on "' + (lic.license_name || lic.license_id) + '" · ' + months + ' months left';
-            }
-        } else if (state.mode === 'streaming') {
-            if (state.streamingPkg === 'payg') {
-                var amt = parseFloat($('paygAmount').value);
-                if (isNaN(amt) || amt < streamingPricing.payg_min) amt = streamingPricing.payg_min;
-                total = amt;
-                label = 'Streaming credits. Pay as you go';
-            } else if (state.streamingPkg === 'pro_bundle') {
-                total = streamingPricing.bundle_price;
-                label = 'Streaming credits. Pro Bundle ($' + streamingPricing.bundle_credits.toFixed(0) + ' in credits)';
-            } else if (state.streamingPkg === 'unlimited') {
-                total = streamingPricing.unlimited_annual;
-                label = 'Annual Unlimited streaming subscription';
-            }
-        }
-        labelEl.textContent = label;
-        amountEl.textContent = formatPrice(total);
-        totalEl.textContent = formatPrice(total);
-        // Keep the step-2 preview + PAYG minutes display in sync with the inputs.
-        renderStep2();
-        renderPaygMinutes();
-        return total;
+    // ===== Order summary =====
+    function renderOrderSummary() {
+        // The subtotal lives on the cart card. Nothing else to do today;
+        // preview-driven updates flow through renderCart.
+        renderCart();
+    }
+    function updateCtaState() {
+        var items = state.cart.items || [];
+        var hasItems = items.length > 0;
+        var anyError = items.some(function(it) { return !!errorMessageForItem(it); });
+        var disabled = !hasItems || anyError || state.submitting;
+        $('ctaPayNow').disabled = disabled;
+        $('ctaInvoice').disabled = disabled;
+        $('ctaQuote').disabled = disabled;
     }
 
-    // ---- Cart summary for invoice/quote emails ----
-    function cartSummaryLines() {
-        var lines = [];
-        if (state.mode === 'new') {
-            var n = parseInt($('newDeviceCount').value, 10) || 1;
-            lines.push('• Eagle Eyes Pro license. ' + n + ' device' + (n === 1 ? '' : 's') + '. 1 year. ' + formatPrice(priceForNew(n)));
-        } else if (state.mode === 'renew') {
-            var rlic = findLicenseById(state.renewLicenseId);
-            if (rlic) {
-                var rdevs = deviceCountOf(rlic);
-                lines.push('• Renewal of license "' + (rlic.license_name || rlic.license_id) + '" (id: ' + rlic.license_id + ')');
-                lines.push('  ' + rdevs + ' device' + (rdevs === 1 ? '' : 's') + ', 1 year. Starts ' + (rlic.expiry_date || 'at current expiry') + '.');
-            }
-        } else if (state.mode === 'add_devices') {
-            var lic = findLicenseById(state.activeLicenseId);
-            var addN = parseInt($('addDevicesCount').value, 10) || 1;
-            if (lic) {
-                lines.push('• +' + addN + ' device' + (addN === 1 ? '' : 's') + ' added to license "' + (lic.license_name || lic.license_id) + '" (id: ' + lic.license_id + ')');
-                lines.push('  Prorated to expiry: ' + (lic.expiry_date || 'unknown') + '. ' + formatPrice(priceForAddDevices(lic, addN)));
-            }
-        } else if (state.mode === 'streaming') {
-            if (state.streamingPkg === 'payg') {
-                var amt = parseFloat($('paygAmount').value) || streamingPricing.payg_min;
-                lines.push('• Streaming credits. Pay as you go top-up. ' + formatPrice(amt));
-            } else if (state.streamingPkg === 'pro_bundle') {
-                lines.push('• Streaming credits. Pro Bundle. '
-                    + formatPrice(streamingPricing.bundle_price)
-                    + ' (you receive ' + formatPrice(streamingPricing.bundle_credits) + ' in credits)');
-            } else if (state.streamingPkg === 'unlimited') {
-                lines.push('• Annual Unlimited streaming subscription. '
-                    + formatPrice(streamingPricing.unlimited_annual) + ' / year');
-            }
-        }
-        return lines;
-    }
-
-    function openMailto(subject, bodyLines) {
-        var name = activeAccountName() || '(account name unknown)';
-        var prefix = ['Account: ' + name, ''];
-        var body = prefix.concat(bodyLines).join('\n');
-        var url = 'mailto:' + SALES_EMAIL
-            + '?subject=' + encodeURIComponent(subject)
-            + '&body=' + encodeURIComponent(body);
-        window.location.href = url;
-    }
-
-    // ---- CTAs ----
-
-    function friendlyStreamingError(bodyText, status) {
-        if (status === 403 && /no active license/i.test(bodyText)) {
-            return 'Renew your Eagle Eyes license before buying streaming credits.';
-        }
-        if (status === 403 && /owner only|not the owner/i.test(bodyText)) {
-            return 'Only the account owner can purchase streaming credits.';
-        }
-        if (status === 409 && /already_subscribed|already subscribed/i.test(bodyText)) {
-            return 'This account is already on Annual Unlimited.';
-        }
-        if (status === 400) {
-            return bodyText || 'Bad request.';
-        }
-        return 'Payment failed (' + status + '). Please try again or contact support.';
-    }
-
-    async function onBuyNow() {
-        var err = $('ctaError');
-        err.style.display = 'none';
-        // The cta is now the single Continue button (ctaContinue), regardless
-        // of payment method. The label is rewritten by applyPaymentUI on
-        // every payment-method change so the visible action ("Continue to
-        // checkout") matches what we're about to do.
-        var btn = $('ctaContinue');
-        btn.disabled = true;
-        var orig = btn.textContent;
-        btn.textContent = 'Redirecting…';
-        try {
-            var user = firebase.auth().currentUser;
-            if (!user) throw new Error('Not signed in');
-            var idToken = await user.getIdToken();
-
-            // ----- Renew: POST to /renew_license with payment_method=checkout.
-            // Backend returns { hosted_url, id, amount_usd, ... } and we
-            // redirect the user to the Stripe Checkout session. Invoice
-            // and quote payment methods for renewals route through
-            // onInvoice / onQuote below, which read state.mode==='renew'
-            // and switch endpoints.
-            if (state.mode === 'renew') {
-                var rlic = findLicenseById(state.renewLicenseId);
-                if (!rlic) throw new Error('Pick a license to renew.');
-                var rRes = await fetch(getHostUrl() + '/renew_license', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        license_id: rlic.license_id,
-                        payment_method: 'checkout'
-                    })
-                });
-                var rText = await rRes.text();
-                if (!rRes.ok) {
-                    throw new Error('Renewal failed (' + rRes.status + '): ' + rText);
-                }
-                var rData = rText ? JSON.parse(rText) : {};
-                if (!rData.hosted_url) throw new Error('No checkout URL returned.');
-                window.location.href = rData.hosted_url;
-                return;
-            }
-
-            // ----- Streaming credits: POST to a dedicated endpoint per package. -----
-            if (state.mode === 'streaming') {
-                if (!state.activeAccountId) throw new Error('No account selected.');
-                var endpoint, body;
-                if (state.streamingPkg === 'payg') {
-                    var amt = parseFloat($('paygAmount').value);
-                    if (isNaN(amt) || amt < streamingPricing.payg_min) {
-                        throw new Error('Minimum top-up is $' + streamingPricing.payg_min + '.');
-                    }
-                    endpoint = 'top_up_streaming_credits';
-                    body = { account_id: state.activeAccountId, package_id: 'payg', amount_usd: amt };
-                } else if (state.streamingPkg === 'pro_bundle') {
-                    endpoint = 'top_up_streaming_credits';
-                    body = { account_id: state.activeAccountId, package_id: 'pro_bundle' };
-                } else if (state.streamingPkg === 'unlimited') {
-                    endpoint = 'subscribe_to_unlimited';
-                    body = { account_id: state.activeAccountId };
-                } else {
-                    throw new Error('Pick a streaming package.');
-                }
-                var r2 = await fetch(getHostUrl() + '/' + endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + idToken,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-                var text2 = await r2.text();
-                if (!r2.ok) {
-                    throw new Error(friendlyStreamingError(text2, r2.status));
-                }
-                var data2 = text2 ? JSON.parse(text2) : {};
-                if (!data2.checkout_url) throw new Error('No checkout URL returned.');
-                window.location.href = data2.checkout_url;
-                return;
-            }
-
-            // ----- License purchase / extension: GET to get_stripe_payment_link. -----
-            var qs = '';
-            if (state.mode === 'new') {
-                var n = parseInt($('newDeviceCount').value, 10) || 1;
-                qs = '?device_count=' + n;
-            } else if (state.mode === 'add_devices') {
-                var lic = findLicenseById(state.activeLicenseId);
-                var addN = parseInt($('addDevicesCount').value, 10) || 1;
-                if (!lic) throw new Error('Pick a license to add devices to.');
-                qs = '?reason=extend&license_id=' + encodeURIComponent(lic.license_id)
-                    + '&device_count=' + addN;
-            } else {
-                throw new Error('Pick what you are buying.');
-            }
-            // Preserve any environment params (is_emulator, machine_id) from the current URL.
-            var passthrough = new URLSearchParams(window.location.search);
-            ['is_emulator', 'machine_id'].forEach(function(key) {
-                if (passthrough.has(key)) qs += '&' + key + '=' + encodeURIComponent(passthrough.get(key));
-            });
-            var r = await fetch(getHostUrl() + '/get_stripe_payment_link' + qs, {
-                method: 'GET',
-                headers: { 'Authorization': 'Bearer ' + idToken, 'Accept': 'application/json' }
-            });
-            if (!r.ok) {
-                var text = await r.text();
-                throw new Error('Payment link failed (' + r.status + '): ' + text);
-            }
-            var data = await r.json();
-            if (!data || !data.url) throw new Error('No payment URL returned.');
-            window.location.href = data.url;
-        } catch (e) {
-            console.error('Buy now failed:', e);
-            err.textContent = e.message || 'Something went wrong. Please try again.';
-            err.style.display = '';
-            btn.disabled = false;
-            btn.textContent = orig;
-        }
-    }
-
-    // Translate the cart's current state to catalog line-items the
-    // self-service invoice / quote endpoints accept. Returns null when the
-    // cart contains anything that isn't in the catalog (streaming credits,
-    // device extensions on existing licenses). Caller then shows a "use Buy
-    // now / contact sales" message instead of firing the request.
-    function cartCatalogLineItems() {
-        if (state.mode !== 'new') return null;
-        var n = parseInt($('newDeviceCount').value, 10) || 1;
-        if (n < 1 || n > 12) return null;
-        return [{ product_id: 'sar_1y_' + n + 'dev', quantity: 1 }];
-    }
-
-    function clearCtaStatus() {
-        var e = $('ctaError');
-        if (!e) return;
-        e.style.display = 'none';
-        e.textContent = '';
-        e.style.color = '';
-    }
-    function showCtaError(msg) {
-        var e = $('ctaError');
-        if (!e) { alert(msg); return; }
-        e.style.color = '#b32525';
-        e.style.display = '';
-        e.textContent = msg;
-    }
-    function showCtaSuccess(msg) {
-        var e = $('ctaError');
-        if (!e) { alert(msg); return; }
-        e.style.color = '#1f7a52';
-        e.style.display = '';
-        e.textContent = msg;
-    }
-
-    // Shared POST helper for the self-service billing endpoints. Surfaces
-    // status code + parsed body on the thrown error so onQuote can detect
-    // the 501 "quotes_require_invoicing_plus" fallback case.
+    // ===== Endpoints =====
     async function postBillingJson(endpoint, body) {
         var user = firebase.auth().currentUser;
         if (!user) throw new Error('Not signed in');
@@ -1743,34 +2192,11 @@ active: purchase
         }
         return data;
     }
-
-    // Look up the active account's billing address from the cached
-    // dashboard so the 409 retry modal can pre-fill what we know.
-    function activeAccountAddress() {
-        var acc = (state.accounts || []).find(function(a) {
-            return String(accountIdOf(a)) === String(state.activeAccountId);
-        });
-        return (acc && acc.address) || null;
-    }
-
-    // Build the invoice / quote request body (shared between paths).
-    function buildBillingRequestBody() {
-        return {
-            account_id: parseInt(state.activeAccountId, 10),
-            line_items: cartCatalogLineItems(),
-            days_until_due: 30,
-            custom_fields: readInvoiceCustomFields()
-        };
-    }
-
-    // Helper: send a 409-billing_address-aware POST. If the first call
-    // returns the structured "billing_address_required" refusal, opens
-    // the shared address modal, lets the user save an address, and
-    // retries the original POST once. Returns null when the user
-    // cancels the address modal (caller should bail without erroring).
     async function postWithAddressRetry(endpoint, body, reason) {
         try {
-            return await postBillingJson(endpoint, body);
+            return STUB_ENDPOINTS && endpoint.indexOf('create_purchase_') === 0
+                ? await stubCreatePurchase(endpoint, body)
+                : await postBillingJson(endpoint, body);
         } catch (err1) {
             if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
                 var addr = window.eeBillingAddress
@@ -1781,272 +2207,346 @@ active: purchase
                     })
                     : null;
                 if (!addr) return null;
-                // Patch the in-memory state so subsequent retries
-                // don't 409 again (modal already pushed to backend).
-                var acc = (state.accounts || []).find(function(a) {
-                    return String(accountIdOf(a)) === String(state.activeAccountId);
-                });
+                var acc = activeAccount();
                 if (acc) acc.address = addr;
-                return await postBillingJson(endpoint, body);
+                return STUB_ENDPOINTS && endpoint.indexOf('create_purchase_') === 0
+                    ? await stubCreatePurchase(endpoint, body)
+                    : await postBillingJson(endpoint, body);
             }
             throw err1;
         }
     }
 
-    // Invoice flow. Branches by state.mode:
-    //   - renew: POST /renew_license { license_id, payment_method:'invoice',
-    //     custom_fields } - returns { hosted_url, ... }
-    //   - new (catalog SKUs): POST /request_invoice_for_self
-    //   - add_devices / streaming: not catalog-eligible; show a hint
-    //     pointing the user at credit-card payment or sales.
-    // 409 billing_address_required refusals are handled identically:
-    // pop the shared modal, capture address, retry once.
-    async function onInvoice() {
-        clearCtaStatus();
-        var btn = $('ctaContinue');
-        btn.disabled = true;
-        var orig = btn.textContent;
-        btn.textContent = 'Creating invoice…';
-        try {
-            var hostedUrl;
-
-            if (state.mode === 'renew') {
-                var rlic = findLicenseById(state.renewLicenseId);
-                if (!rlic) throw new Error('Pick a license to renew.');
-                var customFieldsR = readInvoiceCustomFields();
-                var renewBody = {
-                    license_id: rlic.license_id,
-                    payment_method: 'invoice'
-                };
-                if (customFieldsR.length) renewBody.custom_fields = customFieldsR;
-                var renewResp = await postWithAddressRetry('renew_license', renewBody, 'invoice');
-                if (renewResp === null) return; // user cancelled the address modal
-                if (!renewResp || !renewResp.hosted_url) throw new Error('Backend did not return an invoice URL.');
-                hostedUrl = renewResp.hosted_url;
-            } else {
-                var items = cartCatalogLineItems();
-                if (!items) {
-                    showCtaError('Invoices cover catalog SKUs only (1-Year SAR licenses) and renewals. '
-                        + 'For streaming credits or device extensions, switch to '
-                        + '"Pay now with a credit card" or email info@eagleeyessearch.com.');
-                    return;
-                }
-                if (!state.activeAccountId) {
-                    showCtaError('Select an account before requesting an invoice.');
-                    return;
-                }
-                var body = buildBillingRequestBody();
-                if (!body.custom_fields || body.custom_fields.length === 0) delete body.custom_fields;
-                var resp = await postWithAddressRetry('request_invoice_for_self', body, 'invoice');
-                if (resp === null) return;
-                var inv = resp && resp.invoice;
-                if (!inv || !inv.hosted_url) throw new Error('Backend did not return an invoice URL.');
-                hostedUrl = inv.hosted_url;
-            }
-
-            window.open(hostedUrl, '_blank', 'noopener');
-            showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
-        } catch (e) {
-            console.error('Invoice flow failed:', e);
-            showCtaError("Couldn't create invoice: " + (e.message || String(e)));
-        } finally {
-            btn.disabled = false;
-            btn.textContent = orig;
-        }
-    }
-
-    // POST /request_quote_for_self. Creates a finalized Stripe Quote.
-    // Falls back to the legacy mailto when the endpoint returns 501
-    // (quotes_require_invoicing_plus), which is the current state until
-    // Stripe Invoicing Plus is enabled on the Eagle Eyes account.
-    async function onQuote(e) {
-        if (e && e.preventDefault) e.preventDefault();
-        clearCtaStatus();
-        var link = $('ctaContinue');
-        var prev = link.textContent;
-        link.textContent = 'Creating quote…';
-
-        try {
-            var hostedUrl;
-
-            if (state.mode === 'renew') {
-                var rlic = findLicenseById(state.renewLicenseId);
-                if (!rlic) throw new Error('Pick a license to renew.');
-                // renew_license quote mode rejects custom_fields (Stripe
-                // API limitation for one-time-priced Quote line items).
-                // The reference-details panel still applies for invoice
-                // mode, but quote mode silently drops them.
-                var renewBody = {
-                    license_id: rlic.license_id,
-                    payment_method: 'quote'
-                };
-                var renewResp = await postWithAddressRetry('renew_license', renewBody, 'quote');
-                if (renewResp === null) { link.textContent = prev; return; }
-                if (!renewResp || !renewResp.hosted_url) throw new Error('Backend did not return a quote URL.');
-                hostedUrl = renewResp.hosted_url;
-            } else {
-                var items = cartCatalogLineItems();
-                if (!items) {
-                    showCtaError('Quotes cover catalog SKUs only (1-Year SAR licenses) and renewals. '
-                        + 'For other items, email info@eagleeyessearch.com.');
-                    link.textContent = prev;
-                    return;
-                }
-                if (!state.activeAccountId) {
-                    showCtaError('Select an account before requesting a quote.');
-                    link.textContent = prev;
-                    return;
-                }
-                var customFields = readInvoiceCustomFields();
-                var body = {
-                    account_id: parseInt(state.activeAccountId, 10),
-                    line_items: items,
-                    valid_for_days: 30
-                };
-                if (customFields.length) body.custom_fields = customFields;
-                var resp = await postWithAddressRetry('request_quote_for_self', body, 'quote');
-                if (resp === null) { link.textContent = prev; return; }
-                var quote = resp && resp.quote;
-                if (!quote || !quote.hosted_url) throw new Error('Backend did not return a quote URL.');
-                hostedUrl = quote.hosted_url;
-            }
-
-            window.open(hostedUrl, '_blank', 'noopener');
-            showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
-            link.textContent = prev;
-            return;
-        } catch (err) {
-            if (err.status === 501 || (err.data && err.data.code === 'quotes_require_invoicing_plus')) {
-                console.info('Quote endpoint unavailable (Invoicing Plus not enabled). Falling back to mailto');
-                var lines = ['Quote request', '', 'Please prepare a formal quote for:'];
-                lines = lines.concat(cartSummaryLines());
-                lines.push('');
-                lines.push('Total estimated: ' + formatPrice(recomputeSummary()));
-                lines.push('');
-                lines.push('PO # (if known): ');
-                lines.push('Fiscal-year deadline / valid-until date: ');
-                lines.push('Notes: ');
-                lines.push('');
-                lines.push('(This request was generated from /account/purchase/)');
-                openMailto('Quote request. Eagle Eyes license', lines);
-                return;
-            }
-            console.error('request_quote_for_self failed:', err);
-            showCtaError("Couldn't create quote: " + (err.message || String(err)));
-        } finally {
-            link.textContent = prev;
-        }
-    }
-
-    // ---- Init ----
-
-    function readActiveAccountId(uid) {
-        try { return sessionStorage.getItem('ee-active-account:' + uid); } catch (e) { return null; }
-    }
-
-    function readModeFromUrl() {
-        var p = new URLSearchParams(window.location.search);
-        var mode = p.get('mode');
-        if (mode === 'extend' || mode === 'add_devices') return 'add_devices';
-        if (mode === 'new') return 'new';
-        if (mode === 'renew') return 'renew';
-        if (mode === 'streaming' || mode === 'credits') return 'streaming';
-        return null;
-    }
-    function readStreamingPkgFromUrl() {
-        var p = new URLSearchParams(window.location.search);
-        var pkg = p.get('package');
-        if (pkg === 'payg' || pkg === 'pro_bundle' || pkg === 'unlimited') return pkg;
-        return null;
-    }
-    function readLicenseIdFromUrl() {
-        return new URLSearchParams(window.location.search).get('license_id');
-    }
-    function readDeviceCountFromUrl() {
-        var v = parseInt(new URLSearchParams(window.location.search).get('device_count') || '', 10);
-        return (isNaN(v) || v < 1 || v > 12) ? null : v;
-    }
-
-    async function initSignedIn(user) {
-        $('purchaseLoading').style.display = '';
-        $('purchaseSignedOut').style.display = 'none';
-        $('purchaseContent').style.display = 'none';
-
-        var dash;
-        try {
-            dash = await loadDashboard(user);
-        } catch (err) {
-            console.error('Dashboard load failed:', err);
-            // Replace the spinner markup with the error message. InnerHTML
-            // wipes the spinner so it doesn't spin behind the text.
-            $('purchaseLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">Couldn\'t load your licenses. Please refresh.</p>';
-            return;
-        }
-        state.accounts = (dash && dash.accounts) || [];
-        state.organizations = (dash && dash.organizations) || [];
-        state.licenses = (dash && dash.license_overview) || [];
-
-        var stored = readActiveAccountId(user.uid);
-        var firstId = state.accounts.length ? accountIdOf(state.accounts[0]) : null;
-        if (stored && state.accounts.some(function(a) { return String(accountIdOf(a)) === String(stored); })) {
-            state.activeAccountId = stored;
-        } else {
-            state.activeAccountId = firstId != null ? String(firstId) : null;
-        }
-
-        // Initial mode from URL params; default to "new".
-        var urlMode = readModeFromUrl();
-        state.mode = urlMode || 'new';
-
-        // Streaming sub-package from URL (?package=payg|pro_bundle|unlimited)
-        // so deep-links from other pages can land on a specific option.
-        var urlPkg = readStreamingPkgFromUrl();
-        if (urlPkg) state.streamingPkg = urlPkg;
-
-        // If pre-populated from a license card, select that license up front
-        // so renderLicenseList highlights the right row.
-        var lid = readLicenseIdFromUrl();
-        if (state.mode === 'add_devices' && lid) state.activeLicenseId = lid;
-
-        // Device-count param from pricing.html redirect.
-        var dc = readDeviceCountFromUrl();
-        if (dc && state.mode === 'new') $('newDeviceCount').value = String(dc);
-
-        // Preselect a license for renew mode when the URL points to one.
-        if (state.mode === 'renew' && lid) state.renewLicenseId = lid;
-
-        // Decide which top-level modes are visible (gates New vs Renew
-        // based on whether the account has active licenses).
-        applyAvailableModes();
-
-        applyModeUI();
-        renderLicenseList();
-        renderRenewLicenseList();
-
-        // Streaming credit balance + per-minute rate (informational).
-        loadCredits(user).then(function(c) {
-            if (!c) return;
-            state.credits = c;
-            applyPerMinuteRate(c.per_minute_rate_usd);
+    // Build the cart-shaped payload for preview_cart / create_purchase_*.
+    function buildCartPayload(intent) {
+        var items = state.cart.items.map(function(it) {
+            var copy = { sku: it.sku };
+            ['license_id', 'duration_days', 'new_n_tokens', 'additional_devices',
+             'amount_usd', 'product_id'].forEach(function(k) {
+                if (it[k] != null && it[k] !== '') copy[k] = it[k];
+            });
+            return copy;
         });
-        // Streaming package config. Overrides hardcoded defaults if backend exposes it.
-        loadStreamingPackages(user).then(applyPackageConfig);
-
-        recomputeSummary();
-        $('purchaseLoading').style.display = 'none';
-        // Non-owner gating: show the buy UI only when the current user is
-        // an owner of the active account. Otherwise show the blocked panel
-        // listing the owners they can contact.
-        applyOwnerVisibility();
+        var payload = {
+            account_id: parseInt(state.activeAccountId, 10),
+            items: items,
+            is_emulator: false
+        };
+        if (intent === 'invoice' || intent === 'quote' || intent === 'checkout') {
+            var details = readInvoiceDetails();
+            if (Object.keys(details).length > 0) payload.invoice_details = details;
+        }
+        // Forward emulator/test flag if the page URL carries it.
+        var qs = new URLSearchParams(window.location.search);
+        if (qs.get('is_emulator') === '1' || qs.get('is_emulator') === 'true') {
+            payload.is_emulator = true;
+        }
+        return payload;
     }
 
-    // Decide whether to show the purchase form or the non-owner blocked
-    // state for the *currently active* account. Called on init and after
-    // an account-switch (accountScopeChanged).
+    // ===== Stubs (until backend ships create_purchase_*) =====
+    function validateCartPayloadShape(payload) {
+        var errs = [];
+        if (!payload || typeof payload !== 'object') errs.push('payload must be object');
+        if (typeof payload.account_id !== 'number') errs.push('account_id must be number');
+        if (!Array.isArray(payload.items)) errs.push('items must be array');
+        (payload.items || []).forEach(function(it, idx) {
+            if (!it || typeof it !== 'object') return errs.push('items[' + idx + '] not object');
+            var allowedSkus = ['license_renewal', 'additional_devices', 'streaming_topup_payg',
+                'streaming_topup_pro_bundle', 'license_new'];
+            if (allowedSkus.indexOf(it.sku) === -1) errs.push('items[' + idx + '].sku unknown: ' + it.sku);
+            if (it.sku === 'license_renewal') {
+                if (!it.license_id) errs.push('items[' + idx + '].license_id required');
+                if (typeof it.duration_days !== 'number') errs.push('items[' + idx + '].duration_days required');
+                if (typeof it.new_n_tokens !== 'number') errs.push('items[' + idx + '].new_n_tokens required');
+            }
+            if (it.sku === 'additional_devices') {
+                if (!it.license_id) errs.push('items[' + idx + '].license_id required');
+                if (typeof it.additional_devices !== 'number') errs.push('items[' + idx + '].additional_devices required');
+            }
+            if (it.sku === 'streaming_topup_payg' && typeof it.amount_usd !== 'number') {
+                errs.push('items[' + idx + '].amount_usd required');
+            }
+            if (it.sku === 'license_new' && !it.product_id) {
+                errs.push('items[' + idx + '].product_id required');
+            }
+        });
+        return errs;
+    }
+    async function stubPreviewCart(payload) {
+        console.log('[STUB] preview_cart payload', JSON.parse(JSON.stringify(payload)));
+        var shapeErrs = validateCartPayloadShape(payload);
+        if (shapeErrs.length) {
+            console.warn('[STUB] preview_cart shape errors', shapeErrs);
+            var err = new Error(shapeErrs.join('; '));
+            err.status = 400; err.data = { code: 'stub_shape_error', message: shapeErrs.join('; ') };
+            throw err;
+        }
+        // Validate business rules (mirror error codes the backend will return).
+        var bizErr = stubValidateBusinessRules(payload);
+        if (bizErr) {
+            var e = new Error(bizErr.message);
+            e.status = 409; e.data = bizErr;
+            throw e;
+        }
+        // Build a cart_summary from client estimates.
+        var line_items = (payload.items || []).map(function(it, idx) {
+            var lic = it.license_id ? findLicenseById(it.license_id) : null;
+            var amt = 0;
+            if (it.sku === 'license_renewal') amt = priceForRenewal(lic, it.new_n_tokens);
+            else if (it.sku === 'additional_devices') amt = priceForAddDevices(lic, it.additional_devices);
+            else if (it.sku === 'streaming_topup_payg') amt = it.amount_usd || 0;
+            else if (it.sku === 'streaming_topup_pro_bundle') amt = streamingPricing.bundle_price;
+            else if (it.sku === 'license_new') {
+                var m = /sar_1y_(\d+)dev/.exec(it.product_id || '');
+                amt = priceForNew(m ? parseInt(m[1], 10) : 1);
+            }
+            return {
+                description: stubDescribe(it),
+                amount_usd: amt,
+                sku: it.sku,
+                external_id: 'cart:stub:item:' + idx
+            };
+        });
+        var subtotal = line_items.reduce(function(s, li) { return s + li.amount_usd; }, 0);
+        return {
+            cart_summary: {
+                subtotal_usd: subtotal,
+                tax_usd: null,
+                total_usd: subtotal,
+                line_items: line_items
+            }
+        };
+    }
+    function stubValidateBusinessRules(payload) {
+        var items = payload.items || [];
+        if (!items.length) return { code: 'cart_empty', message: 'Cart is empty.' };
+        // Renewal + additional_devices for same license.
+        var renewals = {};
+        var extensions = {};
+        for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (it.sku === 'license_renewal') renewals[it.license_id] = true;
+            if (it.sku === 'additional_devices') extensions[it.license_id] = true;
+        }
+        var dup = Object.keys(renewals).find(function(lid) { return extensions[lid]; });
+        if (dup) {
+            return {
+                code: 'renewal_and_devices_same_license',
+                message: 'Cart contains both a renewal and a device extension for license ' + dup + '. '
+                    + 'Raise device count via the renewal\'s Devices field instead.'
+            };
+        }
+        // PAYG minimum
+        for (var j = 0; j < items.length; j++) {
+            var it2 = items[j];
+            if (it2.sku === 'streaming_topup_payg' && it2.amount_usd < streamingPricing.payg_min) {
+                return { code: 'payg_below_minimum',
+                    message: 'PAYG minimum is $' + streamingPricing.payg_min + '.' };
+            }
+            if (it2.sku === 'additional_devices') {
+                var lic = findLicenseById(it2.license_id);
+                if (lic && deviceCountOf(lic) + (it2.additional_devices || 0) > DEVICE_CAP) {
+                    return { code: 'license_device_cap_exceeded',
+                        message: "That's more devices than we cover with self-service. "
+                            + "Email info@eagleeyessearch.com and we'll set it up for you." };
+                }
+            }
+            if (it2.sku === 'license_renewal') {
+                var lic2 = findLicenseById(it2.license_id);
+                if (lic2 && lic2.successor_license_id) {
+                    return { code: 'license_already_has_renewal_queued',
+                        message: 'A renewal is already queued for this license.' };
+                }
+            }
+        }
+        return null;
+    }
+    function stubDescribe(item) {
+        var lic = item.license_id ? findLicenseById(item.license_id) : null;
+        var name = (lic && (lic.license_name || lic.license_id)) || item.license_id || '';
+        if (item.sku === 'license_renewal') {
+            return 'Renewal of ' + name + ' (' + (item.new_n_tokens || 0) + ' devices, 1 year)';
+        }
+        if (item.sku === 'additional_devices') {
+            return '+' + (item.additional_devices || 0) + ' devices on ' + name;
+        }
+        if (item.sku === 'streaming_topup_payg') return 'Streaming credits (PAYG)';
+        if (item.sku === 'streaming_topup_pro_bundle') return 'Streaming Pro Bundle';
+        if (item.sku === 'license_new') return 'New SAR license (' + (item.product_id || '?') + ')';
+        return item.sku;
+    }
+    async function stubCreatePurchase(endpoint, payload) {
+        console.log('[STUB] ' + endpoint + ' payload', JSON.parse(JSON.stringify(payload)));
+        var shapeErrs = validateCartPayloadShape(payload);
+        if (shapeErrs.length) {
+            var e = new Error(shapeErrs.join('; '));
+            e.status = 400; e.data = { code: 'stub_shape_error', message: shapeErrs.join('; ') };
+            throw e;
+        }
+        var biz = stubValidateBusinessRules(payload);
+        if (biz) {
+            var e2 = new Error(biz.message);
+            e2.status = 409; e2.data = biz;
+            throw e2;
+        }
+        var resp = await stubPreviewCart(payload);
+        var summary = resp.cart_summary;
+        if (endpoint === 'create_purchase_checkout') {
+            return { checkout_url: 'about:blank#stub-checkout', session_id: 'cs_stub_' + Date.now(),
+                cart_summary: summary };
+        }
+        if (endpoint === 'create_purchase_invoice') {
+            return { invoice_id: 'in_stub_' + Date.now(), hosted_invoice_url: 'about:blank#stub-invoice',
+                invoice_pdf: 'about:blank#stub-invoice-pdf', cart_summary: summary };
+        }
+        if (endpoint === 'create_purchase_quote') {
+            return { quote_id: 'qt_stub_' + Date.now(), hosted_quote_url: 'about:blank#stub-quote',
+                quote_pdf: 'about:blank#stub-quote-pdf', cart_summary: summary };
+        }
+        throw new Error('Unknown stub endpoint: ' + endpoint);
+    }
+
+    // ===== CTA handlers =====
+    function clearCtaStatus() {
+        var e = $('ctaStatus');
+        if (!e) return;
+        e.style.display = 'none';
+        e.textContent = '';
+        e.className = 'purchase-error';
+    }
+    function showCtaError(msg) {
+        var e = $('ctaStatus');
+        if (!e) { alert(msg); return; }
+        e.className = 'purchase-error';
+        e.style.display = '';
+        e.textContent = msg;
+    }
+    function showCtaSuccess(msg) {
+        var e = $('ctaStatus');
+        if (!e) { alert(msg); return; }
+        e.className = 'purchase-success';
+        e.style.display = '';
+        e.textContent = msg;
+    }
+
+    async function withCtaInflight(btn, label, fn) {
+        clearCtaStatus();
+        if (state.submitting) return;
+        state.submitting = true;
+        var orig = btn.textContent;
+        btn.textContent = label;
+        updateCtaState();
+        try { await fn(); }
+        finally {
+            state.submitting = false;
+            btn.textContent = orig;
+            updateCtaState();
+        }
+    }
+
+    async function onPayNow() {
+        await withCtaInflight($('ctaPayNow'), 'Redirecting…', async function() {
+            try {
+                var payload = buildCartPayload('checkout');
+                var resp = STUB_ENDPOINTS
+                    ? await stubCreatePurchase('create_purchase_checkout', payload)
+                    : await postBillingJson('create_purchase_checkout', payload);
+                if (!resp || !resp.checkout_url) throw new Error('No checkout URL returned.');
+                clearCart();
+                if (resp.checkout_url.indexOf('about:blank') === 0) {
+                    showCtaSuccess('[STUB] Pay now → would redirect to: ' + resp.checkout_url);
+                    renderAll();
+                    return;
+                }
+                window.location.href = resp.checkout_url;
+            } catch (err) {
+                console.error('Pay now failed:', err);
+                showCtaError(formatErrorMessage(err));
+            }
+        });
+    }
+    async function onEmailInvoice() {
+        await withCtaInflight($('ctaInvoice'), 'Creating invoice…', async function() {
+            try {
+                var payload = buildCartPayload('invoice');
+                var resp = await postWithAddressRetry('create_purchase_invoice', payload, 'invoice');
+                if (resp === null) return; // user cancelled the address modal
+                if (!resp || !resp.hosted_invoice_url) throw new Error('No invoice URL returned.');
+                if (resp.hosted_invoice_url.indexOf('about:blank') === 0) {
+                    showCtaSuccess('[STUB] Email invoice → would open: ' + resp.hosted_invoice_url);
+                    clearCart(); renderAll(); return;
+                }
+                window.open(resp.hosted_invoice_url, '_blank', 'noopener');
+                clearCart(); renderAll();
+                showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
+            } catch (err) {
+                console.error('Invoice flow failed:', err);
+                showCtaError("Couldn't create invoice: " + formatErrorMessage(err));
+            }
+        });
+    }
+    async function onRequestQuote() {
+        await withCtaInflight($('ctaQuote'), 'Creating quote…', async function() {
+            try {
+                var payload = buildCartPayload('quote');
+                var resp = await postWithAddressRetry('create_purchase_quote', payload, 'quote');
+                if (resp === null) return;
+                if (!resp || !resp.hosted_quote_url) throw new Error('No quote URL returned.');
+                if (resp.hosted_quote_url.indexOf('about:blank') === 0) {
+                    showCtaSuccess('[STUB] Request quote → would open: ' + resp.hosted_quote_url);
+                    clearCart(); renderAll(); return;
+                }
+                window.open(resp.hosted_quote_url, '_blank', 'noopener');
+                clearCart(); renderAll();
+                showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
+            } catch (err) {
+                if (err && (err.status === 501
+                    || (err.data && err.data.code === 'quotes_require_invoicing_plus'))) {
+                    fallbackQuoteMailto();
+                    return;
+                }
+                console.error('Quote flow failed:', err);
+                showCtaError("Couldn't create quote: " + formatErrorMessage(err));
+            }
+        });
+    }
+    function formatErrorMessage(err) {
+        if (!err) return 'Something went wrong.';
+        var code = err && err.data && err.data.code;
+        if (code === 'billing_address_required') {
+            return 'Add a billing address to this account first.';
+        }
+        return err.message || String(err);
+    }
+    function fallbackQuoteMailto() {
+        var lines = ['Quote request', '', 'Please prepare a formal quote for:'];
+        state.cart.items.forEach(function(it, idx) {
+            var d = describeItem(it);
+            var p = priceFor(it, idx);
+            lines.push('• ' + d.title + ' — ' + d.meta + ' — ' + formatPrice(p));
+        });
+        lines.push('');
+        lines.push('PO # (if known): ');
+        lines.push('Reference: ');
+        lines.push('Valid-until date: ');
+        lines.push('');
+        lines.push('(This request was generated from /account/purchase/)');
+        openMailto('Quote request. Eagle Eyes', lines);
+    }
+    function openMailto(subject, bodyLines) {
+        var name = activeAccountName() || '(account name unknown)';
+        var prefix = ['Account: ' + name, ''];
+        var body = prefix.concat(bodyLines).join('\n');
+        var url = 'mailto:' + SALES_EMAIL
+            + '?subject=' + encodeURIComponent(subject)
+            + '&body=' + encodeURIComponent(body);
+        window.location.href = url;
+    }
+
+    // ===== Non-owner panel =====
     function applyOwnerVisibility() {
-        var acc = state.accounts.find(function(a) {
-            return String(accountIdOf(a)) === String(state.activeAccountId);
-        }) || state.accounts[0];
+        var acc = activeAccount();
         var isOwner = !!(acc && acc.is_owner);
         if (isOwner) {
             $('purchaseNonOwner').style.display = 'none';
@@ -2057,30 +2557,26 @@ active: purchase
             $('purchaseNonOwner').style.display = '';
         }
     }
-
     function renderNonOwnerPanel(acc) {
-        var nameEl = document.getElementById('nonOwnerAccountName');
-        var listEl = document.getElementById('nonOwnerOwnersList');
-        var contactBtn = document.getElementById('nonOwnerContactBtn');
+        var nameEl = $('nonOwnerAccountName');
+        var listEl = $('nonOwnerOwnersList');
+        var contactBtn = $('nonOwnerContactBtn');
         if (!acc) {
             if (listEl) listEl.innerHTML = '';
             return;
         }
         if (nameEl) nameEl.textContent = acc.name || 'this account';
-
         var members = acc.members || {};
         var owners = Object.keys(members).filter(function(email) {
             return String(members[email]).toLowerCase() === 'owner';
         });
         owners.sort();
-
         if (!listEl) return;
         if (!owners.length) {
             listEl.innerHTML = '<div class="non-owner-owner-row"><div class="non-owner-owner-email">No owners on file. Contact info@eagleeyessearch.com.</div></div>';
             if (contactBtn) contactBtn.href = 'mailto:info@eagleeyessearch.com';
             return;
         }
-
         var rowsHtml = owners.map(function(email) {
             var initial = (email.charAt(0) || '?').toUpperCase();
             var color = (typeof colorForEmail === 'function') ? colorForEmail(email) : '#5b8def';
@@ -2096,8 +2592,6 @@ active: purchase
                 + '</div>';
         }).join('');
         listEl.innerHTML = rowsHtml;
-
-        // Top-level "Email an owner" button addresses the first owner; CCs the rest.
         var first = owners[0];
         var rest = owners.slice(1);
         var ccArg = rest.length ? '&cc=' + encodeURIComponent(rest.join(',')) : '';
@@ -2108,7 +2602,6 @@ active: purchase
                 + '&body=' + encodeURIComponent(buildNonOwnerEmailBody(acc, owners));
         }
     }
-
     function buildNonOwnerEmailBody(acc, owners) {
         var requesterEmail = '';
         try { requesterEmail = ((firebase.auth().currentUser || {}).email || ''); } catch (e) {}
@@ -2126,174 +2619,139 @@ active: purchase
         ].join('\n');
     }
 
-    // (esc already declared at top of file. Reuse it.)
+    // ===== Init =====
+    function readActiveAccountId(uid) {
+        try { return sessionStorage.getItem('ee-active-account:' + uid); } catch (e) { return null; }
+    }
+    function renderAll() {
+        renderCart();
+        renderCatalog();
+        applyLicenseHintResolution();
+    }
+    async function initSignedIn(user) {
+        $('purchaseLoading').style.display = '';
+        $('purchaseSignedOut').style.display = 'none';
+        $('purchaseContent').style.display = 'none';
 
+        var dash;
+        try {
+            dash = await loadDashboard(user);
+        } catch (err) {
+            console.error('Dashboard load failed:', err);
+            $('purchaseLoading').innerHTML = '<p style="color: #555; padding: 30px 0; text-align: center;">Couldn\'t load your licenses. Please refresh.</p>';
+            return;
+        }
+        state.accounts = (dash && dash.accounts) || [];
+        state.organizations = (dash && dash.organizations) || [];
+        state.licenses = (dash && dash.license_overview) || [];
+
+        var stored = readActiveAccountId(user.uid);
+        var firstId = state.accounts.length ? accountIdOf(state.accounts[0]) : null;
+        if (stored && state.accounts.some(function(a) { return String(accountIdOf(a)) === String(stored); })) {
+            state.activeAccountId = stored;
+        } else {
+            state.activeAccountId = firstId != null ? String(firstId) : null;
+        }
+
+        // Load cart for active account.
+        state.cart = loadCart();
+
+        // Partial-license-id resolver may switch the active account.
+        state.licenseHint = parseLicenseHintFromUrl();
+        if (state.licenseHint) {
+            applyLicenseHintResolution();
+            // The resolver may have switched accounts; re-load that cart.
+            state.cart = loadCart();
+        }
+
+        // Apply URL deep-link items (once).
+        if (!state.urlAddsApplied) {
+            state.urlAddsApplied = true;
+            var urlItems = parseUrlAddItems();
+            urlItems.forEach(function(it) { cartAdd(it); });
+        }
+
+        loadCredits(user).then(function(c) {
+            if (!c) return;
+            state.credits = c;
+            applyPerMinuteRate(c.per_minute_rate_usd);
+            renderCart();
+        });
+        loadStreamingPackages(user).then(applyPackageConfig);
+
+        renderInvoiceRecipient();
+        renderAll();
+        schedulePreview();
+
+        $('purchaseLoading').style.display = 'none';
+        applyOwnerVisibility();
+    }
     function initSignedOut() {
         $('purchaseLoading').style.display = 'none';
         $('purchaseContent').style.display = 'none';
         $('purchaseSignedOut').style.display = '';
     }
-
     function applyAuth(user) {
         if (user) initSignedIn(user);
         else initSignedOut();
     }
 
-    // ---- Wire DOM ----
-
-    document.addEventListener('change', function(e) {
-        if (e.target.name === 'purchaseMode') {
-            state.mode = e.target.value;
-            applyModeUI();
-            recomputeSummary();
-        } else if (e.target.name === 'streamingPkg') {
-            state.streamingPkg = e.target.value;
-            applyModeUI();
-            recomputeSummary();
-        } else if (e.target.name === 'addDevicesPick') {
-            state.activeLicenseId = e.target.value;
-            // Re-highlight the selected card without re-rendering the whole list.
-            document.querySelectorAll('.license-row').forEach(function(row) {
-                row.classList.toggle('is-active', row.getAttribute('data-license-id') === state.activeLicenseId);
-            });
-            recomputeSummary();
-        } else if (e.target.name === 'renewPick') {
-            state.renewLicenseId = e.target.value;
-            document.querySelectorAll('.license-row').forEach(function(row) {
-                row.classList.toggle('is-active', row.getAttribute('data-renew-license-id') === state.renewLicenseId);
-            });
-            recomputeSummary();
-        } else if (e.target.name === 'paymentMethod') {
-            state.paymentMethod = e.target.value;
-            applyPaymentUI();
-        }
-    });
-    document.addEventListener('input', function(e) {
-        if (e.target.id === 'newDeviceCount'
-            || e.target.id === 'addDevicesCount'
-            || e.target.id === 'paygAmount') {
-            recomputeSummary();
-        }
-    });
+    // ===== Event wiring =====
     document.addEventListener('click', function(e) {
-        // Don't let clicks inside a sub-control (license row, streaming row)
-        // accidentally trigger the outer mode switch. Handle the inner case
-        // first.
-        var licRow = e.target.closest('.license-row');
-        if (licRow) {
-            // The same .license-row class is used by both the add_devices
-            // picker (data-license-id) and the renew picker
-            // (data-renew-license-id). Branch on which attribute is set.
-            var addId = licRow.getAttribute('data-license-id');
-            var renewId = licRow.getAttribute('data-renew-license-id');
-            if (renewId) {
-                if (renewId !== state.renewLicenseId) {
-                    state.renewLicenseId = renewId;
-                    document.querySelectorAll('.license-row').forEach(function(r) {
-                        r.classList.toggle('is-active', r.getAttribute('data-renew-license-id') === renewId);
-                    });
-                    var rradio = licRow.querySelector('input[type="radio"]');
-                    if (rradio) rradio.checked = true;
-                    recomputeSummary();
-                }
-            } else if (addId && addId !== state.activeLicenseId) {
-                state.activeLicenseId = addId;
-                document.querySelectorAll('.license-row').forEach(function(r) {
-                    r.classList.toggle('is-active', r.getAttribute('data-license-id') === addId);
-                });
-                var radio = licRow.querySelector('input[type="radio"]');
-                if (radio) radio.checked = true;
-                recomputeSummary();
-            }
-            return; // outer mode-row click handler below should NOT also fire
-        }
-        var streamRow = e.target.closest('.streaming-row');
-        if (streamRow) {
-            var pkg = streamRow.getAttribute('data-package');
-            if (pkg && pkg !== state.streamingPkg) {
-                state.streamingPkg = pkg;
-                applyModeUI();
-                recomputeSummary();
-            }
-            return;
-        }
-        // Outer mode-row click → activate that mode.
-        var row = e.target.closest('.mode-row');
-        if (row && !row.classList.contains('is-disabled') && row.getAttribute('data-mode') !== state.mode) {
-            state.mode = row.getAttribute('data-mode');
-            applyModeUI();
-            recomputeSummary();
-            return;
-        }
-        // Pay-row click → activate that payment method (mirrors mode-row).
-        var payRow = e.target.closest('.pay-row');
-        if (payRow && payRow.getAttribute('data-pay') !== state.paymentMethod) {
-            // Don't hijack clicks on the inputs inside the invoice details
-            // panel (typing / focusing fields shouldn't reactivate the row).
-            if (e.target.closest('.pay-row-inputs')) return;
-            state.paymentMethod = payRow.getAttribute('data-pay');
-            applyPaymentUI();
+        var act = e.target.closest('[data-action]');
+        if (!act) return;
+        var action = act.getAttribute('data-action');
+        if (action === 'open-picker') {
+            openPicker(act.getAttribute('data-slot'));
+        } else if (action === 'close-picker') {
+            closePicker();
+        } else if (action === 'commit-picker') {
+            commitPicker();
+        } else if (action === 'remove-item') {
+            cartRemove(act.getAttribute('data-id'));
+            renderAll();
+            schedulePreview();
+        } else if (action === 'stepper-dec' || action === 'stepper-inc') {
+            var stepper = act.closest('.qty-stepper');
+            if (!stepper) return;
+            var input = stepper.querySelector('input[type="number"]');
+            if (!input) return;
+            var minA = parseFloat(input.min); if (isNaN(minA)) minA = 1;
+            var maxA = parseFloat(input.max); if (isNaN(maxA)) maxA = 99;
+            var stepA = parseFloat(act.getAttribute('data-step')) || parseFloat(input.step) || 1;
+            var cur = parseFloat(input.value); if (isNaN(cur)) cur = minA;
+            var next = action === 'stepper-dec' ? cur - stepA : cur + stepA;
+            next = clamp(next, minA, maxA);
+            if (next === cur) return;
+            // Drop trailing .0 for integer steps so the displayed value
+            // stays clean ("30" not "30.0").
+            input.value = (stepA % 1 === 0) ? String(Math.round(next)) : String(next);
+            // Dispatch a synthetic change so the existing field handlers
+            // (data-picker-field / data-edit-field) fire as if the user typed.
+            input.dispatchEvent(new Event('change', { bubbles: true }));
         }
     });
-
-    // Single Continue button branches by state.paymentMethod. onInvoice
-    // is wrapped here so it picks up the invoice-details fields (PO,
-    // address, etc.) before delegating to the API. onBuyNow / onQuote
-    // are called as-is — they read state.mode / streamingPkg directly.
-    function onContinue(event) {
-        if (event && event.preventDefault) event.preventDefault();
-        if (state.paymentMethod === 'invoice') return onInvoice(event);
-        if (state.paymentMethod === 'quote') return onQuote(event);
-        return onBuyNow(event);
-    }
 
     document.addEventListener('DOMContentLoaded', function() {
-        var continueBtn = $('ctaContinue');
-        if (continueBtn) continueBtn.addEventListener('click', onContinue);
-        // Initialize the Continue button label to match the default
-        // (Pay now with credit card) so it doesn't read "Continue" for
-        // a moment before applyPaymentUI runs.
-        applyPaymentUI();
+        $('ctaPayNow').addEventListener('click', onPayNow);
+        $('ctaInvoice').addEventListener('click', onEmailInvoice);
+        $('ctaQuote').addEventListener('click', onRequestQuote);
 
-        // Wire the invoice custom-fields panel: + Add another field
-        // appends a new row (capped at 4 visible rows), and per-row ×
-        // removes the row (via event delegation so dynamic rows are
-        // covered without re-wiring).
-        var addBtn = $('invoiceAddFieldBtn');
-        if (addBtn) addBtn.addEventListener('click', appendCustomFieldRow);
-        var rows = $('invoiceCustomFieldRows');
-        if (rows) {
-            rows.addEventListener('click', function(e) {
-                var btn = e.target.closest('.custom-field-remove');
-                if (!btn) return;
-                var row = btn.closest('.custom-field-row');
-                if (row) row.remove();
-                syncAddFieldButton();
+        var toggle = $('refDetailsToggle');
+        var panel = $('refDetails');
+        if (toggle && panel) {
+            toggle.addEventListener('click', function() {
+                state.refDetailsOpen = !state.refDetailsOpen;
+                panel.classList.toggle('is-open', state.refDetailsOpen);
+                toggle.querySelector('.arrow').textContent = state.refDetailsOpen ? '▾' : '▸';
             });
         }
-        syncAddFieldButton();
 
-        // Stepper +/− buttons for the add-devices count.
-        var minus = $('addDevicesMinus');
-        var plus = $('addDevicesPlus');
-        var countInput = $('addDevicesCount');
-        if (minus && countInput) {
-            minus.addEventListener('click', function() {
-                var n = parseInt(countInput.value, 10) || 1;
-                if (n > 1) {
-                    countInput.value = String(n - 1);
-                    recomputeSummary();
-                }
-            });
-        }
-        if (plus && countInput) {
-            plus.addEventListener('click', function() {
-                var n = parseInt(countInput.value, 10) || 1;
-                var max = parseInt(countInput.max, 10) || 10;
-                if (n < max) {
-                    countInput.value = String(n + 1);
-                    recomputeSummary();
-                }
+        var dismiss = $('hintBannerDismiss');
+        if (dismiss) {
+            dismiss.addEventListener('click', function() {
+                state.hintBannerDismissed = true;
+                $('hintBanner').style.display = 'none';
             });
         }
     });
@@ -2301,28 +2759,23 @@ active: purchase
     document.addEventListener('authStateChanged', function(e) {
         applyAuth(e.detail && e.detail.user);
     });
-    // Refresh when the user switches active account via the page-title dropdown.
     document.addEventListener('accountScopeChanged', function(e) {
         if (!e.detail || e.detail.scope !== 'account') return;
         var u = firebase.auth().currentUser;
         if (!u) return;
         state.activeAccountId = String(e.detail.id);
-        state.activeLicenseId = null; // pick a default again from the new account's licenses
-        state.renewLicenseId = null;
-        // Re-evaluate which modes are visible (the new account may have
-        // active licenses where the previous one didn't, or vice versa).
-        applyAvailableModes();
-        applyModeUI();
-        renderLicenseList();
-        renderRenewLicenseList();
+        state.cart = loadCart();
+        state.activePicker = null;
+        state.pickerDraft = null;
+        state.pickerError = null;
         loadCredits(u).then(function(c) {
             if (!c) return;
             state.credits = c;
             applyPerMinuteRate(c.per_minute_rate_usd);
+            renderCart();
         });
-        recomputeSummary();
-        // Swap to/from the non-owner blocked panel for the newly-active
-        // account (the user may own one account and not another).
+        renderAll();
+        schedulePreview();
         applyOwnerVisibility();
     });
     if (typeof firebase !== 'undefined' && firebase.auth) {
