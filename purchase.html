@@ -630,18 +630,6 @@ active: purchase
     }
     .non-owner-owner-mail { color: #1e90ff; text-decoration: none; font-size: 12px; }
     .non-owner-owner-mail:hover { text-decoration: underline; }
-    .non-owner-contact-btn {
-        display: inline-block;
-        padding: 12px 22px;
-        background: #1e90ff;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: 600;
-        text-decoration: none;
-    }
-    .non-owner-contact-btn:hover { background: #1077dc; color: #fff; text-decoration: none; }
     .purchase-error {
         font-size: 13px;
         color: #c0392b;
@@ -680,7 +668,6 @@ active: purchase
             </p>
             <div class="non-owner-owners-label">Account owners</div>
             <div class="non-owner-owners-list" id="nonOwnerOwnersList"></div>
-            <a id="nonOwnerContactBtn" href="#" class="non-owner-contact-btn">Email an owner</a>
         </div>
     </div>
 
@@ -2560,7 +2547,6 @@ active: purchase
     function renderNonOwnerPanel(acc) {
         var nameEl = $('nonOwnerAccountName');
         var listEl = $('nonOwnerOwnersList');
-        var contactBtn = $('nonOwnerContactBtn');
         if (!acc) {
             if (listEl) listEl.innerHTML = '';
             return;
@@ -2574,7 +2560,6 @@ active: purchase
         if (!listEl) return;
         if (!owners.length) {
             listEl.innerHTML = '<div class="non-owner-owner-row"><div class="non-owner-owner-email">No owners on file. Contact info@eagleeyessearch.com.</div></div>';
-            if (contactBtn) contactBtn.href = 'mailto:info@eagleeyessearch.com';
             return;
         }
         var rowsHtml = owners.map(function(email) {
@@ -2592,15 +2577,6 @@ active: purchase
                 + '</div>';
         }).join('');
         listEl.innerHTML = rowsHtml;
-        var first = owners[0];
-        var rest = owners.slice(1);
-        var ccArg = rest.length ? '&cc=' + encodeURIComponent(rest.join(',')) : '';
-        if (contactBtn) {
-            contactBtn.href = 'mailto:' + first
-                + '?subject=' + encodeURIComponent('Eagle Eyes purchase request for ' + (acc.name || 'our account'))
-                + ccArg
-                + '&body=' + encodeURIComponent(buildNonOwnerEmailBody(acc, owners));
-        }
     }
     function buildNonOwnerEmailBody(acc, owners) {
         var requesterEmail = '';
