@@ -943,8 +943,11 @@ noindex: true
     function populateDeviceSummary(deviceIdentifier, machineId) {
         const user = firebase.auth().currentUser;
         const userEmail = user ? user.email : '';
-        $('#deviceName').text(deviceIdentifier);
-        $('#machineId').text(machineId);
+        $('#deviceName').text(deviceIdentifier || '');
+        // Only show normalized real machine IDs. Without this, an
+        // undefined/null backend value becomes the literal string "undefined"
+        // and gets sent to the API as ?machine_id=undefined.
+        $('#machineId').text(isRealMachineId(machineId) ? String(machineId).trim().toUpperCase() : '');
         $('#device-section-user-email').text(userEmail);
         $('#deviceSummary').show();
     }
@@ -972,8 +975,15 @@ noindex: true
             return;
         }
 
+        const machineIdForRequest = $('#machineId').text();
+        if (!isRealMachineId(machineIdForRequest)) {
+            $('#licensesLoading').hide();
+            $('#licensesContainer').show();
+            $('#primaryLicense').html('<p>Activation lost its device context. ' + MACHINE_ID_DESKTOP_HINT + '</p>');
+            return;
+        }
         globalUser.getIdToken(true).then(function(idToken) {
-            var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + $('#machineId').text();
+            var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineIdForRequest);
             $.ajax({
                 url: fetch_url,
                 method: 'GET',
@@ -1424,8 +1434,14 @@ noindex: true
         $('#addLicenseBtn').text('Adding...').prop('disabled', true);
         $('#addLicenseBtn').siblings('.success-message, .error-message-inline').remove();
 
+        const machineIdForRequest = $('#machineId').text();
+        if (!isRealMachineId(machineIdForRequest)) {
+            $('#addLicenseBtn').text('Add License').prop('disabled', false);
+            $('#addLicenseBtn').after('<div class="error-message-inline" style="margin-top: 8px; font-size: 13px; padding: 8px;">Activation lost its device context. ' + MACHINE_ID_DESKTOP_HINT + '</div>');
+            return;
+        }
         globalUser.getIdToken(true).then(function(idToken) {
-            var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + $('#machineId').text() + '&license_id=' + licenseId;
+            var fetch_url = hostURL + '/check_available_licenses_and_tokens?machine_id=' + encodeURIComponent(machineIdForRequest) + '&license_id=' + encodeURIComponent(licenseId);
             $.ajax({
                 url: fetch_url,
                 method: 'GET',
