@@ -2705,7 +2705,8 @@ active: account
             <div id="deviceTokensContainer">
                 <div id="devicesViewToggle" class="devices-view-toggle" role="tablist" aria-label="Devices view">
                     <button type="button" class="devices-view-toggle-btn is-active" data-mode="by-license" aria-pressed="true" role="tab">By license</button>
-                    <button type="button" class="devices-view-toggle-btn" data-mode="all" aria-pressed="false" role="tab">All devices</button>
+                    <button type="button" class="devices-view-toggle-btn" data-mode="by-machine" aria-pressed="false" role="tab">By machine ID</button>
+                    <button type="button" class="devices-view-toggle-btn" data-mode="by-email" aria-pressed="false" role="tab">By email</button>
                 </div>
                 <div id="tokensSpinner" class="loading-spinner">
                     <div class="spinner"></div>
@@ -5133,6 +5134,8 @@ active: account
       // Source of truth for active licenses on this org. Used by the
       // by-license mode to enumerate sections (so empty-slot licenses
       // still get a header). Names/expiry come from cachedLicenseOverview.
+      // (by-machine and by-email modes don't need this — they group on
+      // fields that come straight from the devices payload.)
       const orgLicenseIds = (source && source.org && source.org.licenses)
         ? source.org.licenses.map(function(l) { return l && l.license_id; }).filter(Boolean)
         : [];
@@ -5153,8 +5156,9 @@ active: account
 
       // Empty-state criteria differ by mode. By-license shows the empty
       // card only when there are no devices AND no active licenses to
-      // display headers for. All-devices is simply "any devices?".
-      const isEmpty = mode === 'all'
+      // display headers for. By-machine and by-email are simply
+      // "any devices?".
+      const isEmpty = (mode === 'by-machine' || mode === 'by-email')
         ? (!devices || devices.length === 0)
         : ((!devices || devices.length === 0) && activeLicenses.length === 0);
 
@@ -5197,22 +5201,59 @@ active: account
 
       let unnamedCounter = 0;
 
-      // All-devices mode: flat list of every device. Each row's dropdown
-      // shows every token on the device (active + expired) so users can
-      // audit history. Sort active devices first, then by most-recent
-      // activation across any token.
-      if (mode === 'all') {
+      // Most-recent activation across any token on a device. Used by
+      // the by-machine and by-email modes to sort devices within a
+      // section (and to sort by-email sections themselves).
+      function deviceMostRecentActivationMs(device) {
+        return (device.tokens || []).reduce(function(m, t) {
+          const ms = tokenActivationMs(t); return ms > m ? ms : m;
+        }, 0);
+      }
+      function deviceHasActiveToken(device) {
+        return (device.tokens || []).some(tokenIsActive);
+      }
+
+      // Header renderer shared across grouped modes (by-license,
+      // by-email). Hoisted here so by-email can call it before the
+      // by-license branch is reached.
+      function renderSection(titleHtml, metaHtml, entries, titleMuted) {
+        const section = document.createElement('div');
+        section.className = 'device-license-section';
+        const header = document.createElement('div');
+        header.className = 'device-license-section-header';
+        header.innerHTML =
+          '<div class="device-license-section-title' + (titleMuted ? ' muted' : '') + '">' + titleHtml + '</div>' +
+          '<div class="device-license-section-meta">' + (metaHtml || '') + '</div>';
+        section.appendChild(header);
+
+        const list = document.createElement('div');
+        list.className = 'people-list';
+        if (!entries || entries.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'device-license-empty-row';
+          empty.textContent = 'No devices using this license yet.';
+          list.appendChild(empty);
+        } else {
+          entries.forEach(function(entry) {
+            const row = buildDeviceRow(entry.device, entry.tokensToShow);
+            list.appendChild(row);
+          });
+        }
+        section.appendChild(list);
+        tokensGrid.appendChild(section);
+      }
+
+      // By-machine mode: flat list of every device (one row per
+      // machine_id). Each row's dropdown shows every token on the
+      // device (active + expired) so users can audit history. Sort
+      // active devices first, then by most-recent activation across
+      // any token.
+      if (mode === 'by-machine') {
         const sortedDevices = (devices || []).slice().sort(function(a, b) {
-          const aActive = (a.tokens || []).some(tokenIsActive);
-          const bActive = (b.tokens || []).some(tokenIsActive);
+          const aActive = deviceHasActiveToken(a);
+          const bActive = deviceHasActiveToken(b);
           if (aActive !== bActive) return aActive ? -1 : 1;
-          const aRecent = (a.tokens || []).reduce(function(m, t) {
-            const ms = tokenActivationMs(t); return ms > m ? ms : m;
-          }, 0);
-          const bRecent = (b.tokens || []).reduce(function(m, t) {
-            const ms = tokenActivationMs(t); return ms > m ? ms : m;
-          }, 0);
-          return bRecent - aRecent;
+          return deviceMostRecentActivationMs(b) - deviceMostRecentActivationMs(a);
         });
         const list = document.createElement('div');
         list.className = 'people-list';
@@ -5223,6 +5264,82 @@ active: account
           list.appendChild(buildDeviceRow(device, tokensForRow));
         });
         tokensGrid.appendChild(list);
+        // Rename buttons live inside rows we just appended; wire them
+        // up using the same delegation pattern as the by-license branch.
+        tokensGrid.querySelectorAll('.device-rename-btn').forEach(function(btn) {
+          btn.addEventListener('click', onDeviceRenameClick);
+        });
+        return;
+      }
+
+      // By-email mode: one section per user email that has activated
+      // a device on this org. A device with multiple emails on its
+      // emails[] (e.g., re-activated by a second user) appears under
+      // each. Devices with no recorded email land in an orphan section.
+      // Each row's dropdown shows all of that device's tokens (same
+      // as by-machine), so the section is a lens, not a token filter.
+      if (mode === 'by-email') {
+        const bucketsByEmail = {};
+        const orphans = [];
+        (devices || []).forEach(function(device) {
+          const seen = {};
+          (device.emails || []).forEach(function(e) {
+            const key = String(e || '').toLowerCase();
+            if (!key || seen[key]) return;
+            seen[key] = true;
+            if (!bucketsByEmail[key]) bucketsByEmail[key] = { email: e, devices: [] };
+            bucketsByEmail[key].devices.push(device);
+          });
+          if (Object.keys(seen).length === 0) orphans.push(device);
+        });
+
+        // Sort devices inside each bucket: active first, then by
+        // most-recent activation. Sort the buckets themselves by the
+        // most-recent activation of any device they contain so the
+        // most-recently-active user surfaces first.
+        const bucketList = Object.keys(bucketsByEmail).map(function(k) {
+          const b = bucketsByEmail[k];
+          b.devices.sort(function(a, b2) {
+            const aActive = deviceHasActiveToken(a);
+            const bActive = deviceHasActiveToken(b2);
+            if (aActive !== bActive) return aActive ? -1 : 1;
+            return deviceMostRecentActivationMs(b2) - deviceMostRecentActivationMs(a);
+          });
+          b.mostRecent = b.devices.reduce(function(m, d) {
+            const ms = deviceMostRecentActivationMs(d); return ms > m ? ms : m;
+          }, 0);
+          return b;
+        });
+        bucketList.sort(function(a, b) { return b.mostRecent - a.mostRecent; });
+
+        bucketList.forEach(function(bucket) {
+          const entries = bucket.devices.map(function(d) {
+            const tokensForRow = (d.tokens || []).slice().sort(function(a, b) {
+              return tokenActivationMs(b) - tokenActivationMs(a);
+            });
+            return { device: d, tokensToShow: tokensForRow };
+          });
+          const title = '<span class="device-license-section-prefix">User:</span>'
+            + escapeHtmlOrg(bucket.email);
+          const meta = '<strong>' + bucket.devices.length + ' device'
+            + (bucket.devices.length === 1 ? '' : 's') + '</strong>';
+          renderSection(title, meta, entries, false);
+        });
+
+        if (orphans.length > 0) {
+          const entries = orphans.map(function(d) {
+            const tokensForRow = (d.tokens || []).slice().sort(function(a, b) {
+              return tokenActivationMs(b) - tokenActivationMs(a);
+            });
+            return { device: d, tokensToShow: tokensForRow };
+          });
+          const meta = '<strong>' + orphans.length + ' device' + (orphans.length === 1 ? '' : 's') + '</strong>';
+          renderSection('Devices with no user email on record', meta, entries, true);
+        }
+
+        tokensGrid.querySelectorAll('.device-rename-btn').forEach(function(btn) {
+          btn.addEventListener('click', onDeviceRenameClick);
+        });
         return;
       }
 
@@ -5263,35 +5380,9 @@ active: account
         return tokenActivationMs(bm) - tokenActivationMs(am);
       });
 
-      function renderSection(titleHtml, metaHtml, entries, titleMuted) {
-        const section = document.createElement('div');
-        section.className = 'device-license-section';
-        const header = document.createElement('div');
-        header.className = 'device-license-section-header';
-        header.innerHTML =
-          '<div class="device-license-section-title' + (titleMuted ? ' muted' : '') + '">' + titleHtml + '</div>' +
-          '<div class="device-license-section-meta">' + (metaHtml || '') + '</div>';
-        section.appendChild(header);
-
-        const list = document.createElement('div');
-        list.className = 'people-list';
-        if (!entries || entries.length === 0) {
-          const empty = document.createElement('div');
-          empty.className = 'device-license-empty-row';
-          empty.textContent = 'No devices using this license yet.';
-          list.appendChild(empty);
-        } else {
-          entries.forEach(function(entry) {
-            const row = buildDeviceRow(entry.device, entry.tokensToShow);
-            list.appendChild(row);
-          });
-        }
-        section.appendChild(list);
-        tokensGrid.appendChild(section);
-      }
-
       // Render one section per active license. Header shows occupied /
-      // total slots so the user can see capacity at a glance.
+      // total slots so the user can see capacity at a glance. Uses the
+      // shared renderSection() hoisted above.
       activeLicenses.forEach(function(lic) {
         const bucket = bucketsByLicenseId[lic.license_id] || [];
         const totalSlots = (typeof lic.total_keys === 'number') ? lic.total_keys
@@ -6376,15 +6467,22 @@ active: account
 
     // Devices view mode (segmented toggle at the top of /devices).
     // 'by-license' (default) groups devices by the license they're
-    // activated on; 'all' is a flat list of every device with full
-    // token history in the dropdown. Round-trips through the URL hash
-    // as &devices=all so the choice survives reload + share.
+    // activated on; 'by-machine' is a flat list of every device (one
+    // row per machine_id) with full token history in the dropdown;
+    // 'by-email' groups devices by the user email they're activated
+    // under. Round-trips through the URL hash as &devices=<mode> so
+    // the choice survives reload + share. Legacy 'all' is accepted as
+    // an alias for 'by-machine' so old links keep working.
     let activeDevicesMode = 'by-license';
     function canonicalizeDevicesMode(mode) {
-        return mode === 'all' ? 'all' : 'by-license';
+        if (mode === 'by-machine' || mode === 'all') return 'by-machine';
+        if (mode === 'by-email') return 'by-email';
+        return 'by-license';
     }
     function getDevicesExtrasForHash() {
-        return activeDevicesMode === 'all' ? { devices: 'all' } : null;
+        if (activeDevicesMode === 'by-machine') return { devices: 'by-machine' };
+        if (activeDevicesMode === 'by-email') return { devices: 'by-email' };
+        return null;
     }
     function syncDevicesToggleUI() {
         const wrap = document.getElementById('devicesViewToggle');
