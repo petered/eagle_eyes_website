@@ -44,4 +44,6 @@ function isRealMachineId(value) {
     return true;
 }
 
-const MACHINE_ID_DESKTOP_HINT = "Open this page from the 🔑 button in the Eagle Eyes Scan desktop app, or paste your Machine ID using the \"Change\" button if available.";
+// App-agnostic — users may arrive here from either Eagle Eyes Scan (desktop)
+// or Eagle Eyes Pilot (mobile), so don't reference any specific UI element.
+const MACHINE_ID_INSTRUCTION = "Return to the Eagle Eyes app on the device you want to license and start the licensing flow from there — the app will open this page with your Machine ID filled in. Or use the \"Change\" button above to paste one in.";
