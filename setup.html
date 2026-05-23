@@ -2075,7 +2075,7 @@ function lpGetSortedLicenses() {
     });
 }
 
-function lpDisplayLicenses() {
+function lpDisplayLicenses(pinLicenseId) {
     var primaryEl = document.getElementById('lpPrimary');
     var otherToggle = document.getElementById('lpOtherToggle');
     var otherList = document.getElementById('lpOtherList');
@@ -2089,6 +2089,17 @@ function lpDisplayLicenses() {
     }
 
     var sorted = lpGetSortedLicenses();
+
+    // pinLicenseId surfaces a specific license as the primary card,
+    // overriding the sort. Used after manual "Have a license ID?" entry,
+    // where the user expects to see THAT license, not their usual primary.
+    if (pinLicenseId) {
+        var pinIdx = sorted.findIndex(function(l) { return l.license_id === pinLicenseId; });
+        if (pinIdx > 0) {
+            var pinned = sorted.splice(pinIdx, 1)[0];
+            sorted.unshift(pinned);
+        }
+    }
 
     primaryEl.innerHTML = lpRenderPrimary(sorted[0]);
     if (sorted.length > 1) {
@@ -2329,7 +2340,7 @@ async function lpAddLicense() {
         }
 
         document.getElementById('lpManualInput').value = '';
-        lpDisplayLicenses();
+        lpDisplayLicenses(licenseId);
     } catch (err) {
         showStatus('lpStatus', 'Error adding license: ' + err.message, 'error');
     } finally {
