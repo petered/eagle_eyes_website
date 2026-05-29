@@ -34,7 +34,7 @@ active: purchase
         font-weight: 700;
     }
 
-    /* Hint banner — used to surface the partial-license-id resolver
+    /* Hint banner, used to surface the partial-license-id resolver
        outcome (came from a low-balance email, etc.). Lives at the top
        of the page above the cart so it's hard to miss. */
     .hint-banner {
@@ -76,7 +76,7 @@ active: purchase
     }
     .hint-banner-dismiss:hover { opacity: 1; }
 
-    /* Cart panel — each item is a row with an inline editable field
+    /* Cart panel: each item is a row with an inline editable field
        (where applicable), price on the right, × to remove. */
     .cart-empty {
         font-size: 14px;
@@ -190,7 +190,7 @@ active: purchase
         text-align: right;
     }
 
-    /* Catalog — 3 high-level buttons that expand inline into a picker. */
+    /* Catalog: 3 high-level buttons that expand inline into a picker. */
     .catalog-list {
         display: flex;
         flex-direction: column;
@@ -354,7 +354,7 @@ active: purchase
     }
 
     /* Quantity stepper. Used wherever the user adjusts a small integer
-       (devices to add, etc.) — the native number input arrows are too
+       (devices to add, etc.); the native number input arrows are too
        small to click comfortably, so we wrap a styled input between
        explicit − and + buttons. The buttons disable themselves at min
        and max bounds. */
@@ -469,7 +469,7 @@ active: purchase
     /* Collapsible reference-details (PO / Reference / Company / VAT)
        block. Appears as a single disclosure toggle by default; on
        expand, reveals the field grid. Backend stamps PO/Reference on
-       both Pay Now and Invoice/Quote — same fields, same form. */
+       both Pay Now and Invoice/Quote, same fields, same form. */
     .ref-details-toggle {
         background: transparent;
         border: none;
@@ -644,7 +644,7 @@ active: purchase
 
 <div class="purchase-page">
     <p class="purchase-intro">
-        Add what you need to your order — renew a license, add devices, or top up streaming credits — then check out in one transaction.
+        Add what you need to your order: renew a license, add devices, or top up streaming credits, then check out in one transaction.
     </p>
 
     <div id="purchaseLoading" class="purchase-loading" style="text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
@@ -658,7 +658,7 @@ active: purchase
 
     <!-- No-account state. User is signed in but isn't a member of any
          billing account (e.g. org-only admin). Distinct from the non-owner
-         state below — there's no account to be a non-owner of. -->
+         state below; there's no account to be a non-owner of. -->
     <div id="purchaseNoAccount" class="purchase-non-owner" style="display: none;">
         <div class="non-owner-card">
             <div class="non-owner-icon" aria-hidden="true">🏷️</div>
@@ -768,7 +768,7 @@ active: purchase
     // ===== Constants =====
     var SALES_EMAIL = 'info@eagleeyessearch.com';
     // Self-service extension cap (backend-enforced). We don't show this
-    // number in customer-facing copy — error wording stays generic.
+    // number in customer-facing copy. Error wording stays generic.
     var DEVICE_CAP = 50;
     // New-license catalog caps out at 12 because that's the highest
     // sar_1y_Ndev product in pricing.py. Independent of DEVICE_CAP above.
@@ -825,7 +825,7 @@ active: purchase
     // Inline +/− stepper. The +/- buttons dispatch a `change` event on
     // the inner input so existing data-edit-field / data-picker-field
     // change handlers fire as if the user typed.
-    //   opts.fieldAttrs — string of HTML attrs to splice onto the input
+    //   opts.fieldAttrs: string of HTML attrs to splice onto the input
     //                     (e.g. 'data-picker-field="additional_devices"').
     function qtyStepperHtml(opts) {
         var min = (opts.min != null) ? opts.min : 1;
@@ -1111,7 +1111,7 @@ active: purchase
                 account_id: state.activeAccountId,
                 items: state.cart.items
             }));
-        } catch (e) { /* quota / private mode — silent */ }
+        } catch (e) { /* quota / private mode, silent */ }
     }
     function clearCart() {
         state.cart = { items: [] };
@@ -1271,7 +1271,7 @@ active: purchase
             if (pkg === 'pro_bundle') {
                 return { id: uuid(), sku: 'streaming_topup_pro_bundle' };
             }
-            // unlimited is deferred in v1 — silently fall through to PAYG.
+            // unlimited is deferred in v1, silently fall through to PAYG.
             var amt = streamingPricing.payg_min;
             return { id: uuid(), sku: 'streaming_topup_payg', amount_usd: amt };
         }
@@ -1329,7 +1329,7 @@ active: purchase
         banner.classList.remove('is-warn', 'is-error');
 
         // Deep-link blocked (e.g. ?add=devices:<id> for a license already at
-        // the cap) takes priority over the license_hint banner — it's the
+        // the cap) takes priority over the license_hint banner, it's the
         // more actionable signal and the cart is otherwise empty.
         if (state.deepLinkBlocked && !state.hintBannerDismissed) {
             var blk = state.deepLinkBlocked;
@@ -1362,17 +1362,17 @@ active: purchase
             }
             var licName = m.license.license_name || ('License ' + m.license.license_id);
             var accName = (m.account && m.account.name) || 'this account';
-            body.innerHTML = 'Pre-filled from your low-balance email — credits will be added to '
+            body.innerHTML = 'Pre-filled from your low-balance email, credits will be added to '
                 + '<strong>' + esc(licName) + '</strong> on the <strong>' + esc(accName) + '</strong> account.';
             banner.style.display = '';
             return m;
         }
         if (resolution.kind === 'multi') {
-            // Show a brief picker as text — v1 lets the user pick by switching
+            // Show a brief picker as text. v1 lets the user pick by switching
             // the active account themselves via the page header.
             var names = resolution.matches.map(function(m) {
                 return (m.license.license_name || m.license.license_id)
-                    + ' (' + ((m.account && m.account.name) || '—') + ')';
+                    + ' (' + ((m.account && m.account.name) || 'unknown') + ')';
             }).join(', ');
             body.innerHTML = 'Multiple licenses on your accounts start with '
                 + '<strong>' + esc(state.licenseHint) + '</strong>: ' + esc(names)
@@ -1385,7 +1385,7 @@ active: purchase
             var lm = resolution.matches[0];
             var lmAcc = lm.account ? (lm.account.name || 'this account') : 'an account';
             body.innerHTML = 'The license referenced in your email is on <strong>' + esc(lmAcc)
-                + '</strong>, where you have access but aren\'t an owner. Owners need to top up — '
+                + '</strong>, where you have access but aren\'t an owner. Owners need to top up, '
                 + 'check the contact panel below after switching to that account.';
             banner.classList.add('is-warn');
             banner.style.display = '';
@@ -1393,7 +1393,7 @@ active: purchase
         }
         // none
         body.innerHTML = 'This top-up link references a license we don\'t see on your accounts. '
-            + 'The email was sent to the account that owns it — sign out and sign in with that email, '
+            + 'The email was sent to the account that owns it, sign out and sign in with that email, '
             + 'or contact <a href="mailto:' + SALES_EMAIL + '">' + SALES_EMAIL + '</a>.';
         banner.classList.add('is-error');
         banner.style.display = '';
@@ -1438,7 +1438,7 @@ active: purchase
     // Streaming-package config ships embedded in get_account_dashboard
     // (backend confirmed 2026-05-21: no standalone /get_streaming_packages
     // endpoint exists). If the dashboard didn't include it, fall back to
-    // the hardcoded defaults in streamingPricing — they match pricing.py.
+    // the hardcoded defaults in streamingPricing, they match pricing.py.
     function loadStreamingPackages(user) {
         var dash = window.eeDashboard ? window.eeDashboard.read(user.uid) : null;
         return Promise.resolve((dash && dash.streaming_packages) || null);
@@ -1624,7 +1624,7 @@ active: purchase
             var months = remainingMonthsFor(l);
             var sel = l.license_id === d.license_id ? ' selected' : '';
             var label = (l.license_name || ('License ' + l.license_id))
-                + ' — ' + deviceCountOf(l) + ' dev, exp. ' + (l.expiry_date || '?')
+                + ', ' + deviceCountOf(l) + ' dev, exp. ' + (l.expiry_date || '?')
                 + (months <= 2 ? ' (' + months + ' mo left)' : '');
             return '<option value="' + esc(l.license_id) + '"' + sel + '>' + esc(label) + '</option>';
         }).join('');
@@ -1654,7 +1654,7 @@ active: purchase
             +   '<span class="picker-row-label">Devices</span>'
             +   '<select data-picker-field="new_n_tokens">' + deviceOptions + '</select>'
             +   '<span class="picker-row-hint">' + (newN < currentDevices
-                    ? 'Downsizing — at renewal start, the first ' + newN
+                    ? 'Downsizing: at renewal start, the first ' + newN
                       + ' devices to be active keep slots. Release others from the Devices page if needed.'
                     : 'Raise to add devices in the same renewal.')
             +   '</span>'
@@ -1697,7 +1697,7 @@ active: purchase
         var licOptions = extendables.map(function(l) {
             var sel = l.license_id === d.license_id ? ' selected' : '';
             var label = (l.license_name || ('License ' + l.license_id))
-                + ' — ' + deviceCountOf(l) + ' dev, exp. ' + (l.expiry_date || '?');
+                + ', ' + deviceCountOf(l) + ' dev, exp. ' + (l.expiry_date || '?');
             return '<option value="' + esc(l.license_id) + '"' + sel + '>' + esc(label) + '</option>';
         }).join('');
 
@@ -1729,7 +1729,7 @@ active: purchase
         var rate = currentPerMinuteRate();
         var mins = (rate > 0 && amt > 0) ? Math.floor(amt / rate) : 0;
 
-        // Build the "≈ N min at $X/min" subline as a discrete variable —
+        // Build the "≈ N min at $X/min" subline as a discrete variable,
         // safer than splicing it inline into a deep concat (line-continued
         // ternaries are a foot-gun).
         var minsHtml = '';
@@ -1835,7 +1835,7 @@ active: purchase
         }
         state.pickerDraft[field] = val;
         // Re-render only the picker (no full catalog re-render needed for
-        // simple field updates — but a re-render also updates the estimate).
+        // simple field updates, but a re-render also updates the estimate).
         renderCatalog();
     }
     function commitPicker() {
@@ -2348,7 +2348,7 @@ active: purchase
         state.cart.items.forEach(function(it, idx) {
             var d = describeItem(it);
             var p = priceFor(it, idx);
-            lines.push('• ' + d.title + ' — ' + d.meta + ' — ' + formatPrice(p));
+            lines.push('• ' + d.title + ' - ' + d.meta + ' - ' + formatPrice(p));
         });
         lines.push('');
         lines.push('PO # (if known): ');
@@ -2479,7 +2479,7 @@ active: purchase
             state.activeAccountId = stored;
         } else {
             state.activeAccountId = firstId != null ? String(firstId) : null;
-            // Stored id no longer resolves (account deleted, user removed, etc.) —
+            // Stored id no longer resolves (account deleted, user removed, etc.),
             // clear it so other pages don't keep pointing at the dead id.
             if (stored) {
                 try { sessionStorage.removeItem('ee-active-account:' + user.uid); } catch (e) {}
