@@ -2079,6 +2079,24 @@ function lpCancel() {
     document.getElementById('setupConfigList').style.display = '';
 }
 
+// Future-start (renewal) licenses: a successor license whose billable
+// period begins at the current one's expiry. The token can be pre-fetched
+// early, but the license isn't active until start_at — so show it but
+// block device activation until then. UX gate, not a security check
+// (expiry is absolute; the backend stays permissive so pre-fetch works).
+// Handles both shapes: float seconds (start_at, from
+// check_available_licenses_and_tokens) and ISO string (start_at_iso,
+// from get_license_overview).
+function licenseStartMs(lic) {
+    if (lic.start_at != null)  return lic.start_at * 1000;       // Unix seconds → ms
+    if (lic.start_at_iso)      return new Date(lic.start_at_iso).getTime();
+    return null;                                                 // no start date → active now
+}
+function licenseIsPending(lic) {
+    var startMs = licenseStartMs(lic);
+    return startMs != null && startMs > Date.now();
+}
+
 async function lpLoadUserLicenses() {
     document.getElementById('lpLoading').style.display = 'block';
     document.getElementById('lpContainer').style.display = 'none';
@@ -2115,6 +2133,9 @@ async function lpLoadUserLicenses() {
                     lic.license_id = lid;
                     lic.remaining_keys = Math.max(0, (lic.n_tokens || 0) - (info.n_tokens_dispensed || 0));
                     lic.has_existing_key = existingKeys.indexOf(lid) !== -1;
+                    // start_at is a sibling of .license on the dispensed entry.
+                    lic.start_at = info.start_at;
+                    lic.is_pending = licenseIsPending(lic);
                     if (lic.expiry_timestamp === null) continue;
                     lpUserLicenses.push(lic);
                 }
@@ -2134,17 +2155,22 @@ async function lpLoadUserLicenses() {
                 .filter(function(o) {
                     if (!o || !o.license_id || !o.expiry_date) return false;
                     // Skip inactive (expired) licenses. They can't be used.
+                    // Pending (future-start) licenses are deliberately NOT
+                    // dropped here — we keep them visible but disabled.
                     return new Date(o.expiry_date).getTime() >= nowMs;
                 })
                 .map(function(o) {
-                    return {
+                    var mapped = {
                         license_id: o.license_id,
                         license_name: o.license_name || '',
                         expiry_timestamp: Math.floor(new Date(o.expiry_date).getTime() / 1000),
                         n_tokens: o.total_keys || 0,
                         remaining_keys: Math.max(0, o.keys_left || 0),
-                        has_existing_key: false
+                        has_existing_key: false,
+                        start_at_iso: o.start_at_iso || null
                     };
+                    mapped.is_pending = licenseIsPending(mapped);
+                    return mapped;
                 });
         }
 
@@ -2168,6 +2194,9 @@ async function lpLoadUserLicenses() {
 
 function lpGetSortedLicenses() {
     return lpUserLicenses.slice().sort(function(a, b) {
+        // Pending (future-start) last so a not-yet-started renewal is
+        // never auto-selected as primary.
+        if (a.is_pending !== b.is_pending) return a.is_pending ? 1 : -1;
         if (a.has_existing_key && !b.has_existing_key) return -1;
         if (!a.has_existing_key && b.has_existing_key) return 1;
         if ((a.remaining_keys > 0) !== (b.remaining_keys > 0)) return (a.remaining_keys > 0) ? -1 : 1;
@@ -2211,16 +2240,27 @@ function lpRenderPrimary(lic) {
     var expiry = lic.expiry_timestamp ? new Date(lic.expiry_timestamp * 1000).toLocaleDateString() : 'No expiry';
     var cls = 'lp-primary-card';
     var btn = '', status = '';
+    var startDate = lic.is_pending ? new Date(licenseStartMs(lic)).toLocaleDateString() : '';
 
     if (lpMode === 'select') {
-        btn = '<button class="lp-btn" onclick="lpSelect(\'' + lic.license_id + '\')">Use this license</button>';
-        return '<div class="' + cls + '">' +
+        if (lic.is_pending) {
+            btn = '<button class="lp-btn disabled" disabled>Available from ' + startDate + '</button>';
+        } else {
+            btn = '<button class="lp-btn" onclick="lpSelect(\'' + lic.license_id + '\')">Use this license</button>';
+        }
+        return '<div class="' + cls + (lic.is_pending ? ' disabled' : '') + '">' +
             '<h3>' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</h3>' +
             '<div class="lp-meta"><span>' + lic.license_id + '</span><span>Expires: ' + expiry + '</span></div>' +
+            (lic.is_pending ? '<div style="margin-bottom: 8px;"><span style="color: #888; font-size: 1.2rem;">Available from ' + startDate + ' — your current license covers you until then.</span></div>' : '') +
             '<div class="lp-actions">' + btn + '</div></div>';
     }
 
-    if (lic.has_existing_key) {
+    if (lic.is_pending) {
+        // Future-start renewal: visible but not activatable until start_at.
+        cls += ' disabled';
+        btn = '<button class="lp-btn disabled" disabled>Available from ' + startDate + '</button>';
+        status = '<span style="color: #888; font-size: 1.2rem;">Available from ' + startDate + ' — your current license covers you until then.</span>';
+    } else if (lic.has_existing_key) {
         cls += ' reactivate';
         btn = '<button class="lp-btn reactivate" onclick="lpSelect(\'' + lic.license_id + '\')">Reactivate on this license</button>';
         status = '<span style="color: #28a745; font-size: 1.2rem;">Already activated on this device</span>';
@@ -2241,13 +2281,25 @@ function lpRenderPrimary(lic) {
 
 function lpRenderOtherRow(lic) {
     var expiry = lic.expiry_timestamp ? new Date(lic.expiry_timestamp * 1000).toLocaleDateString() : 'No expiry';
+    var startDate = lic.is_pending ? new Date(licenseStartMs(lic)).toLocaleDateString() : '';
     var btn = '';
     if (lpMode === 'select') {
-        btn = '<button onclick="lpSelect(\'' + lic.license_id + '\')">Select</button>';
+        if (lic.is_pending) {
+            btn = '<button class="lp-disabled" disabled>Available from ' + startDate + '</button>';
+        } else {
+            btn = '<button onclick="lpSelect(\'' + lic.license_id + '\')">Select</button>';
+        }
+        var selMeta = lic.is_pending
+            ? lic.license_id + ' &middot; Available from ' + startDate + ' &middot; Expires: ' + expiry
+            : lic.license_id + ' &middot; Expires: ' + expiry;
         return '<div class="lp-other-row"><div><div class="lp-row-name">' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</div>' +
-            '<div class="lp-row-meta">' + lic.license_id + ' &middot; Expires: ' + expiry + '</div></div>' + btn + '</div>';
+            '<div class="lp-row-meta">' + selMeta + '</div></div>' + btn + '</div>';
     }
-    if (lic.has_existing_key) {
+    var meta = lic.license_id + ' &middot; ' + lic.remaining_keys + ' remaining &middot; Expires: ' + expiry;
+    if (lic.is_pending) {
+        btn = '<button class="lp-disabled" disabled>Available from ' + startDate + '</button>';
+        meta = lic.license_id + ' &middot; Available from ' + startDate + ' &middot; Expires: ' + expiry;
+    } else if (lic.has_existing_key) {
         btn = '<button class="reactivate" onclick="lpSelect(\'' + lic.license_id + '\')">Reactivate</button>';
     } else if (lic.remaining_keys <= 0) {
         btn = '<button class="lp-disabled" disabled>No slots</button>';
@@ -2255,7 +2307,7 @@ function lpRenderOtherRow(lic) {
         btn = '<button onclick="lpSelect(\'' + lic.license_id + '\')">Select</button>';
     }
     return '<div class="lp-other-row"><div><div class="lp-row-name">' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</div>' +
-        '<div class="lp-row-meta">' + lic.license_id + ' &middot; ' + lic.remaining_keys + ' remaining &middot; Expires: ' + expiry + '</div></div>' + btn + '</div>';
+        '<div class="lp-row-meta">' + meta + '</div></div>' + btn + '</div>';
 }
 
 function lpSelect(licenseId) {
@@ -2328,6 +2380,22 @@ function lpCancelConfirm() {
 }
 
 async function lpConfirmActivation() {
+    // Defense in depth with the disabled button: refuse to activate a
+    // pending (future-start) license even if a stale UI / second tab got
+    // here. Other complete_activation calls (config-save paths) only run
+    // after a license is already active, so they don't need this guard.
+    var lpLic = lpUserLicenses.find(function(l) { return l.license_id === lpSelectedLicense; });
+    if (lpLic && lpLic.is_pending) {
+        var startDate = new Date(licenseStartMs(lpLic)).toLocaleDateString();
+        var resultEl = document.getElementById('lpActivationResult');
+        if (resultEl) {
+            resultEl.innerHTML = '<p style="color: #888;">This license is available from ' + startDate +
+                ' — your current license covers you until then.</p>';
+            resultEl.style.display = 'block';
+        }
+        return;
+    }
+
     document.querySelector('#lpConfirmArea .lp-confirm-actions').style.display = 'none';
     document.getElementById('lpActivationLoading').style.display = 'block';
 

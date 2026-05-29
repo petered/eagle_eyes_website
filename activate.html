@@ -960,6 +960,26 @@ noindex: true
     let userLicenses = [];
     let selectedLicense = null;
 
+    // Future-start (renewal) licenses: the backend creates a successor
+    // license whose billable period begins at the current one's expiry.
+    // The token can be pre-fetched early, but the license isn't active
+    // until start_at, so we show it but block device activation until then.
+    // This is a UX gate, not a security check — expiry is absolute, so
+    // activating early steals no time; the backend stays permissive on
+    // purpose so token pre-fetch keeps working.
+    // Handles both endpoint shapes: float seconds (start_at, from
+    // check_available_licenses_and_tokens) and ISO string (start_at_iso,
+    // from get_license_overview).
+    function licenseStartMs(lic) {
+        if (lic.start_at != null)  return lic.start_at * 1000;       // Unix seconds → ms
+        if (lic.start_at_iso)      return new Date(lic.start_at_iso).getTime();
+        return null;                                                 // no start date → active now
+    }
+    function licenseIsPending(lic) {
+        const startMs = licenseStartMs(lic);
+        return startMs != null && startMs > Date.now();
+    }
+
     function loadUserLicenses() {
         console.log('loadUserLicenses called');
         $('#licensesLoading').show();
@@ -1010,6 +1030,9 @@ noindex: true
                                     const dispensedTokens = licenseInfo.n_tokens_dispensed || 0;
                                     license.remaining_keys = Math.max(0, totalTokens - dispensedTokens);
                                     license.has_existing_key = existingKeysForMachine.includes(licenseId);
+                                    // start_at is a sibling of .license on the dispensed entry.
+                                    license.start_at = licenseInfo.start_at;
+                                    license.is_pending = licenseIsPending(license);
                                     if (license.expiry_timestamp === null) continue;
                                     userLicenses.push(license);
                                 }
@@ -1060,8 +1083,11 @@ noindex: true
             return;
         }
 
-        // Sort: reactivate first, then available, then used up
+        // Sort: pending (future-start) last, then reactivate first, then
+        // available, then used up. Pending ranks last so a not-yet-started
+        // renewal is never auto-selected as the primary license.
         const sortedLicenses = [...userLicenses].sort((a, b) => {
+            if (a.is_pending !== b.is_pending) return a.is_pending ? 1 : -1;
             if (a.has_existing_key && !b.has_existing_key) return -1;
             if (!a.has_existing_key && b.has_existing_key) return 1;
             const aAvailable = a.remaining_keys > 0;
@@ -1098,7 +1124,14 @@ noindex: true
         let buttonHtml = '';
         let statusText = '';
 
-        if (hasExistingKey) {
+        if (license.is_pending) {
+            // Future-start renewal: show it (so the queued renewal is
+            // visible) but don't allow activation until start_at.
+            const startDate = new Date(licenseStartMs(license)).toLocaleDateString();
+            cardClass += ' disabled';
+            buttonHtml = `<button class="btn-select-license btn-disabled" disabled>Available from ${startDate}</button>`;
+            statusText = `<span style="color: #888; font-size: 12px;">Available from ${startDate} — your current license covers you until then.</span>`;
+        } else if (hasExistingKey) {
             cardClass += ' reactivate';
             buttonHtml = `<button class="btn-reactivate-license" onclick="selectLicense('${license.license_id}')">Reactivate on this license</button>`;
             statusText = '<span style="color: #28a745; font-size: 12px;">Already activated on this device</span>';
@@ -1130,8 +1163,13 @@ noindex: true
         const expiryDate = license.expiry_timestamp ?
             new Date(license.expiry_timestamp * 1000).toLocaleDateString() : 'No expiry';
         let buttonHtml = '';
+        let metaText = `${license.license_id} &middot; ${license.remaining_keys} remaining &middot; Expires: ${expiryDate}`;
 
-        if (hasExistingKey) {
+        if (license.is_pending) {
+            const startDate = new Date(licenseStartMs(license)).toLocaleDateString();
+            buttonHtml = `<button class="disabled-btn" disabled>Available from ${startDate}</button>`;
+            metaText = `${license.license_id} &middot; Available from ${startDate} &middot; Expires: ${expiryDate}`;
+        } else if (hasExistingKey) {
             buttonHtml = `<button class="reactivate-btn" onclick="selectLicense('${license.license_id}')">Reactivate</button>`;
         } else if (!hasAvailable) {
             buttonHtml = `<button class="disabled-btn" disabled>No slots</button>`;
@@ -1143,7 +1181,7 @@ noindex: true
             <div class="other-license-row">
                 <div>
                     <div class="license-row-name">${license.license_name || 'Eagle Eyes License'}</div>
-                    <div class="license-row-meta">${license.license_id} &middot; ${license.remaining_keys} remaining &middot; Expires: ${expiryDate}</div>
+                    <div class="license-row-meta">${metaText}</div>
                 </div>
                 ${buttonHtml}
             </div>
@@ -1251,6 +1289,19 @@ noindex: true
         const license = userLicenses.find(l => l.license_id === selectedLicense);
         const hasExistingKey = license ? license.has_existing_key : false;
         const deviceName = $('#deviceName').text();
+
+        // Defense in depth with the disabled button: if a stale UI or a
+        // second tab let a pending (future-start) license through, refuse
+        // to activate it and show when it becomes available.
+        if (license && license.is_pending) {
+            const startDate = new Date(licenseStartMs(license)).toLocaleDateString();
+            showActivationError(
+                'This license is available from ' + startDate +
+                ' — your current license covers you until then.',
+                hasExistingKey
+            );
+            return;
+        }
 
         // Show loading
         $('#inlineConfirmArea .confirm-actions').hide();
@@ -1509,6 +1560,8 @@ noindex: true
                     const dispensedTokens = licenseInfo.n_tokens_dispensed || 0;
                     license.remaining_keys = Math.max(0, totalTokens - dispensedTokens);
                     license.has_existing_key = existingKeysForMachine.includes(licenseId);
+                    license.start_at = licenseInfo.start_at;
+                    license.is_pending = licenseIsPending(license);
                     if (license.expiry_timestamp === null) continue;
                     userLicenses.push(license);
                 }
