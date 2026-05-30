@@ -1568,6 +1568,78 @@ active: account
     .account-modal-status.success { color: #1f7a52; }
     .account-modal-status.error { color: #c0392b; }
 
+    /* Cart purchase-success modal. DOM is built in JS and appended to <body>
+       (so a hidden account-view block can't trap it); these style the per-line
+       confirmation rows inside the shared .account-modal shell. */
+    .cart-success-rows {
+        margin: 4px 0 16px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .cart-success-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    .cart-success-row-icon {
+        flex: 0 0 auto;
+        width: 18px;
+        text-align: center;
+        font-weight: 700;
+        margin-top: 1px;
+    }
+    .cart-success-row.ok .cart-success-row-icon { color: #1f7a52; }
+    .cart-success-row.failed .cart-success-row-icon { color: #c0392b; }
+    .cart-success-row-text { flex: 1 1 auto; color: #1a1a2e; }
+    .cart-success-row-detail {
+        display: block;
+        font-size: 12px;
+        color: #777;
+        margin-top: 2px;
+    }
+    .cart-success-row.failed .cart-success-row-detail { color: #c0392b; }
+    .cart-success-spinner {
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        border: 2px solid #cfd6dc;
+        border-top-color: #1e90ff;
+        border-radius: 50%;
+        animation: cart-success-spin 0.7s linear infinite;
+    }
+    @keyframes cart-success-spin { to { transform: rotate(360deg); } }
+    .cart-success-note {
+        font-size: 13px;
+        color: #555;
+        margin: 0 0 16px 0;
+        min-height: 16px;
+    }
+    .cart-success-ctas {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .cart-success-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 6px;
+        padding: 9px 16px;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1px solid #1e90ff;
+        line-height: 1;
+    }
+    .cart-success-cta.primary { background: #1e90ff; color: #fff; }
+    .cart-success-cta.primary:hover { background: #1877cc; color: #fff; text-decoration: none; }
+    .cart-success-cta.secondary { background: #fff; color: #1e90ff; }
+    .cart-success-cta.secondary:hover { background: #1e90ff; color: #fff; text-decoration: none; }
+
     /* Overview sub-section headers. Lighter than the section h2 (which is
        "Overview"); these label "Streaming credits" and "Active licenses". */
     .overview-subhead-row {
@@ -6826,6 +6898,17 @@ active: account
     // get_streaming_credits until the webhook-applied balance lands.
     function handleStripeReturnParams() {
         const params = new URLSearchParams(window.location.search);
+
+        // Unified-cart return (/account/?purchase=success&cart_id=…) → render a
+        // per-line confirmation from get_cart_summary. Handled separately from
+        // the streaming topup/unlimited toasts below.
+        if (params.get('purchase') === 'success' && params.get('cart_id')) {
+            const cartId = params.get('cart_id');
+            cleanStripeReturnParams();
+            handleCartPurchaseReturn(cartId);
+            return;
+        }
+
         const topup = params.get('topup');
         const unlimited = params.get('unlimited');
         if (!topup && !unlimited) return;
@@ -6861,6 +6944,8 @@ active: account
         url.searchParams.delete('unlimited');
         url.searchParams.delete('account_id');
         url.searchParams.delete('session_id');
+        url.searchParams.delete('purchase');
+        url.searchParams.delete('cart_id');
         history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
     }
 
@@ -6893,6 +6978,212 @@ active: account
                 // slow but will land. Page will pick it up on the next load.
             }
         }, 2000);
+    }
+
+    // ===== Cart purchase-success (B3) =====
+    // Handles the unified-cart Stripe return: /account/?purchase=success&cart_id=…
+    // Renders a per-line confirmation from get_cart_summary. Polls on per-row
+    // `status`, NOT on `fulfilled`: a failed line is terminal and leaves
+    // `fulfilled` false forever, so gating on it would spin the full window.
+    var cartSummaryPollHandle = null;
+
+    function getCartSummaryUrl() {
+        // Cloud Run, same per-function pattern as the other cart endpoints
+        // (not cloudfunctions.net). Emulator falls back to the local host.
+        var isEmulator = new URLSearchParams(window.location.search).get('is_emulator') === 'true';
+        if (!isEmulator) return 'https://get-cart-summary-rvoe3nzu5q-uc.a.run.app';
+        return window.getHostUrl() + '/get_cart_summary';
+    }
+
+    async function fetchCartSummary(cartId) {
+        // Returns the parsed summary, or { __unavailable: true } on any non-200
+        // / network error (incl. the 404 before the backend deploy lands) so the
+        // UI degrades to a "still processing" message instead of throwing.
+        try {
+            var user = firebase.auth().currentUser;
+            if (!user) return { __unavailable: true };
+            var idToken = await user.getIdToken();
+            var r = await fetch(getCartSummaryUrl(), {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ cart_id: cartId })
+            });
+            if (!r.ok) return { __unavailable: true };
+            var data = await r.json();
+            if (!data || !Array.isArray(data.line_items)) return { __unavailable: true };
+            return data;
+        } catch (e) {
+            return { __unavailable: true };
+        }
+    }
+
+    function escapeForCart(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function cartMoney(n) { return '$' + (Number(n) || 0).toFixed(2); }
+
+    function ensureCartSuccessModal() {
+        var existing = document.getElementById('cartSuccessModal');
+        if (existing) return existing;
+        var modal = document.createElement('div');
+        modal.id = 'cartSuccessModal';
+        modal.className = 'account-modal';
+        modal.style.display = 'none';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML =
+            '<div class="account-modal-backdrop"></div>'
+          + '<div class="account-modal-dialog">'
+          +   '<button type="button" class="account-modal-close" aria-label="Close">'
+          +     '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">'
+          +       '<path d="M6 6 L18 18 M6 18 L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"></path>'
+          +     '</svg>'
+          +   '</button>'
+          +   '<h3 class="account-modal-title" id="cartSuccessTitle">Purchase complete</h3>'
+          +   '<div class="cart-success-rows" id="cartSuccessRows"></div>'
+          +   '<p class="cart-success-note" id="cartSuccessNote"></p>'
+          +   '<div class="cart-success-ctas">'
+          +     '<a class="cart-success-cta primary" id="cartSuccessGoAccount" href="#">View my account</a>'
+          +     '<a class="cart-success-cta secondary" id="cartSuccessActivate" href="/activate/" style="display:none;">Activate a device</a>'
+          +   '</div>'
+          + '</div>';
+        document.body.appendChild(modal);
+        modal.querySelector('.account-modal-close').addEventListener('click', closeCartSuccessModal);
+        modal.querySelector('.account-modal-backdrop').addEventListener('click', closeCartSuccessModal);
+        modal.querySelector('#cartSuccessGoAccount').addEventListener('click', function(e) {
+            e.preventDefault();
+            closeCartSuccessModal();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display !== 'none') closeCartSuccessModal();
+        });
+        return modal;
+    }
+
+    function openCartSuccessModal() {
+        var modal = ensureCartSuccessModal();
+        modal.style.display = '';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeCartSuccessModal() {
+        var modal = document.getElementById('cartSuccessModal');
+        if (modal) modal.style.display = 'none';
+        document.body.style.overflow = '';
+        if (cartSummaryPollHandle) { clearInterval(cartSummaryPollHandle); cartSummaryPollHandle = null; }
+    }
+
+    function cartRowContent(li) {
+        // license_name is resolved server-side on every line; raw id is the
+        // last-resort fallback.
+        var name = li.license_name || li.license_id || 'your license';
+        var res = li.result || {};
+        if (li.sku === 'additional_devices') {
+            return { text: li.description || ('Device slots added to ' + name),
+                detail: res.new_n_tokens != null ? ('Now ' + res.new_n_tokens + ' device slots total') : '' };
+        }
+        if (li.sku === 'license_renewal') {
+            return { text: li.description || ('Renewed ' + name),
+                detail: res.license_name ? ('New license: ' + res.license_name) : '' };
+        }
+        if (li.sku === 'license_new') {
+            var newName = res.license_name || li.license_name;
+            return { text: li.description || 'New license created',
+                detail: newName ? ('License: ' + newName) : '' };
+        }
+        if (li.sku === 'streaming_topup_payg' || li.sku === 'streaming_topup_pro_bundle') {
+            return { text: li.description || 'Streaming credit added',
+                detail: res.dollars != null ? ('New balance: ' + cartMoney(res.dollars)) : '' };
+        }
+        return { text: li.description || li.sku, detail: '' };
+    }
+
+    function renderCartSummaryRows(resp) {
+        var rowsEl = document.getElementById('cartSuccessRows');
+        if (!rowsEl) return;
+        rowsEl.innerHTML = (resp.line_items || []).map(function(li) {
+            var content = cartRowContent(li);
+            var cls, icon, detail;
+            if (li.status === 'ok') {
+                cls = 'ok'; icon = '✓'; detail = content.detail;
+            } else if (li.status === 'failed') {
+                cls = 'failed'; icon = '⚠';
+                detail = (li.error || 'This item could not be completed.') + ' Please contact support.';
+            } else {
+                cls = 'pending'; icon = '<span class="cart-success-spinner"></span>';
+                detail = 'Processing…';
+            }
+            return '<div class="cart-success-row ' + cls + '">'
+                + '<span class="cart-success-row-icon">' + icon + '</span>'
+                + '<span class="cart-success-row-text">' + escapeForCart(content.text)
+                + (detail ? '<span class="cart-success-row-detail">' + escapeForCart(detail) + '</span>' : '')
+                + '</span></div>';
+        }).join('');
+
+        // Offer "Activate a device" when a license was created or renewed.
+        var hasLicense = (resp.line_items || []).some(function(li) {
+            return (li.sku === 'license_new' || li.sku === 'license_renewal') && li.status === 'ok';
+        });
+        var act = document.getElementById('cartSuccessActivate');
+        if (act) act.style.display = hasLicense ? '' : 'none';
+    }
+
+    function setCartNote(msg) {
+        var note = document.getElementById('cartSuccessNote');
+        if (note) note.textContent = msg || '';
+    }
+
+    var CART_PROCESSING_NOTE = 'Processing your purchase…';
+    var CART_SLOW_NOTE = "Still processing your purchase — we've emailed your receipt. "
+        + "If your account doesn't update shortly, contact support.";
+
+    // One poll tick. Returns true when terminal (caller stops the interval).
+    async function cartSummaryTick(cartId, start) {
+        var resp = await fetchCartSummary(cartId);
+        if (resp.__unavailable) { setCartNote(CART_SLOW_NOTE); return true; }
+        renderCartSummaryRows(resp);
+        var pending = (resp.line_items || []).some(function(li) { return li.status === 'pending'; });
+        if (!pending) {
+            var anyFailed = (resp.line_items || []).some(function(li) { return li.status === 'failed'; });
+            // All lines succeeded → the bundled dashboard cache is now stale.
+            if (resp.fulfilled === true) {
+                try {
+                    var u = firebase.auth().currentUser;
+                    if (u && window.eeDashboard && window.eeDashboard.invalidate) {
+                        window.eeDashboard.invalidate(u.uid);
+                    }
+                } catch (e) {}
+            }
+            setCartNote(anyFailed ? 'Some items need attention — see above.'
+                                  : 'All set. Your account has been updated.');
+            return true;
+        }
+        if (Date.now() - start > 30000) { setCartNote(CART_SLOW_NOTE); return true; }
+        setCartNote(CART_PROCESSING_NOTE);
+        return false;
+    }
+
+    async function handleCartPurchaseReturn(cartId) {
+        openCartSuccessModal();
+        var rowsEl = document.getElementById('cartSuccessRows');
+        if (rowsEl) rowsEl.innerHTML = '';
+        setCartNote(CART_PROCESSING_NOTE);
+        var start = Date.now();
+        var terminal = await cartSummaryTick(cartId, start);
+        if (terminal) return;
+        cartSummaryPollHandle = setInterval(function() {
+            cartSummaryTick(cartId, start).then(function(done) {
+                if (done && cartSummaryPollHandle) {
+                    clearInterval(cartSummaryPollHandle);
+                    cartSummaryPollHandle = null;
+                }
+            });
+        }, 2500);
     }
 
     function renderStreamingCreditsWidget() {
