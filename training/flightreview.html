@@ -1,0 +1,504 @@
+---
+layout: main
+permalink: /training/flightreview/
+---
+
+<style>
+    .fr-container {
+        width: 80%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 14rem 1rem 0;
+    }
+
+    .fr-user-info {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1rem;
+        font-size: 14px;
+        color: #555;
+    }
+
+    .fr-user-info a {
+        color: #999;
+        text-decoration: none;
+    }
+
+    .fr-user-info a:hover {
+        color: #333;
+        text-decoration: underline;
+    }
+
+    .fr-hero {
+        position: relative;
+        text-align: center;
+        border-radius: 16px;
+        margin-bottom: 3rem;
+        overflow: hidden;
+        padding: 2.5rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #11243d 0%, #1e90ff 100%);
+    }
+
+    .fr-hero img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(0.45);
+    }
+
+    .fr-hero-text {
+        position: relative;
+        z-index: 1;
+        padding: 0 1rem;
+    }
+
+    .fr-hero h1 {
+        font-weight: 300;
+        font-size: 2.8rem;
+        color: #fff;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .fr-subtitle {
+        font-size: 1.8rem;
+        color: rgba(255, 255, 255, 0.85);
+        margin: 0.5rem 0 0;
+        font-weight: 300;
+    }
+
+    .fr-description {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 4.5rem;
+        color: #555;
+        font-size: 1.6rem;
+        line-height: 1.7;
+    }
+
+    .fr-description p {
+        margin: 0 0 0.8rem;
+    }
+
+    .fr-description p:last-child {
+        margin-bottom: 0;
+    }
+
+    .fr-register-intro {
+        text-align: center;
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: #555;
+        margin: 0 0 2rem;
+    }
+
+    .fr-section {
+        margin-top: 4.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .fr-section h2 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1rem;
+        padding-left: 0.75rem;
+        border-left: 3px solid #1e90ff;
+    }
+
+    .fr-section ul {
+        list-style: disc;
+        padding-left: 1.5rem;
+        color: #555;
+        font-size: 1.5rem;
+        line-height: 1.8;
+    }
+
+    .fr-section ul li {
+        margin-bottom: 0.5rem;
+    }
+
+    .fr-section p {
+        color: #555;
+        font-size: 1.5rem;
+        line-height: 1.7;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Registration card */
+    .fr-card {
+        max-width: 460px;
+        margin: 2rem auto;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .fr-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .fr-card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+        border-bottom: 3px solid #dee2e6;
+        padding: 2rem;
+    }
+
+    .fr-card-header h3 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .fr-card-note {
+        font-size: 1.5rem;
+        color: #555;
+        margin: 0;
+    }
+
+    .fr-card-body {
+        padding: 2rem;
+    }
+
+    .fr-register-btn {
+        display: block;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        background-color: #000;
+        color: #fff;
+        border: 1px solid #000;
+        min-width: 160px;
+        margin: 0 auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .fr-register-btn:hover {
+        background-color: #1e90ff;
+        border-color: transparent;
+    }
+
+    .fr-register-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #999;
+        border-color: #999;
+        box-shadow: none;
+    }
+
+    .fr-register-btn:disabled:hover {
+        background-color: #999;
+        border-color: #999;
+    }
+
+    .fr-register-btn .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: fr-spin 0.6s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+
+    @keyframes fr-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Auth gate CTA */
+    .fr-auth-gate {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .fr-signin-cta {
+        display: block;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #fff;
+        background-color: #000;
+        border: 1px solid #000;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        min-width: 160px;
+        margin: 0 auto;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .fr-signin-cta:hover {
+        background-color: #1e90ff;
+        color: #fff;
+        border: 1px solid transparent;
+    }
+
+    /* Sign-in widget overlay */
+    .fr-signin-widget {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        overflow-y: auto;
+    }
+
+    /* Message area */
+    .fr-message {
+        display: none;
+        margin: 1rem 0;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        text-align: center;
+    }
+
+    .fr-message.error {
+        background: #fff3f3;
+        color: #dc3545;
+        border: 1px solid #f5c6cb;
+        display: block;
+    }
+
+    .fr-message.info {
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #90caf9;
+        display: block;
+    }
+
+    /* Notes */
+    .fr-notes {
+        text-align: center;
+        margin: 2rem 0;
+        font-size: 1.5rem;
+        color: #555;
+        line-height: 1.6;
+    }
+
+    .fr-notes p {
+        margin: 0.25rem 0;
+        font-style: italic;
+    }
+
+    .fr-notes a {
+        color: #1e90ff;
+        text-decoration: none;
+    }
+
+    .fr-notes a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        .fr-container {
+            width: 90%;
+            padding-top: 10rem;
+        }
+
+        .fr-hero h1 {
+            font-size: 2.4rem;
+        }
+
+        .fr-subtitle {
+            font-size: 1.5rem;
+        }
+
+        .fr-description {
+            font-size: 1.4rem;
+        }
+
+        .fr-card {
+            max-width: none;
+            width: 100%;
+        }
+
+        .fr-signin-cta, .fr-register-btn {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .fr-hero h1 {
+            font-size: 1.9rem;
+        }
+
+        .fr-description {
+            font-size: 1.3rem;
+        }
+
+        .fr-section h2 {
+            font-size: 1.5rem;
+            padding-left: 0.5rem;
+        }
+
+        .fr-section ul, .fr-section p {
+            font-size: 1.3rem;
+        }
+
+        .fr-card-header, .fr-card-body {
+            padding: 1.25rem;
+        }
+    }
+</style>
+
+<div class="fr-container">
+
+    <!-- Hero -->
+    <div class="fr-hero">
+        <div class="fr-hero-text">
+            <h1>Transport Canada Advanced RPAS Flight Review</h1>
+            <p class="fr-subtitle">BC Hydro &bull; June 9 &bull; In Person</p>
+        </div>
+    </div>
+
+    <!-- Lead-in -->
+    <div class="fr-description">
+        <p>An in-person flight review for pilots who have passed the Transport Canada Advanced RPAS exam and are ready to complete the practical requirement for their Pilot Certificate – Advanced Operations.</p>
+    </div>
+
+    <!-- Message area -->
+    <div id="fr-message" class="fr-message"></div>
+
+    <!-- Registration card -->
+    <p class="fr-register-intro">Ready to book your flight review? Sign up below.</p>
+    <div class="fr-card" data-product-id="prod_Uc9cNrGIMVEulS">
+        <div class="fr-card-header">
+            <h3>Advanced RPAS Flight Review</h3>
+            <p class="fr-card-note">In-person &bull; assessed by a certified RPAS Flight Reviewer</p>
+        </div>
+        <div class="fr-card-body fr-auth-gate">
+            <p class="fr-signin-cta">Sign in to register</p>
+        </div>
+        <div class="fr-card-body fr-controls" style="display:none;">
+            <button type="button" class="fr-register-btn">Register &amp; Pay</button>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="fr-notes">
+        <p>Questions, or need an invoice before payment? Reach out to <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we'll sort it out.</p>
+    </div>
+
+    <!-- Sign-in widget -->
+    <div class="fr-signin-widget" id="fr-signin-area">
+        {% include signinwidget-main.html %}
+    </div>
+
+    <!-- About the review -->
+    <div class="fr-section">
+        <h2>About the flight review</h2>
+        <p>During the review, a certified RPAS Flight Reviewer will assess your ability to plan, brief, and safely conduct an RPAS flight in accordance with Transport Canada requirements. The session includes a review of required documents, site assessment, emergency procedures, pre-flight checks, flight operations, and post-flight procedures.</p>
+        <p>After the review, your result is submitted through Transport Canada's Drone Management Portal. If successful, you can apply for your Pilot Certificate – Advanced Operations through Transport Canada. Transport Canada says pilots must pass both the Advanced exam and an in-person flight review before applying for the Advanced certificate.</p>
+    </div>
+
+    <!-- What's included -->
+    <div class="fr-section">
+        <h2>What's included</h2>
+        <ul>
+            <li>In-person Advanced RPAS flight review</li>
+            <li>Assessment by a certified RPAS Flight Reviewer</li>
+            <li>Pre-flight planning and documentation review</li>
+            <li>Practical flight assessment</li>
+            <li>Post-flight debrief</li>
+            <li>Submission of flight review result to Transport Canada</li>
+        </ul>
+    </div>
+
+    <!-- Before booking -->
+    <div class="fr-section">
+        <h2>Before booking, you must have</h2>
+        <ul>
+            <li>Passed the Transport Canada Advanced RPAS exam</li>
+            <li>A registered RPAS suitable for the review</li>
+            <li>Your Drone Management Portal / pilot certificate information</li>
+            <li>Required documentation for the aircraft and operation</li>
+        </ul>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    var hostURL = getHostUrl();
+
+    // ---- Register click (no sign-in required) ----
+
+    document.querySelectorAll('.fr-register-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var card = btn.closest('.fr-card');
+            var productId = card.getAttribute('data-product-id');
+
+            // Disable button + show spinner
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Preparing checkout...';
+
+            $.ajax({
+                url: hostURL + '/create_training_checkout',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ product_id: productId, qty: 1, cancel_path: '/training/flightreview/' }),
+                success: function(data) {
+                    var parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                    if (parsed.url) {
+                        window.location.href = parsed.url;
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = 'Register & Pay';
+                        showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
+                    }
+                },
+                error: function(jqXHR) {
+                    btn.disabled = false;
+                    btn.textContent = 'Register & Pay';
+                    if (jqXHR.status === 403) {
+                        showMessage('Registration is closed.', 'error');
+                        btn.disabled = true;
+                        btn.textContent = 'Registration closed';
+                    } else {
+                        showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
+                    }
+                }
+            });
+        });
+    });
+
+    // ---- Messages ----
+
+    function showMessage(text, type) {
+        var el = document.getElementById('fr-message');
+        el.innerHTML = text;
+        el.className = 'fr-message ' + (type || 'info');
+        setTimeout(function() {
+            el.className = 'fr-message';
+            el.innerHTML = '';
+        }, 8000);
+    }
+})();
+</script>
+
+{% include footer.html %}
