@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <script>Object.defineProperty(globalThis, 'CESIUM_BASE_URL', { value: '/mirada-fleet-demo/cesium-package/' })</script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/png" href="/mirada/logo.png" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-tsrouter-app"
+    />
+    <link rel="apple-touch-icon" href="/mirada/logo192.png" />
+    <link rel="manifest" href="manifest.json" />
+    <title>Eagle Eyes Mirada</title>
+    <!-- <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';"
+    /> -->
+
+    <style>
+      #mirada-consent-overlay {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        z-index: 100000;
+        pointer-events: none;
+        display: flex;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      #mirada-consent-overlay .card {
+        pointer-events: auto;
+        background: rgba(26, 26, 26, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        color: #e6e6e6;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 14px 18px;
+        max-width: 720px;
+        width: 100%;
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+        text-align: left;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+      #mirada-consent-overlay h2 {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #e6e6e6;
+      }
+      #mirada-consent-overlay p {
+        margin: 0 0 10px;
+        color: #b5b5b5;
+      }
+      #mirada-consent-overlay .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px 18px;
+        margin: 6px 0 0;
+      }
+      #mirada-consent-overlay .row > .grow {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      #mirada-consent-overlay .row > .actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      #mirada-consent-overlay .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: none;
+        color: #c8c8c8;
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      #mirada-consent-overlay .toggle:hover {
+        color: #fff;
+      }
+      #mirada-consent-overlay .toggle .caret {
+        display: inline-block;
+        transition: transform 0.15s;
+        font-size: 10px;
+        opacity: 0.7;
+      }
+      #mirada-consent-overlay .toggle[aria-expanded="true"] .caret {
+        transform: rotate(90deg);
+      }
+      #mirada-consent-overlay .identity {
+        margin-top: 10px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      #mirada-consent-overlay .identity[hidden] {
+        display: none;
+      }
+      #mirada-consent-overlay label.field {
+        display: block;
+        font-size: 11px;
+        color: #b5b5b5;
+        margin: 0 0 4px;
+      }
+      #mirada-consent-overlay input[type="text"],
+      #mirada-consent-overlay input[type="email"] {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 7px 10px;
+        margin: 0 0 10px;
+        font-size: 12.5px;
+        color: #e6e6e6;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 5px;
+        font-family: inherit;
+      }
+      #mirada-consent-overlay input:last-of-type {
+        margin-bottom: 0;
+      }
+      #mirada-consent-overlay input::placeholder {
+        color: #777;
+      }
+      #mirada-consent-overlay input:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #mirada-consent-overlay .usage {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+        color: #b5b5b5;
+      }
+      #mirada-consent-overlay .usage input {
+        margin: 0;
+        accent-color: #e6e6e6;
+        flex-shrink: 0;
+      }
+      #mirada-consent-overlay .usage strong {
+        color: #e6e6e6;
+        font-weight: 500;
+      }
+      #mirada-consent-overlay .usage-detail {
+        display: block;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.04);
+        font-size: 11.5px;
+        color: #b5b5b5;
+      }
+      #mirada-consent-overlay .usage-detail[hidden] {
+        display: none;
+      }
+      #mirada-consent-overlay button.action {
+        padding: 7px 14px;
+        border-radius: 5px;
+        font-size: 12px;
+        cursor: pointer;
+        border: 1px solid #555;
+        background: transparent;
+        color: #e6e6e6;
+        transition: background 0.15s, color 0.15s;
+        font-family: inherit;
+        white-space: nowrap;
+      }
+      #mirada-consent-overlay button.accept {
+        background: #e6e6e6;
+        color: #1a1a1a;
+        border-color: #e6e6e6;
+        font-weight: 600;
+      }
+      #mirada-consent-overlay button.accept:hover {
+        background: #fff;
+      }
+      #mirada-consent-overlay button.decline:hover {
+        background: #2a2a2a;
+      }
+      #mirada-consent-overlay a {
+        color: #c8c8c8;
+        font-size: 11px;
+        text-decoration: underline;
+      }
+      #mirada-consent-overlay a:hover {
+        color: #fff;
+      }
+      @media (max-width: 600px) {
+        #mirada-consent-overlay .row > .actions {
+          width: 100%;
+        }
+        #mirada-consent-overlay .row > .actions button {
+          flex: 1 1 0;
+        }
+      }
+    </style>
+    <script>
+      (function () {
+        if (/(Electron|eagle-eyes)/i.test(navigator.userAgent)) return;
+
+        var ENDPOINT =
+          "https://script.google.com/macros/s/AKfycbyMsA_xnAfpbDbJ-PJPT1Il0PLlxQyBnBTc2XkSb5uPGRRorPVcsPODksOeBA8UUCmAFQ/exec";
+        var CONSENT_KEY = "eagle_eyes_cookie_consent";
+        var USAGE_KEY = "eagle_eyes_usage_share";
+        var VIEWER_ID_KEY = "eagle_eyes_mirada_viewer_id";
+
+        function isoNow() {
+          return new Date().toISOString();
+        }
+        function pacificNow() {
+          try {
+            return new Date().toLocaleString("en-US", {
+              timeZone: "America/Los_Angeles",
+            });
+          } catch (e) {
+            return "";
+          }
+        }
+        function safeGet(key) {
+          try {
+            return localStorage.getItem(key);
+          } catch (e) {
+            return null;
+          }
+        }
+        function safeSet(key, value) {
+          try {
+            localStorage.setItem(key, value);
+          } catch (e) {}
+        }
+        function getViewerId() {
+          var id = safeGet(VIEWER_ID_KEY);
+          if (!id) {
+            id =
+              "vw_" +
+              (crypto && crypto.randomUUID
+                ? crypto.randomUUID()
+                : Date.now() + "_" + Math.random().toString(36).slice(2));
+            safeSet(VIEWER_ID_KEY, id);
+          }
+          return id;
+        }
+        function post(payload) {
+          try {
+            fetch(ENDPOINT, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain" },
+              body: JSON.stringify(payload),
+            }).catch(function () {});
+          } catch (e) {}
+        }
+        function fetchGeo() {
+          return fetch("https://ipapi.co/json/")
+            .then(function (r) {
+              return r.ok ? r.json() : {};
+            })
+            .then(function (d) {
+              return {
+                country: d.country_name || "",
+                city: d.city || "",
+                region: d.region || "",
+              };
+            })
+            .catch(function () {
+              return { country: "", city: "", region: "" };
+            });
+        }
+        // Recurring lightweight ping on later visits, only if the user
+        // previously opted in to anonymous usage data.
+        function sendUsagePing() {
+          fetchGeo().then(function (geo) {
+            post({
+              timestamp_iso: isoNow(),
+              timestamp_pacific: pacificNow(),
+              event_type: "page_view",
+              referrer: document.referrer || "",
+              country: geo.country,
+              city: geo.city,
+              region: geo.region,
+              consent_given: true,
+              viewer_id: getViewerId(),
+            });
+          });
+        }
+        function submit(name, email, useCase, shareUsage) {
+          safeSet(CONSENT_KEY, "accepted");
+          safeSet(USAGE_KEY, shareUsage ? "1" : "0");
+
+          var base = {
+            timestamp_iso: isoNow(),
+            timestamp_pacific: pacificNow(),
+            event_type: "page_view",
+            consent_given: true,
+          };
+          if (name) base.name = name;
+          if (email) base.email = email;
+          if (useCase) base.use_case = useCase;
+
+          if (shareUsage) {
+            base.referrer = document.referrer || "";
+            base.viewer_id = getViewerId();
+            fetchGeo().then(function (geo) {
+              base.country = geo.country;
+              base.city = geo.city;
+              base.region = geo.region;
+              post(base);
+            });
+          } else if (name || email || useCase) {
+            // Identity was volunteered even though usage sharing is off.
+            post(base);
+          }
+          // Nothing to send if everything is empty and usage is off.
+        }
+        function showOverlay() {
+          var overlay = document.createElement("div");
+          overlay.id = "mirada-consent-overlay";
+          overlay.setAttribute("role", "dialog");
+          overlay.setAttribute("aria-modal", "true");
+          overlay.innerHTML =
+            '<div class="card" role="document">' +
+            "<h2>Help us improve Mirada</h2>" +
+            "<p>The web version of Mirada is a tool for exploring, labelling, and mapping your drone footage. If you&rsquo;d like to tell us about yourself, it helps us build it for people like you &mdash; but it&rsquo;s entirely optional, and you can continue either way.</p>" +
+            '<button type="button" class="toggle" id="mirada-consent-identity-toggle" aria-expanded="false" aria-controls="mirada-consent-identity"><span class="caret">&#9656;</span> Tell us about yourself (optional)</button>' +
+            '<div class="identity" id="mirada-consent-identity" hidden>' +
+            '<label class="field" for="mirada-consent-name">Your name</label>' +
+            '<input type="text" id="mirada-consent-name" autocomplete="name" placeholder="Jane Pilot" />' +
+            '<label class="field" for="mirada-consent-email">Email</label>' +
+            '<input type="email" id="mirada-consent-email" autocomplete="email" placeholder="you@example.com" />' +
+            '<label class="field" for="mirada-consent-use">What are you interested in using Mirada for?</label>' +
+            '<input type="text" id="mirada-consent-use" placeholder="Search &amp; rescue, inspection, mapping&hellip;" />' +
+            "</div>" +
+            '<div class="row">' +
+            '<div class="grow">' +
+            '<label class="usage">' +
+            '<input type="checkbox" id="mirada-consent-usage" checked />' +
+            "<span><strong>Share anonymous usage data.</strong></span>" +
+            "</label> " +
+            '<button type="button" class="toggle" id="mirada-consent-whatdata" aria-expanded="false" aria-controls="mirada-consent-detail" style="margin-left:8px"><span class="caret">&#9656;</span> What data?</button>' +
+            '<span class="usage-detail" id="mirada-consent-detail" hidden>Sends only the site that referred you, your approximate region (city/region from your IP address), and a random ID so repeat visits aren&rsquo;t double-counted. <strong>Your drone footage and location data are never uploaded unless you explicitly share them with other users</strong> &mdash; otherwise they stay on your device.</span>' +
+            "</div>" +
+            '<div class="actions">' +
+            '<button class="action decline" id="mirada-consent-decline">Decline &amp; continue</button>' +
+            '<button class="action accept" id="mirada-consent-accept">Accept &amp; continue</button>' +
+            "</div>" +
+            "</div>" +
+            '<p style="margin:10px 0 0"><a href="https://www.eagleeyessearch.com/privacy.html" target="_blank" rel="noopener">View Privacy Policy</a></p>' +
+            "</div>";
+          document.body.appendChild(overlay);
+
+          // Forced choice: the dialog can only be closed via one of the
+          // two explicit buttons. No backdrop tap, no Escape, no X.
+          function accept() {
+            submit(
+              document.getElementById("mirada-consent-name").value.trim(),
+              document.getElementById("mirada-consent-email").value.trim(),
+              document.getElementById("mirada-consent-use").value.trim(),
+              document.getElementById("mirada-consent-usage").checked
+            );
+            overlay.remove();
+          }
+          // Declining is still a choice the user makes explicitly.
+          // Persisted so it never reappears. We send one minimal beacon
+          // (timestamp only, no viewer_id, no IP geo lookup) so we can
+          // measure decline rate without identifying the visitor.
+          function decline() {
+            safeSet(CONSENT_KEY, "declined");
+            post({
+              timestamp_iso: isoNow(),
+              timestamp_pacific: pacificNow(),
+              event_type: "visit_declined",
+              consent_given: false,
+            });
+            overlay.remove();
+          }
+
+          document
+            .getElementById("mirada-consent-accept")
+            .addEventListener("click", accept);
+          document
+            .getElementById("mirada-consent-decline")
+            .addEventListener("click", decline);
+
+          function wireDisclosure(toggleId, panelId) {
+            var btn = document.getElementById(toggleId);
+            var panel = document.getElementById(panelId);
+            if (!btn || !panel) return;
+            btn.addEventListener("click", function () {
+              var open = panel.hasAttribute("hidden");
+              if (open) {
+                panel.removeAttribute("hidden");
+              } else {
+                panel.setAttribute("hidden", "");
+              }
+              btn.setAttribute("aria-expanded", open ? "true" : "false");
+            });
+          }
+          wireDisclosure("mirada-consent-whatdata", "mirada-consent-detail");
+          wireDisclosure(
+            "mirada-consent-identity-toggle",
+            "mirada-consent-identity"
+          );
+        }
+        function init() {
+          var consent = safeGet(CONSENT_KEY);
+          if (consent === "accepted") {
+            if (safeGet(USAGE_KEY) !== "0") sendUsagePing();
+          } else if (consent === "declined") {
+            // honor prior decline silently — nothing is sent
+          } else {
+            showOverlay();
+          }
+        }
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init);
+        } else {
+          init();
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/mirada-fleet-demo/assets/index-B2aDSpEe.js"></script>
+    <link rel="stylesheet" crossorigin href="/mirada-fleet-demo/assets/index-TaCNjQu4.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
