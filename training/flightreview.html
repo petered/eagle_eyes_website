@@ -11,28 +11,6 @@ permalink: /training/flightreview/
         padding: 14rem 1rem 0;
     }
 
-    .fr-user-info {
-        display: none;
-        align-items: center;
-        justify-content: space-between;
-        background: #f8f9fa;
-        border-radius: 6px;
-        padding: 0.5rem 1rem;
-        margin-bottom: 1rem;
-        font-size: 14px;
-        color: #555;
-    }
-
-    .fr-user-info a {
-        color: #999;
-        text-decoration: none;
-    }
-
-    .fr-user-info a:hover {
-        color: #333;
-        text-decoration: underline;
-    }
-
     .fr-hero {
         position: relative;
         text-align: center;
@@ -174,12 +152,6 @@ permalink: /training/flightreview/
         margin: 0 0 0.4rem;
     }
 
-    .fr-card-note {
-        font-size: 1.5rem;
-        color: #555;
-        margin: 0;
-    }
-
     .fr-card-body {
         padding: 2rem;
     }
@@ -256,45 +228,11 @@ permalink: /training/flightreview/
         to { transform: rotate(360deg); }
     }
 
-    /* Auth gate CTA */
-    .fr-auth-gate {
-        padding: 1.5rem;
-        text-align: center;
-    }
-
-    .fr-signin-cta {
-        display: block;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #fff;
-        background-color: #000;
-        border: 1px solid #000;
-        border-radius: 4px;
-        cursor: pointer;
-        text-align: center;
-        min-width: 160px;
-        margin: 0 auto;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .fr-signin-cta:hover {
-        background-color: #1e90ff;
-        color: #fff;
-        border: 1px solid transparent;
-    }
-
-    /* Sign-in widget overlay */
-    .fr-signin-widget {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        overflow-y: auto;
+    .fr-card-fineprint {
+        font-size: 1.2rem;
+        color: #888;
+        line-height: 1.5;
+        margin: 1rem 0 0;
     }
 
     /* Message area */
@@ -367,7 +305,7 @@ permalink: /training/flightreview/
             width: 100%;
         }
 
-        .fr-signin-cta, .fr-register-btn {
+        .fr-register-btn {
             min-width: 0;
             width: 100%;
         }
@@ -399,14 +337,6 @@ permalink: /training/flightreview/
 
 <div class="fr-container">
 
-    <!-- User info (shown when signed in) -->
-    <div id="fr-user-info" class="fr-user-info">
-        <span>
-            <span id="fr-user-email"></span>
-        </span>
-        <a href="#" id="fr-sign-out">Sign Out</a>
-    </div>
-
     <!-- Hero -->
     <div class="fr-hero">
         <img src="{{ '/images/flightreview-hero.jpg' | relative_url }}" alt="RPAS drone inspecting a power transmission line">
@@ -431,24 +361,16 @@ permalink: /training/flightreview/
             <h3>Advanced RPAS Flight Review</h3>
             <p class="fr-card-date">BC Hydro &bull; June 9</p>
         </div>
-        <div class="fr-card-body fr-auth-gate">
-            <p class="fr-card-price">$250 <span class="fr-card-price-cur">CAD</span> <span class="fr-card-price-per">per person</span></p>
-            <p class="fr-signin-cta">Sign in to register</p>
-        </div>
-        <div class="fr-card-body fr-controls" style="display:none;">
+        <div class="fr-card-body">
             <p class="fr-card-price">$250 <span class="fr-card-price-cur">CAD</span> <span class="fr-card-price-per">per person</span></p>
             <button type="button" class="fr-register-btn">Register &amp; Pay</button>
+            <p class="fr-card-fineprint">On the next screen you'll be asked for attendee name(s), contact phone, and any comments. Payment is handled securely by Stripe.</p>
         </div>
     </div>
 
     <!-- Notes -->
     <div class="fr-notes">
         <p>Questions, or need an invoice before payment? Reach out to <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a> and we'll sort it out.</p>
-    </div>
-
-    <!-- Sign-in widget -->
-    <div class="fr-signin-widget" id="fr-signin-area">
-        {% include signinwidget-main.html %}
     </div>
 
     <!-- About the review -->
@@ -485,15 +407,15 @@ permalink: /training/flightreview/
 </div>
 
 <script>
-// Close sign-in overlay (called by close button in signinwidget-main)
-function toggleSignIn() {
-    document.getElementById('fr-signin-area').style.display = 'none';
-}
-
 (function() {
     var hostURL = getHostUrl();
 
-    // ---- Register click (sign-in required) ----
+    // Soft "no charge made" banner when returning from a canceled Stripe session.
+    if (window.location.search.indexOf('canceled=1') !== -1) {
+        showMessage('No charge was made — you can complete your booking whenever you\'re ready.', 'info');
+    }
+
+    // ---- Register click (no sign-in required; token sent only if already present) ----
 
     document.querySelectorAll('.fr-register-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -504,54 +426,92 @@ function toggleSignIn() {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span>Preparing checkout...';
 
-            var user = firebase.auth().currentUser;
-            if (!user) {
-                btn.disabled = false;
-                btn.textContent = 'Register & Pay';
-                showMessage('Please sign in to register.', 'error');
-                document.getElementById('fr-signin-area').style.display = 'block';
-                return;
+            // Optional auth: if the user happens to be signed in, attach their
+            // Firebase token so the backend can record uid/email. We never block
+            // on or require it — anonymous checkout is fully supported.
+            var user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            if (user) {
+                user.getIdToken(true)
+                    .then(function(idToken) { postCheckout(btn, trainingId, idToken); })
+                    .catch(function() { postCheckout(btn, trainingId, null); });
+            } else {
+                postCheckout(btn, trainingId, null);
             }
-
-            user.getIdToken(true).then(function(idToken) {
-                $.ajax({
-                    url: hostURL + '/create_training_checkout',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    headers: { 'Authorization': 'Bearer ' + idToken },
-                    data: JSON.stringify({ training_id: parseInt(trainingId), qty: 1, cancel_path: '/training/flightreview/' }),
-                    success: function(data) {
-                        var parsed = typeof data === 'string' ? JSON.parse(data) : data;
-                        if (parsed.url) {
-                            window.location.href = parsed.url;
-                        } else {
-                            btn.disabled = false;
-                            btn.textContent = 'Register & Pay';
-                            showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
-                        }
-                    },
-                    error: function(jqXHR) {
-                        btn.disabled = false;
-                        btn.textContent = 'Register & Pay';
-                        if (jqXHR.status === 403) {
-                            showMessage('Registration is closed.', 'error');
-                            btn.disabled = true;
-                            btn.textContent = 'Registration closed';
-                        } else if (jqXHR.status === 401) {
-                            showMessage('Please sign in to register.', 'error');
-                            document.getElementById('fr-signin-area').style.display = 'block';
-                        } else {
-                            showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
-                        }
-                    }
-                });
-            }).catch(function() {
-                btn.disabled = false;
-                btn.textContent = 'Register & Pay';
-                showMessage('Authentication error. Please try signing in again.', 'error');
-            });
         });
     });
+
+    function postCheckout(btn, trainingId, idToken) {
+        var headers = {};
+        if (idToken) { headers['Authorization'] = 'Bearer ' + idToken; }
+
+        $.ajax({
+            url: hostURL + '/create_training_checkout',
+            method: 'POST',
+            contentType: 'application/json',
+            headers: headers,
+            data: JSON.stringify({
+                training_id: parseInt(trainingId),
+                qty: 1,
+                cancel_path: '/training/flightreview/?canceled=1'
+            }),
+            success: function(data) {
+                var parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                if (parsed.url) {
+                    window.location.href = parsed.url;
+                } else {
+                    resetButton(btn);
+                    showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
+                }
+            },
+            error: function(jqXHR) {
+                // Rate limited: show message + countdown, never auto-retry.
+                if (jqXHR.status === 429) {
+                    var resp = {};
+                    try { resp = JSON.parse(jqXHR.responseText); } catch (e) {}
+                    var retryAfter = parseInt(resp.retry_after, 10);
+                    if (!retryAfter || retryAfter < 1) {
+                        retryAfter = parseInt(jqXHR.getResponseHeader('Retry-After'), 10) || 60;
+                    }
+                    showMessage(resp.message || 'Too many requests right now. Please wait a moment and try again.', 'error');
+                    startCountdown(btn, retryAfter);
+                    return;
+                }
+
+                resetButton(btn);
+                if (jqXHR.status === 403) {
+                    showMessage('Registration is closed.', 'error');
+                    btn.disabled = true;
+                    btn.textContent = 'Registration closed';
+                } else if (jqXHR.status === 409) {
+                    showMessage('Sorry, this session is sold out.', 'error');
+                    btn.disabled = true;
+                    btn.textContent = 'Sold out';
+                } else {
+                    showMessage('Something went wrong, please try again or email <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>', 'error');
+                }
+            }
+        });
+    }
+
+    function resetButton(btn) {
+        btn.disabled = false;
+        btn.textContent = 'Register & Pay';
+    }
+
+    function startCountdown(btn, seconds) {
+        var remaining = seconds;
+        btn.disabled = true;
+        btn.textContent = 'Try again in ' + remaining + 's';
+        var timer = setInterval(function() {
+            remaining -= 1;
+            if (remaining <= 0) {
+                clearInterval(timer);
+                resetButton(btn);
+            } else {
+                btn.textContent = 'Try again in ' + remaining + 's';
+            }
+        }, 1000);
+    }
 
     // ---- Messages ----
 
@@ -559,74 +519,7 @@ function toggleSignIn() {
         var el = document.getElementById('fr-message');
         el.innerHTML = text;
         el.className = 'fr-message ' + (type || 'info');
-        setTimeout(function() {
-            el.className = 'fr-message';
-            el.innerHTML = '';
-        }, 8000);
     }
-
-    // ---- Auth gate ----
-
-    function onAuthStateChange(user) {
-        var userInfo = document.getElementById('fr-user-info');
-        var userEmail = document.getElementById('fr-user-email');
-        document.querySelectorAll('.fr-card').forEach(function(card) {
-            var authGate = card.querySelector('.fr-auth-gate');
-            var controls = card.querySelector('.fr-controls');
-            if (user) {
-                authGate.style.display = 'none';
-                controls.style.display = 'block';
-            } else {
-                authGate.style.display = 'block';
-                controls.style.display = 'none';
-            }
-        });
-        var signinArea = document.getElementById('fr-signin-area');
-        if (user) {
-            signinArea.style.display = 'none';
-            userEmail.textContent = 'Logged in as: ' + user.email;
-            userInfo.style.display = 'flex';
-        } else {
-            userInfo.style.display = 'none';
-            userEmail.textContent = '';
-        }
-    }
-
-    // Listen for Firebase auth state
-    document.addEventListener('signInComplete', function(e) {
-        onAuthStateChange(e.detail.user);
-    });
-
-    // Also check on page load via Firebase onAuthStateChanged
-    firebase.auth().onAuthStateChanged(function(user) {
-        onAuthStateChange(user);
-    });
-
-    // Handle "Sign in to register" click -- show sign-in overlay
-    document.querySelectorAll('.fr-signin-cta a, .fr-signin-cta').forEach(function(el) {
-        el.style.cursor = 'pointer';
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('fr-signin-area').style.display = 'block';
-        });
-    });
-
-    // Close overlay when clicking backdrop (outside the sign-in box)
-    document.getElementById('fr-signin-area').addEventListener('click', function(e) {
-        if (e.target === this || e.target.classList.contains('signin-container')) {
-            this.style.display = 'none';
-        }
-    });
-
-    // ---- Sign out ----
-    document.getElementById('fr-sign-out').addEventListener('click', function(e) {
-        e.preventDefault();
-        firebase.auth().signOut().then(function() {
-            window.location.reload();
-        }).catch(function(error) {
-            console.error('Error signing out:', error);
-        });
-    });
 })();
 </script>
 
