@@ -113,9 +113,36 @@ sign-in. (We'll drop the auth gate on the page so "Register & Pay" always shows.
 Product `prod_Uc9cNrGIMVEulS` is priced at **250 CAD**, but the code only queries
 USD prices, so it would fail with `No active price found for product ...`.
 
-Choose one. **Option A is recommended.**
+**DECISION: go with Option B** (drop the currency filter). Each training product
+has a single active price, so this is the simplest correct fix and needs no
+Airtable schema change. Option A is kept below only as a future reference if we
+ever sell the same training in multiple currencies.
 
-### Option A (recommended): read currency from the training record
+### Option B (CHOSEN): don't filter by currency
+
+Drop the hardcoded `currency='usd'` from the price lookup (line ~276) so Stripe
+returns the product's single active price regardless of currency:
+```python
+prices = stripe.Price.list(product=training["product_id"], active=True, limit=1)
+if not prices.data:
+    raise ValueError(f"No active price found for product {training['product_id']}")
+price_id = prices.data[0].id
+```
+
+Requirement that makes this safe: **each training product must have exactly one
+active price.** If a product ever has multiple active prices (e.g. both USD and
+CAD), the one returned is non-deterministic — so don't add a second active price
+to a training product without revisiting this (use Option A instead).
+
+### Stripe setup
+
+- Ensure `prod_Uc9cNrGIMVEulS` has **exactly one active price of 250.00 CAD**
+  in the correct mode (live vs test — see `STRIPE_IN_TEST_MODE`), and no leftover
+  active USD price on the same product.
+
+---
+
+### Option A (reference only — not chosen): read currency from the training record
 
 `_normalize_training` (`airtable_utils.py:197`) currently returns only
 `training_id, product_id, name, date, max_seats, status` — it does **not** expose
@@ -149,22 +176,6 @@ a currency. So Option A is two edits:
 
 Backwards compatible: existing USD trainings (1, 2, …) default to `usd`.
 
-### Option B (minimal): don't filter by currency
-
-If each product has exactly one active price, just drop the filter:
-```python
-prices = stripe.Price.list(product=training["product_id"], active=True, limit=1)
-if not prices.data:
-    raise ValueError(f"No active price found for product {training['product_id']}")
-price_id = prices.data[0].id
-```
-Risk: non-deterministic if a product ever has multiple active prices (e.g. USD + CAD).
-
-### Stripe setup (either option)
-
-- Ensure `prod_Uc9cNrGIMVEulS` has **exactly one active CAD price of 250.00 CAD**
-  in the correct mode (live vs test — see `STRIPE_IN_TEST_MODE`).
-
 ---
 
 ## Test checklist
@@ -188,8 +199,9 @@ Risk: non-deterministic if a product ever has multiple active prices (e.g. USD +
 - **Auth → optional:** wrap the auth call in try/except, default uid/email to
   empty, proceed anonymously. Nothing downstream depends on uid/email; Stripe
   still collects the buyer's email.
-- **CAD:** prefer a `currency` field on the training record (Option A; needs the
-  Airtable column + `_normalize_training` update + the price-lookup change);
-  otherwise drop the currency filter (Option B). Ensure the product has one active
-  250 CAD price.
+- **CAD (Option B — chosen):** drop the hardcoded `currency='usd'` from the price
+  lookup so Stripe returns the product's single active price. Ensure
+  `prod_Uc9cNrGIMVEulS` has exactly one active price of 250 CAD (and no stray
+  active USD price). Option A (currency field) is documented as a future fallback
+  only.
 - No changes needed to the webhook or seat-counting logic.
