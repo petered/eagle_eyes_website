@@ -2864,20 +2864,50 @@ async function introSkip() {
 
 // --- Configuration list ---
 
-// Deep-link from /account/ (?edit_config_id=X). Fetches the user's configs,
-// finds the one matching configId, and drops the user directly on the
-// prefilled edit form. Falls back to the regular config list if the
-// requested config isn't found (e.g., stale link, or user doesn't have
-// access to that config anymore).
-async function loadConfigurationsAndEditOne(configId) {
-    cameFromActivationIntro = false;
+// Every configuration the user can see: their personal configs
+// (get_configuration) PLUS each org's team configs (get_team_configurations),
+// merged and de-duped by configuration_id. /account/ lists team configs via
+// get_team_configurations, so without this setup.html would only see the
+// caller's own configs — making team configs invisible here and breaking the
+// edit deep-link for them. Mirrors /account/ so both stay in sync.
+async function fetchAllConfigurations() {
+    await ensureOrgsLoaded();
+    var collected = [];
     var body = currentLicenseId ? { license_id: currentLicenseId } : {};
     try {
-        var orgsPromise = ensureOrgsLoaded();
-        var result = await apiCall('get_configuration', body);
-        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
+        var r = await apiCall('get_configuration', body);
+        var personal = Array.isArray(r) ? r : (r.configurations || (r.configuration_id ? [r] : []));
+        collected = collected.concat(personal);
+    } catch (e) {
+        console.warn('get_configuration failed:', e);
+    }
+    var orgs = cachedOrgsForPicker || [];
+    var teamLists = await Promise.all(orgs.map(function(o) {
+        return apiCall('get_team_configurations', { org_id: o.org_id })
+            .then(function(cfg) { return (cfg && cfg.configurations) || []; })
+            .catch(function(e) { console.warn('get_team_configurations failed for', o.org_id, e); return []; });
+    }));
+    teamLists.forEach(function(list) { collected = collected.concat(list); });
+    var seen = {};
+    var merged = [];
+    collected.forEach(function(c) {
+        var cid = c.configuration_id || c.configurationId || c.id;
+        var key = cid ? String(cid) : ('anon-' + merged.length);
+        if (seen[key]) return;
+        seen[key] = true;
+        merged.push(c);
+    });
+    return merged;
+}
+
+// Deep-link from /account/ (?edit_config_id=X). Finds the matching config
+// (personal OR team) and drops the user on the prefilled edit form. Falls
+// back to the regular config list if the requested config isn't found.
+async function loadConfigurationsAndEditOne(configId) {
+    cameFromActivationIntro = false;
+    try {
+        var configs = await fetchAllConfigurations();
         cachedConfigurations = configs;
-        await orgsPromise;
         var idx = configs.findIndex(function(c) {
             var cid = c.configuration_id || c.configurationId || c.id;
             return cid && String(cid) === String(configId);
@@ -2898,13 +2928,9 @@ async function loadConfigurationsAndEditOne(configId) {
 
 // Load configs specifically for the intro screen (no flash of config list)
 async function loadConfigurationsForIntro() {
-    var body = currentLicenseId ? { license_id: currentLicenseId } : {};
     try {
-        var orgsPromise = ensureOrgsLoaded();
-        var result = await apiCall('get_configuration', body);
-        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
+        var configs = await fetchAllConfigurations();
         cachedConfigurations = configs;
-        await orgsPromise;
         showIntroScreen(configs);
     } catch (err) {
         console.error('Error loading configurations for intro:', err);
@@ -2950,16 +2976,10 @@ async function loadConfigurations() {
     statusEl.className = 'setup-status';
     statusEl.textContent = '';
 
-    var body = currentLicenseId ? { license_id: currentLicenseId } : {};
-
     try {
-        // Kick off org load in parallel with config load so the org-name
-        // labels on each card resolve as quickly as possible.
-        var orgsPromise = ensureOrgsLoaded();
-        var result = await apiCall('get_configuration', body);
-        var configs = Array.isArray(result) ? result : (result.configurations || (result.configuration_id ? [result] : []));
+        // Personal + team configs, mirroring /account/ (see fetchAllConfigurations).
+        var configs = await fetchAllConfigurations();
         cachedConfigurations = configs;
-        await orgsPromise;
         renderConfigList(configs);
     } catch (err) {
         console.error('Error loading Controller Setups:', err);
@@ -4913,7 +4933,9 @@ async function saveConfiguration() {
 
         if (singleStepMode) {
             showSingleStepSuccess();
-        } else if (cameFromActivation) {
+        } else if (cameFromActivation || isEditConfigDeepLink) {
+            // showSaveSuccess() redirects back to urlReturnTo (the /account/
+            // configurations overview) when we arrived via an edit deep-link.
             showSaveSuccess();
         } else {
             showConfigList();
