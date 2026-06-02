@@ -2580,10 +2580,17 @@ active: account
        border, light fill, tight padding. Overrides the .device-row-key
        row borders/padding. */
     .device-card-licenses .device-card-license {
+        display: block;
         border: 1px solid #ececec;
         border-radius: 8px;
         background: #fafbfc;
         padding: 8px 10px;
+        cursor: pointer;
+        transition: background-color 0.12s, border-color 0.12s;
+    }
+    .device-card-licenses .device-card-license:hover {
+        background: #f3f5f7;
+        border-color: #dfe3e8;
     }
     .device-card-no-licenses {
         font-size: 12px;
@@ -2591,7 +2598,34 @@ active: account
         font-style: italic;
         padding: 4px 0;
     }
-    .device-card-license.is-expired .device-row-key-name { color: #888; }
+    .device-card-license.is-expired .device-card-license-name { color: #888; }
+    /* Collapsible license row: one-line summary (clickable) + expandable
+       detail with the actions. */
+    .device-card-license-summary {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        cursor: pointer;
+    }
+    .device-card-license-summary-text { min-width: 0; }
+    .device-card-license-name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .device-card-license-sum-meta { font-size: 13px; color: #888; }
+    /* When expanded, the expiry/activated-by move into the detail, so hide
+       them from the summary line. */
+    .device-card-license.is-open .device-card-license-sum-meta { display: none; }
+    .device-card-license-toggle { flex: 0 0 auto; font-size: 13px; color: #1e90ff; white-space: nowrap; }
+    .device-card-license-summary:hover .device-card-license-toggle { text-decoration: underline; }
+    .device-card-license-detail {
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #ececec;
+    }
+    .device-card-license.is-open .device-card-license-detail { display: flex; }
     /* Disconnect + Copy key stack vertically, stretched to equal width (the
        wider one's size), centred against the license info on the left. */
     /* Disconnect + Copy key: stacked, right-aligned, vertically centred.
@@ -2633,6 +2667,8 @@ active: account
     }
     .device-card-license-badge.active { background: #e3f5e9; color: #1f7a44; }
     .device-card-license-badge.expired { background: #ececef; color: #888; }
+    .device-card-license-badge.soon { background: #fff3cd; color: #8a6400; }
+    .device-card-license-badge.optin { background: #e7f0fb; color: #1366c4; }
     .device-row-key-idline { font-size: 11px; color: #888; margin-top: 2px; }
     .device-row-key-idline code {
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -2710,44 +2746,53 @@ active: account
     /* Segmented toggle at the top of the Devices view. Swaps between
        the per-license grouping (default, capacity lens) and a flat
        all-devices list (fleet/history lens). */
+    /* Devices control bar: "Group by:" label + grouping pills + scope pills. */
+    .devices-controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        margin-bottom: 16px;
+    }
+    .devices-group-label { font-size: 13px; font-weight: 600; color: #6c757d; }
+    /* iOS / macOS-style segmented control: a grey track with the active
+       segment as a raised white "thumb". No dividers, no dark fill. */
     .devices-view-toggle {
         display: inline-flex;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-        gap: 8px;
+        align-items: stretch;
+        background: #eceef1;
+        border-radius: 999px;
+        padding: 3px;
+        gap: 2px;
+        line-height: 1;
     }
     .devices-view-toggle-btn {
         appearance: none;
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        background: #fff;
-        border: 1px solid #e2e5ea;
-        padding: 8px 16px;
-        font-size: 13px;
-        font-weight: 500;
-        color: #555;
-        cursor: pointer;
+        justify-content: center;
+        gap: 6px;
+        background: transparent;
+        border: none;
         border-radius: 999px;
+        margin: 0;
+        padding: 7px 14px;
+        font-size: 13px;
+        line-height: 1;
+        font-weight: 500;
+        color: #5b6470;
+        cursor: pointer;
         font-family: inherit;
-        transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+        white-space: nowrap;
+        transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
     }
-    .devices-view-toggle-icon { flex-shrink: 0; opacity: 0.85; }
-    .devices-view-toggle-btn:hover {
-        color: #1a1a2e;
-        border-color: #c7ccd6;
-        background: #f7f8fa;
-    }
+    .devices-view-toggle-icon { flex-shrink: 0; display: block; opacity: 0.8; }
+    .devices-view-toggle-btn:hover:not(.is-active) { color: #1a1a2e; }
     .devices-view-toggle-btn.is-active {
-        background: #1a1a2e;
-        border-color: #1a1a2e;
-        color: #fff;
+        background: #fff;
+        color: #1a1a2e;
         font-weight: 600;
-        box-shadow: 0 2px 6px rgba(26,26,46,0.22);
-    }
-    .devices-view-toggle-btn.is-active:hover {
-        background: #1a1a2e;
-        color: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.12);
     }
     /* Per-license section grouping on the Devices view. Each active
        license owns a section that lists the device slots it has filled;
@@ -3142,13 +3187,21 @@ active: account
         <section id="devicesSection" class="account-section">
             <header class="account-section-header">
                 <h2 class="account-section-title" id="devicesSectionTitle">Devices</h2>
-                <p class="account-section-hint">Devices activated on this organization's licenses. Device-specific license keys are available here if you need to reinstall or reactivate. A key is specific to a device and cannot be used on another device. If you run into trouble, contact <a href="mailto:info@eagleeyessearch.com">info@eagleeyessearch.com</a>.</p>
+                <p class="account-section-hint">Devices activated on this organization's licenses.</p>
             </header>
             <div id="deviceTokensContainer">
-                <div id="devicesViewToggle" class="devices-view-toggle" role="tablist" aria-label="Devices view">
-                    <button type="button" class="devices-view-toggle-btn is-active" data-mode="by-machine" aria-pressed="true" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Group by device</button>
-                    <button type="button" class="devices-view-toggle-btn" data-mode="by-license" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.4 11.6a5.5 5.5 0 1 0-7.8 7.8 5.5 5.5 0 0 0 7.8-7.8zm0 0L21 3m-3 0l3 3-4 4-3-3"/></svg>Group by License</button>
-                    <button type="button" class="devices-view-toggle-btn" data-mode="by-email" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Group by Owner</button>
+                <div class="devices-controls">
+                    <span class="devices-group-label">Group by:</span>
+                    <div id="devicesViewToggle" class="devices-view-toggle" role="tablist" aria-label="Group devices by">
+                        <button type="button" class="devices-view-toggle-btn is-active" data-mode="by-machine" aria-pressed="true" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Device</button>
+                        <button type="button" class="devices-view-toggle-btn" data-mode="by-license" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.4 11.6a5.5 5.5 0 1 0-7.8 7.8 5.5 5.5 0 0 0 7.8-7.8zm0 0L21 3m-3 0l3 3-4 4-3-3"/></svg>License</button>
+                        <button type="button" class="devices-view-toggle-btn" data-mode="by-email" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Owner</button>
+                    </div>
+                    <span class="devices-group-label">Show:</span>
+                    <div id="devicesScopeToggle" class="devices-view-toggle devices-scope-toggle" role="tablist" aria-label="Filter devices">
+                        <button type="button" class="devices-view-toggle-btn is-active" data-scope="all" aria-pressed="true" role="tab">All devices</button>
+                        <button type="button" class="devices-view-toggle-btn" data-scope="mine" aria-pressed="false" role="tab">Activated by me</button>
+                    </div>
                 </div>
                 <div id="tokensSpinner" class="loading-spinner">
                     <div class="spinner"></div>
@@ -3160,7 +3213,7 @@ active: account
                     </div>
                 </div>
                 <div id="tokensEmpty" style="display: none;">
-                    <div class="empty-card">
+                    <div class="empty-card" id="tokensEmptyText">
                         No devices found.
                     </div>
                 </div>
@@ -5882,6 +5935,19 @@ active: account
       tokensGrid.innerHTML = '';
       syncDevicesToggleUI();
 
+      // Scope filter ("Activated by me"): narrow to devices that have a token
+      // activated by the logged-in user, before any grouping. Applied here so
+      // it composes with all three groupings.
+      const scopeMine = devicesScope === 'mine';
+      if (scopeMine) {
+        const me = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
+        devices = (devices || []).filter(function(d) {
+          return (d.tokens || []).some(function(t) {
+            return String(t.email || '').toLowerCase() === me;
+          });
+        });
+      }
+
       const mode = activeDevicesMode;
       const nowMs = Date.now();
 
@@ -5917,6 +5983,12 @@ active: account
         : ((!devices || devices.length === 0) && activeLicenses.length === 0);
 
       if (isEmpty) {
+        const emptyText = document.getElementById('tokensEmptyText');
+        if (emptyText) {
+          emptyText.textContent = scopeMine
+            ? "You haven't activated any devices on this team yet."
+            : 'No devices found.';
+        }
         document.getElementById('tokensEmpty').style.display = 'block';
         tokensGrid.style.display = 'none';
         return;
@@ -5979,6 +6051,46 @@ active: account
       }
       function deviceHasActiveToken(device) {
         return (device.tokens || []).some(tokenIsActive);
+      }
+
+      // Per-device slot accounting: one physical device counts as one slot
+      // per license no matter how many tokens (user-email × app installs) it
+      // carries, and Disconnect cascades across all of them. So in the UI we
+      // collapse multiple tokens on the SAME license_id into a single row,
+      // listing every activator. Returns an array of token groups, each an
+      // array of tokens sharing a license_id, ordered by most-recent
+      // activation (newest group first, newest token first within a group).
+      function groupTokensByLicense(tokens) {
+        const order = [];
+        const byLic = {};
+        (tokens || []).forEach(function(t) {
+          const lid = String((t && t.license_id) || '');
+          if (!byLic[lid]) { byLic[lid] = []; order.push(lid); }
+          byLic[lid].push(t);
+        });
+        return order.map(function(lid) {
+          return byLic[lid].slice().sort(function(a, b) {
+            return tokenActivationMs(b) - tokenActivationMs(a);
+          });
+        }).sort(function(a, b) {
+          return tokenActivationMs(b[0]) - tokenActivationMs(a[0]);
+        });
+      }
+      // Distinct activator emails across a token group, preserving the
+      // group's (most-recent-first) order. Used for the "Activated by: a, b"
+      // summary line on collapsed multi-install rows.
+      function uniqueGroupEmails(tokens) {
+        const seen = {};
+        const out = [];
+        (tokens || []).forEach(function(t) {
+          const e = (t && t.email) ? String(t.email) : '';
+          if (!e) return;
+          const k = e.toLowerCase();
+          if (seen[k]) return;
+          seen[k] = true;
+          out.push(e);
+        });
+        return out;
       }
 
       // Header renderer shared across grouped modes (by-license,
@@ -6116,15 +6228,23 @@ active: account
         return;
       }
 
-      // Bucket devices by license_id of their active tokens. Devices on
-      // multiple active licenses appear once per license (one row per
-      // slot), each row's dropdown scoped to just that license's token.
-      // Devices with no active tokens land in the orphan bucket.
+      // Bucket devices by license_id of their active tokens. A device on a
+      // license appears once per license — even when it carries several
+      // installs (tokens) on that license, those collapse into one entry
+      // (one slot) whose tokens disconnect together. Devices on multiple
+      // active licenses appear once per license; devices with no active
+      // tokens land in the orphan bucket.
       const activeLicenseIdSet = {};
       activeLicenses.forEach(function(l) { activeLicenseIdSet[l.license_id] = true; });
       const bucketsByLicenseId = {};
       activeLicenses.forEach(function(l) { bucketsByLicenseId[l.license_id] = []; });
       const orphans = [];
+      // Most-recent activation across an entry's grouped tokens.
+      function entryRecencyMs(e) {
+        return (e.tokens || []).reduce(function(m, t) {
+          const ms = tokenActivationMs(t); return ms > m ? ms : m;
+        }, 0);
+      }
       (devices || []).forEach(function(device) {
         const activeTokens = (device.tokens || []).filter(tokenIsActive);
         const matched = activeTokens.filter(function(t) {
@@ -6134,23 +6254,30 @@ active: account
           orphans.push(device);
           return;
         }
+        const mid = String(device.machine_id || '');
         matched.forEach(function(t) {
-          bucketsByLicenseId[t.license_id].push({ device: device, token: t });
+          const arr = bucketsByLicenseId[t.license_id];
+          let entry = null;
+          for (let i = 0; i < arr.length; i++) {
+            if (String(arr[i].device.machine_id || '') === mid) { entry = arr[i]; break; }
+          }
+          if (!entry) { entry = { device: device, tokens: [] }; arr.push(entry); }
+          entry.tokens.push(t);
         });
       });
 
       // Within each bucket, most-recently-activated device first.
       Object.keys(bucketsByLicenseId).forEach(function(licId) {
         bucketsByLicenseId[licId].sort(function(a, b) {
-          return tokenActivationMs(b.token) - tokenActivationMs(a.token);
+          return entryRecencyMs(b) - entryRecencyMs(a);
         });
       });
       // Licenses sort by their most-recent activation, descending. Empty
       // buckets fall to the bottom of the active-licenses block.
       activeLicenses.sort(function(a, b) {
-        const am = (bucketsByLicenseId[a.license_id][0] || {}).token;
-        const bm = (bucketsByLicenseId[b.license_id][0] || {}).token;
-        return tokenActivationMs(bm) - tokenActivationMs(am);
+        const ae = bucketsByLicenseId[a.license_id][0];
+        const be = bucketsByLicenseId[b.license_id][0];
+        return (be ? entryRecencyMs(be) : 0) - (ae ? entryRecencyMs(ae) : 0);
       });
 
       // Render one section per active license. Header shows occupied /
@@ -6210,8 +6337,8 @@ active: account
             '</span>';
         }
         const meta = '<strong>' + slotsStr + '</strong>' + releasesHtml;
-        const entries = bucket.map(function(b) {
-          return { device: b.device, tokensToShow: [b.token] };
+        const entries = bucket.map(function(e) {
+          return { device: e.device, tokensToShow: e.tokens };
         });
         renderSection(title, meta, entries, false);
       });
@@ -6308,8 +6435,19 @@ active: account
           const ms = tokenActivationMs(t);
           return ms > acc ? ms : acc;
         }, 0);
+        // Does this row represent a single license (possibly several installs
+        // by different users) or several distinct licenses (a multi-license
+        // orphan device)? Drives whether Disconnect is one cascading action
+        // and whether we list co-activators.
+        const rowLicenseIds = {};
+        dropdownTokens.forEach(function(t) { if (t.license_id) rowLicenseIds[t.license_id] = true; });
+        const singleLicense = Object.keys(rowLicenseIds).length <= 1;
+        const rowEmails = uniqueGroupEmails(dropdownTokens);
         // "Activated by: <email> (<name>) on <date>" — shared with the cards.
-        const primaryText = activatedByLabelHtml(userEmail, activationMs);
+        // For multiple installs on one license, list every activator instead.
+        const primaryText = (singleLicense && rowEmails.length > 1)
+          ? 'Activated by: ' + rowEmails.map(escapeHtmlOrg).join(', ')
+          : activatedByLabelHtml(userEmail, activationMs);
         // Title line mirrors the All Devices cards: device identifier (bold)
         // + the alias pill. When there's no identifier, the alias pill
         // stands alone; the owner email sits underneath in the muted meta
@@ -6366,24 +6504,38 @@ active: account
           return btn;
         }
 
-        // Build the per-token action cluster (Copy key + Disconnect) used both
-        // inline (single token, e.g. Group by License) and inside the dropdown
-        // (multiple tokens). The element carries the dataset onReleaseTokenClick
-        // needs, so it must keep the .device-row-key class.
-        function buildTokenActions(t, inline) {
+        // Build the action cluster (Copy key + Disconnect) for one license on
+        // this device. Accepts either a single token or a group of tokens
+        // (several installs of the same license) — Disconnect cascades across
+        // the whole group. Used inline (Group by License) and inside the
+        // multi-license dropdown. The element carries the dataset
+        // onReleaseTokenClick needs, so it must keep the .device-row-key class.
+        function buildTokenActions(tokens, inline) {
+          const toks = (Array.isArray(tokens) ? tokens : [tokens]).slice().sort(function(a, b) {
+            return tokenActivationMs(b) - tokenActivationMs(a);
+          });
+          const t = toks[0] || {};
+          const taEmails = uniqueGroupEmails(toks);
           const keyEl = document.createElement('div');
           keyEl.className = 'device-row-key' + (inline ? ' is-inline' : '');
           keyEl.dataset.tokenId = t.token_id || '';
+          // Every install's token id, so the cascade-release handler can drop
+          // all the siblings from the local cache.
+          keyEl.dataset.tokenIds = toks.map(function(x) { return x.token_id || ''; })
+            .filter(Boolean).join(',');
           keyEl.dataset.licenseId = t.license_id || '';
           keyEl.dataset.licenseName = t.license_name || '';
           keyEl.dataset.deviceDisplayName = displayName;
-          keyEl.dataset.deviceEmail = (t.email || userEmail || '');
+          keyEl.dataset.deviceEmail = (taEmails.join(', ') || userEmail || '');
 
           const ia = document.createElement('div');
           ia.className = 'device-row-key-actions';
-          // Copy key only when we hold the signed key (own device) and active.
-          if (tokenIsActive(t) && t.token_id && tokenKeyByTokenId[t.token_id]) {
-            ia.appendChild(makeCopyBtn(t, '⧉ Copy key'));
+          // Copy key only for the install the signed-in user owns.
+          const ownToken = toks.filter(function(tk) {
+            return tk.token_id && tokenKeyByTokenId[tk.token_id];
+          })[0];
+          if (tokenIsActive(t) && ownToken) {
+            ia.appendChild(makeCopyBtn(ownToken, '⧉ Copy key'));
           }
           if (tokenIsActive(t)) {
             const budget = getLicenseReleaseBudget(t.license_id);
@@ -6400,7 +6552,8 @@ active: account
               rel.type = 'button';
               rel.className = 'people-icon-btn danger has-tip';
               rel.textContent = 'Disconnect';
-              rel.setAttribute('data-tip', 'Disconnect this device from this license, freeing the slot so another device can use it. Costs one transfer.');
+              rel.setAttribute('data-tip', 'Disconnect this device from this license, freeing the slot so another device can use it.'
+                + (isLicenseTrulyActive(t.license_id) ? ' Costs one transfer.' : ''));
               rel.addEventListener('click', onReleaseTokenClick);
               ia.appendChild(rel);
             }
@@ -6409,17 +6562,21 @@ active: account
           return keyEl;
         }
 
-        if (dropdownTokens.length === 1) {
-          // Single license on this row (e.g. Group by License): show the
-          // Copy key + Disconnect buttons directly, no Show-key toggle.
-          actions.appendChild(buildTokenActions(dropdownTokens[0], true));
+        if (singleLicense && dropdownTokens.length >= 1) {
+          // One license on this row (e.g. Group by License), possibly with
+          // several installs by different users: show the Copy key +
+          // Disconnect buttons directly, no Show-key toggle. Disconnect
+          // cascades across every install on this device-license.
+          actions.appendChild(buildTokenActions(dropdownTokens, true));
           row.appendChild(actions);
           return row;
         }
 
         if (dropdownTokens.length > 1) {
-          // Multiple licenses on this device (Group by Owner): keep the
-          // Show keys toggle that reveals one action cluster per license.
+          // Multiple distinct licenses on this device (a multi-license
+          // orphan): keep the Show keys toggle that reveals one action
+          // cluster per license. Installs on the same license collapse into
+          // a single cluster.
           const toggle = document.createElement('button');
           toggle.type = 'button';
           toggle.className = 'people-icon-btn';
@@ -6430,14 +6587,15 @@ active: account
           const sub = document.createElement('div');
           sub.className = 'device-row-keys';
           sub.style.display = 'none';
-          dropdownTokens.forEach(function(t) {
-            const item = buildTokenActions(t, false);
+          groupTokensByLicense(dropdownTokens).forEach(function(group) {
+            const rep = group[0] || {};
+            const item = buildTokenActions(group, false);
             // Label which license each cluster belongs to.
             const info = document.createElement('div');
             info.className = 'device-row-key-info';
             info.innerHTML =
-              '<div class="device-row-key-name">' + escapeHtmlOrg(t.license_name || 'License') + '</div>' +
-              '<div class="device-row-key-meta">expires ' + escapeHtmlOrg(t.expiry_date || '-') + '</div>';
+              '<div class="device-row-key-name">' + escapeHtmlOrg(rep.license_name || 'License') + '</div>' +
+              '<div class="device-row-key-meta">expires ' + escapeHtmlOrg(rep.expiry_date || '-') + '</div>';
             item.insertBefore(info, item.firstChild);
             sub.appendChild(item);
           });
@@ -6587,38 +6745,129 @@ active: account
           none.textContent = 'No licenses on this device.';
           licWrap.appendChild(none);
         } else {
-          tokensToShow.forEach(function(t) {
-            licWrap.appendChild(buildCardLicenseRow(device, cardLabel, t));
+          // Collapse multiple installs on the same license (different users
+          // and/or apps) into one row that lists every activator — one
+          // device = one slot per license, and Disconnect cascades across
+          // all the grouped tokens.
+          groupTokensByLicense(tokensToShow).forEach(function(group) {
+            licWrap.appendChild(buildCardLicenseRow(device, cardLabel, group));
           });
         }
         card.appendChild(licWrap);
         return card;
 
-        function buildCardLicenseRow(device, deviceDisplayName, t) {
+        // Each license renders as a collapsible row: a one-line summary
+        // (name · expiry · who) that expands to the full detail (capacity,
+        // license id) and actions (Disconnect, Copy key). Keeps long
+        // device lists scannable.
+        function buildCardLicenseRow(device, deviceDisplayName, tokens) {
+          // All tokens in the group share one license_id; the most-recent
+          // one drives the license-level fields (name, expiry, badge). The
+          // group's other tokens are sibling installs that disconnect
+          // together (cascade) and are listed as co-activators.
+          const toks = (tokens || []).slice().sort(function(a, b) {
+            return tokenActivationMs(b) - tokenActivationMs(a);
+          });
+          const t = toks[0] || {};
+          const groupEmails = uniqueGroupEmails(toks);
           const active = tokenIsActive(t);
           const item = document.createElement('div');
           item.className = 'device-row-key device-card-license' + (active ? '' : ' is-expired');
           item.dataset.tokenId = t.token_id || '';
+          // All token ids in the group, so the cascade-release handler can
+          // drop every sibling install from the local cache even if the
+          // backend response omits released_token_ids.
+          item.dataset.tokenIds = toks.map(function(x) { return x.token_id || ''; })
+            .filter(Boolean).join(',');
           item.dataset.licenseId = t.license_id || '';
           item.dataset.licenseName = t.license_name || '';
           item.dataset.deviceDisplayName = deviceDisplayName;
-          item.dataset.deviceEmail = (t.email || (device.emails || [])[0] || '');
+          item.dataset.deviceEmail = (groupEmails.join(', ') || (device.emails || [])[0] || '');
 
           const licName = escapeHtmlOrg(t.license_name || 'License');
           const expiry = escapeHtmlOrg(t.expiry_date || '-');
           const licId = escapeHtmlOrg(t.license_id || '');
-          const statusBadge = active
-            ? '<span class="device-card-license-badge active">Active</span>'
-            : '<span class="device-card-license-badge expired">Expired</span>';
+          // Future-start ("opted-in") licenses: a successor/renewal license
+          // tied to this device whose billable period hasn't begun yet. The
+          // start date comes from the license overview (start_at_iso).
+          const ovLic = (cachedLicenseOverview || []).find(function(l) {
+            return l && l.license_id === t.license_id;
+          });
+          let startMs = 0;
+          if (ovLic && ovLic.start_at_iso) {
+            const sms = new Date(ovLic.start_at_iso).getTime();
+            if (!isNaN(sms)) startMs = sms;
+          }
+          const isFutureStart = startMs > nowMs;
+
+          // Status badge: none for a normal active license; "Opted-in" for a
+          // future-start license; "Expires soon" (yellow) at ≤30 days left;
+          // "Expired" once lapsed.
+          let statusBadge = '';
+          if (isFutureStart) {
+            statusBadge = '<span class="device-card-license-badge optin">Opted-in</span>';
+          } else if (!active) {
+            statusBadge = '<span class="device-card-license-badge expired">Expired</span>';
+          } else {
+            const dlb = tokenDaysLeft(t);
+            if (dlb !== null && dlb >= 0 && dlb <= 30) {
+              statusBadge = '<span class="device-card-license-badge soon">Expires soon</span>';
+            }
+          }
+
+          // Short time text for the summary; full segment for the detail.
+          let daysShort = '';
+          let expirySeg;
+          if (isFutureStart) {
+            const sd = Math.max(0, Math.ceil((startMs - nowMs) / 86400000));
+            daysShort = 'Starts in ' + sd + ' day' + (sd === 1 ? '' : 's');
+            expirySeg = 'Starts ' + escapeHtmlOrg(ovLic.start_at_iso)
+              + ' <span class="device-card-daysleft">(in ' + sd + ' day' + (sd === 1 ? '' : 's') + ')</span>';
+          } else if (active) {
+            let daysHint = '';
+            const dl = tokenDaysLeft(t);
+            if (dl !== null && dl > 0) {
+              daysShort = dl + ' day' + (dl === 1 ? '' : 's') + ' left';
+              daysHint = ' <span class="device-card-daysleft">(' + daysShort + ')</span>';
+            } else if (dl === 0) {
+              daysShort = 'expires today';
+              daysHint = ' <span class="device-card-daysleft">(expires today)</span>';
+            }
+            expirySeg = 'expires ' + expiry + daysHint;
+          } else {
+            daysShort = 'expired';
+            expirySeg = 'expired ' + expiry;
+          }
+
+          // Collapsed summary shows only the essentials: time left and the
+          // activator's email (no full name). The full date + name move into
+          // the detail on expand.
+          const summaryBits = [];
+          if (daysShort) summaryBits.push(escapeHtmlOrg(daysShort));
+          if (!ownerView) {
+            summaryBits.push('Activated by: ' + (groupEmails.length
+              ? groupEmails.map(escapeHtmlOrg).join(', ')
+              : 'unknown'));
+          }
+          const summaryMeta = summaryBits.join(' · ');
+
+          const summary = document.createElement('div');
+          summary.className = 'device-card-license-summary';
+          summary.innerHTML =
+            '<span class="device-card-license-summary-text">'
+            +   '<span class="device-card-license-name">License: ' + licName + (statusBadge ? ' ' + statusBadge : '') + '</span>'
+            +   '<span class="device-card-license-sum-meta">' + (summaryMeta ? ' · ' + summaryMeta : '') + '</span>'
+            + '</span>'
+            + '<span class="device-card-license-toggle">View more ▾</span>';
+          item.appendChild(summary);
+
+          // Expanded detail (left): capacity, expiry, who activated it, and
+          // the license id — the expiry/activated-by move here from the
+          // summary line when open. Actions on the right.
+          const detail = document.createElement('div');
+          detail.className = 'device-card-license-detail';
           const info = document.createElement('div');
           info.className = 'device-row-key-info';
-          // License id is always shown on its own line right beneath the name.
-          info.innerHTML =
-            '<div class="device-row-key-name">License: ' + licName + ' ' + statusBadge + '</div>'
-            + '<div class="device-card-licenseid">License ID: <code>' + licId + '</code></div>';
-          // Capacity summary just above the expiry line, e.g.
-          // "6 / 6 devices · 12 transfers left" (same figures as the Group
-          // by License header). Omitted when the license isn't in overview.
           const capLabel = licenseCapacityLabel(t.license_id);
           if (capLabel) {
             const cap = document.createElement('div');
@@ -6626,35 +6875,26 @@ active: account
             cap.textContent = capLabel;
             info.appendChild(cap);
           }
-          // Remaining-days hint after an active license's expiry date, e.g.
-          // "expires 2027-04-20 (320 days left)". "(expires today)" on the
-          // last day; omitted for already-expired tokens.
-          let daysHint = '';
-          if (active) {
-            const dl = tokenDaysLeft(t);
-            if (dl !== null && dl > 0) {
-              daysHint = ' <span class="device-card-daysleft">('
-                + dl + ' day' + (dl === 1 ? '' : 's') + ' left)</span>';
-            } else if (dl === 0) {
-              daysHint = ' <span class="device-card-daysleft">(expires today)</span>';
-            }
-          }
-          const meta = document.createElement('div');
-          meta.className = 'device-row-key-meta';
-          meta.innerHTML = (active ? 'expires ' : 'expired ') + expiry + daysHint;
-          info.appendChild(meta);
-          // Who activated this license on this device, and when. Hidden in
-          // the owner view (owner known from the section, date shown above).
+          const exp = document.createElement('div');
+          exp.className = 'device-row-key-meta';
+          exp.innerHTML = expirySeg;
+          info.appendChild(exp);
           if (!ownerView) {
-            const actBy = document.createElement('div');
-            actBy.className = 'device-card-activatedby';
-            actBy.innerHTML = activatedByLabelHtml(t.email, tokenActivationMs(t));
-            info.appendChild(actBy);
+            // One "Activated by … on <date>" line per install in the group,
+            // so a shared device shows each user that activated it.
+            toks.forEach(function(tk) {
+              const actBy = document.createElement('div');
+              actBy.className = 'device-card-activatedby';
+              actBy.innerHTML = activatedByLabelHtml(tk.email, tokenActivationMs(tk));
+              info.appendChild(actBy);
+            });
           }
-          item.appendChild(info);
+          const idLine = document.createElement('div');
+          idLine.className = 'device-card-licenseid';
+          idLine.innerHTML = 'License ID: <code>' + licId + '</code>';
+          info.appendChild(idLine);
+          detail.appendChild(info);
 
-          // Right column (vertically centred): Disconnect, then (own-device)
-          // Copy key beneath, stretched to equal width.
           const itemActions = document.createElement('div');
           itemActions.className = 'device-row-key-actions';
           if (active) {
@@ -6672,16 +6912,32 @@ active: account
               rel.type = 'button';
               rel.className = 'people-icon-btn danger has-tip';
               rel.textContent = 'Disconnect';
-              rel.setAttribute('data-tip', 'Disconnect this device from this license, freeing the slot so another device can use it. Costs one transfer.');
+              rel.setAttribute('data-tip', 'Disconnect this device from this license, freeing the slot so another device can use it.'
+                + (isLicenseTrulyActive(t.license_id) ? ' Costs one transfer.' : ''));
               rel.addEventListener('click', onReleaseTokenClick);
               itemActions.appendChild(rel);
             }
           }
-          // Copy key beneath the Disconnect button (own device + active only).
-          if (active && t.token_id && tokenKeyByTokenId[t.token_id]) {
-            itemActions.appendChild(makeCardCopyBtn(t));
+          // Copy key only for the install the signed-in user owns — among
+          // the group, find whichever token we hold the signed key for.
+          const ownToken = toks.filter(function(tk) {
+            return tk.token_id && tokenKeyByTokenId[tk.token_id];
+          })[0];
+          if (active && ownToken) {
+            itemActions.appendChild(makeCardCopyBtn(ownToken));
           }
-          item.appendChild(itemActions);
+          detail.appendChild(itemActions);
+          item.appendChild(detail);
+
+          // Toggle expand/collapse from anywhere on the license container,
+          // but ignore clicks on the action buttons / links inside it.
+          item.addEventListener('click', function(e) {
+            if (e.target.closest('button, a, input, textarea, select')) return;
+            const open = item.classList.toggle('is-open');
+            const tog = summary.querySelector('.device-card-license-toggle');
+            if (tog) tog.textContent = open ? 'View less ▴' : 'View more ▾';
+          });
+
           return item;
         }
 
@@ -6727,6 +6983,29 @@ active: account
         releases_budget: overview.releases_budget,
         releases_remaining: overview.releases_remaining
       };
+    }
+
+    // A license is "truly active" (a transfer would actually be spent) only
+    // when its billable period has begun and not yet ended: not expired and
+    // not before its start date. Used to suppress the "costs one transfer"
+    // messaging on expired / future-start (opted-in) licenses. Unknown
+    // licenses default to true so we don't hide the cost for normal ones.
+    function isLicenseTrulyActive(licenseId) {
+      if (!licenseId) return true;
+      const ov = (cachedLicenseOverview || []).find(function(l) {
+        return l && l.license_id === licenseId;
+      });
+      if (!ov) return true;
+      const now = Date.now();
+      if (ov.expiry_date) {
+        const ems = new Date(ov.expiry_date).getTime();
+        if (!isNaN(ems) && ems <= now) return false;
+      }
+      if (ov.start_at_iso) {
+        const sms = new Date(ov.start_at_iso).getTime();
+        if (!isNaN(sms) && sms > now) return false;
+      }
+      return true;
     }
 
     // Capacity summary for a license, e.g. "6 / 6 devices · 12 transfers
@@ -6837,14 +7116,25 @@ active: account
 
       const budget = getLicenseReleaseBudget(licenseId);
       let costLine = '';
-      if (budget) {
+      // Only a truly-active license (started, not expired) actually spends a
+      // transfer — don't show the cost line for expired / future-start ones.
+      if (budget && isLicenseTrulyActive(licenseId)) {
         const r = budget.releases_remaining;
         costLine = (r === 1)
           ? 'This will use your last transfer on this license.'
           : 'Costs 1 of ' + r + ' transfers left on this license.';
       }
+      // How many installs (tokens) share this device-license — Disconnect
+      // cascades across all of them. deviceEmail holds the joined activators.
+      const installCount = (item.dataset.tokenIds || '').split(',').filter(Boolean).length;
       const userLine = deviceEmail
         ? ' currently used by <strong>' + escapeHtmlOrg(deviceEmail) + '</strong>'
+        : '';
+      // When more than one install shares this device-license, spell out that
+      // every one of them disconnects together (still just one transfer).
+      const cascadeLine = installCount > 1
+        ? ' This ends all ' + installCount + ' installs on this device ('
+            + escapeHtmlOrg(deviceEmail) + ').'
         : '';
 
       const actionsEl = item.querySelector('.device-row-key-actions');
@@ -6854,8 +7144,10 @@ active: account
       panel.className = 'device-row-key-confirm';
       panel.innerHTML =
         '<div class="device-row-key-confirm-msg">' +
-          'Disconnect <strong>' + escapeHtmlOrg(deviceDisplayName) + '</strong>' + userLine +
+          'Disconnect <strong>' + escapeHtmlOrg(deviceDisplayName) + '</strong>'
+            + (installCount > 1 ? '' : userLine) +
           ' from <strong>' + escapeHtmlOrg(licenseName) + '</strong>?' +
+          cascadeLine +
           (costLine ? ' ' + escapeHtmlOrg(costLine) : '') +
           '<span class="hint">Reinstalling the app on the same device doesn’t need a transfer — only use this to move the license to a different device.</span>' +
         '</div>' +
@@ -6907,19 +7199,39 @@ active: account
         });
       }
 
-      // Remove the released token from cachedAccountDevices so the
-      // immediate re-render drops it. On the matching device, if no
-      // tokens remain we leave the device in place — the trigger may
-      // recompute n_active_tokens by the time we refetch.
-      const releasedTokenId = (resp && resp.token_id) || item.dataset.tokenId;
+      // Release now cascades: disconnecting one install releases every
+      // active token on the same (license, machine). Remove all of them from
+      // cachedAccountDevices so the immediate re-render drops the whole row.
+      // Prefer the backend's released_token_ids; fall back to the grouped
+      // ids stashed on the row, then the single token id. On the matching
+      // device, if no tokens remain we leave the device in place — the
+      // trigger may recompute n_active_tokens by the time we refetch.
+      const releasedIds = {};
+      ((resp && resp.released_token_ids) || []).forEach(function(id) {
+        if (id) releasedIds[id] = true;
+      });
+      if (Object.keys(releasedIds).length === 0) {
+        (item.dataset.tokenIds || '').split(',').filter(Boolean)
+          .forEach(function(id) { releasedIds[id] = true; });
+      }
+      if (Object.keys(releasedIds).length === 0) {
+        const single = (resp && resp.token_id) || item.dataset.tokenId;
+        if (single) releasedIds[single] = true;
+      }
       (cachedAccountDevices || []).forEach(function(d) {
         if (!d || !Array.isArray(d.tokens)) return;
         const before = d.tokens.length;
-        d.tokens = d.tokens.filter(function(t) { return t.token_id !== releasedTokenId; });
-        if (d.tokens.length !== before && typeof d.n_active_tokens === 'number') {
-          d.n_active_tokens = Math.max(0, d.n_active_tokens - 1);
+        d.tokens = d.tokens.filter(function(t) { return !releasedIds[t.token_id]; });
+        const removed = before - d.tokens.length;
+        if (removed > 0 && typeof d.n_active_tokens === 'number') {
+          d.n_active_tokens = Math.max(0, d.n_active_tokens - removed);
         }
       });
+      // Drop the released tokens from the signed-key cache too, so a stale
+      // Copy key can't linger if the row survives a partial re-render.
+      if (Array.isArray(cachedTokens)) {
+        cachedTokens = cachedTokens.filter(function(t) { return !releasedIds[t.token_id]; });
+      }
 
       // Prepend the new history entry optimistically so the foldout
       // shows it the moment the user expands it (without a refetch).
@@ -6941,7 +7253,14 @@ active: account
         }
       }
 
-      showToast('Disconnected ' + (item.dataset.deviceDisplayName || 'device') + '. The slot is now free — another device can activate from the app.', 'success', 4500);
+      const releasedCount = (resp && typeof resp.released_count === 'number')
+        ? resp.released_count
+        : Object.keys(releasedIds).length;
+      const installsNote = releasedCount > 1
+        ? ' (' + releasedCount + ' installs freed)'
+        : '';
+      showToast('Disconnected ' + (item.dataset.deviceDisplayName || 'device') + installsNote
+        + '. The slot is now free — another device can activate from the app.', 'success', 4500);
 
       // Re-render Devices view immediately from the mutated caches.
       // (Doesn't refetch — that's deferred 1s below.)
@@ -6972,12 +7291,18 @@ active: account
       console.warn('release_device_token failed:', err);
 
       if (status === 404) {
-        // The token was already released elsewhere. Drop it from the
-        // local cache and refetch so the UI catches up; no error toast.
-        const releasedTokenId = item.dataset.tokenId;
+        // The device's tokens were already released elsewhere. Drop the
+        // whole group (all installs on this device-license) from the local
+        // cache and refetch so the UI catches up; no error toast.
+        const releasedIds = {};
+        (item.dataset.tokenIds || '').split(',').filter(Boolean)
+          .forEach(function(id) { releasedIds[id] = true; });
+        if (Object.keys(releasedIds).length === 0 && item.dataset.tokenId) {
+          releasedIds[item.dataset.tokenId] = true;
+        }
         (cachedAccountDevices || []).forEach(function(d) {
           if (!d || !Array.isArray(d.tokens)) return;
-          d.tokens = d.tokens.filter(function(t) { return t.token_id !== releasedTokenId; });
+          d.tokens = d.tokens.filter(function(t) { return !releasedIds[t.token_id]; });
         });
         accountDevicesLoaded = false;
         fetchAccountDevicesForActiveAccount();
@@ -8190,24 +8515,41 @@ active: account
     // the choice survives reload + share. Legacy 'all' is accepted as
     // an alias for 'by-machine' so old links keep working.
     let activeDevicesMode = 'by-machine';
+    // Scope filter, orthogonal to the grouping: 'all' (everyone) or 'mine'
+    // (only devices the logged-in user has activated a license on).
+    let devicesScope = 'all';
     function canonicalizeDevicesMode(mode) {
         if (mode === 'by-license') return 'by-license';
         if (mode === 'by-email') return 'by-email';
         return 'by-machine';
     }
+    function canonicalizeDevicesScope(scope) {
+        return scope === 'mine' ? 'mine' : 'all';
+    }
     function getDevicesExtrasForHash() {
-        if (activeDevicesMode === 'by-license') return { devices: 'by-license' };
-        if (activeDevicesMode === 'by-email') return { devices: 'by-email' };
-        return null;
+        const extras = {};
+        if (activeDevicesMode === 'by-license') extras.devices = 'by-license';
+        else if (activeDevicesMode === 'by-email') extras.devices = 'by-email';
+        if (devicesScope === 'mine') extras.devices_scope = 'mine';
+        return Object.keys(extras).length ? extras : null;
     }
     function syncDevicesToggleUI() {
         const wrap = document.getElementById('devicesViewToggle');
-        if (!wrap) return;
-        wrap.querySelectorAll('.devices-view-toggle-btn').forEach(function(btn) {
-            const isActive = btn.getAttribute('data-mode') === activeDevicesMode;
-            btn.classList.toggle('is-active', isActive);
-            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
+        if (wrap) {
+            wrap.querySelectorAll('.devices-view-toggle-btn').forEach(function(btn) {
+                const isActive = btn.getAttribute('data-mode') === activeDevicesMode;
+                btn.classList.toggle('is-active', isActive);
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        }
+        const scopeWrap = document.getElementById('devicesScopeToggle');
+        if (scopeWrap) {
+            scopeWrap.querySelectorAll('.devices-view-toggle-btn').forEach(function(btn) {
+                const isActive = btn.getAttribute('data-scope') === devicesScope;
+                btn.classList.toggle('is-active', isActive);
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        }
     }
     function setDevicesMode(mode) {
         const next = canonicalizeDevicesMode(mode);
@@ -8219,17 +8561,46 @@ active: account
         syncDevicesToggleUI();
         renderActiveDevices(getActiveSource());
     }
+    function setDevicesScope(scope) {
+        const next = canonicalizeDevicesScope(scope);
+        if (next === devicesScope) return;
+        devicesScope = next;
+        if (activeScope === 'org' && activeSourceId) {
+            writeHashOrg(activeSourceId, activeView, true, getDevicesExtrasForHash());
+        }
+        syncDevicesToggleUI();
+        renderActiveDevices(getActiveSource());
+    }
     document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.devices-view-toggle-btn');
-        if (!btn) return;
-        e.preventDefault();
-        setDevicesMode(btn.getAttribute('data-mode'));
+        const groupBtn = e.target.closest('#devicesViewToggle .devices-view-toggle-btn');
+        if (groupBtn) { e.preventDefault(); setDevicesMode(groupBtn.getAttribute('data-mode')); return; }
+        const scopeBtn = e.target.closest('#devicesScopeToggle .devices-view-toggle-btn');
+        if (scopeBtn) { e.preventDefault(); setDevicesScope(scopeBtn.getAttribute('data-scope')); }
     });
+
+    // The account-scope (Billing) views are Admin-only. A non-Admin viewer is
+    // anyone who doesn't own any account they can see.
+    function viewerIsAccountAdmin() {
+        return (cachedAccounts || []).some(function(a) { return !!a.is_owner; });
+    }
+    // Send a non-Admin to their team's People view instead of a Billing view.
+    // Returns true if it redirected (caller should stop).
+    function redirectNonAdminToOrg() {
+        if (viewerIsAccountAdmin()) return false;
+        const def = pickDefaultOrgId();
+        if (!def) return false;
+        activeScope = 'org';
+        activeSourceId = def;
+        activeView = 'people';
+        writeHashOrg(def, 'people', true, getDevicesExtrasForHash());
+        return true;
+    }
 
     function applyHashToState() {
         const params = parseHashParams();
         const orgIds = cachedOrganizations.map(function(o) { return String(o.org_id); });
         activeDevicesMode = canonicalizeDevicesMode(params.devices);
+        devicesScope = canonicalizeDevicesScope(params.devices_scope);
 
         // Backwards-compat: the old `#org=X&view=licenses` URL has moved.
         // Rewrite to the account-scope Overview view.
