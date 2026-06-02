@@ -358,13 +358,20 @@ layout: main
         var orgs = dash.organizations || [];
         var licenses = dash.license_overview || [];
 
-        showAccountGroup(accounts.length > 0);
+        // The Billing group is Admin-only (account owners). A team member who
+        // can see an account but doesn't own it gets no Billing group.
+        var isAccountAdmin = accounts.some(function(a) { return !!a.is_owner; });
+        showAccountGroup(isAccountAdmin);
         showOrgGroup(orgs.length > 0);
 
-        // Persist a hint so the next page load can pre-paint the
-        // Organization sidebar group synchronously in <head> (read by
-        // _includes/head.html), eliminating the brief flash where the
-        // group reloads on navigation.
+        // Account access (manage Admins) is folded into People; keep its
+        // sidebar item only as a fallback for an Admin who is on no team.
+        var accessItem = $('sidebarAccountAccessItem');
+        if (accessItem) accessItem.style.display = (isAccountAdmin && orgs.length === 0) ? '' : 'none';
+
+        // Persist hints so the next page load can pre-paint the sidebar groups
+        // synchronously in <head> (read by _includes/head.html), eliminating
+        // the brief flash where a group reloads on navigation.
         try {
             if (orgs.length > 0) {
                 localStorage.setItem('eeHasOrgs', 'true');
@@ -372,6 +379,13 @@ layout: main
             } else {
                 localStorage.removeItem('eeHasOrgs');
                 document.documentElement.classList.remove('ee-auth-hint-has-orgs');
+            }
+            if (isAccountAdmin) {
+                localStorage.setItem('eeIsAccountAdmin', 'true');
+                document.documentElement.classList.add('ee-auth-hint-account-admin');
+            } else {
+                localStorage.removeItem('eeIsAccountAdmin');
+                document.documentElement.classList.remove('ee-auth-hint-account-admin');
             }
         } catch (e) { /* localStorage disabled */ }
 
