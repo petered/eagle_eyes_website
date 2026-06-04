@@ -509,7 +509,7 @@ active: account
         }
         
         /* Force single column layout for cards */
-        #activeLicenseGrid, #expiredLicenseGrid, #tokensGrid, #pilotGrid, #scanGrid {
+        #activeLicenseGrid, #expiredLicenseGrid, #tokensGrid, #licenseGrid, #pilotGrid, #scanGrid {
             grid-template-columns: 1fr !important;
             width: 100% !important;
         }
@@ -1792,67 +1792,77 @@ active: account
         border: 1px dashed #ddd;
         border-radius: 8px;
     }
-    /* Configuration rows. Same shell as the People + Devices lists
-       (.people-list container, .people-row per item). Each row is an <a>
-       so the whole card is clickable (opens the config in /setup/ for
-       editing). */
-    .config-row.people-row {
-        text-decoration: none;
-        color: inherit;
-        cursor: pointer;
-        flex-wrap: wrap;
-        align-items: flex-start;
+    /* Configurations render as a distinct card grid (NOT the People/Devices
+       row shell) so a saved configuration reads as its own object. Purple
+       accent + gear icon + setting chips set it apart from device/person UI. */
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
     }
-    /* Name + scope/meta on the first line; the settings and license blocks
-       (flex: 1 1 100%) wrap onto their own full-width lines beneath. */
-    .config-row.people-row .people-row-left { flex: 1 1 auto; min-width: 0; }
-    .config-row.people-row:hover {
-        text-decoration: none;
-        color: inherit;
-    }
-    .config-row-orgtag {
-        color: #1077dc;
-    }
-    .config-row-orgtag-personal {
-        color: #888;
-        font-style: italic;
-    }
-    /* License sub-rows below the meta line. Name + monospaced id. */
-    .config-row-licenses {
-        flex: 1 1 100%;
-        margin: 10px 0 0 48px; /* indent past the avatar */
+    /* Neutral card, same surface/weight as the license cards — the gear icon
+       carries the "configuration" identity, not a colored tint. */
+    .config-card {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 10px;
+        border: 1px solid #d8dee8;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(20,30,55,0.06);
+        padding: 14px;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
     }
-    /* Per-config settings breakdown under each Configurations row. */
-    .config-row-settings {
-        flex: 1 1 100%;
-        margin: 8px 0 0 48px; /* indent past the avatar */
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
+    .config-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(20,30,55,0.10);
+        border-color: #c7cedb;
+        text-decoration: none;
+        color: inherit;
     }
-    .config-row-setting { font-size: 12px; line-height: 1.4; color: #333; }
-    .config-row-setting-key { color: #888; }
-    .config-row-setting-empty { font-size: 12px; color: #aaa; font-style: italic; }
-    .config-row-license {
-        font-size: 12px;
-        line-height: 1.35;
-        color: #555;
+    .config-card-head { display: flex; align-items: center; gap: 9px; }
+    .config-card-icon {
+        flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: #eef1f6; color: #5a6573;
     }
-    .config-row-license code {
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 11px;
-        color: #999;
-        margin-left: 6px;
+    .config-card-name {
+        font-size: 14px; font-weight: 700; color: #1a1a2e;
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .config-edit-affordance {
-        font-size: 12px;
-        font-weight: 500;
-        color: #1e90ff;
+    /* Solid scope pill, same weight as the People role badges. */
+    .config-card-scope {
+        margin-left: auto; flex: 0 0 auto;
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        padding: 2px 7px; border-radius: 999px;
     }
-    .config-row.people-row:hover .config-edit-affordance { text-decoration: underline; }
+    .config-card-scope.personal { background: #ececec; color: #555; }
+    .config-card-scope.team     { background: #d6e9ff; color: #0a5fb8; }
+    .config-card-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .config-card-chips-empty { font-size: 12px; color: #9aa0a6; font-style: italic; }
+    .config-card-chip {
+        font-size: 11px; color: #3a4150;
+        background: #eef1f6; border: 1px solid #e3e7ee;
+        padding: 2px 8px; border-radius: 6px;
+        max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .config-card-chip-k { color: #8a93a3; margin-right: 4px; }
+    .config-card { cursor: pointer; }
+    .config-card-foot {
+        display: flex; align-items: center; justify-content: flex-end;
+        margin-top: 2px; padding-top: 9px; border-top: 1px solid #eef0f3;
+    }
+    .config-card-actions { display: flex; gap: 6px; }
+    .config-card-iconbtn {
+        appearance: none; width: 30px; height: 30px; border-radius: 8px;
+        border: 1px solid #e3e7ee; background: #fff; color: #5a6573;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: background-color .12s, border-color .12s, color .12s;
+    }
+    .config-card-iconbtn:hover { background: #f3f5f8; border-color: #cdd5df; color: #1a1a2e; }
+    .config-card-iconbtn.danger:hover { background: #fdeaea; border-color: #efc9c9; color: #c0392b; }
 
     /* Organization Settings tab (legacy class names still used by member rendering) */
     .org-switcher {
@@ -2114,6 +2124,12 @@ active: account
         flex: 1 1 auto;
         min-width: 0;
     }
+    .people-row-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a2e;
+        line-height: 1.3;
+    }
     .people-row-email {
         font-size: 14px;
         font-weight: 500;
@@ -2121,6 +2137,8 @@ active: account
         word-break: break-all;
         line-height: 1.3;
     }
+    /* When a name is shown above it, the email is the secondary line. */
+    .people-row-email-sub { font-size: 12.5px; font-weight: 400; color: #707784; }
     .people-row-meta {
         display: flex;
         gap: 6px;
@@ -2462,8 +2480,9 @@ active: account
         flex-direction: column;
         gap: 14px;
     }
+    /* White container; the shaded license sub-card(s) inside stand out. */
     .device-card {
-        border: 1px solid #e9ecef;
+        border: 1px solid #e2e7ee;
         border-radius: 10px;
         background: #fff;
         padding: 12px 16px;
@@ -2573,76 +2592,136 @@ active: account
     .device-card-licenses {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 10px;
         margin-top: 8px;
     }
     /* Each license is a minimal sub-card inside the device card: subtle
        border, light fill, tight padding. Overrides the .device-row-key
        row borders/padding. */
-    .device-card-licenses .device-card-license {
-        display: block;
-        border: 1px solid #ececec;
-        border-radius: 8px;
-        background: #fafbfc;
-        padding: 8px 10px;
-        cursor: pointer;
-        transition: background-color 0.12s, border-color 0.12s;
-    }
-    .device-card-licenses .device-card-license:hover {
-        background: #f3f5f7;
-        border-color: #dfe3e8;
-    }
     .device-card-no-licenses {
         font-size: 12px;
         color: #888;
         font-style: italic;
         padding: 4px 0;
     }
-    .device-card-license.is-expired .device-card-license-name { color: #888; }
-    /* Collapsible license row: one-line summary (clickable) + expandable
-       detail with the actions. */
-    .device-card-license-summary {
+    /* === Distinctive license card (the ".lic-card" shell) ===
+       Shared by the Devices-page license sub-card and the License-page card so
+       a license reads the same in both. A cool-slate header band with a key
+       glyph + name + status badge makes it clearly NOT a device card (flat
+       white #fff) and NOT a person row (white row + round avatar). The status
+       color lives as a thin edge inside the band, not as the old full-height
+       "coloured left line". */
+    .lic-card {
+        /* display/padding reset the .device-row-key base (flex + padding +
+           dashed border) that the Devices-page compact card still carries for
+           the disconnect handler's .device-row-key hook. */
+        display: block;
+        padding: 0;
+        border: 2px solid #d8dee8;
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+    /* Border colored to match the status tag, so a license is recognizable at
+       a glance (and every edge reads clearly). Applies to both the devices-
+       overview compact cards and the License-page rich cards. */
+    .lic-card.status-active  { border-color: #7fc29a; }
+    .lic-card.status-soon    { border-color: #d4a85f; }
+    .lic-card.status-optin   { border-color: #76a6dd; }
+    .lic-card.status-expired { border-color: #d08983; }
+    /* Neutral header: status is carried by the solid pill after the name, not
+       a tinted bar (Tailwind/shadcn direction — semantic color reserved to the
+       pill, surfaces stay neutral). */
+    .lic-card-band {
         display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 10px;
-        cursor: pointer;
-    }
-    .device-card-license-summary-text { min-width: 0; }
-    .device-card-license-name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
-    .device-card-license-sum-meta { font-size: 13px; color: #888; }
-    /* When expanded, the expiry/activated-by move into the detail, so hide
-       them from the summary line. */
-    .device-card-license.is-open .device-card-license-sum-meta { display: none; }
-    .device-card-license-toggle { flex: 0 0 auto; font-size: 13px; color: #1e90ff; white-space: nowrap; }
-    .device-card-license-summary:hover .device-card-license-toggle { text-decoration: underline; }
-    .device-card-license-detail {
-        display: none;
-        justify-content: space-between;
         align-items: center;
-        gap: 12px;
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid #ececec;
+        flex-wrap: wrap;
+        gap: 8px;
+        row-gap: 4px;
+        padding: 10px 12px;
+        background: #fff;
+        border-bottom: 1px solid #eef0f3;
     }
-    .device-card-license.is-open .device-card-license-detail { display: flex; }
-    /* Disconnect + Copy key stack vertically, stretched to equal width (the
-       wider one's size), centred against the license info on the left. */
-    /* Disconnect + Copy key: stacked, right-aligned, vertically centred.
-       Fixed width so every Disconnect is the same size whether or not a
-       Copy key sits beneath it. */
-    .device-card-license .device-row-key-actions {
-        flex-direction: column;
-        align-items: flex-end;
-        justify-content: center;
-        gap: 6px;
-        flex: 0 0 auto;
+    /* License ID lives in the foldout body now; keep it in the machine-ID font. */
+    .lic-card-idline { color: #9aa0a6; }
+    .lic-card-idline code { font-family: inherit; }
+    /* Chevron pinned to the far right of the band. */
+    .lic-card-band .lic-card-toggle { margin-left: auto; }
+    .lic-card-glyph {
+        flex: 0 0 auto; width: 22px; height: 22px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 6px; background: #eef1f6; color: #5a6573;
     }
-    .device-card-license .device-row-key-actions .people-icon-btn {
-        width: 96px;
-        font-size: 11px;
-        text-align: center;
-        white-space: nowrap;
+    .lic-card-glyph svg { width: 13px; height: 13px; }
+    .lic-card-name {
+        font-size: 14px; font-weight: 700; color: #1a1a2e;
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .lic-card.is-expired .lic-card-name { color: #8a8f99; }
+    /* Label sits right after the license name (the gap on the band provides
+       the spacing); a trailing auto-margin spacer keeps the band balanced. */
+    .lic-card-band .device-card-license-badge { margin-left: 0; }
+    /* Quiet "Licenses" caption above the license cards inside a device card. */
+    .device-card-licenses-label {
+        font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+        color: #9aa0a6; margin: 8px 0 2px;
+    }
+    /* Devices-overview (compact) cards: white like the device card, set apart
+       by a hairline border + faint shadow + spacing (shadcn nested-card
+       pattern — no fill). The band is a clickable top bar; the body is folded
+       away until the card is opened. */
+    .lic-card--compact { background: #fff; box-shadow: none; }
+    .lic-card--compact .lic-card-band { background: transparent; border-bottom: none; cursor: pointer; }
+    .lic-card--compact:hover { box-shadow: 0 2px 6px rgba(20,30,55,0.10); }
+    .lic-card--compact.is-open .lic-card-band { border-bottom: 1px solid #eef0f3; }
+    .lic-card--compact .lic-card-body.lic-card-flat { display: none; }
+    .lic-card--compact.is-open .lic-card-body.lic-card-flat { display: flex; }
+    /* Only the time line is bold on the compact card; slots reads as a normal
+       line (with the count subtly emphasized). */
+    .lic-card--compact .lic-card-slots { font-weight: 400; color: #707784; }
+    .lic-card-body { padding: 10px 12px; }
+    .lic-card-slots { font-size: 12.5px; font-weight: 600; color: #2f3645; }
+    .lic-card-slots .lic-card-slots-strong { color: #1a1a2e; }
+    /* Devices-overview flat body: info (left) + actions (right), always shown. */
+    .lic-card-body.lic-card-flat { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .lic-card-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .lic-card-line { font-size: 12.5px; color: #707784; }
+    /* Disconnect button + its transfers caption, stacked and centered. The
+       wrap is pinned to the button's width so the caption centers exactly
+       under the button (not the wider text). */
+    .lic-card-disconnect { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 96px; }
+    /* The site theme CSS adds default margins to buttons/divs; reset them here
+       so the flex-gap layout isn't thrown off (caption drifting from button). */
+    .lic-card-disconnect > * { margin: 0; }
+    .lic-card-transfers { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; color: #8a93a3; white-space: nowrap; margin: 0; }
+    .lic-card-transfers .plan-detail-help { margin-left: 0; flex: 0 0 auto; }
+    /* Collapsible summary line (meta + chevron); detail expands below it.
+       The meta stays put when open and a single chevron rotates 180° — so
+       nothing reflows/jumps. */
+    .lic-card-summary {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; margin-top: 4px; cursor: pointer;
+    }
+    .lic-card-sum-meta { font-size: 12.5px; color: #707784; min-width: 0; }
+    .lic-card-toggle {
+        flex: 0 0 auto; display: inline-flex; align-items: center;
+        color: #9aa3b1; transition: color 0.12s;
+    }
+    .lic-card-summary:hover .lic-card-toggle { color: #1e90ff; }
+    /* Shared rotating chevron for every license-card foldout. */
+    .foldcaret { transition: transform 0.18s ease; }
+    .lic-card.is-open .lic-card-toggle .foldcaret { transform: rotate(180deg); }
+    .lic-card-detail {
+        display: none; justify-content: space-between; align-items: center;
+        gap: 12px; margin-top: 9px; padding-top: 9px; border-top: 1px solid #eceff3;
+    }
+    .lic-card.is-open .lic-card-detail { display: flex; }
+    .lic-card .device-row-key-actions {
+        flex-direction: column; align-items: flex-end; justify-content: flex-start;
+        flex-wrap: nowrap; gap: 8px; flex: 0 0 auto;
+    }
+    .lic-card .device-row-key-actions .people-icon-btn {
+        width: 96px; font-size: 11px; text-align: center; white-space: nowrap; margin: 0;
     }
     /* "Show License ID" link on the bold name line — quiet grey, not a title.
        Reveals the id on the line beneath. */
@@ -2665,10 +2744,12 @@ active: account
         vertical-align: middle;
         margin-left: 4px;
     }
-    .device-card-license-badge.active { background: #e3f5e9; color: #1f7a44; }
-    .device-card-license-badge.expired { background: #ececef; color: #888; }
-    .device-card-license-badge.soon { background: #fff3cd; color: #8a6400; }
-    .device-card-license-badge.optin { background: #e7f0fb; color: #1366c4; }
+    /* Solid status pills, same weight as the People role badges (.people-role-badge)
+       so People / Devices / Licenses read as one system. */
+    .device-card-license-badge.active { background: #d6efdd; color: #176a37; }
+    .device-card-license-badge.expired { background: #f8d4d4; color: #a4271d; }
+    .device-card-license-badge.soon { background: #fce6c0; color: #8a5a00; }
+    .device-card-license-badge.optin { background: #d6e9ff; color: #0a5fb8; }
     .device-row-key-idline { font-size: 11px; color: #888; margin-top: 2px; }
     .device-row-key-idline code {
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -2800,6 +2881,37 @@ active: account
        devices whose only tokens are on expired licenses. */
     .device-license-section { margin-bottom: 28px; }
     .device-license-section:last-child { margin-bottom: 0; }
+    /* License page: the status-classed section is rendered as a .lic-card
+       (see renderSection) whose device list is collapsed behind a toggle.
+       Owner/orphan sections get no status class and stay box-less. */
+    .lic-card--rich .lic-card-body { padding-bottom: 6px; }
+    .lic-card-fold { margin-top: 10px; }
+    .lic-card-fold-toggle {
+        appearance: none; border: 1px solid #d7dce4; background: #f6f8fb;
+        color: #2a3550; font-size: 12.5px; font-weight: 600;
+        padding: 6px 11px; border-radius: 8px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .lic-card-fold-toggle:hover { background: #eef2f7; border-color: #c7cedb; }
+    .lic-card-fold-toggle .foldcaret { margin-left: 1px; }
+    .lic-card-fold-toggle[aria-expanded="true"] .foldcaret { transform: rotate(180deg); }
+    /* Device list nests flush inside the card body (drop the .people-list box). */
+    .lic-card-devicelist {
+        margin-top: 10px; margin-bottom: 0;
+        border: none; border-radius: 0; background: transparent; overflow: visible;
+    }
+    /* Collapsible device row inside a license card: click to reveal the
+       activation date + Copy key / Disconnect. */
+    .device-row-collapsible { cursor: pointer; }
+    .device-row-collapsible .device-row-caret { color: #8a93a3; padding: 0 4px; flex: 0 0 auto; display: inline-flex; align-items: center; }
+    .device-row-collapsible.is-open .device-row-caret { color: #43506b; }
+    .device-row-collapsible.is-open .device-row-caret .foldcaret { transform: rotate(180deg); }
+    .device-row-detail {
+        display: none; flex-basis: 100%; width: 100%;
+        margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e3e6ea;
+    }
+    .device-row-collapsible.is-open .device-row-detail { display: block; }
+    .device-row-detail-meta { font-size: 12px; color: #707784; margin-bottom: 6px; }
     .device-license-section-header {
         display: flex;
         align-items: baseline;
@@ -3194,7 +3306,6 @@ active: account
                     <span class="devices-group-label">Group by:</span>
                     <div id="devicesViewToggle" class="devices-view-toggle" role="tablist" aria-label="Group devices by">
                         <button type="button" class="devices-view-toggle-btn is-active" data-mode="by-machine" aria-pressed="true" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Device</button>
-                        <button type="button" class="devices-view-toggle-btn" data-mode="by-license" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.4 11.6a5.5 5.5 0 1 0-7.8 7.8 5.5 5.5 0 0 0 7.8-7.8zm0 0L21 3m-3 0l3 3-4 4-3-3"/></svg>License</button>
                         <button type="button" class="devices-view-toggle-btn" data-mode="by-email" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Owner</button>
                     </div>
                     <span class="devices-group-label">Show:</span>
@@ -3215,6 +3326,34 @@ active: account
                 <div id="tokensEmpty" style="display: none;">
                     <div class="empty-card" id="tokensEmptyText">
                         No devices found.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LICENSE SECTION (org-scoped; renders the by-license device view
+             on its own page so team members — who can't see the admin-only
+             account "Licenses & credits" — have a license surface. Reuses
+             renderDeviceCards in by-license mode, rendering into licenseGrid
+             which already has matching responsive grid CSS. No toggles. -->
+        <section id="licenseSection" class="account-section" style="display: none;">
+            <header class="account-section-header">
+                <h2 class="account-section-title" id="licenseSectionTitle">License</h2>
+                <p class="account-section-hint">Licenses on this organization and the devices activated on each.</p>
+            </header>
+            <div id="licenseTokensContainer">
+                <div id="licenseSpinner" class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+                <div id="licenseGrid" style="display: none;"></div>
+                <div id="licenseError" style="display: none;">
+                    <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
+                        Error loading license data. Please try again later.
+                    </div>
+                </div>
+                <div id="licenseEmpty" style="display: none;">
+                    <div class="empty-card" id="licenseEmptyText">
+                        No licenses found.
                     </div>
                 </div>
             </div>
@@ -5412,6 +5551,20 @@ active: account
     // carried via data-help-topic so we can serve different copy from
     // a single click handler.
     const PLAN_DETAIL_HELP_TOPICS = {
+        'role-manager': {
+            title: 'What a Manager can do',
+            body: [
+                'As a <strong>Manager</strong> you can add and remove Members, promote and demote other Managers, and do everything a Member can do (activate licenses and run the apps, manage devices, and edit the team’s shared configurations).',
+                'Managers have no billing access unless they are also an account Admin.'
+            ]
+        },
+        'role-member': {
+            title: 'What a Member can do',
+            body: [
+                'As a <strong>Member</strong> you can activate licenses and run the apps, manage devices (disconnect / transfer), and edit the team’s shared configurations.',
+                'Team management (adding or removing people, assigning roles) and billing are handled by Managers and account Admins.'
+            ]
+        },
         'device-releases': {
             title: 'Device transfers',
             body: [
@@ -5506,13 +5659,24 @@ active: account
     let cachedAccountUsers = {};
     let accountDevicesLoaded = false;
     let cachedAccountDevicesAccountId = null;
+    // In-flight dedupe: the Devices and License views both bail-and-fetch on
+    // first paint, so share one network request rather than issuing two.
+    let accountDevicesFetchPromise = null;
 
     async function fetchAccountDevices(accountId) {
         if (!accountId) {
             cachedAccountDevices = [];
             cachedAccountUsers = {};
-            accountDevicesLoaded = true;
             cachedAccountDevicesAccountId = null;
+            // Treat "no account id yet" as a SETTLED empty state only when the
+            // dashboard has loaded AND there are genuinely no accounts. While
+            // accounts exist, the active account id just hasn't been resolved
+            // yet (the page-title layout writes it during init and the existing
+            // re-trigger then fetches with the real id), so leaving loaded=false
+            // keeps the spinner up instead of flashing "No devices found".
+            // This does NOT depend on the stored account id matching, which is
+            // what previously broke loading.
+            accountDevicesLoaded = !!(licensesLoaded && (!cachedAccounts || cachedAccounts.length === 0));
             return;
         }
         // Memoize per-account so switching the page-title account picker
@@ -5521,22 +5685,28 @@ active: account
         if (cachedAccountDevicesAccountId === String(accountId) && accountDevicesLoaded) {
             return;
         }
-        try {
-            const data = await orgApiCall(
-                'list_account_devices?account_id=' + encodeURIComponent(accountId),
-                null, false, 'GET'
-            );
-            cachedAccountDevices = (data && data.devices) || [];
-            cachedAccountUsers = (data && data.users) || {};
-            cachedAccountDevicesAccountId = String(accountId);
-            accountDevicesLoaded = true;
-        } catch (err) {
-            console.error('list_account_devices failed:', err);
-            cachedAccountDevices = [];
-            cachedAccountUsers = {};
-            cachedAccountDevicesAccountId = String(accountId);
-            accountDevicesLoaded = true;
-        }
+        if (accountDevicesFetchPromise) return accountDevicesFetchPromise;
+        accountDevicesFetchPromise = (async function() {
+            try {
+                const data = await orgApiCall(
+                    'list_account_devices?account_id=' + encodeURIComponent(accountId),
+                    null, false, 'GET'
+                );
+                cachedAccountDevices = (data && data.devices) || [];
+                cachedAccountUsers = (data && data.users) || {};
+                cachedAccountDevicesAccountId = String(accountId);
+                accountDevicesLoaded = true;
+            } catch (err) {
+                console.error('list_account_devices failed:', err);
+                cachedAccountDevices = [];
+                cachedAccountUsers = {};
+                cachedAccountDevicesAccountId = String(accountId);
+                accountDevicesLoaded = true;
+            } finally {
+                accountDevicesFetchPromise = null;
+            }
+        })();
+        return accountDevicesFetchPromise;
     }
 
     // POST /rename_device. Persists a user-facing device name (or clears
@@ -5766,10 +5936,13 @@ active: account
             accountDevicesLoaded = false;
         }
         await fetchAccountDevices(accountId);
-        // Refresh the Devices view when it's the active scope.
-        if (activeScope === 'org' && activeView === 'devices') {
+        // Refresh whichever org view is active once devices land (both the
+        // Devices and License views render from cachedAccountDevices).
+        if (activeScope === 'org') {
             const source = getActiveSource();
-            if (source) renderActiveDevices(source);
+            if (source && activeView === 'devices') renderActiveDevices(source);
+            else if (source && activeView === 'license') renderActiveLicense(source);
+            else if (source && activeView === 'people') renderActiveMembers(source);
         }
         // The Licenses & credits view's "Users with a device" foldout
         // also reads from cachedAccountDevices (more reliable email data
@@ -5927,25 +6100,40 @@ active: account
       return a.split('-').map(function (p) { return p.charAt(0).toUpperCase() + p.slice(1); }).join(' ');
     }
 
-    function renderDeviceCards(devices, source) {
-      const tokensGrid = document.getElementById('tokensGrid');
+    function renderDeviceCards(devices, source, opts) {
+      // opts lets the License page reuse this workhorse: render a forced mode
+      // into a second grid with its own empty-state ids. Defaults preserve the
+      // Devices-page behavior (the #tokensGrid + the live toggle mode).
+      opts = opts || {};
+      const tokensGrid = opts.grid || document.getElementById('tokensGrid');
+      const emptyId = opts.emptyId || 'tokensEmpty';
+      const emptyTextId = opts.emptyTextId || 'tokensEmptyText';
       tokensGrid.innerHTML = '';
       syncDevicesToggleUI();
 
-      // Scope filter ("Activated by me"): narrow to devices that have a token
-      // activated by the logged-in user, before any grouping. Applied here so
-      // it composes with all three groupings.
+      // Scope filter ("Activated by me"): narrow to devices the logged-in
+      // user activated, before any grouping. Match against the device's
+      // canonical emails[] AND each token's user_email/email — the devices
+      // payload populates these inconsistently, and matching only t.email
+      // wrongly returned nothing for users whose activator email lives in
+      // user_email or only in emails[].
       const scopeMine = devicesScope === 'mine';
       if (scopeMine) {
         const me = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
-        devices = (devices || []).filter(function(d) {
-          return (d.tokens || []).some(function(t) {
-            return String(t.email || '').toLowerCase() === me;
+        if (me) {
+          devices = (devices || []).filter(function(d) {
+            const inEmails = (d.emails || []).some(function(e) {
+              return String(e || '').toLowerCase() === me;
+            });
+            if (inEmails) return true;
+            return (d.tokens || []).some(function(t) {
+              return String((t && (t.user_email || t.email)) || '').toLowerCase() === me;
+            });
           });
-        });
+        }
       }
 
-      const mode = activeDevicesMode;
+      const mode = opts.mode || activeDevicesMode;
       const nowMs = Date.now();
 
       // Source of truth for active licenses on this org. Used by the
@@ -5980,18 +6168,20 @@ active: account
         : ((!devices || devices.length === 0) && activeLicenses.length === 0);
 
       if (isEmpty) {
-        const emptyText = document.getElementById('tokensEmptyText');
+        const emptyText = document.getElementById(emptyTextId);
         if (emptyText) {
-          emptyText.textContent = scopeMine
-            ? "You haven't activated any devices on this team yet."
-            : 'No devices found.';
+          emptyText.textContent = (mode === 'by-license')
+            ? 'No licenses found.'
+            : (scopeMine
+              ? "You haven't activated any devices on this team yet."
+              : 'No devices found.');
         }
-        document.getElementById('tokensEmpty').style.display = 'block';
+        document.getElementById(emptyId).style.display = 'block';
         tokensGrid.style.display = 'none';
         return;
       }
 
-      document.getElementById('tokensEmpty').style.display = 'none';
+      document.getElementById(emptyId).style.display = 'none';
       tokensGrid.style.display = '';
       tokensGrid.className = '';
 
@@ -6034,6 +6224,35 @@ active: account
         const ms = tokenExpiryMs(t);
         if (!ms) return null;
         return Math.ceil((ms - nowMs) / 86400000);
+      }
+
+      // One status key per license, shared by the group-by-device license
+      // sub-cards and the group-by-license cards so their accent + badge
+      // never drift. Inputs are the three primitives each call site already
+      // computes from its own data shape: 'optin' = a future-start (renewal
+      // not begun) license, 'soon' = active with <=30 days left, 'expired' =
+      // lapsed, 'active' = a healthy license (quiet green accent, no badge).
+      function licenseStatusKey(active, daysLeft, isFutureStart) {
+        if (isFutureStart) return 'optin';
+        if (!active) return 'expired';
+        if (daysLeft !== null && daysLeft >= 0 && daysLeft <= 30) return 'soon';
+        return 'active';
+      }
+      // Key glyph for the license-card header band — shared by the
+      // Devices-page sub-card and the License-page card.
+      const LIC_KEY_GLYPH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4"/><path d="m18 5 2 2"/><path d="m15 8 2 2"/></svg>';
+      // Rotating chevron shared by the license-card foldouts (rotated 180° via
+      // CSS on the open state, so the toggle never reflows).
+      const FOLD_CARET = '<svg class="foldcaret" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+      // Status label shown right after the license name on the band — a darker
+      // shade of the band tint. Every status is labeled (the colored bar +
+      // label together). Reuses the .device-card-license-badge styles.
+      function licenseStatusBadge(statusKey) {
+        if (statusKey === 'optin') return '<span class="device-card-license-badge optin">Opted-in</span>';
+        if (statusKey === 'soon') return '<span class="device-card-license-badge soon">Expires soon</span>';
+        if (statusKey === 'expired') return '<span class="device-card-license-badge expired">Expired</span>';
+        return '<span class="device-card-license-badge active">Active</span>';
       }
 
       let unnamedCounter = 0;
@@ -6080,7 +6299,9 @@ active: account
         const seen = {};
         const out = [];
         (tokens || []).forEach(function(t) {
-          const e = (t && t.email) ? String(t.email) : '';
+          // The devices payload populates the activator under user_email on
+          // some tokens and email on others — accept whichever is present.
+          const e = (t && (t.user_email || t.email)) ? String(t.user_email || t.email) : '';
           if (!e) return;
           const k = e.toLowerCase();
           if (seen[k]) return;
@@ -6093,18 +6314,8 @@ active: account
       // Header renderer shared across grouped modes (by-license,
       // by-email). Hoisted here so by-email can call it before the
       // by-license branch is reached.
-      function renderSection(titleHtml, metaHtml, entries, titleMuted) {
-        const section = document.createElement('div');
-        section.className = 'device-license-section';
-        const header = document.createElement('div');
-        header.className = 'device-license-section-header';
-        header.innerHTML =
-          '<div class="device-license-section-title' + (titleMuted ? ' muted' : '') + '">' + titleHtml + '</div>' +
-          '<div class="device-license-section-meta">' + (metaHtml || '') + '</div>';
-        section.appendChild(header);
-
-        const list = document.createElement('div');
-        list.className = 'people-list';
+      // Append the device list (or empty row) into a container.
+      function fillDeviceList(list, entries) {
         if (!entries || entries.length === 0) {
           const empty = document.createElement('div');
           empty.className = 'device-license-empty-row';
@@ -6112,10 +6323,77 @@ active: account
           list.appendChild(empty);
         } else {
           entries.forEach(function(entry) {
-            const row = buildDeviceRow(entry.device, entry.tokensToShow);
-            list.appendChild(row);
+            list.appendChild(buildDeviceRow(entry.device, entry.tokensToShow));
           });
         }
+      }
+
+      function renderSection(titleHtml, metaHtml, entries, titleMuted, statusKey, expiryHtml) {
+        const section = document.createElement('div');
+
+        // License-page (status-classed): render as the distinctive .lic-card
+        // shell, with the device list collapsed behind a "Show all devices on
+        // this license (N)" toggle. titleHtml already carries the
+        // .lic-card-name span + status badge.
+        if (statusKey) {
+          section.className = 'device-license-section lic-card lic-card--rich status-' + statusKey;
+          const band = document.createElement('div');
+          band.className = 'lic-card-band';
+          band.innerHTML = '<span class="lic-card-glyph">' + LIC_KEY_GLYPH + '</span>' + titleHtml;
+          section.appendChild(band);
+
+          const body = document.createElement('div');
+          body.className = 'lic-card-body';
+          if (metaHtml) {
+            const slots = document.createElement('div');
+            slots.className = 'lic-card-slots';
+            slots.innerHTML = metaHtml;
+            body.appendChild(slots);
+          }
+          if (expiryHtml) {
+            const e = document.createElement('div');
+            e.className = 'lic-card-sum-meta';
+            e.style.marginTop = '3px';
+            e.innerHTML = expiryHtml;
+            body.appendChild(e);
+          }
+
+          const n = entries ? entries.length : 0;
+          const fold = document.createElement('div');
+          fold.className = 'lic-card-fold';
+          const tog = document.createElement('button');
+          tog.type = 'button';
+          tog.className = 'lic-card-fold-toggle';
+          tog.setAttribute('aria-expanded', 'false');
+          tog.innerHTML = 'Show all devices on this license (' + n + ') ' + FOLD_CARET;
+          const list = document.createElement('div');
+          list.className = 'people-list lic-card-devicelist';
+          list.style.display = 'none';
+          fillDeviceList(list, entries);
+          tog.addEventListener('click', function() {
+            const isOpen = list.style.display !== 'none';
+            list.style.display = isOpen ? 'none' : '';
+            tog.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+          });
+          fold.appendChild(tog);
+          fold.appendChild(list);
+          body.appendChild(fold);
+          section.appendChild(body);
+          tokensGrid.appendChild(section);
+          return;
+        }
+
+        // Box-less owner/orphan section (unchanged).
+        section.className = 'device-license-section';
+        const header = document.createElement('div');
+        header.className = 'device-license-section-header';
+        header.innerHTML =
+          '<div class="device-license-section-title' + (titleMuted ? ' muted' : '') + '">' + titleHtml + '</div>' +
+          '<div class="device-license-section-meta">' + (metaHtml || '') + '</div>';
+        section.appendChild(header);
+        const list = document.createElement('div');
+        list.className = 'people-list';
+        fillDeviceList(list, entries);
         section.appendChild(list);
         tokensGrid.appendChild(section);
       }
@@ -6155,7 +6433,8 @@ active: account
           let bestMs = -1;
           (device.tokens || []).forEach(function(t) {
             const ms = tokenActivationMs(t);
-            if (t.email && ms > bestMs) { bestMs = ms; ownerEmail = t.email; }
+            const em = t.user_email || t.email;
+            if (em && ms > bestMs) { bestMs = ms; ownerEmail = em; }
           });
           if (!ownerEmail) ownerEmail = (device.emails || [])[0] || '';
           const key = String(ownerEmail || '').toLowerCase();
@@ -6291,11 +6570,9 @@ active: account
         // expiry), so the per-device "Show key" dropdown can drop the
         // redundant license-info line. Reads: <Name> · id: <license-id> · expires <date>,
         // with a floating dot separating each segment.
-        const licIdEsc = escapeHtmlOrg(lic.license_id || '');
-        // Remaining-days hint after the expiry date, e.g. "expires
-        // 2027-04-20 (320 days left)". ceil so "expires tomorrow" reads as
-        // 1 day; "(expires today)" on the final day.
-        let expirySeg = '';
+        // Expiry line for the card body, e.g. "expires 2027-04-20 (320 days
+        // left)". ceil so "expires tomorrow" reads as 1 day.
+        let expiryBody = '';
         if (lic.expiry_date) {
           const expMs = (typeof lic.expiry_timestamp === 'number')
             ? lic.expiry_timestamp * 1000
@@ -6306,13 +6583,22 @@ active: account
             if (dl > 0) daysHint = ' (' + dl + ' day' + (dl === 1 ? '' : 's') + ' left)';
             else if (dl === 0) daysHint = ' (expires today)';
           }
-          expirySeg = ' <span class="device-license-section-expiry">· expires '
-            + escapeHtmlOrg(lic.expiry_date) + daysHint + '</span>';
+          expiryBody = 'expires ' + escapeHtmlOrg(lic.expiry_date) + daysHint;
         }
-        const title = '<strong class="device-license-section-name">'
-            + escapeHtmlOrg(lic.license_name || 'Eagle Eyes License') + '</strong>'
-          + (licIdEsc ? ' <span class="device-license-section-id">· id: ' + licIdEsc + '</span>' : '')
-          + expirySeg;
+        // License status drives the card accent + the badge next to the name.
+        // tokenIsActive/tokenDaysLeft are duck-typed on {expiry_*}, which the
+        // overview `lic` carries; future-start comes from start_at_iso.
+        let licStartMs = 0;
+        if (lic.start_at_iso) {
+          const sms = new Date(lic.start_at_iso).getTime();
+          if (!isNaN(sms)) licStartMs = sms;
+        }
+        const statusKey = licenseStatusKey(tokenIsActive(lic), tokenDaysLeft(lic), licStartMs > nowMs);
+        const statusBadge = licenseStatusBadge(statusKey);
+        // Band content: name span + badge (badge floats right via CSS).
+        const title = '<span class="lic-card-name">'
+            + escapeHtmlOrg(lic.license_name || 'Eagle Eyes License') + '</span>'
+          + (statusBadge ? ' ' + statusBadge : '');
         // Releases-left segment: pulled from cachedLicenseOverview (the
         // dashboard's per-license budget snapshot). Hidden when budget
         // data is missing (e.g., older licenses pre-rollout). Color
@@ -6337,16 +6623,13 @@ active: account
         const entries = bucket.map(function(e) {
           return { device: e.device, tokensToShow: e.tokens };
         });
-        renderSection(title, meta, entries, false);
+        renderSection(title, meta, entries, false, statusKey, expiryBody);
       });
 
-      // Orphan section: devices without an active license. Skip when
-      // empty so it doesn't render as a stub.
-      if (orphans.length > 0) {
-        const entries = orphans.map(function(d) { return { device: d, tokensToShow: d.tokens || [] }; });
-        const meta = '<strong>' + orphans.length + ' device' + (orphans.length === 1 ? '' : 's') + '</strong>';
-        renderSection('Devices without an active license', meta, entries, true);
-      }
+      // Devices without an active license are intentionally NOT shown on the
+      // License page — the License page is about active licenses and the
+      // devices on each. Those devices already appear on the Devices page
+      // (as cards flagged "License expired" / "No active license").
 
       // Wire rename buttons after the rows are in the DOM. One handler
       // for the whole grid via event delegation would also work; per-
@@ -6368,7 +6651,7 @@ active: account
         const latestShownToken = dropdownTokens.slice().sort(function(a, b) {
           return tokenActivationMs(b) - tokenActivationMs(a);
         })[0];
-        const userEmail = (latestShownToken && latestShownToken.email) || emails[0] || '';
+        const userEmail = (latestShownToken && (latestShownToken.user_email || latestShownToken.email)) || emails[0] || '';
 
         // display_name already resolved server-side (name → device_identifier
         // → null). When it's still null (legacy tokens with no metadata)
@@ -6560,12 +6843,37 @@ active: account
         }
 
         if (singleLicense && dropdownTokens.length >= 1) {
-          // One license on this row (e.g. Group by License), possibly with
-          // several installs by different users: show the Copy key +
-          // Disconnect buttons directly, no Show-key toggle. Disconnect
-          // cascades across every install on this device-license.
-          actions.appendChild(buildTokenActions(dropdownTokens, true));
+          // One license on this row (Group by License / License page): collapse
+          // the activation date + Copy key + Disconnect behind a click-to-
+          // expand so the license card's device list stays scannable. The
+          // actions live in a .device-row-key element (buildTokenActions) so
+          // onReleaseTokenClick keeps working. Disconnect cascades across every
+          // install on this device-license.
+          row.classList.add('device-row-collapsible');
+          const caret = document.createElement('span');
+          caret.className = 'device-row-caret';
+          caret.innerHTML = FOLD_CARET;
+          actions.appendChild(caret);
           row.appendChild(actions);
+
+          const detail = document.createElement('div');
+          detail.className = 'device-row-detail';
+          const actMs = dropdownTokens.reduce(function(m, t) {
+            const ms = tokenActivationMs(t); return ms > m ? ms : m;
+          }, 0);
+          if (actMs) {
+            const meta = document.createElement('div');
+            meta.className = 'device-row-detail-meta';
+            meta.textContent = 'Activated on ' + new Date(actMs).toISOString().slice(0, 10);
+            detail.appendChild(meta);
+          }
+          detail.appendChild(buildTokenActions(dropdownTokens, true));
+          row.appendChild(detail);
+
+          row.addEventListener('click', function(e) {
+            if (e.target.closest('button, a, input, textarea, select')) return;
+            row.classList.toggle('is-open');
+          });
           return row;
         }
 
@@ -6690,10 +6998,9 @@ active: account
             + ' data-tip="Auto-assigned name for this device — a memorable handle so you don\'t have to use the machine ID.">'
             + escapeHtmlOrg(aliasStr) + '</span>';
         }
-        // "(Show Machine ID)" sticks to the right of the head row.
+        // Machine ID is always shown (right of the head row), no toggle.
         const machineIdHtml = machineIdStr
-          ? '<span class="device-card-machineid"><button type="button" class="machineid-reveal" data-mid="'
-              + escapeHtmlAttr(machineIdStr) + '">(Show Machine ID)</button></span>'
+          ? '<span class="device-card-machineid">Machine ID: <code>' + escapeHtmlOrg(machineIdStr) + '</code></span>'
           : '';
 
         // Coloured circle with the first letter of the device identifier
@@ -6734,6 +7041,12 @@ active: account
         // Label used in the per-license disconnect-confirm copy — prefer the
         // device identifier, else the alias, else the machine id.
         const cardLabel = deviceLabel || aliasStr || machineIdStr || 'this device';
+        if (tokensToShow.length > 0) {
+          const licLabel = document.createElement('div');
+          licLabel.className = 'device-card-licenses-label';
+          licLabel.textContent = 'Licenses';
+          card.appendChild(licLabel);
+        }
         const licWrap = document.createElement('div');
         licWrap.className = 'device-card-licenses';
         if (tokensToShow.length === 0) {
@@ -6769,7 +7082,7 @@ active: account
           const groupEmails = uniqueGroupEmails(toks);
           const active = tokenIsActive(t);
           const item = document.createElement('div');
-          item.className = 'device-row-key device-card-license' + (active ? '' : ' is-expired');
+          item.className = 'device-row-key lic-card lic-card--compact' + (active ? '' : ' is-expired');
           item.dataset.tokenId = t.token_id || '';
           // All token ids in the group, so the cascade-release handler can
           // drop every sibling install from the local cache even if the
@@ -6800,98 +7113,92 @@ active: account
           // Status badge: none for a normal active license; "Opted-in" for a
           // future-start license; "Expires soon" (yellow) at ≤30 days left;
           // "Expired" once lapsed.
-          let statusBadge = '';
-          if (isFutureStart) {
-            statusBadge = '<span class="device-card-license-badge optin">Opted-in</span>';
-          } else if (!active) {
-            statusBadge = '<span class="device-card-license-badge expired">Expired</span>';
-          } else {
-            const dlb = tokenDaysLeft(t);
-            if (dlb !== null && dlb >= 0 && dlb <= 30) {
-              statusBadge = '<span class="device-card-license-badge soon">Expires soon</span>';
-            }
-          }
+          const statusKey = licenseStatusKey(active, tokenDaysLeft(t), isFutureStart);
+          const statusBadge = licenseStatusBadge(statusKey);
+          // Status-colored left accent (CSS keys off this class). Shares the
+          // signature with the group-by-license cards so the same license
+          // reads the same way in both views.
+          item.classList.add('status-' + statusKey);
 
-          // Short time text for the summary; full segment for the detail.
-          let daysShort = '';
-          let expirySeg;
+          // Time line with the time-left part bold, e.g.
+          // "<b>349 days left</b> (expires 2027-05-18)".
+          let timeLineHtml;
           if (isFutureStart) {
             const sd = Math.max(0, Math.ceil((startMs - nowMs) / 86400000));
-            daysShort = 'Starts in ' + sd + ' day' + (sd === 1 ? '' : 's');
-            expirySeg = 'Starts ' + escapeHtmlOrg(ovLic.start_at_iso)
-              + ' <span class="device-card-daysleft">(in ' + sd + ' day' + (sd === 1 ? '' : 's') + ')</span>';
+            timeLineHtml = '<strong>Starts in ' + sd + ' day' + (sd === 1 ? '' : 's') + '</strong>'
+              + ' (starts ' + escapeHtmlOrg(ovLic.start_at_iso || '') + ')';
           } else if (active) {
-            let daysHint = '';
             const dl = tokenDaysLeft(t);
             if (dl !== null && dl > 0) {
-              daysShort = dl + ' day' + (dl === 1 ? '' : 's') + ' left';
-              daysHint = ' <span class="device-card-daysleft">(' + daysShort + ')</span>';
+              timeLineHtml = '<strong>' + dl + ' day' + (dl === 1 ? '' : 's') + ' left</strong> (expires ' + expiry + ')';
             } else if (dl === 0) {
-              daysShort = 'expires today';
-              daysHint = ' <span class="device-card-daysleft">(expires today)</span>';
+              timeLineHtml = '<strong>Expires today</strong> (' + expiry + ')';
+            } else {
+              timeLineHtml = '<strong>Expires</strong> ' + expiry;
             }
-            expirySeg = 'expires ' + expiry + daysHint;
           } else {
-            daysShort = 'expired';
-            expirySeg = 'expired ' + expiry;
+            timeLineHtml = '<strong>Expired</strong> (' + expiry + ')';
           }
 
-          // Collapsed summary shows only the essentials: time left and the
-          // activator's email (no full name). The full date + name move into
-          // the detail on expand.
-          const summaryBits = [];
-          if (daysShort) summaryBits.push(escapeHtmlOrg(daysShort));
-          if (!ownerView) {
-            summaryBits.push('Activated by: ' + (groupEmails.length
-              ? groupEmails.map(escapeHtmlOrg).join(', ')
-              : 'unknown'));
-          }
-          const summaryMeta = summaryBits.join(' · ');
+          // Slots line ("3 of 6 device slots used") from the license overview;
+          // fall back to the capacity label if the overview hasn't landed.
+          const totalSlots = (ovLic && typeof ovLic.total_keys === 'number') ? ovLic.total_keys
+            : (ovLic && typeof ovLic.n_tokens === 'number') ? ovLic.n_tokens : null;
+          const usedSlots = (totalSlots != null && ovLic && typeof ovLic.keys_left === 'number')
+            ? Math.max(0, totalSlots - ovLic.keys_left) : null;
+          const slotsStr = (totalSlots != null && usedSlots != null)
+            ? '<span class="lic-card-slots-strong">' + usedSlots + ' of ' + totalSlots + '</span> device slot' + (totalSlots === 1 ? '' : 's') + ' used'
+            : (licenseCapacityLabel(t.license_id) ? escapeHtmlOrg(licenseCapacityLabel(t.license_id)) : '');
 
-          const summary = document.createElement('div');
-          summary.className = 'device-card-license-summary';
-          summary.innerHTML =
-            '<span class="device-card-license-summary-text">'
-            +   '<span class="device-card-license-name">License: ' + licName + (statusBadge ? ' ' + statusBadge : '') + '</span>'
-            +   '<span class="device-card-license-sum-meta">' + (summaryMeta ? ' · ' + summaryMeta : '') + '</span>'
-            + '</span>'
-            + '<span class="device-card-license-toggle">View more ▾</span>';
-          item.appendChild(summary);
+          // Header band (the only thing shown when collapsed): glyph + name +
+          // status pill (left), fold chevron (right). The License ID moves into
+          // the foldout body. Clicking the card toggles it open/closed.
+          const band = document.createElement('div');
+          band.className = 'lic-card-band';
+          band.innerHTML =
+            '<span class="lic-card-glyph">' + LIC_KEY_GLYPH + '</span>'
+            + '<span class="lic-card-name">' + licName + '</span>'
+            + (statusBadge || '')
+            + '<span class="lic-card-toggle" aria-hidden="true">' + FOLD_CARET + '</span>';
+          item.appendChild(band);
 
-          // Expanded detail (left): capacity, expiry, who activated it, and
-          // the license id — the expiry/activated-by move here from the
-          // summary line when open. Actions on the right.
-          const detail = document.createElement('div');
-          detail.className = 'device-card-license-detail';
+          // Body (collapsed by default; shown when the card is .is-open):
+          // time line (bold days) + slots, then the activator emails, with the
+          // actions on the right.
+          const body = document.createElement('div');
+          body.className = 'lic-card-body lic-card-flat';
+
           const info = document.createElement('div');
-          info.className = 'device-row-key-info';
-          const capLabel = licenseCapacityLabel(t.license_id);
-          if (capLabel) {
-            const cap = document.createElement('div');
-            cap.className = 'device-card-capacity';
-            cap.textContent = capLabel;
-            info.appendChild(cap);
+          info.className = 'lic-card-info';
+          const tl = document.createElement('div');
+          tl.className = 'lic-card-line';
+          tl.innerHTML = timeLineHtml;
+          info.appendChild(tl);
+          if (slotsStr) {
+            const slots = document.createElement('div');
+            slots.className = 'lic-card-slots';
+            slots.innerHTML = slotsStr;
+            info.appendChild(slots);
           }
-          const exp = document.createElement('div');
-          exp.className = 'device-row-key-meta';
-          exp.innerHTML = expirySeg;
-          info.appendChild(exp);
           if (!ownerView) {
-            // One "Activated by … on <date>" line per install in the group,
-            // so a shared device shows each user that activated it.
-            toks.forEach(function(tk) {
-              const actBy = document.createElement('div');
-              actBy.className = 'device-card-activatedby';
-              actBy.innerHTML = activatedByLabelHtml(tk.email, tokenActivationMs(tk));
-              info.appendChild(actBy);
-            });
+            // One line listing every activator email on this device-license
+            // (emails only, no names; falls back to the device's emails[]).
+            const actEmails = groupEmails.length ? groupEmails : (device.emails || []).filter(Boolean);
+            const actBy = document.createElement('div');
+            actBy.className = 'lic-card-line';
+            actBy.textContent = 'Activated on this device by: ' + (actEmails.join(', ') || 'unknown');
+            info.appendChild(actBy);
           }
-          const idLine = document.createElement('div');
-          idLine.className = 'device-card-licenseid';
-          idLine.innerHTML = 'License ID: <code>' + licId + '</code>';
-          info.appendChild(idLine);
-          detail.appendChild(info);
+          if (licId) {
+            const idLine = document.createElement('div');
+            idLine.className = 'lic-card-line lic-card-idline';
+            idLine.innerHTML = 'License ID: <code>' + licId + '</code>';
+            info.appendChild(idLine);
+          }
+          body.appendChild(info);
 
+          // Actions column: Disconnect, then "N transfers left" beneath it,
+          // then the Copy key.
           const itemActions = document.createElement('div');
           itemActions.className = 'device-row-key-actions';
           if (active) {
@@ -6905,6 +7212,10 @@ active: account
                 + '">contact support</a>';
               itemActions.appendChild(note);
             } else {
+              // Disconnect + its "N transfers left" caption share one container
+              // so the caption sits centered directly under the button.
+              const discWrap = document.createElement('div');
+              discWrap.className = 'lic-card-disconnect';
               const rel = document.createElement('button');
               rel.type = 'button';
               rel.className = 'people-icon-btn danger has-tip';
@@ -6912,27 +7223,35 @@ active: account
               rel.setAttribute('data-tip', 'Disconnect this device from this license, freeing the slot so another device can use it.'
                 + (isLicenseTrulyActive(t.license_id) ? ' Costs one transfer.' : ''));
               rel.addEventListener('click', onReleaseTokenClick);
-              itemActions.appendChild(rel);
+              discWrap.appendChild(rel);
+              if (budget && typeof budget.releases_remaining === 'number') {
+                const tr = document.createElement('div');
+                tr.className = 'lic-card-transfers';
+                tr.innerHTML = budget.releases_remaining + ' transfer'
+                  + (budget.releases_remaining === 1 ? '' : 's') + ' left'
+                  + ' <button type="button" class="plan-detail-help has-tip has-tip--left" data-help-topic="device-releases"'
+                  + '   data-tip="Disconnecting a device frees its slot on this license; each license includes a limited number of transfers. Click for details."'
+                  + '   aria-label="What are device transfers?">?</button>';
+                discWrap.appendChild(tr);
+              }
+              itemActions.appendChild(discWrap);
             }
           }
-          // Copy key only for the install the signed-in user owns — among
-          // the group, find whichever token we hold the signed key for.
+          // Copy key only for the install the signed-in user owns.
           const ownToken = toks.filter(function(tk) {
             return tk.token_id && tokenKeyByTokenId[tk.token_id];
           })[0];
           if (active && ownToken) {
             itemActions.appendChild(makeCardCopyBtn(ownToken));
           }
-          detail.appendChild(itemActions);
-          item.appendChild(detail);
+          body.appendChild(itemActions);
+          item.appendChild(body);
 
-          // Toggle expand/collapse from anywhere on the license container,
-          // but ignore clicks on the action buttons / links inside it.
+          // Collapsed by default — only the band shows. Clicking anywhere on
+          // the card toggles it open, except clicks on action buttons / links.
           item.addEventListener('click', function(e) {
             if (e.target.closest('button, a, input, textarea, select')) return;
-            const open = item.classList.toggle('is-open');
-            const tog = summary.querySelector('.device-card-license-toggle');
-            if (tog) tog.textContent = open ? 'View less ▴' : 'View more ▾';
+            item.classList.toggle('is-open');
           });
 
           return item;
@@ -7259,12 +7578,9 @@ active: account
       showToast('Disconnected ' + (item.dataset.deviceDisplayName || 'device') + installsNote
         + '. The slot is now free — another device can activate from the app.', 'success', 4500);
 
-      // Re-render Devices view immediately from the mutated caches.
+      // Re-render the active org view immediately from the mutated caches.
       // (Doesn't refetch — that's deferred 1s below.)
-      if (activeScope === 'org' && activeView === 'devices') {
-        const source = getActiveSource();
-        if (source) renderActiveDevices(source);
-      }
+      rerenderActiveOrgDeviceView();
       // Re-render license cards so the foldout's "Device releases" row
       // reflects the new count. Cheap; no network.
       if (activeScope === 'account' && activeView !== 'access') {
@@ -7339,10 +7655,7 @@ active: account
         if (dismiss) dismiss.addEventListener('click', function() {
           // Re-render so the Disconnect button on this token is replaced
           // with the same "No transfers left" pointer in the dropdown.
-          if (activeScope === 'org' && activeView === 'devices') {
-            const source = getActiveSource();
-            if (source) renderActiveDevices(source);
-          }
+          rerenderActiveOrgDeviceView();
         });
         return;
       }
@@ -8492,7 +8805,7 @@ active: account
     }
     function isOrgView(view) {
         return view === 'people' || view === 'members'
-            || view === 'devices' || view === 'configurations';
+            || view === 'devices' || view === 'license' || view === 'configurations';
     }
     function canonicalizeAccountView(view) {
         // Legacy → canonical
@@ -8516,7 +8829,8 @@ active: account
     // (only devices the logged-in user has activated a license on).
     let devicesScope = 'all';
     function canonicalizeDevicesMode(mode) {
-        if (mode === 'by-license') return 'by-license';
+        // 'by-license' moved to its own /license page; legacy hashes that
+        // still carry it fall back to the default Device grouping.
         if (mode === 'by-email') return 'by-email';
         return 'by-machine';
     }
@@ -8525,8 +8839,7 @@ active: account
     }
     function getDevicesExtrasForHash() {
         const extras = {};
-        if (activeDevicesMode === 'by-license') extras.devices = 'by-license';
-        else if (activeDevicesMode === 'by-email') extras.devices = 'by-email';
+        if (activeDevicesMode === 'by-email') extras.devices = 'by-email';
         if (devicesScope === 'mine') extras.devices_scope = 'mine';
         return Object.keys(extras).length ? extras : null;
     }
@@ -8674,6 +8987,7 @@ active: account
         const sections = {
             'overview': document.getElementById('plansSection'),
             'devices': document.getElementById('devicesSection'),
+            'license': document.getElementById('licenseSection'),
             'people': document.getElementById('membersSection'),
             'configurations': document.getElementById('configurationsSection')
         };
@@ -8768,9 +9082,15 @@ active: account
         // header just shows the user's role on this org so they know whether
         // they can edit (admin) or just view (member).
         if (viewHeader && viewHeaderOrg) {
-            viewHeaderOrg.innerHTML = source.is_admin
+            // Role line + a "?" that opens the matching role-permissions help
+            // (same modal pattern as the device-transfers "?").
+            const roleTopic = source.is_admin ? 'role-manager' : 'role-member';
+            const roleLine = source.is_admin
                 ? 'You are a <strong>Manager</strong> on this team'
                 : 'You are a <strong>Member</strong> of this team';
+            viewHeaderOrg.innerHTML = roleLine
+                + ' <button type="button" class="plan-detail-help" data-help-topic="' + roleTopic + '"'
+                + '   aria-label="What this role can do">?</button>';
             viewHeader.style.display = '';
         }
 
@@ -8784,6 +9104,7 @@ active: account
             const orgTopicMap = {
                 'people': 'People',
                 'devices': 'Devices',
+                'license': 'License',
                 'configurations': 'Configurations'
             };
             window.setAccountPageTopic(orgTopicMap[activeView] || '');
@@ -8797,6 +9118,7 @@ active: account
         });
 
         renderActiveDevices(source);
+        renderActiveLicense(source);
         renderActiveMembers(source);
         renderActiveConfigurations(source);
     }
@@ -9201,16 +9523,11 @@ active: account
         return decorated;
     }
 
-    function renderActiveDevices(source) {
-        // We render from cachedAccountDevices (rich, account-scoped payload
-        // from list_account_devices) filtered to the active org. If that
-        // hasn't loaded yet, kick off a fetch and bail. The fetcher will
-        // re-call this once data arrives.
-        if (!accountDevicesLoaded) {
-            fetchAccountDevicesForActiveAccount();
-            return;
-        }
-
+    // Filter the account-wide devices payload (cachedAccountDevices, from
+    // list_account_devices) down to the active org, with two fallbacks for
+    // accounts whose device docs predate organization_id stamping. Shared by
+    // the Devices view and the License view.
+    function filterDevicesForOrg(source) {
         const orgId = source && source.org_id;
         let filtered = orgId
             ? cachedAccountDevices.filter(function(d) {
@@ -9282,9 +9599,26 @@ active: account
             }
         }
 
+        return filtered;
+    }
+
+    function renderActiveDevices(source) {
+        // We render from cachedAccountDevices (rich, account-scoped payload
+        // from list_account_devices) filtered to the active org. If that
+        // hasn't loaded yet, kick off a fetch and bail — the fetcher re-calls
+        // this once data arrives. (Fetch unconditionally: the active account
+        // id is resolved by the page-title layout, which does NOT dispatch
+        // accountScopeChanged on initial load, so this is the trigger.)
+        if (!accountDevicesLoaded) {
+            fetchAccountDevicesForActiveAccount();
+            return;
+        }
+
+        const filtered = filterDevicesForOrg(source);
+
         console.info('[devices] render', {
             org: source && source.name,
-            orgId: orgId,
+            orgId: source && source.org_id,
             cachedDeviceCount: cachedAccountDevices.length,
             filteredCount: filtered.length
         });
@@ -9292,6 +9626,37 @@ active: account
         renderDeviceCards(filtered, source);
         const tokensSpinner = document.getElementById('tokensSpinner');
         if (tokensSpinner) tokensSpinner.style.display = 'none';
+    }
+
+    // License view: same org-filtered devices, but always rendered in
+    // by-license mode into the License page's own grid. Members reach this
+    // page (org-scoped, not admin-gated) even though they can't see the
+    // account-scope "Licenses & credits".
+    function renderActiveLicense(source) {
+        if (!accountDevicesLoaded) {
+            fetchAccountDevicesForActiveAccount();
+            return;
+        }
+        renderDeviceCards(filterDevicesForOrg(source), source, {
+            mode: 'by-license',
+            grid: document.getElementById('licenseGrid'),
+            emptyId: 'licenseEmpty',
+            emptyTextId: 'licenseEmptyText'
+        });
+        const spinner = document.getElementById('licenseSpinner');
+        if (spinner) spinner.style.display = 'none';
+    }
+
+    // Re-render whichever org device-based view (Devices or License) is
+    // active. Both read the same device caches and share the inline
+    // disconnect/release rows, so release handlers and cache mutations call
+    // this rather than hardcoding one view.
+    function rerenderActiveOrgDeviceView() {
+        if (activeScope !== 'org') return;
+        const source = getActiveSource();
+        if (!source) return;
+        if (activeView === 'devices') renderActiveDevices(source);
+        else if (activeView === 'license') renderActiveLicense(source);
     }
 
     // FLAG — flip to true once backend change B1 ships (account owners may
@@ -9322,6 +9687,15 @@ active: account
     // Visible to every team member; edit controls appear only where the
     // viewer has the right role. Someone who is both an Admin and on the team
     // shows one row with both badges.
+    // Display name for an email from the list_account_devices users map
+    // (cachedAccountUsers, lowercase-keyed). '' when unknown.
+    function displayNameForEmail(email) {
+        if (!email) return '';
+        const info = cachedAccountUsers[String(email).toLowerCase()];
+        if (!info) return '';
+        return (info.name || [info.first_name, info.last_name].filter(Boolean).join(' ') || '').trim();
+    }
+
     function renderActiveMembers(source) {
         const container = document.getElementById('membersContent');
         if (!container) return;
@@ -9329,6 +9703,11 @@ active: account
             container.innerHTML = '';
             return;
         }
+        // Member names come from the list_account_devices users map; if it
+        // hasn't loaded yet, kick the fetch — it re-renders People when it
+        // lands. Best-effort (covers users who've activated a device); full
+        // coverage needs backend org member names.
+        if (!accountDevicesLoaded) fetchAccountDevicesForActiveAccount();
         const org = source.org;
         const orgIdAttr = escapeAttrOrg(org.org_id);
         const currentUserEmail = (function() {
@@ -9392,16 +9771,11 @@ active: account
         header.className = 'members-header';
         header.innerHTML =
             '<div class="members-header-left org-name-row" data-org-id="' + orgIdAttr + '">' +
-              '<h4 class="members-header-name org-name">' + escapeHtmlOrg(org.name || 'Organization') + ' team</h4>' +
+              '<h4 class="members-header-name org-name">' + escapeHtmlOrg(org.name || 'Organization') + '</h4>' +
               '<span class="members-header-meta">'
                 + memberEmails.length + ' ' + (memberEmails.length === 1 ? 'person' : 'people')
-                + (adminEmails.length ? ' · ' + adminEmails.length + ' Manager' + (adminEmails.length === 1 ? '' : 's') : '')
-                + (billingAdminEmails.length ? ' · ' + billingAdminEmails.length + ' Admin' + (billingAdminEmails.length === 1 ? '' : 's') : '')
                 + '</span>' +
-            '</div>' +
-            (callerCanManageTeam
-                ? '<button type="button" class="org-btn" onclick="orgStartRename(\'' + orgIdAttr + '\', this)" title="Rename organization">Rename</button>'
-                : '');
+            '</div>';
         container.appendChild(header);
 
         // Hint clarifying that Admins are account-scoped, not a team role.
@@ -9557,7 +9931,7 @@ active: account
             container.innerHTML = '<div class="configurations-empty">No saved configurations yet. Create one from <a href="' + ('{{ "/setup/" | relative_url }}') + '" style="color: #1e90ff;">/setup/</a>.</div>';
             return;
         }
-        let html = '<div class="people-list">';
+        let html = '<div class="config-grid">';
         const returnUrl = '/account/#org=' + encodeURIComponent(source.id) + '&view=configurations';
         configs.forEach(function(c) {
             const label = c.label || c.id || 'Configuration';
@@ -9573,109 +9947,91 @@ active: account
             params.set('return', returnUrl);
             const href = '/setup/?' + params.toString();
 
-            const initial = (label.charAt(0) || '?').toUpperCase();
-            // Color the avatar deterministically from the config name so
-            // the same config keeps the same accent across renders.
-            const avatarColor = colorForEmail(label);
-
-            // Sharing scope: private to the account, or shared with org(s).
+            // Scope tag: Personal (private to the account) vs Team (shared).
             const cOrgIds = Array.isArray(c.organization_ids) ? c.organization_ids : [];
-            let scopeHtml;
-            if (cOrgIds.length === 0) {
-                scopeHtml = '<span class="config-row-orgtag-personal">Private to your account</span>';
-            } else {
-                const names = cOrgIds.map(function(oid) {
-                    const o = (cachedOrganizations || []).find(function(x) { return String(x.org_id) === String(oid); });
-                    return o && o.name ? o.name : 'Org ' + oid;
-                });
-                scopeHtml = '<span class="config-row-orgtag">Shared with ' + escapeHtmlOrg(names.join(', ')) + '</span>';
-            }
+            const scopeTag = (cOrgIds.length === 0)
+                ? '<span class="config-card-scope personal">Personal</span>'
+                : '<span class="config-card-scope team">Team</span>';
 
-            const licCount = c.licenses ? c.licenses.length : 0;
-            const licCountText = licCount
-                ? licCount + ' license' + (licCount === 1 ? '' : 's')
-                : '';
+            // Key settings as chips (present ones only).
+            const sa = cfg.service_account || {};
+            const dm = cfg.default_map || {};
+            const chips = [];
+            if (sa.teamName) chips.push(configChip('CalTopo', sa.teamName));
+            if (dm.mapName) chips.push(configChip('Map', dm.mapName));
+            if (cfg.units) chips.push(configChip('Units', cfg.units === 'METRIC' ? 'Metric' : 'Imperial'));
+            if (cfg.coordsys) chips.push(configChip('Coords', cfg.coordsys));
+            const chipsHtml = chips.length
+                ? '<div class="config-card-chips">' + chips.join('') + '</div>'
+                : '<div class="config-card-chips"><span class="config-card-chips-empty">No settings configured</span></div>';
 
-            // Meta line: sharing scope + license count.
-            const metaBits = [scopeHtml];
-            if (licCountText) metaBits.push('<span>' + licCountText + '</span>');
-            const metaLine = '<div class="device-row-meta">'
-                + metaBits.map(function(b, i) {
-                    return (i > 0 ? '<span class="device-row-sep">·</span>' : '') + b;
-                }).join('')
-                + '</div>';
-
-            // The actual settings (CalTopo team, map, units, etc.) per entry.
-            const settingsHtml = buildConfigDetails(cfg);
-
-            // Per-license sub-rows (name + monospaced id), only when there
-            // are licenses to list.
-            let licensesHtml = '';
-            if (c.licenses && c.licenses.length) {
-                licensesHtml = '<div class="config-row-licenses">';
-                c.licenses.forEach(function(licId) {
-                    const lic = (cachedLicenseOverview || []).find(function(l) {
-                        return l && l.license_id === licId;
-                    });
-                    const licName = (lic && lic.license_name) ? lic.license_name : 'License';
-                    licensesHtml += '<div class="config-row-license">'
-                        + escapeHtmlOrg(licName)
-                        + '<code>' + escapeHtmlOrg(licId) + '</code>'
-                        + '</div>';
-                });
-                licensesHtml += '</div>';
-            }
-
-            html += '<a class="people-row config-row" href="' + href + '">'
-                + '<div class="people-row-left">'
-                +   '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>'
-                +   '<div class="people-row-body">'
-                +     '<div class="people-row-email">' + escapeHtmlOrg(label) + '</div>'
-                +     metaLine
+            html += '<div class="config-card" data-edit-href="' + escapeHtmlAttr(href) + '">'
+                + '<div class="config-card-head">'
+                +   '<span class="config-card-icon">' + CONFIG_GEAR_GLYPH + '</span>'
+                +   '<span class="config-card-name">' + escapeHtmlOrg(label) + '</span>'
+                +   scopeTag
+                + '</div>'
+                + chipsHtml
+                + '<div class="config-card-foot">'
+                +   '<div class="config-card-actions">'
+                +     '<button type="button" class="config-card-iconbtn config-card-edit-btn" title="Edit configuration" aria-label="Edit configuration">' + CONFIG_EDIT_GLYPH + '</button>'
+                +     '<button type="button" class="config-card-iconbtn danger config-card-delete-btn"'
+                +       ' title="Delete configuration" aria-label="Delete configuration"'
+                +       ' data-config-id="' + escapeHtmlAttr(configId) + '"'
+                +       ' data-license-id="' + escapeHtmlAttr(firstLicense) + '"'
+                +       ' data-config-label="' + escapeHtmlAttr(label) + '">' + CONFIG_TRASH_GLYPH + '</button>'
                 +   '</div>'
                 + '</div>'
-                + '<div class="people-row-actions">'
-                +   '<span class="config-edit-affordance">Edit →</span>'
-                + '</div>'
-                + settingsHtml
-                + licensesHtml
-                + '</a>';
+                + '</div>';
         });
         html += '</div>';
         container.innerHTML = html;
+
+        // Whole card (or the edit icon) opens the config in /setup/; the trash
+        // icon deletes. Delegated, reassigned each render (no stacking).
+        container.onclick = function(e) {
+            const del = e.target.closest('.config-card-delete-btn');
+            if (del) { e.preventDefault(); onDeleteConfigClick(del); return; }
+            const card = e.target.closest('.config-card');
+            if (card && card.getAttribute('data-edit-href')) {
+                window.location.href = card.getAttribute('data-edit-href');
+            }
+        };
     }
 
-    // Per-config settings breakdown (CalTopo team, default map, units,
-    // coordinates, procedures) shown under each row in the Configurations
-    // overview. Mirrors the labels/values used on /setup/.
-    function buildConfigDetails(cfg) {
-        if (!cfg) return '';
-        const rows = [];
-        function add(k, v) {
-            if (v == null || v === '') return;
-            rows.push('<div class="config-row-setting">'
-                + '<span class="config-row-setting-key">' + k + ':</span> '
-                + '<span class="config-row-setting-val">' + escapeHtmlOrg(String(v)) + '</span></div>');
-        }
-        const sa = cfg.service_account || {};
-        add('CalTopo team', sa.teamName);
-        const dm = cfg.default_map || {};
-        add('Default map', dm.mapName);
-        if (cfg.units) add('Units', cfg.units === 'METRIC' ? 'Metric (m, km/h)' : 'US / Imperial (ft, mph)');
-        add('Coordinates', cfg.coordsys);
-        if (cfg.procedures_text) {
-            let line = String(cfg.procedures_text).split('\n')[0];
-            const truncated = line.length > 100;
-            if (truncated) line = line.slice(0, 100) + '…';
-            else if (String(cfg.procedures_text).indexOf('\n') !== -1) line += ' …';
-            add('Procedures', line);
-        }
-        add('Procedures link', cfg.procedures_link);
-        if (!rows.length) {
-            return '<div class="config-row-settings"><div class="config-row-setting-empty">No settings configured</div></div>';
-        }
-        return '<div class="config-row-settings">' + rows.join('') + '</div>';
+    // Confirm + delete a configuration, then refetch + re-render. Mirrors
+    // setup.html's delete (keyed by license_id for backward-compat; team
+    // configs without a license_id may need backend support).
+    function onDeleteConfigClick(btn) {
+        const configId = btn.getAttribute('data-config-id');
+        const licenseId = btn.getAttribute('data-license-id') || '';
+        const label = btn.getAttribute('data-config-label') || 'this configuration';
+        if (!configId) return;
+        if (!window.confirm('Delete the configuration "' + label + '"? This cannot be undone.')) return;
+        btn.disabled = true;
+        orgApiCall('delete_configuration', { configuration_id: configId, license_id: licenseId || null }, false, 'POST')
+            .then(function() {
+                showToast('Configuration deleted.', 'success');
+                kickOffConfigurationsFetches(cachedOrganizations);
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                console.error('delete_configuration failed:', err);
+                const noLic = err && (err.status === 400 || err.status === 404) && !licenseId;
+                showToast(noLic
+                    ? 'Could not delete: this team configuration has no license id (needs backend support).'
+                    : 'Could not delete the configuration. Please try again.', 'error', 4500);
+            });
     }
+
+    // Small key/value chip for a configuration card setting.
+    function configChip(k, v) {
+        return '<span class="config-card-chip"><span class="config-card-chip-k">' + k + '</span>'
+            + escapeHtmlOrg(String(v)) + '</span>';
+    }
+    const CONFIG_GEAR_GLYPH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9z"/></svg>';
+    const CONFIG_EDIT_GLYPH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    const CONFIG_TRASH_GLYPH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
     // Mirrors setup.html's buildConfigSummary so saved-config cards on
     // /account/ list the same component names ("CalTopo · Default Map · ...")
@@ -9705,7 +10061,8 @@ active: account
         const left = document.createElement('div');
         left.className = 'people-row-left';
         const avatarColor = colorForEmail(email);
-        const initial = (email.charAt(0) || '?').toUpperCase();
+        const dispName = displayNameForEmail(email);
+        const initial = ((dispName || email).charAt(0) || '?').toUpperCase();
 
         // One badge — the highest role. Admin outranks Manager outranks
         // Member (Admin already implies full team-management power), so we
@@ -9715,10 +10072,16 @@ active: account
         else if (d.teamRole === 'manager') badge = '<span class="people-role-badge admin">Manager</span>';
         else badge = '<span class="people-role-badge member">Member</span>';
 
+        // Name (when known) over the email; email-only otherwise.
+        const idHtml = dispName
+            ? '<div class="people-row-name">' + escapeHtmlOrg(dispName) + '</div>'
+              + '<div class="people-row-email people-row-email-sub">' + escapeHtmlOrg(email) + '</div>'
+            : '<div class="people-row-email">' + escapeHtmlOrg(email) + '</div>';
+
         left.innerHTML =
             '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>' +
             '<div class="people-row-body">' +
-                '<div class="people-row-email">' + escapeHtmlOrg(email) + '</div>' +
+                idHtml +
                 '<div class="people-row-meta">' + badge +
                     (d.isYou ? '<span class="people-you-pill">you</span>' : '') +
                 '</div>' +

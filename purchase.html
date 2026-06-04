@@ -622,13 +622,16 @@ active: purchase
         justify-content: center;
         text-transform: uppercase;
     }
+    .non-owner-owner-id { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+    .non-owner-owner-name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
     .non-owner-owner-email {
-        flex: 1 1 auto;
-        font-size: 14px;
-        color: #1a1a2e;
+        font-size: 13px;
+        color: #707784;
         word-break: break-all;
     }
-    .non-owner-owner-mail { color: #1e90ff; text-decoration: none; font-size: 12px; }
+    /* When there's no name, the email is the primary line. */
+    .non-owner-owner-id.no-name .non-owner-owner-email { font-size: 14px; color: #1a1a2e; }
+    .non-owner-owner-mail { flex: 0 0 auto; color: #1e90ff; text-decoration: none; font-size: 12px; }
     .non-owner-owner-mail:hover { text-decoration: underline; }
     .purchase-error {
         font-size: 13px;
@@ -1383,10 +1386,17 @@ active: purchase
         }
         if (resolution.kind === 'member') {
             var lm = resolution.matches[0];
+            // Switch to the hinted account so the non-owner panel below lists
+            // THAT account's owners (not whatever account happened to be active).
+            var memberTargetId = lm.account ? String(accountIdOf(lm.account)) : state.activeAccountId;
+            if (memberTargetId !== String(state.activeAccountId)) {
+                state.activeAccountId = memberTargetId;
+                state.cart = loadCart();
+            }
             var lmAcc = lm.account ? (lm.account.name || 'this account') : 'an account';
-            body.innerHTML = 'The license referenced in your email is on <strong>' + esc(lmAcc)
-                + '</strong>, where you have access but aren\'t an owner. Owners need to top up, '
-                + 'check the contact panel below after switching to that account.';
+            body.innerHTML = 'This license is on the <strong>' + esc(lmAcc)
+                + '</strong> account, where you have access but aren\'t an owner. '
+                + 'Ask one of its owners below to add the credits — or to make you an owner so you can buy directly.';
             banner.classList.add('is-warn');
             banner.style.display = '';
             return null;
@@ -2405,23 +2415,37 @@ active: purchase
         }
         if (nameEl) nameEl.textContent = acc.name || 'this account';
         var members = acc.members || {};
+        // Owner display names, when the backend provides them. Map of
+        // email -> "First Last" (see acc.member_names). Falls back to
+        // email-only when absent.
+        var memberNames = acc.member_names || {};
         var owners = Object.keys(members).filter(function(email) {
             return String(members[email]).toLowerCase() === 'owner';
         });
         owners.sort();
         if (!listEl) return;
         if (!owners.length) {
-            listEl.innerHTML = '<div class="non-owner-owner-row"><div class="non-owner-owner-email">No owners on file. Contact info@eagleeyessearch.com.</div></div>';
+            listEl.innerHTML = '<div class="non-owner-owner-row"><div class="non-owner-owner-id no-name"><span class="non-owner-owner-email">No owners on file. Contact info@eagleeyessearch.com.</span></div></div>';
             return;
         }
         var rowsHtml = owners.map(function(email) {
-            var initial = (email.charAt(0) || '?').toUpperCase();
+            var name = (memberNames[email] || '').trim();
+            var seed = name || email;
+            var initial = (seed.charAt(0) || '?').toUpperCase();
             var color = (typeof colorForEmail === 'function') ? colorForEmail(email) : '#5b8def';
+            var idHtml = name
+                ? '<div class="non-owner-owner-id">'
+                  +   '<span class="non-owner-owner-name">' + esc(name) + '</span>'
+                  +   '<span class="non-owner-owner-email">' + esc(email) + '</span>'
+                  + '</div>'
+                : '<div class="non-owner-owner-id no-name">'
+                  +   '<span class="non-owner-owner-email">' + esc(email) + '</span>'
+                  + '</div>';
             return '<div class="non-owner-owner-row">'
                 + '<span class="non-owner-owner-avatar" style="background:' + color + '">'
                 +   esc(initial)
                 + '</span>'
-                + '<span class="non-owner-owner-email">' + esc(email) + '</span>'
+                + idHtml
                 + '<a class="non-owner-owner-mail" href="mailto:' + esc(email)
                 +   '?subject=' + encodeURIComponent('Eagle Eyes purchase request for ' + (acc.name || 'our account'))
                 +   '&body=' + encodeURIComponent(buildNonOwnerEmailBody(acc, owners))
