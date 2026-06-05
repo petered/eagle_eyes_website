@@ -2178,6 +2178,17 @@ active: account
         border-radius: 4px;
         font-size: 14px;
     }
+    .org-add-member-form .org-add-role {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        background: #fff;
+        color: #2a3442;
+        font-family: inherit;
+        cursor: pointer;
+    }
     .org-status-msg {
         margin-top: 10px;
         font-size: 13px;
@@ -2382,6 +2393,31 @@ active: account
         border-color: #e58075;
         color: #a02919;
     }
+    /* Per-person actions kebab (⋯) menu. */
+    .people-kebab { position: relative; }
+    .people-kebab-btn {
+        appearance: none; background: #fff; border: 1px solid #e3e7ee; color: #5a6573;
+        width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+        font-size: 18px; line-height: 1; font-family: inherit;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .people-kebab-btn:hover { background: #f3f5f8; border-color: #cdd5df; color: #1a1a2e; }
+    .people-kebab-menu {
+        position: absolute; right: 0; top: calc(100% + 4px); z-index: 60;
+        background: #fff; border: 1px solid #e2e7ee; border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(20,30,55,0.14); padding: 4px; min-width: 184px;
+    }
+    .people-kebab-menu[hidden] { display: none; }
+    .people-kebab-item {
+        display: block; width: 100%; text-align: left; background: none; border: none;
+        padding: 9px 12px; border-radius: 6px; font-size: 13px; color: #2a3442;
+        cursor: pointer; white-space: nowrap; font-family: inherit;
+    }
+    .people-kebab-item:hover:not(:disabled) { background: #f3f5f8; }
+    .people-kebab-item:disabled { opacity: 0.45; cursor: not-allowed; }
+    .people-kebab-item.danger { color: #c0392b; }
+    .people-kebab-item.danger:hover:not(:disabled) { background: #fdeaea; }
 
     /* "Add someone" card sits below the list as a distinct card. */
     .people-add-card {
@@ -9994,37 +10030,32 @@ active: account
         });
         container.appendChild(list);
 
-        // Add-member card — Managers (or Admins once B1 is live) only.
+        // Add-member card — Managers + Admins. The role dropdown defaults to
+        // Member; Managers can also add as Manager; Admins can also add as
+        // Admin. orgAddMember chains the promote / make-admin calls.
         if (callerCanManageTeam) {
+            const canSetAdmin = callerIsAccountAdmin && accountId != null;
+            const accIdAttr = accountId != null ? escapeHtmlAttr(String(accountId)) : '';
             const addForm = document.createElement('div');
             addForm.className = 'people-add-card';
             addForm.innerHTML =
                 '<div class="people-add-card-title">Add someone to this team</div>' +
-                '<div class="people-add-card-hint">They\'ll join as a Member. Promote to Manager afterward if needed.</div>' +
-                '<form class="org-add-member-form" onsubmit="return orgAddMember(event, \'' + orgIdAttr + '\')">' +
+                '<div class="people-add-card-hint">They join as a Member by default. '
+                    + (canSetAdmin
+                        ? 'Managers help run the team; Admins also manage billing for '
+                            + (accountName ? escapeHtmlOrg(accountName) : 'this account') + '.'
+                        : 'Choose Manager to let them help run the team.') + '</div>' +
+                '<form class="org-add-member-form" onsubmit="return orgAddMember(event, \'' + orgIdAttr + '\', \'' + accIdAttr + '\')">' +
                 '  <input type="email" placeholder="email@example.com" required>' +
+                '  <select class="org-add-role" aria-label="Role">' +
+                '    <option value="member">Member</option>' +
+                '    <option value="manager">Manager</option>' +
+                    (canSetAdmin ? '    <option value="admin">Admin</option>' : '') +
+                '  </select>' +
                 '  <button type="submit" class="org-btn primary">Add</button>' +
                 '</form>' +
                 '<div class="org-status-msg" data-status="add"></div>';
             container.appendChild(addForm);
-        }
-
-        // Add-admin card — account Admins only (manages billing access).
-        if (callerIsAccountAdmin && accountId != null) {
-            const accIdAttr = escapeHtmlAttr(String(accountId));
-            const addAdmin = document.createElement('div');
-            addAdmin.className = 'people-add-card';
-            addAdmin.innerHTML =
-                '<div class="people-add-card-title">Add an Admin</div>' +
-                '<div class="people-add-card-hint">Admins manage billing for '
-                    + (accountName ? escapeHtmlOrg(accountName) : 'this account')
-                    + ' and can add or remove other Admins. They must already have an Eagle Eyes account.</div>' +
-                '<form class="org-add-member-form" onsubmit="return peopleAddAdmin(event, \'' + accIdAttr + '\')">' +
-                '  <input type="email" placeholder="admin@example.com" required>' +
-                '  <button type="submit" class="org-btn primary">Add Admin</button>' +
-                '</form>' +
-                '<div class="org-status-msg" data-status="add-admin"></div>';
-            container.appendChild(addAdmin);
         }
     }
 
@@ -10529,58 +10560,80 @@ active: account
             '</div>';
         row.appendChild(left);
 
-        const buttons = [];
+        // Actions collapse into a single "⋯" kebab menu per person; each
+        // entry appears only where the viewer has the right to take it.
+        const items = [];
         const orgIdAttr = ctx.orgIdAttr;
         const emailAttr = escapeAttrOrg(email);
 
-        // Team controls — Managers (or Admins once B1 ships). Acts on the
-        // person's TEAM role only. Skipped for Admin rows: an Admin is shown
-        // as the top role, so its row carries only the Admin control (Remove
-        // Admin); removing Admin reveals any underlying team role + controls.
+        // Team controls — Managers (or Admins). Acts on the person's TEAM role
+        // only. Skipped for Admin rows (the Admin control carries that row).
         if (ctx.callerCanManageTeam && d.teamRole && !d.isBillingAdmin) {
             if (d.teamRole === 'manager') {
+                items.push('<button class="people-kebab-item"'
+                    + ' onclick="orgDemote(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">Demote to Member</button>');
                 if (ctx.canDemoteManager) {
-                    buttons.push('<button class="people-icon-btn" title="Demote to Member"'
-                        + ' onclick="orgDemote(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">↓ Demote</button>');
-                    buttons.push('<button class="people-icon-btn danger" title="Remove from team"'
-                        + ' onclick="orgRemoveMember(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">× Remove</button>');
+                    items.push('<button class="people-kebab-item danger"'
+                        + ' onclick="orgRemoveMember(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">Remove from team</button>');
                 } else {
-                    buttons.push('<button class="people-icon-btn danger" disabled'
-                        + ' title="Promote another Manager before removing the last one">× Remove</button>');
+                    items.push('<button class="people-kebab-item danger" disabled'
+                        + ' title="Promote another Manager before removing the last one">Remove from team</button>');
                 }
             } else {
-                buttons.push('<button class="people-icon-btn" title="Promote to Manager"'
-                    + ' onclick="orgPromote(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">↑ Promote</button>');
-                buttons.push('<button class="people-icon-btn danger" title="Remove from team"'
-                    + ' onclick="orgRemoveMember(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">× Remove</button>');
+                items.push('<button class="people-kebab-item"'
+                    + ' onclick="orgPromote(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">Promote to Manager</button>');
+                items.push('<button class="people-kebab-item danger"'
+                    + ' onclick="orgRemoveMember(\'' + orgIdAttr + '\', \'' + emailAttr + '\', this)">Remove from team</button>');
             }
         }
 
         // Admin controls — account Admins only. Acts on the person's BILLING
-        // role (account owner endpoints; work today, no B1 dependency).
+        // (account owner) role.
         if (ctx.callerIsAccountAdmin && ctx.accountId != null) {
             const accIdAttr = escapeAttrOrg(String(ctx.accountId));
             if (d.isBillingAdmin) {
                 if (ctx.canRemoveAdmin) {
-                    buttons.push('<button class="people-icon-btn danger" title="Remove Admin (billing access)"'
-                        + ' onclick="peopleRemoveAdmin(\'' + accIdAttr + '\', \'' + emailAttr + '\', this)">× Remove Admin</button>');
+                    items.push('<button class="people-kebab-item danger"'
+                        + ' onclick="peopleRemoveAdmin(\'' + accIdAttr + '\', \'' + emailAttr + '\', this)">Remove Admin</button>');
                 } else {
-                    buttons.push('<button class="people-icon-btn danger" disabled'
-                        + ' title="Add another Admin before removing the last one">× Remove Admin</button>');
+                    items.push('<button class="people-kebab-item danger" disabled'
+                        + ' title="Add another Admin before removing the last one">Remove Admin</button>');
                 }
             } else {
-                buttons.push('<button class="people-icon-btn" title="Make Admin (billing access)"'
-                    + ' onclick="peopleMakeAdmin(\'' + accIdAttr + '\', \'' + emailAttr + '\', this)">↑ Make Admin</button>');
+                items.push('<button class="people-kebab-item"'
+                    + ' onclick="peopleMakeAdmin(\'' + accIdAttr + '\', \'' + emailAttr + '\', this)">Make Admin</button>');
             }
         }
 
-        if (buttons.length) {
+        if (items.length) {
             const actions = document.createElement('div');
             actions.className = 'people-row-actions';
-            actions.innerHTML = buttons.join('');
+            actions.innerHTML = '<div class="people-kebab">'
+                + '<button type="button" class="people-kebab-btn" aria-label="Actions" aria-haspopup="true" aria-expanded="false" onclick="togglePeopleKebab(event, this)">&#8943;</button>'
+                + '<div class="people-kebab-menu" role="menu" hidden>' + items.join('') + '</div>'
+                + '</div>';
             row.appendChild(actions);
         }
         return row;
+    }
+
+    // Toggle a person's kebab menu (and close any others). A one-time document
+    // listener closes open menus on an outside click.
+    window.togglePeopleKebab = function(event, btn) {
+        event.stopPropagation();
+        const menu = btn.nextElementSibling;
+        const willOpen = menu.hasAttribute('hidden');
+        document.querySelectorAll('.people-kebab-menu').forEach(function(m) { m.setAttribute('hidden', ''); });
+        document.querySelectorAll('.people-kebab-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        if (willOpen) { menu.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
+    };
+    if (!window.__peopleKebabInit) {
+        window.__peopleKebabInit = true;
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.people-kebab')) return;
+            document.querySelectorAll('.people-kebab-menu').forEach(function(m) { m.setAttribute('hidden', ''); });
+            document.querySelectorAll('.people-kebab-btn').forEach(function(b) { b.setAttribute('aria-expanded', 'false'); });
+        });
     }
 
     // Deterministic pastel color per email so avatars are visually distinct
@@ -10678,11 +10731,12 @@ active: account
         }
     }
 
-    async function orgAddMember(event, orgId) {
+    async function orgAddMember(event, orgId, accountId) {
         event.preventDefault();
         const form = event.target;
         const input = form.querySelector('input[type="email"]');
-        const submitBtn = form.querySelector('button[type="submit"]');
+        const roleSel = form.querySelector('.org-add-role');
+        const role = roleSel ? roleSel.value : 'member';
         const statusEl = form.parentElement.querySelector('[data-status="add"]');
         const email = (input.value || '').trim().toLowerCase();
         if (!email) return false;
@@ -10698,14 +10752,40 @@ active: account
         }
         // Clear the input immediately. Instant feedback. We revert on error.
         input.value = '';
+        if (roleSel) roleSel.value = 'member';
+        // Manager + Admin both grant the team Manager role; Admin additionally
+        // grants account (billing) access. We add the member first, then chain
+        // the elevation calls in onSuccess.
+        const elevate = (role === 'manager' || role === 'admin');
         await optimisticOrgWrite({
             orgId: orgId,
             endpoint: 'add_member',
             body: { org_id: orgId, value: email },
             patch: function(o) {
                 o.emails = (o.emails || []).concat([email]);
+                if (elevate) {
+                    if (!Array.isArray(o.admin_emails)) o.admin_emails = [];
+                    if (o.admin_emails.indexOf(email) === -1) o.admin_emails.push(email);
+                }
             },
-            optimisticToast: 'Added ' + email + ' to ' + orgNameById(orgId) + '.',
+            optimisticToast: 'Added ' + email + ' to ' + orgNameById(orgId)
+                + (role === 'manager' ? ' as Manager.' : role === 'admin' ? ' as Admin.' : '.'),
+            onSuccess: function() {
+                if (!elevate) return;
+                orgApiCall('add_admin', { org_id: orgId, value: email }, false, 'POST')
+                    .then(function() {
+                        if (role === 'admin' && accountId) {
+                            return orgApiCall('add_account_owner',
+                                { account_id: Number(accountId), email: email }, false, 'POST')
+                                .then(function(data) { applyAccountMembers(accountId, data && data.members); });
+                        }
+                    })
+                    .catch(function() {
+                        showToast('Added ' + email + ' as a Member, but setting '
+                            + (role === 'admin' ? 'Admin' : 'Manager')
+                            + ' didn\'t go through — set it from the ⋯ menu.', 'error', 5000);
+                    });
+            },
             onError: function() {
                 // Restore the typed value so the user can try again.
                 if (input) input.value = email;
