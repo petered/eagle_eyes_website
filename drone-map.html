@@ -365,7 +365,136 @@
             border-color: #5a8a6a;
             box-shadow: 0 0 5px rgba(74, 124, 89, 0.5);
         }
-        
+
+        /* First-open coachmark pointing at the layers/base-map button */
+        .layers-coachmark {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: max-content;
+            max-width: min(300px, 82vw);
+            background: rgba(10, 10, 10, 0.97);
+            border: 1px solid #4a7c59;
+            border-radius: 4px;
+            padding: 12px 14px;
+            color: #b0b0b0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.45;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 8px rgba(74, 124, 89, 0.35);
+            z-index: 100003;
+            cursor: pointer;
+            animation: coachmarkIn 0.35s ease both;
+        }
+        .layers-coachmark::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            right: 13px;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid #4a7c59;
+        }
+        .layers-coachmark::after {
+            content: '';
+            position: absolute;
+            top: -7px;
+            right: 14px;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-bottom: 7px solid rgba(10, 10, 10, 0.97);
+        }
+        .layers-coachmark .coachmark-text {
+            cursor: pointer;
+            letter-spacing: 0.2px;
+        }
+        .layers-coachmark .coachmark-lead {
+            display: block;
+            color: #a0a0a0;
+        }
+        .layers-coachmark .coachmark-accent {
+            display: block;
+            margin-top: 3px;
+            color: #d4a574;
+            font-weight: 600;
+        }
+        .layers-coachmark .coachmark-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 11px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(74, 124, 89, 0.3);
+        }
+        .layers-coachmark .coachmark-dismiss {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 10px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            color: #8a8a8a;
+            cursor: pointer;
+            user-select: none;
+        }
+        .layers-coachmark .coachmark-dismiss:hover {
+            color: #b0b0b0;
+        }
+        .layers-coachmark .coachmark-dismiss input {
+            cursor: pointer;
+            accent-color: #4a7c59;
+            margin: 0;
+            width: 13px;
+            height: 13px;
+            flex: 0 0 auto;
+        }
+        .layers-coachmark .coachmark-dismiss-btn {
+            flex: 0 0 auto;
+            background: rgba(74, 124, 89, 0.15);
+            border: 1px solid #4a7c59;
+            color: #d4a574;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            padding: 5px 13px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .layers-coachmark .coachmark-dismiss-btn:hover {
+            background: rgba(74, 124, 89, 0.32);
+            border-color: #5a8a6a;
+            color: #e0b585;
+        }
+        @keyframes coachmarkIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .coachmark-pulse {
+            animation: coachmarkBtnPulse 1.6s ease-in-out infinite;
+        }
+        @keyframes coachmarkBtnPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(74, 124, 89, 0); }
+            50% { box-shadow: 0 0 0 5px rgba(74, 124, 89, 0.18), 0 0 10px rgba(74, 124, 89, 0.55); }
+        }
+        @media (max-width: 600px) {
+            /* Pin to the viewport edge instead of the button: between ~361-480px the
+               header control container isn't absolutely positioned, so the button can
+               sit at/over the right edge and a button-anchored card would clip. */
+            .layers-coachmark {
+                position: fixed;
+                top: 50px;
+                right: 8px;
+                left: auto;
+                font-size: 11px;
+                padding: 10px 12px;
+                max-width: min(290px, calc(100vw - 16px));
+            }
+        }
+
         .base-map-menu {
             position: absolute;
             top: calc(100% + 5px);
@@ -380,7 +509,20 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
-        
+
+        /* On small phones the header control can sit a few px off the right edge,
+           dragging the right-anchored menu off-screen. Pin it to the viewport. */
+        @media (max-width: 480px) {
+            /* !important overrides the element's inline position:absolute/right:0. */
+            .base-map-menu {
+                position: fixed !important;
+                top: 50px !important;
+                right: 8px !important;
+                left: auto !important;
+                max-width: calc(100vw - 16px);
+            }
+        }
+
         .base-map-option {
             background: rgba(10, 10, 10, 0.9);
             border: 1px solid #4a7c59;
@@ -404,6 +546,36 @@
         
         .base-map-option:active {
             background: rgba(30, 30, 30, 0.9);
+        }
+
+        .base-map-option.base-map-collapse {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .base-map-option.base-map-collapse .bm-current {
+            color: #d4a574;
+            font-weight: 600;
+        }
+        .base-map-option.base-map-collapse .bm-chevron {
+            font-size: 9px;
+            color: #b0b0b0;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .base-map-option.base-map-collapse.expanded .bm-chevron {
+            transform: rotate(180deg);
+        }
+        .base-map-style-list {
+            margin: 6px 0 0 16px;
+            padding-left: 8px;
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            flex-direction: column;
+            gap: 6px;
+        }
+        .base-map-style-list .base-map-option {
+            min-width: 130px;
         }
 
         .base-map-option.base-map-toggle {
@@ -3734,15 +3906,28 @@
             <button id="downloadBtn" onclick="window.location.href='/download/#step3&platform=mobile'">Download<br>Eagle Eyes</button>
             <button id="legendBtn" onclick="toggleLegend()">Legend</button>
             <div id="baseMapControl" style="position: relative; display: inline-block; z-index: 100002;">
-                <button id="baseMapBtn" onclick="toggleBaseMapMenu()" title="Base Map Layers">☰</button>
+                <button id="baseMapBtn" onclick="toggleBaseMapMenu()" title="Base Map Layers"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 1.5 8 12 14l10.5-6L12 2z"/><path d="M1.5 12 12 18l10.5-6-2.6-1.5L12 15 4.1 10.5 1.5 12z"/><path d="M1.5 16 12 22l10.5-6-2.6-1.5L12 19 4.1 14.5 1.5 16z"/></svg></button>
+                <div id="layersCoachmark" class="layers-coachmark" style="display: none;" role="button" tabindex="0" aria-label="Open layers menu to view airspace and live manned aircraft" onclick="event.stopPropagation(); toggleBaseMapMenu();">
+                    <div class="coachmark-text"><span class="coachmark-lead">Click here to view</span><span class="coachmark-accent">airspace &amp; live manned aircraft</span></div>
+                    <div class="coachmark-footer" onclick="event.stopPropagation();">
+                        <label class="coachmark-dismiss"><input type="checkbox" id="coachmarkDontShow" onchange="if (this.checked) dismissLayersCoachmark(true);"> Don't show again</label>
+                        <button type="button" class="coachmark-dismiss-btn" onclick="dismissLayersCoachmark(false);">Dismiss</button>
+                    </div>
+                </div>
                 <div id="baseMapMenu" class="base-map-menu" style="display: none; position: absolute; top: calc(100% + 5px); right: 0; z-index: 999999;">
                     <div class="share-map-btn" onclick="shareMapView()" title="Copy a link to this map view">&#x1f517; Share Map View</div>
-                    <div class="base-map-option" onclick="handleBaseMapChange('Google Hybrid'); toggleBaseMapMenu();">Google Hybrid</div>
-                    <div class="base-map-option" onclick="handleBaseMapChange('Google Imagery'); toggleBaseMapMenu();">Google Imagery</div>
-                    <div class="base-map-option" onclick="handleBaseMapChange('Esri Imagery'); toggleBaseMapMenu();">Esri Imagery</div>
-                    <div class="base-map-option" onclick="handleBaseMapChange('Esri Topo'); toggleBaseMapMenu();">Esri Topo</div>
-                <div class="base-map-option" onclick="handleBaseMapChange('Dark Theme'); toggleBaseMapMenu();">Dark Theme</div>
-                <div class="base-map-option" onclick="handleBaseMapChange('Light Theme'); toggleBaseMapMenu();">Light Theme</div>
+                    <div class="base-map-option base-map-collapse" id="baseMapStyleHeader" onclick="toggleBaseMapStyleList()" title="Choose the base map style">
+                        <span>Base Map: <span class="bm-current" id="currentBaseMapName">Dark Theme</span></span>
+                        <span class="bm-chevron">&#9662;</span>
+                    </div>
+                    <div id="baseMapStyleList" class="base-map-style-list" style="display: none;">
+                        <div class="base-map-option" onclick="handleBaseMapChange('Google Hybrid')">Google Hybrid</div>
+                        <div class="base-map-option" onclick="handleBaseMapChange('Google Imagery')">Google Imagery</div>
+                        <div class="base-map-option" onclick="handleBaseMapChange('Esri Imagery')">Esri Imagery</div>
+                        <div class="base-map-option" onclick="handleBaseMapChange('Esri Topo')">Esri Topo</div>
+                        <div class="base-map-option" onclick="handleBaseMapChange('Dark Theme')">Dark Theme</div>
+                        <div class="base-map-option" onclick="handleBaseMapChange('Light Theme')">Light Theme</div>
+                    </div>
                 <div class="base-map-option base-map-toggle" id="toggleDetectedAircraftOption">
                     <input type="checkbox" id="toggleDetectedAircraftCheckbox" checked title="Show or hide detected manned aircraft on the map">
                     <label for="toggleDetectedAircraftCheckbox">Detected manned aircraft <span style="white-space: nowrap;">(ADS-B)</span></label>
@@ -4996,6 +5181,9 @@
         
         // Base Map Menu Toggle
         function toggleBaseMapMenu() {
+            // Opening the menu means the user found the control — hide the coachmark
+            // for this visit (the permanent opt-out lives on the "Don't show again" box).
+            dismissLayersCoachmark(false);
             const baseMapMenu = document.getElementById('baseMapMenu');
             if (baseMapMenu) {
                 if (baseMapMenu.style.display === 'none' || baseMapMenu.style.display === '') {
@@ -5004,6 +5192,49 @@
                     baseMapMenu.style.display = 'none';
                 }
             }
+            // Always reopen the menu with the base-map list collapsed.
+            collapseBaseMapStyleList();
+        }
+
+        // ---- Layers coachmark ----
+        // Shows on every fresh visit, unless the user ticks "Don't show again"
+        // (the only thing that persists). It also waits for the first-load toasts
+        // (top-right / full-width on mobile) to clear so the two don't collide.
+        var LAYERS_COACHMARK_HIDE_KEY = 'ee_dronemap_layers_coachmark_hidden';
+
+        function dismissLayersCoachmark(persistNever) {
+            var cm = document.getElementById('layersCoachmark');
+            if (cm) cm.style.display = 'none';
+            var btn = document.getElementById('baseMapBtn');
+            if (btn) btn.classList.remove('coachmark-pulse');
+            if (persistNever) { try { localStorage.setItem(LAYERS_COACHMARK_HIDE_KEY, '1'); } catch (e) {} }
+        }
+
+        function maybeShowLayersCoachmark() {
+            var hidden = null;
+            try { hidden = localStorage.getItem(LAYERS_COACHMARK_HIDE_KEY); } catch (e) {}
+            if (hidden === '1') return;
+            var cm = document.getElementById('layersCoachmark');
+            var btn = document.getElementById('baseMapBtn');
+            if (!cm || !btn) return;
+
+            var started = Date.now();
+            function toastsClear() {
+                var c = document.getElementById('toastContainer');
+                return !c || c.children.length === 0;
+            }
+            function tryShow() {
+                // Hold off while first-load toasts are on screen, but never wait
+                // longer than ~9s (a slow telemetry "Connected" toast shouldn't block it).
+                if (!toastsClear() && (Date.now() - started) < 9000) {
+                    setTimeout(tryShow, 500);
+                    return;
+                }
+                // Persist until the user dismisses it — no auto-hide timeout.
+                cm.style.display = 'block';
+                btn.classList.add('coachmark-pulse');
+            }
+            setTimeout(tryShow, 1200);
         }
         
         // Handle Base Map Change
@@ -5024,11 +5255,40 @@
                 map.removeLayer(currentBaseLayer);
             }
             
-            // Add new base layer
+            // Add new base layer, then push it to the bottom of the tile pane.
+            // The Canadian airspace PMTiles layers are protomaps-leaflet GridLayers
+            // that share the default tilePane with the base tile layers, so stacking
+            // is purely DOM-insertion order. A freshly added base map lands on top of
+            // them; bringToBack() returns it under the airspace/overlay layers.
             newLayer.addTo(map);
+            if (typeof newLayer.bringToBack === 'function') {
+                newLayer.bringToBack();
+            }
             currentBaseLayer = newLayer;
-            
+
+            // Reflect the selection in the collapsed dropdown header and close the list.
+            var nameEl = document.getElementById('currentBaseMapName');
+            if (nameEl) nameEl.textContent = layerName;
+            collapseBaseMapStyleList();
+
             console.log('Base map changed to:', layerName);
+        }
+
+        // Expand/collapse the base-map style list inside the layers menu.
+        function toggleBaseMapStyleList() {
+            var list = document.getElementById('baseMapStyleList');
+            var header = document.getElementById('baseMapStyleHeader');
+            if (!list) return;
+            var isOpen = list.style.display !== 'none';
+            list.style.display = isOpen ? 'none' : 'flex';
+            if (header) header.classList.toggle('expanded', !isOpen);
+        }
+
+        function collapseBaseMapStyleList() {
+            var list = document.getElementById('baseMapStyleList');
+            var header = document.getElementById('baseMapStyleHeader');
+            if (list) list.style.display = 'none';
+            if (header) header.classList.remove('expanded');
         }
 
         /**
@@ -7347,6 +7607,9 @@
             parseTargetDroneFromURL();
 
             initMap();
+
+            // First-open hint pointing at the layers/base-map button
+            maybeShowLayersCoachmark();
 
             // ==================== Drone Map Analytics ====================
             // Silent page-view ping + periodic session snapshots to the
