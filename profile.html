@@ -667,13 +667,11 @@ heading: Profile
             }
         });
 
-        // Auth gating: show signed-out state when no user, otherwise the form
-        document.addEventListener('authStateChanged', function(e) {
-            var user = e.detail && e.detail.user;
-            applyAuth(user);
-        });
-
-        function applyAuth(user) {
+        // Auth gating: signed in → show the form; truly signed out → bounce to
+        // /account/ to sign in (no dead-end placeholder). We only redirect once
+        // auth has RESOLVED — a transient null before Firebase restores the
+        // session must not bounce a signed-in user.
+        function applyAuth(user, authResolved) {
             var loading = document.getElementById('profileLoading');
             var content = document.getElementById('profileContent');
             var signedOut = document.getElementById('profileSignedOut');
@@ -681,16 +679,25 @@ heading: Profile
                 signedOut.style.display = 'none';
                 loading.style.display = '';
                 renderProfileForUser(user);
+            } else if (authResolved) {
+                // Resolved + no user → not signed in. Go where you can sign in.
+                window.location.replace('{{ "/account/" | relative_url }}');
             } else {
+                // Auth not resolved yet — keep the loading state and wait.
+                loading.style.display = '';
                 content.style.display = 'none';
-                loading.style.display = 'none';
-                signedOut.style.display = '';
+                signedOut.style.display = 'none';
             }
         }
 
-        // If Firebase already settled before our listener attached
+        // onAuthStateChanged fires once the initial auth state is determined
+        // (and on changes) — reliable whether it resolved before or after this
+        // runs. The custom event is kept as a secondary signal.
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            try { applyAuth(firebase.auth().currentUser); } catch (e) {}
+            try { firebase.auth().onAuthStateChanged(function(user) { applyAuth(user, true); }); } catch (e) {}
         }
+        document.addEventListener('authStateChanged', function(e) {
+            applyAuth(e.detail && e.detail.user, true);
+        });
     })();
 </script>

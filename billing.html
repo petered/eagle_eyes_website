@@ -690,5 +690,17 @@ active: billing
             if (current) applyAuth(current);
         } catch (e) { /* ignore */ }
     }
+
+    // The sign-in modal lives only on /account/. A signed-out visitor can't do
+    // anything here, so bounce to the one sign-in page once auth resolves.
+    // onAuthStateChanged fires post-resolution, so null = truly signed out
+    // (not a transient pre-restore null) — no risk of bouncing a signed-in user.
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (!user) window.location.replace('{{ "/account/" | relative_url }}');
+            });
+        } catch (e) { /* ignore */ }
+    }
 })();
 </script>

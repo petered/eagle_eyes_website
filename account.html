@@ -1270,6 +1270,65 @@ active: account
         }
     }
 
+    /* Centered sign-in page. Shown to signed-out visitors on /account/ — the
+       single real sign-in page (the modal + toggleSignIn live only here).
+       Other account pages redirect here when signed out. Fills the content
+       area and centers the card both axes. */
+    .account-signin-gate {
+        position: fixed;
+        top: 80px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: #fafbfc;
+        z-index: 1;
+    }
+    .account-signin-card {
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+        background: #fff;
+        border: 1px solid #e6e9ee;
+        border-radius: 16px;
+        padding: 44px 36px;
+        box-shadow: 0 6px 24px rgba(20, 30, 50, 0.06);
+    }
+    .account-signin-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 10px;
+        color: #1a2230;
+    }
+    .account-signin-sub {
+        color: #5a6473;
+        font-size: 15px;
+        line-height: 1.55;
+        margin: 0 0 26px;
+    }
+    .account-signin-btn {
+        width: 100%;
+        background-color: #1e90ff;
+        color: #fff;
+        padding: 13px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    .account-signin-btn:hover { background-color: #1880ec; }
+    .account-signin-help {
+        margin: 18px 0 0;
+        font-size: 13px;
+        color: #8a93a3;
+    }
+    @media (max-width: 768px) {
+        .account-signin-card { padding: 36px 22px; }
+    }
+
     /* Source bar. Pronounced context selector above the sections */
     .source-bar {
         background: transparent;
@@ -3108,9 +3167,13 @@ active: account
 <!-- Sign-in prompt. Default state when there's no signed-in hint (first-time
      visitors / signed-out users). When the hint *is* set we hide this in
      pre-paint CSS so signed-in returners never see it flash. -->
-<div id="signinButtonSection" style="display: block; text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ececec; border-radius: 12px;">
-    <p style="margin-bottom: 20px; color: #555;">Sign in to manage your account.</p>
-    <button id="accountSignInButton" class="button rounded" style="background-color: #1e90ff; color: white; padding: 12px 30px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer;" onclick="toggleSignIn()">Sign In or Create Account</button>
+<div id="signinButtonSection" class="account-signin-gate">
+    <div class="account-signin-card">
+        <h1 class="account-signin-title">Sign in to your account</h1>
+        <p class="account-signin-sub">Manage your Eagle Eyes licenses, devices, organizations and billing — all in one place.</p>
+        <button id="accountSignInButton" class="button rounded account-signin-btn" onclick="toggleSignIn()">Sign In or Create Account</button>
+        <p class="account-signin-help">New to Eagle Eyes? You can create an account from the same screen.</p>
+    </div>
 </div>
 
 <!-- Account content -->
@@ -3572,7 +3635,7 @@ active: account
                 // User is signed out. Drop the auth-check spinner, show the
                 // sign-in panel. loadingOverlay never got shown in this flow.
                 if (authChecking) authChecking.style.setProperty('display', 'none', 'important');
-                signinButtonSection.style.display = 'block';
+                signinButtonSection.style.display = 'flex';
                 accountContent.style.display = 'none';
                 loadingOverlay.style.display = 'none';
             }
