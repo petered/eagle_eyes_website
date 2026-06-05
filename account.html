@@ -1963,7 +1963,8 @@ active: account
     .dev2-line .dev2-k { color: #8a93a3; margin-right: 4px; }
     .dev2-line code { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #2a3442; }
     .dev2-line-by { color: #6b7480; }
-    .dev2-detail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 12px; }
+    .dev2-detail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 12px; }
+    .dev2-detail-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .dev2-empty { color: #9aa0a6; font-size: 12.5px; font-style: italic; }
     .config-card-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .config-card-chips-empty { font-size: 12px; color: #9aa0a6; font-style: italic; }
@@ -2455,6 +2456,14 @@ active: account
         border-color: #e58075;
         color: #a02919;
     }
+    /* Accent variant for the Renew action. */
+    .people-icon-btn.primary { color: #1e6fd6; border-color: #b6d3f3; background: #f3f8fe; }
+    .people-icon-btn.primary:hover:not(:disabled) { background: #e7f1fd; border-color: #8fbcec; color: #155bb0; }
+    /* The action buttons render as <a> deep-links for owners; keep them
+       looking and sitting like the sibling <button>s (no underline, inline
+       box, consistent line height). */
+    a.people-icon-btn { display: inline-block; text-decoration: none; line-height: 1.3; }
+    a.people-icon-btn:hover { text-decoration: none; }
     /* Per-person actions kebab (⋯) menu. */
     .people-kebab { position: relative; }
     .people-kebab-btn {
@@ -3103,6 +3112,9 @@ active: account
        (see renderSection) whose device list is collapsed behind a toggle.
        Owner/orphan sections get no status class and stay box-less. */
     .lic-card--rich .lic-card-body { padding-bottom: 6px; }
+    /* Per-license action buttons (Renew / Add devices), between the info
+       block and the device-list fold. */
+    .lic-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
     .lic-card-fold { margin-top: 12px; }
     /* Modern ghost-style disclosure: borderless, hover-tinted pill with a
        smoothly rotating caret. Negative left margin keeps the label flush to
@@ -5064,6 +5076,52 @@ active: account
         };
     }
 
+    // Compact Renew / Add-devices action buttons, shared by the Devices-page
+    // license band (dev2BandBody) and the Licenses-page card. Mirrors the
+    // gating + ownership rules of buildPlanPrimaryCard's per-card actions:
+    //   - Renew shows ONLY inside the renewal window (getLicenseExpiryStatus
+    //     .expiringSoon: 90 days for paid, 7 for trials) and when no renewal
+    //     is already queued (successor_license_id). opts.renew toggles it.
+    //   - Add devices is always offered (opts.addDevices). Prorated to the
+    //     current expiry at checkout.
+    //   - Owners get the standard purchase-page deep-link (<a>); non-owners
+    //     get a .plan-action-btn-non-owner <button> whose click is caught by
+    //     the document-level handler that opens the contact-owners modal.
+    // `license` is a cachedLicenseOverview row (carries account_id,
+    // expiry_date, successor_license_id, license_owner).
+    function licenseActionButtonsHtml(license, opts) {
+        opts = opts || {};
+        if (!license || !license.license_id) return '';
+        const licId = license.license_id;
+        const ownership = getLicenseOwnership(license);
+        const expStatus = getLicenseExpiryStatus(license);
+        const hasQueuedRenewal = !!license.successor_license_id;
+        const dataAttrs = ' data-license-id="' + planEscape(licId) + '"'
+            + ' data-license-name="' + planEscape(license.license_name || '') + '"'
+            + (ownership.ownerEmails.length ? ' data-owner-emails="' + planEscape(ownership.ownerEmails.join(',')) + '"' : '')
+            + (ownership.accountName ? ' data-owner-account="' + planEscape(ownership.accountName) + '"' : '');
+        let html = '';
+        if (opts.renew && !hasQueuedRenewal && expStatus.expiringSoon) {
+            if (ownership.isOwner) {
+                const renewUrl = '{{ "/account/purchase/" | relative_url }}?add=renew:' + encodeURIComponent(licId);
+                html += '<a class="people-icon-btn primary lic-action-btn" href="' + renewUrl + '">Renew</a>';
+            } else {
+                html += '<button type="button" class="people-icon-btn primary lic-action-btn plan-action-btn-non-owner"'
+                    + ' data-non-owner-action="renew"' + dataAttrs + '>Renew</button>';
+            }
+        }
+        if (opts.addDevices) {
+            if (ownership.isOwner) {
+                const addUrl = '{{ "/account/purchase/" | relative_url }}?add=devices:' + encodeURIComponent(licId);
+                html += '<a class="people-icon-btn lic-action-btn" href="' + addUrl + '">+ Add devices</a>';
+            } else {
+                html += '<button type="button" class="people-icon-btn lic-action-btn plan-action-btn-non-owner"'
+                    + ' data-non-owner-action="add_devices"' + dataAttrs + '>+ Add devices</button>';
+            }
+        }
+        return html;
+    }
+
     function buildLicenseRelationshipLine(license) {
         if (!license || !license.license_id) return null;
 
@@ -6543,7 +6601,7 @@ active: account
         }
       }
 
-      function renderSection(titleHtml, metaHtml, entries, titleMuted, statusKey, expiryHtml) {
+      function renderSection(titleHtml, metaHtml, entries, titleMuted, statusKey, expiryHtml, actionsHtml) {
         const section = document.createElement('div');
 
         // License-page (status-classed): render as the distinctive .lic-card
@@ -6567,6 +6625,16 @@ active: account
             info.className = 'lic-card-info';
             info.innerHTML = metaHtml;
             body.appendChild(info);
+          }
+
+          // Per-license actions (Renew / Add devices), shown above the
+          // device-list fold. Empty string when the license has no
+          // applicable actions (e.g. nothing to renew outside the window).
+          if (actionsHtml) {
+            const act = document.createElement('div');
+            act.className = 'lic-card-actions';
+            act.innerHTML = actionsHtml;
+            body.appendChild(act);
           }
 
           const n = entries ? entries.length : 0;
@@ -6855,7 +6923,10 @@ active: account
         const entries = bucket.map(function(e) {
           return { device: e.device, tokensToShow: e.tokens };
         });
-        renderSection(title, infoHtml, entries, false, statusKey, '');
+        // Renew (only within the renewal window) + Add devices, same gating
+        // and ownership handling as the Overview cards.
+        const actionsHtml = licenseActionButtonsHtml(lic, { renew: true, addDevices: true });
+        renderSection(title, infoHtml, entries, false, statusKey, '', actionsHtml);
       });
 
       // Devices without an active license are intentionally NOT shown on the
@@ -7075,37 +7146,15 @@ active: account
         }
 
         if (singleLicense && dropdownTokens.length >= 1) {
-          // One license on this row (Group by License / License page): collapse
-          // the activation date + Copy key + Disconnect behind a click-to-
-          // expand so the license card's device list stays scannable. The
-          // actions live in a .device-row-key element (buildTokenActions) so
-          // onReleaseTokenClick keeps working. Disconnect cascades across every
-          // install on this device-license.
-          row.classList.add('device-row-collapsible');
-          const caret = document.createElement('span');
-          caret.className = 'device-row-caret';
-          caret.innerHTML = FOLD_CARET;
-          actions.appendChild(caret);
+          // One license on this row (License page device list): show Copy key
+          // + Disconnect inline and immediately — no second click-to-expand.
+          // The actions live in a .device-row-key element (buildTokenActions)
+          // so onReleaseTokenClick keeps working; Disconnect cascades across
+          // every install on this device-license. The activation date already
+          // appears in the row's meta line (primaryText), so no separate
+          // detail row is needed.
+          actions.appendChild(buildTokenActions(dropdownTokens, true));
           row.appendChild(actions);
-
-          const detail = document.createElement('div');
-          detail.className = 'device-row-detail';
-          const actMs = dropdownTokens.reduce(function(m, t) {
-            const ms = tokenActivationMs(t); return ms > m ? ms : m;
-          }, 0);
-          if (actMs) {
-            const meta = document.createElement('div');
-            meta.className = 'device-row-detail-meta';
-            meta.textContent = 'Activated on ' + new Date(actMs).toISOString().slice(0, 10);
-            detail.appendChild(meta);
-          }
-          detail.appendChild(buildTokenActions(dropdownTokens, true));
-          row.appendChild(detail);
-
-          row.addEventListener('click', function(e) {
-            if (e.target.closest('button, a, input, textarea, select')) return;
-            row.classList.toggle('is-open');
-          });
           return row;
         }
 
@@ -10674,7 +10723,10 @@ active: account
             +   (byLine ? '<div class="dev2-line dev2-line-by">' + byLine + '</div>' : '')
             + '</div>'
             + '<div class="device-row-key-actions dev2-detail-actions">'
-            +   '<button type="button" class="people-icon-btn danger" onclick="onReleaseTokenClick(event)">Disconnect</button>'
+            +   '<div class="dev2-detail-btns">'
+            +     '<button type="button" class="people-icon-btn danger" onclick="onReleaseTokenClick(event)">Disconnect</button>'
+            +     licenseActionButtonsHtml(ov, { renew: true, addDevices: true })
+            +   '</div>'
             +   (transfers ? '<span class="lic-card-transfers">' + escapeHtmlOrg(transfers)
                     + ' <button type="button" class="plan-detail-help has-tip has-tip--left" data-help-topic="device-releases" data-tip="Disconnecting frees the device slot and spends one transfer on this license.">?</button></span>' : '')
             + '</div>';
