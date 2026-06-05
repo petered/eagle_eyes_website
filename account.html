@@ -2895,7 +2895,15 @@ active: account
     /* Devices-overview flat body: info (left) + actions (right), always shown. */
     .lic-card-body.lic-card-flat { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
     .lic-card-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-    .lic-card-line { font-size: 12.5px; color: #707784; }
+    .lic-card-line { font-size: 12.5px; color: #707784; line-height: 1.5; min-width: 0; }
+    .lic-card-line strong { font-weight: 600; color: #1a1a2e; }
+    .lic-card-line code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11.5px; color: #3a4150;
+        background: #f1f3f7; padding: 1px 6px; border-radius: 5px;
+    }
+    .lic-card-line.lic-card-line-slots { color: #2f3645; }
+    .lic-card-dot { color: #c2c8d2; padding: 0 1px; }
     /* Disconnect button + its transfers caption, stacked and centered. The
        wrap is pinned to the button's width so the caption centers exactly
        under the button (not the wider text). */
@@ -3095,15 +3103,21 @@ active: account
        (see renderSection) whose device list is collapsed behind a toggle.
        Owner/orphan sections get no status class and stay box-less. */
     .lic-card--rich .lic-card-body { padding-bottom: 6px; }
-    .lic-card-fold { margin-top: 10px; }
+    .lic-card-fold { margin-top: 12px; }
+    /* Modern ghost-style disclosure: borderless, hover-tinted pill with a
+       smoothly rotating caret. Negative left margin keeps the label flush to
+       the card body edge despite the hover padding. */
     .lic-card-fold-toggle {
-        appearance: none; border: 1px solid #d7dce4; background: #f6f8fb;
-        color: #2a3550; font-size: 12.5px; font-weight: 600;
-        padding: 6px 11px; border-radius: 8px; cursor: pointer;
-        display: inline-flex; align-items: center; gap: 6px;
+        appearance: none; border: none; background: transparent;
+        color: #475569; font-size: 13px; font-weight: 600;
+        padding: 7px 10px; margin-left: -10px; border-radius: 8px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 7px;
+        transition: background .12s ease, color .12s ease;
     }
-    .lic-card-fold-toggle:hover { background: #eef2f7; border-color: #c7cedb; }
-    .lic-card-fold-toggle .foldcaret { margin-left: 1px; }
+    .lic-card-fold-toggle:hover { background: #f1f5f9; color: #1e293b; }
+    .lic-card-fold-toggle[aria-expanded="true"] { color: #1e293b; }
+    .lic-card-fold-toggle .foldcaret { color: #94a3b8; transition: transform .16s ease; }
+    .lic-card-fold-toggle:hover .foldcaret { color: #64748b; }
     .lic-card-fold-toggle[aria-expanded="true"] .foldcaret { transform: rotate(180deg); }
     /* Device list nests flush inside the card body (drop the .people-list box). */
     .lic-card-devicelist {
@@ -6545,18 +6559,14 @@ active: account
 
           const body = document.createElement('div');
           body.className = 'lic-card-body';
+          // metaHtml is now the full info block (License ID / Expires /
+          // slots · transfers) mirroring the Devices-page license detail.
+          // expiryHtml is folded into it, so it's no longer rendered here.
           if (metaHtml) {
-            const slots = document.createElement('div');
-            slots.className = 'lic-card-slots';
-            slots.innerHTML = metaHtml;
-            body.appendChild(slots);
-          }
-          if (expiryHtml) {
-            const e = document.createElement('div');
-            e.className = 'lic-card-sum-meta';
-            e.style.marginTop = '3px';
-            e.innerHTML = expiryHtml;
-            body.appendChild(e);
+            const info = document.createElement('div');
+            info.className = 'lic-card-info';
+            info.innerHTML = metaHtml;
+            body.appendChild(info);
           }
 
           const n = entries ? entries.length : 0;
@@ -6762,29 +6772,41 @@ active: account
       // shared renderSection() hoisted above.
       activeLicenses.forEach(function(lic) {
         const bucket = bucketsByLicenseId[lic.license_id] || [];
+        // Slots line "X of Y device slots used" — same wording + source as
+        // the Devices-page license detail (dev2BandBody): occupied = total -
+        // keys_left, falling back to the count of devices we can see.
         const totalSlots = (typeof lic.total_keys === 'number') ? lic.total_keys
           : (typeof lic.n_tokens === 'number') ? lic.n_tokens : null;
-        const slotsStr = (totalSlots != null)
-          ? bucket.length + ' / ' + totalSlots + ' device' + (totalSlots === 1 ? '' : 's')
-          : bucket.length + ' device' + (bucket.length === 1 ? '' : 's');
-        // License identity lives in the section header now (name, id,
-        // expiry), so the per-device "Show key" dropdown can drop the
-        // redundant license-info line. Reads: <Name> · id: <license-id> · expires <date>,
-        // with a floating dot separating each segment.
-        // Expiry line for the card body, e.g. "expires 2027-04-20 (320 days
-        // left)". ceil so "expires tomorrow" reads as 1 day.
-        let expiryBody = '';
-        if (lic.expiry_date) {
+        let slotsStr = '';
+        if (totalSlots != null) {
+          const usedSlots = (typeof lic.keys_left === 'number')
+            ? Math.max(0, totalSlots - lic.keys_left) : bucket.length;
+          slotsStr = usedSlots + ' of ' + totalSlots + ' device slot' + (totalSlots === 1 ? '' : 's') + ' used';
+        } else {
+          slotsStr = bucket.length + ' device' + (bucket.length === 1 ? '' : 's');
+        }
+        // Expiry as a precise "Expires YYYY-MM-DD HH:MM TZ" line, matching the
+        // Devices-page detail (drops the "N days left" hint in favour of the
+        // exact timestamp). Falls back to the bare date when no timestamp.
+        let expiryFull = '';
+        if (lic.expiry_date || typeof lic.expiry_timestamp === 'number') {
           const expMs = (typeof lic.expiry_timestamp === 'number')
             ? lic.expiry_timestamp * 1000
             : new Date(lic.expiry_date).getTime();
-          let daysHint = '';
           if (!isNaN(expMs) && expMs) {
-            const dl = Math.ceil((expMs - nowMs) / 86400000);
-            if (dl > 0) daysHint = ' (' + dl + ' day' + (dl === 1 ? '' : 's') + ' left)';
-            else if (dl === 0) daysHint = ' (expires today)';
+            const dt = new Date(expMs);
+            const dstr = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+            const tstr = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            let tz = '';
+            try {
+              const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(dt);
+              const tzp = parts.find(function(p) { return p.type === 'timeZoneName'; });
+              tz = tzp ? tzp.value : '';
+            } catch (e) {}
+            expiryFull = 'Expires ' + dstr + ' ' + tstr + (tz ? ' ' + tz : '');
+          } else if (lic.expiry_date) {
+            expiryFull = 'Expires ' + lic.expiry_date;
           }
-          expiryBody = 'expires ' + escapeHtmlOrg(lic.expiry_date) + daysHint;
         }
         // License status drives the card accent + the badge next to the name.
         // tokenIsActive/tokenDaysLeft are duck-typed on {expiry_*}, which the
@@ -6804,27 +6826,36 @@ active: account
         // dashboard's per-license budget snapshot). Hidden when budget
         // data is missing (e.g., older licenses pre-rollout). Color
         // escalates as headroom shrinks so it grabs attention only when
-        // it matters; the ⓘ delegates to showPlanDetailHelp's existing
+        // it matters; the ? delegates to showPlanDetailHelp's existing
         // "device-releases" topic for the reinstall hint.
         const budget = getLicenseReleaseBudget(lic.license_id);
-        let releasesHtml = '';
+        let transfersHtml = '';
         if (budget) {
           const r = budget.releases_remaining;
           const cls = r === 0 ? 'exhausted' : (r <= 2 ? 'warn' : '');
           const wordCount = r + ' transfer' + (r === 1 ? '' : 's') + ' left';
-          releasesHtml =
-            ' · <span class="device-license-section-releases' + (cls ? ' ' + cls : '') + '">' +
+          transfersHtml =
+            '<span class="device-license-section-releases' + (cls ? ' ' + cls : '') + '">' +
               escapeHtmlOrg(wordCount) +
               '<button type="button" class="plan-detail-help device-license-section-releases-help"' +
                 ' data-help-topic="device-releases"' +
                 ' aria-label="What are device transfers?">?</button>' +
             '</span>';
         }
-        const meta = '<strong>' + slotsStr + '</strong>' + releasesHtml;
+        // Info block mirrors the Devices-page license detail: License ID,
+        // Expires <timestamp>, then "slots used · N transfers left".
+        const slotsAndTransfers = [
+          slotsStr ? '<strong>' + escapeHtmlOrg(slotsStr) + '</strong>' : '',
+          transfersHtml
+        ].filter(Boolean).join(' <span class="lic-card-dot">·</span> ');
+        const infoHtml =
+            (lic.license_id ? '<div class="lic-card-line">License ID: <code>' + escapeHtmlOrg(lic.license_id) + '</code></div>' : '')
+          + (expiryFull ? '<div class="lic-card-line">' + escapeHtmlOrg(expiryFull) + '</div>' : '')
+          + (slotsAndTransfers ? '<div class="lic-card-line lic-card-line-slots">' + slotsAndTransfers + '</div>' : '');
         const entries = bucket.map(function(e) {
           return { device: e.device, tokensToShow: e.tokens };
         });
-        renderSection(title, meta, entries, false, statusKey, expiryBody);
+        renderSection(title, infoHtml, entries, false, statusKey, '');
       });
 
       // Devices without an active license are intentionally NOT shown on the
