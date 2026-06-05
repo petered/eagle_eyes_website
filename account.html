@@ -1963,8 +1963,10 @@ active: account
     .dev2-line .dev2-k { color: #8a93a3; margin-right: 4px; }
     .dev2-line code { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #2a3442; }
     .dev2-line-by { color: #6b7480; }
-    .dev2-detail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 12px; }
-    .dev2-detail-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    /* Action row: Disconnect (with its transfers caption stacked beneath and
+       centered on the button) sits alongside Renew / Add devices, tops aligned. */
+    .dev2-detail-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin-top: 12px; }
+    .dev2-disconnect-stack { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .dev2-empty { color: #9aa0a6; font-size: 12.5px; font-style: italic; }
     .config-card-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .config-card-chips-empty { font-size: 12px; color: #9aa0a6; font-style: italic; }
@@ -10722,13 +10724,13 @@ active: account
             +   (slots ? '<div class="dev2-line">' + escapeHtmlOrg(slots) + '</div>' : '')
             +   (byLine ? '<div class="dev2-line dev2-line-by">' + byLine + '</div>' : '')
             + '</div>'
-            + '<div class="device-row-key-actions dev2-detail-actions">'
-            +   '<div class="dev2-detail-btns">'
+            + '<div class="dev2-detail-actions">'
+            +   '<div class="dev2-disconnect-stack">'
             +     '<button type="button" class="people-icon-btn danger" onclick="onReleaseTokenClick(event)">Disconnect</button>'
-            +     licenseActionButtonsHtml(ov, { renew: true, addDevices: true })
+            +     (transfers ? '<span class="lic-card-transfers">' + escapeHtmlOrg(transfers)
+                      + ' <button type="button" class="plan-detail-help has-tip has-tip--left" data-help-topic="device-releases" data-tip="Disconnecting frees the device slot and spends one transfer on this license.">?</button></span>' : '')
             +   '</div>'
-            +   (transfers ? '<span class="lic-card-transfers">' + escapeHtmlOrg(transfers)
-                    + ' <button type="button" class="plan-detail-help has-tip has-tip--left" data-help-topic="device-releases" data-tip="Disconnecting frees the device slot and spends one transfer on this license.">?</button></span>' : '')
+            +   licenseActionButtonsHtml(ov, { renew: true, addDevices: true })
             + '</div>';
     }
 
