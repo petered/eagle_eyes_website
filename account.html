@@ -10682,11 +10682,24 @@ active: account
 
     function dev2BandBody(d, toks, t) {
         const licenseId = t.license_id || '';
-        const dl = dev2TokenDaysLeft(t);
-        const expiry = t.expiry_date || '';
-        const timeLine = (dl === null) ? 'No expiry'
-            : (dl <= 0) ? 'Expired'
-            : '<strong>' + dl + ' day' + (dl === 1 ? '' : 's') + ' left</strong>' + (expiry ? ' (expires ' + escapeHtmlOrg(expiry) + ')' : '');
+        // "Expires YYYY-MM-DD HH:MM TZ" from the precise timestamp when we have
+        // it, otherwise the bare expiry date.
+        let expLine;
+        const expMs = dev2TokenExpiryMs(t);
+        if (expMs) {
+            const dt = new Date(expMs);
+            const dstr = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+            const tstr = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            let tz = '';
+            try {
+                const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(dt);
+                const tzp = parts.find(function(p) { return p.type === 'timeZoneName'; });
+                tz = tzp ? tzp.value : '';
+            } catch (e) {}
+            expLine = 'Expires ' + dstr + ' ' + tstr + (tz ? ' ' + tz : '');
+        } else {
+            expLine = t.expiry_date ? ('Expires ' + t.expiry_date) : 'No expiry';
+        }
         const ov = (cachedLicenseOverview || []).find(function(l) { return l && l.license_id === licenseId; });
         const slots = (ov && typeof ov.keys_left === 'number' && typeof ov.total_keys === 'number')
             ? ((ov.total_keys - ov.keys_left) + ' of ' + ov.total_keys + ' device slots used') : '';
@@ -10696,7 +10709,8 @@ active: account
         const transfers = (budget && typeof budget.releases_remaining === 'number')
             ? budget.releases_remaining + ' transfer' + (budget.releases_remaining === 1 ? '' : 's') + ' left' : '';
         return '<div class="dev2-detail-lines">'
-            +   '<div class="dev2-line">' + timeLine + '</div>'
+            +   (licenseId ? '<div class="dev2-line dev2-line-licid">License ID: <code>' + escapeHtmlOrg(licenseId) + '</code></div>' : '')
+            +   '<div class="dev2-line">' + escapeHtmlOrg(expLine) + '</div>'
             +   (slots ? '<div class="dev2-line">' + escapeHtmlOrg(slots) + '</div>' : '')
             +   (byLine ? '<div class="dev2-line dev2-line-by">' + byLine + '</div>' : '')
             + '</div>'
