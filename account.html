@@ -10319,6 +10319,10 @@ active: account
         const orgLicenseIds = (org.licenses || []).map(function(l) { return l && l.license_id; }).filter(Boolean);
         const licenses = (cachedLicenseOverview || []).filter(function(l) { return orgLicenseIds.indexOf(l.license_id) !== -1; });
         const shown = licenses.filter(function(l) { return dashLicenseStatus(l).key !== 'expired'; });
+        // Active + future licenses sorted by expiry, latest-expiring first.
+        shown.sort(function(a, b) {
+            return (new Date(b.expiry_date || 0).getTime() || 0) - (new Date(a.expiry_date || 0).getTime() || 0);
+        });
 
         // "See all" links → the matching org views.
         [['dashSeeLicenses', 'license'], ['dashSeeDevices', 'devices'], ['dashSeePeople', 'people']].forEach(function(pair) {
@@ -10333,11 +10337,14 @@ active: account
             if (c.unlimited_active) { creditsVal = 'Unlimited'; creditsSub = 'Annual'; }
             else { creditsVal = '$' + (c.streaming_credits_dollars || 0).toFixed(2); creditsSub = Math.floor(c.streaming_credits_minutes || 0).toLocaleString() + ' min'; }
         } else { kickOffStreamingCreditsFetch(); }
+        var memberCount = (org.members && org.members.length) ? org.members.length
+            : ((org.emails && org.emails.length) ? org.emails.length : 0);
+        var devicesLicensed = orgDevices.filter(function(d) { return (d.n_active_tokens || 0) > 0; }).length;
         var kpis = document.getElementById('dashKpis');
         if (kpis) {
             kpis.innerHTML =
-                dashKpiCard(orgDevices.length, orgDevices.length === 1 ? 'device activated' : 'devices activated') +
-                dashKpiCard(shown.length, shown.length === 1 ? 'active license' : 'active licenses') +
+                dashKpiCard(memberCount, memberCount === 1 ? 'team member' : 'team members') +
+                dashKpiCard(devicesLicensed, devicesLicensed === 1 ? 'device with an active license' : 'devices with an active license') +
                 dashKpiCard(creditsVal, 'streaming credits', creditsSub);
         }
 
