@@ -6524,7 +6524,7 @@ active: account
       // shade of the band tint. Every status is labeled (the colored bar +
       // label together). Reuses the .device-card-license-badge styles.
       function licenseStatusBadge(statusKey) {
-        if (statusKey === 'optin') return '<span class="device-card-license-badge optin">Opted-in</span>';
+        if (statusKey === 'optin') return '<span class="device-card-license-badge optin">Renewal</span>';
         if (statusKey === 'soon') return '<span class="device-card-license-badge soon">Expires soon</span>';
         if (statusKey === 'expired') return '<span class="device-card-license-badge expired">Expired</span>';
         return '<span class="device-card-license-badge active">Active</span>';
@@ -6886,6 +6886,21 @@ active: account
           const sms = new Date(lic.start_at_iso).getTime();
           if (!isNaN(sms)) licStartMs = sms;
         }
+        // Future-start (renewal): show the start date too, formatted like the
+        // Expires line and placed before it (the headline date for a renewal).
+        let startFull = '';
+        if (licStartMs && licStartMs > nowMs) {
+          const sdt = new Date(licStartMs);
+          const sdstr = sdt.getFullYear() + '-' + String(sdt.getMonth() + 1).padStart(2, '0') + '-' + String(sdt.getDate()).padStart(2, '0');
+          const ststr = sdt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+          let stz = '';
+          try {
+            const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(sdt);
+            const p = parts.find(function(x) { return x.type === 'timeZoneName'; });
+            stz = p ? p.value : '';
+          } catch (e) {}
+          startFull = 'Starts ' + sdstr + ' ' + ststr + (stz ? ' ' + stz : '');
+        }
         const statusKey = licenseStatusKey(tokenIsActive(lic), tokenDaysLeft(lic), licStartMs > nowMs);
         const statusBadge = licenseStatusBadge(statusKey);
         // Band content: name span + badge (badge floats right via CSS).
@@ -6920,6 +6935,7 @@ active: account
         ].filter(Boolean).join(' <span class="lic-card-dot">·</span> ');
         const infoHtml =
             (lic.license_id ? '<div class="lic-card-line">License ID: <code>' + escapeHtmlOrg(lic.license_id) + '</code></div>' : '')
+          + (startFull ? '<div class="lic-card-line">' + escapeHtmlOrg(startFull) + '</div>' : '')
           + (expiryFull ? '<div class="lic-card-line">' + escapeHtmlOrg(expiryFull) + '</div>' : '')
           + (slotsAndTransfers ? '<div class="lic-card-line lic-card-line-slots">' + slotsAndTransfers + '</div>' : '');
         const entries = bucket.map(function(e) {
@@ -10278,7 +10294,7 @@ active: account
         return { key: key, daysLeft: st.daysLeft };
     }
     function dashLicenseBadge(key) {
-        const label = key === 'optin' ? 'Opted-in' : key === 'soon' ? 'Expires soon'
+        const label = key === 'optin' ? 'Renewal' : key === 'soon' ? 'Expires soon'
             : key === 'expired' ? 'Expired' : 'Active';
         return '<span class="device-card-license-badge ' + key + '">' + label + '</span>';
     }
@@ -10366,8 +10382,10 @@ active: account
                 var s = dashLicenseStatus(l);
                 var slots = (typeof l.keys_left === 'number' && typeof l.total_keys === 'number')
                     ? ((l.total_keys - l.keys_left) + ' of ' + l.total_keys + ' slots used') : '';
+                // Future-start (renewal): lead with the start date, then expiry.
+                var starts = (s.key === 'optin' && l.start_at_iso) ? ('starts ' + l.start_at_iso) : '';
                 var expiry = l.expiry_date ? ('expires ' + l.expiry_date) : '';
-                var meta = [slots, expiry].filter(Boolean).join('  ·  ');
+                var meta = [slots, starts, expiry].filter(Boolean).join('  ·  ');
                 return '<div class="lic-card status-' + s.key + ' dash-lic-card">'
                     + '<div class="dash-lic-row"><span class="dash-lic-name">' + escapeHtmlOrg(l.license_name || 'License') + '</span>' + dashLicenseBadge(s.key) + '</div>'
                     + (meta ? '<div class="dash-lic-meta">' + escapeHtmlOrg(meta) + '</div>' : '')
@@ -10718,8 +10736,25 @@ active: account
         const budget = getLicenseReleaseBudget(licenseId);
         const transfers = (budget && typeof budget.releases_remaining === 'number')
             ? budget.releases_remaining + ' transfer' + (budget.releases_remaining === 1 ? '' : 's') + ' left' : '';
+        // Future-start (renewal) licenses: show the start date alongside the
+        // expiry so both are visible. Formatted like the Expires line.
+        let startLine = '';
+        const startMs = (ov && ov.start_at_iso) ? new Date(ov.start_at_iso).getTime() : 0;
+        if (startMs && startMs > Date.now()) {
+            const sdt = new Date(startMs);
+            const sd = sdt.getFullYear() + '-' + String(sdt.getMonth() + 1).padStart(2, '0') + '-' + String(sdt.getDate()).padStart(2, '0');
+            const st = sdt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            let stz = '';
+            try {
+                const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(sdt);
+                const p = parts.find(function(x) { return x.type === 'timeZoneName'; });
+                stz = p ? p.value : '';
+            } catch (e) {}
+            startLine = 'Starts ' + sd + ' ' + st + (stz ? ' ' + stz : '');
+        }
         return '<div class="dev2-detail-lines">'
             +   (licenseId ? '<div class="dev2-line dev2-line-licid">License ID: <code>' + escapeHtmlOrg(licenseId) + '</code></div>' : '')
+            +   (startLine ? '<div class="dev2-line">' + escapeHtmlOrg(startLine) + '</div>' : '')
             +   '<div class="dev2-line">' + escapeHtmlOrg(expLine) + '</div>'
             +   (slots ? '<div class="dev2-line">' + escapeHtmlOrg(slots) + '</div>' : '')
             +   (byLine ? '<div class="dev2-line dev2-line-by">' + byLine + '</div>' : '')

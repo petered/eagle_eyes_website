@@ -153,6 +153,14 @@ active: purchase
         font-style: italic;
         line-height: 1.4;
     }
+    /* Under-count heads-up on a downsized renewal. Red like an error, but
+       downsizing is allowed (not blocking), so it's a separate class. */
+    .cart-item-warn {
+        font-size: 12px;
+        color: #c0392b;
+        margin-top: 6px;
+        line-height: 1.4;
+    }
     .cart-item-price {
         font-size: 15px;
         font-weight: 600;
@@ -855,6 +863,17 @@ active: purchase
         return (typeof license.total_keys === 'number') ? license.total_keys
             : (typeof license.n_tokens === 'number') ? license.n_tokens : 0;
     }
+    // Under-count warning copy shared by the renewal picker and the cart's
+    // in-order renewal item: returns the "you've selected fewer devices than
+    // your current license" sentence, or '' when the selection isn't lower.
+    function renewalShortfallText(current, selected) {
+        var shortfall = current - selected;
+        if (!(shortfall > 0)) return '';
+        return 'Your current license has ' + current + (current === 1 ? ' device' : ' devices')
+            + '. You have selected ' + selected + (selected === 1 ? ' device' : ' devices')
+            + ', which is ' + shortfall + (shortfall === 1 ? ' device' : ' devices')
+            + ' less than your current license.';
+    }
     function expiryToTs(expiry) {
         if (expiry == null || expiry === '') return null;
         if (typeof expiry === 'number') return expiry < 1e12 ? expiry * 1000 : expiry;
@@ -1522,14 +1541,8 @@ active: purchase
         // their slots; any excess hit the existing renewal_full 409 and
         // need a release_device_token from the Devices page.
         var maxDevices = Math.min(DEVICE_CAP, currentDevices + 10);
-        var shortfall = currentDevices - newN;
-        var devWarn = shortfall > 0
-            ? '<span class="picker-row-warn">Your current license has ' + currentDevices
-              + (currentDevices === 1 ? ' device' : ' devices')
-              + '. You have selected ' + newN + (newN === 1 ? ' device' : ' devices')
-              + ', which is ' + shortfall + (shortfall === 1 ? ' device' : ' devices')
-              + ' less than your current license.</span>'
-            : '';
+        var shortfallMsg = renewalShortfallText(currentDevices, newN);
+        var devWarn = shortfallMsg ? '<span class="picker-row-warn">' + shortfallMsg + '</span>' : '';
 
         var newName = renewedLicenseName(lic, 365);
         return '<div class="picker-row">'
@@ -1795,7 +1808,9 @@ active: purchase
             var lic = findLicenseById(item.license_id);
             var name = (lic && lic.license_name) || ('License ' + item.license_id);
             var n = item.new_n_tokens || (lic ? deviceCountOf(lic) : 0);
-            var raised = lic && n > deviceCountOf(lic) ? ' (+' + (n - deviceCountOf(lic)) + ' devices)' : '';
+            var cur = lic ? deviceCountOf(lic) : 0;
+            var raised = lic && n > cur ? ' (+' + (n - cur) + ' devices)'
+                : (lic && n < cur ? ' (−' + (cur - n) + ' devices)' : '');
             var newName = lic ? renewedLicenseName(lic, item.duration_days || 365) : '';
             return {
                 title: 'Renew ' + name,
@@ -1899,12 +1914,21 @@ active: purchase
             var errMsg = errorMessageForItem(item);
             var rowClass = 'cart-item' + (errMsg ? ' has-error' : '');
             var inline = inlineEditHtml(item, idx);
+            // Under-count heads-up for a renewal whose device count is below
+            // the current license. Not an error (downsizing is allowed) — a
+            // red caption beneath the editor, same copy as the picker.
+            var warnMsg = '';
+            if (item.sku === 'license_renewal') {
+                var wlic = findLicenseById(item.license_id);
+                if (wlic) warnMsg = renewalShortfallText(deviceCountOf(wlic), item.new_n_tokens || deviceCountOf(wlic));
+            }
             return '<div class="' + rowClass + '" data-item-id="' + esc(item.id) + '">'
                 +   '<div class="cart-item-body">'
                 +     '<div class="cart-item-title">' + esc(d.title) + '</div>'
                 +     '<div class="cart-item-meta">' + esc(d.meta) + '</div>'
                 +     (d.note ? '<div class="cart-item-note">' + esc(d.note) + '</div>' : '')
                 +     (inline ? '<div class="cart-item-edit">' + inline + '</div>' : '')
+                +     (warnMsg ? '<div class="cart-item-warn">' + esc(warnMsg) + '</div>' : '')
                 +     (errMsg ? '<div class="cart-item-error">' + esc(errMsg) + '</div>' : '')
                 +   '</div>'
                 +   '<div class="cart-item-price">' + formatPrice(p) + '</div>'
@@ -1930,17 +1954,13 @@ active: purchase
             if (!lic) return '';
             var current = deviceCountOf(lic);
             var n = item.new_n_tokens || current;
-            var options = '';
-            var maxInDropdown = Math.min(DEVICE_CAP, current + 10);
-            for (var i = 1; i <= maxInDropdown; i++) {
-                var lbl = String(i);
-                if (i === current) lbl += ' (current)';
-                else if (i < current) lbl += ' (−' + (current - i) + ')';
-                else lbl += ' (+' + (i - current) + ')';
-                options += '<option value="' + i + '"' + (i === n ? ' selected' : '') + '>' + lbl + '</option>';
-            }
-            return 'Devices: <select data-edit-field="new_n_tokens" data-id="' + esc(item.id) + '">'
-                + options + '</select>';
+            // Same −/+ stepper as the renewal picker (parity). Downsizing is
+            // allowed; the under-count warning is rendered separately in
+            // renderCart so it can sit on its own line beneath the row.
+            return 'Devices: ' + qtyStepperHtml({
+                value: n, min: 1, max: Math.min(DEVICE_CAP, current + 10),
+                fieldAttrs: 'data-edit-field="new_n_tokens" data-id="' + esc(item.id) + '"'
+            });
         }
         if (item.sku === 'additional_devices') {
             var lic2 = findLicenseById(item.license_id);
