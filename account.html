@@ -1999,10 +1999,19 @@ active: account
 
     /* ===== Dashboard (org overview; default landing) ===== */
     .dash-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
-    .dash-kpi { background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 16px 18px; }
+    .dash-kpi { background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; }
     .dash-kpi-value { font-size: 26px; font-weight: 700; color: #1a2230; line-height: 1.1; }
     .dash-kpi-label { font-size: 13px; color: #5a6573; margin-top: 4px; }
     .dash-kpi-sub { font-size: 12px; color: #9aa0a6; margin-top: 2px; }
+    /* "Add credits" CTA on the streaming-credits KPI; pinned to the bottom-left
+       of the card (margin-top:auto) so the row's cards stay aligned. */
+    .dash-kpi-cta {
+        align-self: flex-start; margin-top: 14px;
+        background: #1e90ff; color: #fff; padding: 7px 13px; border-radius: 8px;
+        font-size: 12.5px; font-weight: 600; text-decoration: none; white-space: nowrap;
+        transition: background-color 0.15s;
+    }
+    .dash-kpi-cta:hover { background: #1873cc; color: #fff; text-decoration: none; }
     .dash-block { margin-bottom: 24px; }
     .dash-block-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
     .dash-block-title { font-size: 16px; font-weight: 700; color: #1a2230; margin: 0; }
@@ -10309,10 +10318,11 @@ active: account
         var months = Math.floor(days / 30);
         return months + (months === 1 ? ' month ago' : ' months ago');
     }
-    function dashKpiCard(value, label, sub) {
+    function dashKpiCard(value, label, sub, ctaHtml) {
         return '<div class="dash-kpi"><div class="dash-kpi-value">' + escapeHtmlOrg(String(value)) + '</div>'
             + '<div class="dash-kpi-label">' + escapeHtmlOrg(label) + '</div>'
-            + (sub ? '<div class="dash-kpi-sub">' + escapeHtmlOrg(sub) + '</div>' : '') + '</div>';
+            + (sub ? '<div class="dash-kpi-sub">' + escapeHtmlOrg(sub) + '</div>' : '')
+            + (ctaHtml || '') + '</div>';
     }
     function dashItemRow(seedForColor, title, sub, badgeHtml) {
         var initial = (title || '?').charAt(0).toUpperCase();
@@ -10369,10 +10379,17 @@ active: account
         var devicesLicensed = orgDevices.filter(function(d) { return (d.n_active_tokens || 0) > 0; }).length;
         var kpis = document.getElementById('dashKpis');
         if (kpis) {
+            // Owner-only "Add credits" CTA on the streaming-credits KPI (the
+            // top-right card). Hidden by default; applyOwnerGatedCtas() shows it
+            // for account owners (re-run below since this KPI is re-rendered).
+            var creditsCta = '<a class="dash-kpi-cta owner-only-cta"'
+                + ' href="{{ "/account/purchase/?add=credits:payg" | relative_url }}"'
+                + ' style="display:none;">+ Add credits</a>';
             kpis.innerHTML =
                 dashKpiCard(memberCount, memberCount === 1 ? 'team member' : 'team members') +
                 dashKpiCard(devicesLicensed, devicesLicensed === 1 ? 'device with an active license' : 'devices with an active license') +
-                dashKpiCard(creditsVal, 'streaming credits', creditsSub);
+                dashKpiCard(creditsVal, 'streaming credits', creditsSub, creditsCta);
+            applyOwnerGatedCtas();
         }
 
         // License cards (top 3 by expiry; "See all licenses" covers the rest).
