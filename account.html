@@ -1903,6 +1903,41 @@ active: account
     .config-card-scope.active   { background: #d6efdd; color: #176a37; }
     .config-card-scope.expired  { background: #f8d4d4; color: #a4271d; }
     .config-card-scope.none     { background: #ececec; color: #777; }
+
+    /* ===== Devices 2 (2-up flip cards) ===== */
+    .dev2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; align-items: start; }
+    @media (max-width: 760px) { .dev2-grid { grid-template-columns: 1fr; } }
+    .dev2-card { background: #fff; border: 1px solid #e2e7ee; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(20,30,55,0.06); }
+    .dev2-head { display: flex; align-items: center; gap: 10px; }
+    .dev2-icon { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; background: #eef1f6; color: #5a6573; display: inline-flex; align-items: center; justify-content: center; }
+    .dev2-icon svg { flex: 0 0 auto; }
+    .dev2-id { flex: 1 1 auto; min-width: 0; }
+    .dev2-name { font-size: 15px; font-weight: 700; color: #1a1a2e; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dev2-drone { font-size: 12px; color: #6b7480; margin-top: 2px; }
+    .dev2-info-btn { flex: 0 0 auto; appearance: none; background: none; border: none; color: #9aa3b0; cursor: pointer; padding: 2px; border-radius: 50%; display: inline-flex; }
+    .dev2-info-btn:hover { color: #1e90ff; }
+    .dev2-info-btn svg { flex: 0 0 auto; }
+    .dev2-config { margin-top: 10px; }
+    .dev2-config-pill { display: inline-block; font-size: 11px; font-weight: 600; color: #6b3fb0; background: #efe7fb; border: 1px solid #ddc9f3; padding: 3px 9px; border-radius: 999px; }
+    .dev2-panel { margin-top: 12px; border-top: 1px solid #eef0f3; padding-top: 12px; min-height: 92px; }
+    .dev2-bands { display: flex; flex-direction: column; gap: 8px; }
+    .dev2-band { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: #fff; border: 1px solid #e3e7ee; border-left: 3px solid #d8dee8; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-family: inherit; }
+    .dev2-band:hover { background: #f7f9fc; }
+    .dev2-band.status-active  { border-left-color: #7fc29a; }
+    .dev2-band.status-soon    { border-left-color: #d4a85f; }
+    .dev2-band.status-optin   { border-left-color: #76a6dd; }
+    .dev2-band.status-expired { border-left-color: #d08983; }
+    .dev2-band-name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: #2a3442; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dev2-band-caret { flex: 0 0 auto; color: #aab2bd; display: inline-flex; }
+    .dev2-back { background: none; border: none; color: #1e90ff; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 0 0 8px; font-family: inherit; }
+    .dev2-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .dev2-detail-lines { display: flex; flex-direction: column; gap: 5px; }
+    .dev2-line { font-size: 13px; color: #3a4150; line-height: 1.4; }
+    .dev2-line .dev2-k { color: #8a93a3; margin-right: 4px; }
+    .dev2-line code { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #2a3442; }
+    .dev2-line-by { color: #6b7480; }
+    .dev2-detail-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 12px; }
+    .dev2-empty { color: #9aa0a6; font-size: 12.5px; font-style: italic; }
     .config-card-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .config-card-chips-empty { font-size: 12px; color: #9aa0a6; font-style: italic; }
     .config-card-chip {
@@ -5860,6 +5895,9 @@ active: account
     // list_account_devices' top-level `users` map. Best-effort: emails with
     // no profile are simply absent, so callers fall back to the bare email.
     let cachedAccountUsers = {};
+    // configuration_id → { name } from list_account_devices' top-level
+    // `configurations` map (mirrors `users`). Resolves a device's config name.
+    let cachedDeviceConfigs = {};
     let accountDevicesLoaded = false;
     let cachedAccountDevicesAccountId = null;
     // In-flight dedupe: the Devices and License views both bail-and-fetch on
@@ -5897,12 +5935,14 @@ active: account
                 );
                 cachedAccountDevices = (data && data.devices) || [];
                 cachedAccountUsers = (data && data.users) || {};
+                cachedDeviceConfigs = (data && data.configurations) || {};
                 cachedAccountDevicesAccountId = String(accountId);
                 accountDevicesLoaded = true;
             } catch (err) {
                 console.error('list_account_devices failed:', err);
                 cachedAccountDevices = [];
                 cachedAccountUsers = {};
+                cachedDeviceConfigs = {};
                 cachedAccountDevicesAccountId = String(accountId);
                 accountDevicesLoaded = true;
             } finally {
@@ -9930,6 +9970,22 @@ active: account
         return ([info.first_name, info.last_name].filter(Boolean).join(' ') || info.name || '').trim();
     }
 
+    // Profile name for an org member, sourced from org.members[] (the
+    // get_account_dashboard payload, which carries the user-collection profile
+    // name set via update_user_profile). Falls back to the list_account_devices
+    // users map only when members[] has no name — that map's `name` is the
+    // older signup-form value, which is what we're moving away from here.
+    function memberProfileName(org, email) {
+        const e = String(email || '').toLowerCase();
+        const members = (org && Array.isArray(org.members)) ? org.members : [];
+        const m = members.find(function(x) { return String(x.email || '').toLowerCase() === e; });
+        if (m) {
+            const n = (m.name || [m.first_name, m.last_name].filter(Boolean).join(' ') || '').trim();
+            if (n) return n;
+        }
+        return displayNameForEmail(email);
+    }
+
     function renderActiveMembers(source) {
         const container = document.getElementById('membersContent');
         if (!container) return;
@@ -10112,6 +10168,47 @@ active: account
             if (btn) { btn.disabled = false; btn.textContent = '× Remove Admin'; }
         }
     }
+
+    // Admin demote ladder (kebab on an Admin row). Each removes the account
+    // owner (Admin) role first, then adjusts the team role:
+    //   Demote to Manager → keep/set the org manager role (add_admin if needed)
+    //   Demote to Member  → also drop the manager role (remove_admin)
+    //   Remove from team  → also leave the org (remove_member)
+    async function adminRoleTransition(accountId, orgId, email, orgEndpoint, successMsg, btn) {
+        if (btn) btn.disabled = true;
+        const lc = String(email).toLowerCase();
+        try {
+            const data = await orgApiCall('remove_account_owner',
+                { account_id: Number(accountId), email: lc }, false, 'POST');
+            applyAccountMembers(accountId, data && data.members);
+            if (orgEndpoint) {
+                await orgApiCall(orgEndpoint, { org_id: orgId, value: lc }, false, 'POST');
+            }
+            try { await fetchMyOrganization(); } catch (e) { /* best-effort reconcile */ }
+            showToast(successMsg, 'success');
+            refreshPeopleAfterAdminChange();
+        } catch (err) {
+            const msg = (err && err.status === 409) ? 'You can\'t remove the last Admin. Add another Admin first.'
+                : (err && err.status === 403) ? 'Only an Admin can change another Admin\'s role.'
+                : (err && err.message) || 'Could not update role.';
+            showToast(msg, 'error');
+            if (btn) btn.disabled = false;
+        }
+    }
+    window.adminDemoteToManager = function(accountId, orgId, email, btn) {
+        const org = findOrgById(orgId);
+        const lc = String(email).toLowerCase();
+        const isMgr = !!(org && Array.isArray(org.admin_emails)
+            && org.admin_emails.some(function(e) { return String(e).toLowerCase() === lc; }));
+        return adminRoleTransition(accountId, orgId, email, isMgr ? null : 'add_admin', email + ' is now a Manager.', btn);
+    };
+    window.adminDemoteToMember = function(accountId, orgId, email, btn) {
+        return adminRoleTransition(accountId, orgId, email, 'remove_admin', email + ' is now a Member.', btn);
+    };
+    window.adminRemoveFromTeam = function(accountId, orgId, email, btn) {
+        if (!window.confirm('Remove ' + email + ' from this team? They lose Admin access and team membership.')) return;
+        return adminRoleTransition(accountId, orgId, email, 'remove_member', email + ' was removed from the team.', btn);
+    };
 
     // Add-Admin form submit (new email → account owner).
     function peopleAddAdmin(event, accountId) {
@@ -10296,7 +10393,7 @@ active: account
             .then(function(data) { dashUsageCache = data; drawDashUsage(el, data); })
             .catch(function(err) {
                 console.warn('get_streaming_usage_history failed:', err);
-                el.innerHTML = '<div class="dash-empty">Usage data is not available yet.</div>';
+                el.innerHTML = '<div class="dash-empty">Couldn\'t load usage right now.</div>';
             });
     }
     function drawDashUsage(el, data) {
@@ -10330,7 +10427,57 @@ active: account
     }
 
     // ===== Devices 2 (experimental: one config-style card per device) =====
-    const DEVICE2_GLYPH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="9" x2="8" y2="5"/><line x1="16" y1="9" x2="16" y2="5"/><rect x="3" y="9" width="18" height="10" rx="2"/><circle cx="8" cy="14" r="1.4"/><circle cx="16" cy="14" r="1.4"/></svg>';
+    const DEVICE2_GLYPH = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="9" x2="8" y2="5"/><line x1="16" y1="9" x2="16" y2="5"/><rect x="3" y="9" width="18" height="10" rx="2"/><circle cx="8" cy="14" r="1.4"/><circle cx="16" cy="14" r="1.4"/></svg>';
+    const DEV2_INFO_GLYPH = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>';
+    const DEV2_CARET_R = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+    const DEV2_BACK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+
+    // Inline token helpers — the originals (tokenIsActive/tokenDaysLeft/…) are
+    // nested in another function and out of scope here.
+    function dev2TokenExpiryMs(t) {
+        if (t && typeof t.expiry_timestamp === 'number') return t.expiry_timestamp * 1000;
+        if (t && t.expiry_date) { const ms = new Date(t.expiry_date).getTime(); return isNaN(ms) ? 0 : ms; }
+        return 0;
+    }
+    function dev2TokenActive(t) { const ms = dev2TokenExpiryMs(t); return ms === 0 ? true : ms > Date.now(); }
+    function dev2TokenDaysLeft(t) { const ms = dev2TokenExpiryMs(t); return ms ? Math.ceil((ms - Date.now()) / 86400000) : null; }
+    function dev2LicStatusKey(t) {
+        const ov = (cachedLicenseOverview || []).find(function(l) { return l && l.license_id === t.license_id; });
+        const futureStart = !!(ov && ov.start_at_iso && new Date(ov.start_at_iso).getTime() > Date.now());
+        if (futureStart) return 'optin';
+        if (!dev2TokenActive(t)) return 'expired';
+        const dl = dev2TokenDaysLeft(t);
+        if (dl !== null && dl >= 0 && dl <= 30) return 'soon';
+        return 'active';
+    }
+    function dev2GroupEmails(toks) {
+        const out = [];
+        (toks || []).forEach(function(t) {
+            const e = String(t.user_email || t.email || '').toLowerCase();
+            if (e && out.indexOf(e) === -1) out.push(e);
+        });
+        return out;
+    }
+    function dev2DroneLine(d) {
+        const model = String((d && d.aircraft_model) || '').trim();
+        if (!model) return '';
+        return (d.is_dji_device ? 'DJI ' : '') + model;
+    }
+    function dev2ConfigName(d) {
+        const id = d && d.configuration_id;
+        if (!id) return null;
+        const c = cachedDeviceConfigs[id];
+        if (c && c.name) return c.name;
+        return c ? 'Unnamed configuration' : 'Unknown configuration';
+    }
+    function dev2LicenseGroups(d) {
+        const g = {};
+        (d.tokens || []).forEach(function(t) { const k = t.license_id || t.token_id || ''; (g[k] = g[k] || []).push(t); });
+        return Object.keys(g).map(function(k) {
+            return g[k].slice().sort(function(a, b) { return dev2TokenExpiryMs(b) - dev2TokenExpiryMs(a); });
+        });
+    }
+
     function renderActiveDevices2(source) {
         const container = document.getElementById('devices2Content');
         if (!container) return;
@@ -10340,48 +10487,140 @@ active: account
             fetchAccountDevicesForActiveAccount();
             return;
         }
-        const devices = filterDevicesForOrg(source);
+        const devices = filterDevicesForOrg(source).slice().sort(function(a, b) {
+            return (b.last_activated_at || 0) - (a.last_activated_at || 0);
+        });
         if (!devices.length) {
             container.innerHTML = '<div class="configurations-empty">No devices activated on this team yet.</div>';
             return;
         }
-        // Newest activity first (use the device-level activation timestamp;
-        // deviceMostRecentActivationMs/deviceHasActiveToken are nested in
-        // another function and not in scope here).
-        const sorted = devices.slice().sort(function(a, b) {
-            return (b.last_activated_at || 0) - (a.last_activated_at || 0);
+        container.innerHTML = '<div class="dev2-grid">' + devices.map(dev2Card).join('') + '</div>';
+    }
+
+    function dev2Card(d) {
+        const name = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'Device';
+        const alias = machineIdToAliasDisplay(d.machine_id || '');
+        const active = (d.n_active_tokens || 0) > 0;
+        const hasTokens = (d.tokens || []).length > 0;
+        const statusKey = active ? 'active' : (hasTokens ? 'expired' : 'none');
+        const statusLabel = active ? 'Active' : (hasTokens ? 'Expired' : 'No license');
+        const drone = dev2DroneLine(d);
+        const cfg = dev2ConfigName(d);
+        const aliasPill = (alias && alias.toLowerCase() !== String(name).toLowerCase())
+            ? '<span class="device-card-alias has-tip has-tip--left" tabindex="0" data-tip="Auto-assigned memorable name for this device.">' + escapeHtmlOrg(alias) + '</span>'
+            : '';
+        return '<div class="dev2-card" data-machine="' + escapeHtmlAttr(d.machine_id || '') + '">'
+            + '<div class="dev2-head">'
+            +   '<span class="dev2-icon">' + DEVICE2_GLYPH + '</span>'
+            +   '<div class="dev2-id"><div class="dev2-name">' + escapeHtmlOrg(name) + aliasPill + '</div>'
+            +     (drone ? '<div class="dev2-drone">' + escapeHtmlOrg(drone) + '</div>' : '')
+            +   '</div>'
+            +   '<button type="button" class="dev2-info-btn" data-act="info" aria-label="Device details">' + DEV2_INFO_GLYPH + '</button>'
+            +   '<span class="config-card-scope ' + statusKey + '">' + statusLabel + '</span>'
+            + '</div>'
+            + (cfg ? '<div class="dev2-config"><span class="dev2-config-pill">' + escapeHtmlOrg(cfg) + '</span></div>' : '')
+            + '<div class="dev2-panel">' + dev2PanelList(d) + '</div>'
+            + '</div>';
+    }
+
+    function dev2PanelList(d) {
+        const groups = dev2LicenseGroups(d);
+        if (!groups.length) return '<div class="dev2-empty">No licenses on this device.</div>';
+        return '<div class="dev2-bands">' + groups.map(function(toks) {
+            const t = toks[0];
+            const key = dev2LicStatusKey(t);
+            return '<button type="button" class="dev2-band status-' + key + '" data-act="lic" data-lic="' + escapeHtmlAttr(t.license_id || '') + '">'
+                + '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
+                + dashLicenseBadge(key)
+                + '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
+                + '</button>';
+        }).join('') + '</div>';
+    }
+
+    // License detail shown in the swapped panel. Built as a .device-row-key so
+    // the existing onReleaseTokenClick disconnect handler works unchanged.
+    function dev2LicenseDetail(d, licenseId) {
+        const groups = dev2LicenseGroups(d);
+        let toks = null;
+        for (let i = 0; i < groups.length; i++) { if ((groups[i][0].license_id || '') === licenseId) { toks = groups[i]; break; } }
+        if (!toks) return dev2PanelList(d);
+        const t = toks[0];
+        const key = dev2LicStatusKey(t);
+        const dl = dev2TokenDaysLeft(t);
+        const expiry = t.expiry_date || '';
+        const timeLine = (dl === null) ? 'No expiry'
+            : (dl <= 0) ? 'Expired'
+            : '<strong>' + dl + ' day' + (dl === 1 ? '' : 's') + ' left</strong>' + (expiry ? ' (expires ' + escapeHtmlOrg(expiry) + ')' : '');
+        const ov = (cachedLicenseOverview || []).find(function(l) { return l && l.license_id === licenseId; });
+        const slots = (ov && typeof ov.keys_left === 'number' && typeof ov.total_keys === 'number')
+            ? ((ov.total_keys - ov.keys_left) + ' of ' + ov.total_keys + ' device slots used') : '';
+        const emails = dev2GroupEmails(toks);
+        const byLine = emails.length ? 'Activated on this device by: ' + escapeHtmlOrg(emails.join(', ')) : '';
+        const deviceDisplayName = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'this device';
+        const budget = getLicenseReleaseBudget(licenseId);
+        const transfers = (budget && typeof budget.releases_remaining === 'number')
+            ? budget.releases_remaining + ' transfer' + (budget.releases_remaining === 1 ? '' : 's') + ' left' : '';
+        const tokenIds = toks.map(function(x) { return x.token_id || ''; }).filter(Boolean).join(',');
+        return '<div class="dev2-detail device-row-key status-' + key + '"'
+            + ' data-token-id="' + escapeHtmlAttr(t.token_id || '') + '"'
+            + ' data-token-ids="' + escapeHtmlAttr(tokenIds) + '"'
+            + ' data-license-id="' + escapeHtmlAttr(licenseId) + '"'
+            + ' data-license-name="' + escapeHtmlAttr(t.license_name || '') + '"'
+            + ' data-device-display-name="' + escapeHtmlAttr(deviceDisplayName) + '"'
+            + ' data-device-email="' + escapeHtmlAttr(emails.join(', ')) + '">'
+            + '<button type="button" class="dev2-back" data-act="back">' + DEV2_BACK + ' Back</button>'
+            + '<div class="dev2-detail-head"><span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>' + dashLicenseBadge(key) + '</div>'
+            + '<div class="dev2-detail-lines">'
+            +   '<div class="dev2-line">' + timeLine + '</div>'
+            +   (slots ? '<div class="dev2-line">' + escapeHtmlOrg(slots) + '</div>' : '')
+            +   (byLine ? '<div class="dev2-line dev2-line-by">' + byLine + '</div>' : '')
+            + '</div>'
+            + '<div class="device-row-key-actions dev2-detail-actions">'
+            +   '<button type="button" class="people-icon-btn danger" onclick="onReleaseTokenClick(event)">Disconnect</button>'
+            +   (transfers ? '<span class="lic-card-transfers">' + escapeHtmlOrg(transfers)
+                    + ' <button type="button" class="plan-detail-help has-tip has-tip--left" data-help-topic="device-releases" data-tip="Disconnecting frees the device slot and spends one transfer on this license.">?</button></span>' : '')
+            + '</div>'
+            + '</div>';
+    }
+
+    function dev2InfoDetail(d) {
+        const rows = [];
+        if (d.machine_id) rows.push(['Machine ID', d.machine_id]);
+        if (d.dji_device_type && d.dji_device_type !== 'unknown') rows.push(['Controller', d.dji_device_type]);
+        const drone = dev2DroneLine(d);
+        if (drone) rows.push(['Drone', drone]);
+        if (d.firmware_version) rows.push(['Firmware', d.firmware_version]);
+        if (d.android_version) rows.push(['Android', d.android_version]);
+        const body = rows.length
+            ? rows.map(function(r) { return '<div class="dev2-line"><span class="dev2-k">' + escapeHtmlOrg(r[0]) + '</span> <code>' + escapeHtmlOrg(String(r[1])) + '</code></div>'; }).join('')
+            : '<div class="dev2-empty">No extra details reported by this device.</div>';
+        return '<div class="dev2-detail">'
+            + '<button type="button" class="dev2-back" data-act="back">' + DEV2_BACK + ' Back</button>'
+            + '<div class="dev2-detail-lines">' + body + '</div>'
+            + '</div>';
+    }
+
+    // Panel-swap interaction (delegated, attached once). Clicking a license
+    // band / the ⓘ swaps the card's lower panel to that detail; Back restores
+    // the license list. The card keeps its place in the grid (no reflow).
+    if (!window.__dev2Init) {
+        window.__dev2Init = true;
+        document.addEventListener('click', function(e) {
+            const trigger = e.target.closest('[data-act]');
+            if (!trigger) return;
+            const card = trigger.closest('.dev2-card');
+            if (!card) return;
+            const act = trigger.getAttribute('data-act');
+            if (act !== 'lic' && act !== 'info' && act !== 'back') return;
+            const machine = card.getAttribute('data-machine') || '';
+            const d = (cachedAccountDevices || []).find(function(x) { return String(x.machine_id || '') === machine; });
+            if (!d) return;
+            const panel = card.querySelector('.dev2-panel');
+            if (!panel) return;
+            if (act === 'lic') panel.innerHTML = dev2LicenseDetail(d, trigger.getAttribute('data-lic') || '');
+            else if (act === 'info') panel.innerHTML = dev2InfoDetail(d);
+            else panel.innerHTML = dev2PanelList(d);
         });
-        let html = '<div class="config-grid">';
-        sorted.forEach(function(d) {
-            const name = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'Device';
-            const active = (d.n_active_tokens || 0) > 0;
-            const hasTokens = (d.tokens || []).length > 0;
-            const statusKey = active ? 'active' : (hasTokens ? 'expired' : 'none');
-            const statusLabel = active ? 'Active' : (hasTokens ? 'Expired' : 'No license');
-            const machineId = d.machine_id || '';
-            const email = (d.emails && d.emails[0]) || '';
-            const latestTok = (d.tokens || [])[0] || null;
-            const licName = latestTok ? (latestTok.license_name || '') : '';
-            const chips = [];
-            if (machineId) chips.push(configChip('ID', machineId));
-            if (d.dji_device_type) chips.push(configChip('Type', d.dji_device_type));
-            if (d.android_version) chips.push(configChip('Android', d.android_version));
-            if (licName) chips.push(configChip('License', licName));
-            if (email) chips.push(configChip('By', email));
-            const chipsHtml = chips.length
-                ? '<div class="config-card-chips">' + chips.join('') + '</div>'
-                : '<div class="config-card-chips"><span class="config-card-chips-empty">No details</span></div>';
-            html += '<div class="config-card device2-card">'
-                + '<div class="config-card-head">'
-                +   '<span class="config-card-icon">' + DEVICE2_GLYPH + '</span>'
-                +   '<span class="config-card-name">' + escapeHtmlOrg(name) + '</span>'
-                +   '<span class="config-card-scope ' + statusKey + '">' + statusLabel + '</span>'
-                + '</div>'
-                + chipsHtml
-                + '</div>';
-        });
-        html += '</div>';
-        container.innerHTML = html;
     }
 
     function renderActiveConfigurations(source) {
@@ -10533,7 +10772,7 @@ active: account
         const left = document.createElement('div');
         left.className = 'people-row-left';
         const avatarColor = colorForEmail(email);
-        const dispName = displayNameForEmail(email);
+        const dispName = memberProfileName(org, email);
         const initial = ((dispName || email).charAt(0) || '?').toUpperCase();
 
         // One badge — the highest role. Admin outranks Manager outranks
@@ -10592,12 +10831,19 @@ active: account
         if (ctx.callerIsAccountAdmin && ctx.accountId != null) {
             const accIdAttr = escapeAttrOrg(String(ctx.accountId));
             if (d.isBillingAdmin) {
+                // Admin demote ladder. All three drop the Admin (account owner)
+                // role, so all are gated by the last-Admin guard.
                 if (ctx.canRemoveAdmin) {
+                    const oid = ctx.orgIdAttr;
+                    items.push('<button class="people-kebab-item"'
+                        + ' onclick="adminDemoteToManager(\'' + accIdAttr + '\', \'' + oid + '\', \'' + emailAttr + '\', this)">Demote to Manager</button>');
+                    items.push('<button class="people-kebab-item"'
+                        + ' onclick="adminDemoteToMember(\'' + accIdAttr + '\', \'' + oid + '\', \'' + emailAttr + '\', this)">Demote to Member</button>');
                     items.push('<button class="people-kebab-item danger"'
-                        + ' onclick="peopleRemoveAdmin(\'' + accIdAttr + '\', \'' + emailAttr + '\', this)">Remove Admin</button>');
+                        + ' onclick="adminRemoveFromTeam(\'' + accIdAttr + '\', \'' + oid + '\', \'' + emailAttr + '\', this)">Remove from team</button>');
                 } else {
-                    items.push('<button class="people-kebab-item danger" disabled'
-                        + ' title="Add another Admin before removing the last one">Remove Admin</button>');
+                    items.push('<button class="people-kebab-item" disabled'
+                        + ' title="Add another Admin before changing the last Admin’s role">Demote / remove Admin</button>');
                 }
             } else {
                 items.push('<button class="people-kebab-item"'
