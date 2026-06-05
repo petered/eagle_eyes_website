@@ -1947,6 +1947,13 @@ active: account
     .dev2-info-body { margin-bottom: 12px; padding: 10px 12px; background: #f7f9fc; border: 1px solid #eef0f3; border-radius: 8px; }
     .dev2-info-body[hidden] { display: none; }
     .dev2-info-btn.is-on { color: #1e90ff; }
+    /* Devices 2 controls spacing + Group-by-Owner sections. */
+    #devices2Content .devices-controls { margin-bottom: 16px; }
+    .dev2-owner-group { margin-bottom: 20px; }
+    .dev2-owner-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .dev2-owner-id { min-width: 0; }
+    .dev2-owner-name { font-size: 14px; font-weight: 700; color: #1a2230; }
+    .dev2-owner-email { font-size: 12.5px; color: #7a828e; }
     .dev2-back { background: none; border: none; color: #1e90ff; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 0 0 8px; font-family: inherit; }
     .dev2-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .dev2-detail-lines { display: flex; flex-direction: column; gap: 5px; }
@@ -3582,7 +3589,6 @@ active: account
         <section id="devices2Section" class="account-section" style="display: none;">
             <header class="account-section-header">
                 <h2 class="account-section-title">Devices 2</h2>
-                <p class="account-section-hint">Experimental card view — one card per device. Compare with the Devices page.</p>
             </header>
             <div id="devices2Content"></div>
         </section>
@@ -10497,6 +10503,56 @@ active: account
         });
     }
 
+    // Filters mirroring the Devices view: Group by Device/Owner + Show all/mine.
+    let dev2Mode = 'by-machine';   // 'by-machine' | 'by-email'
+    let dev2Scope = 'all';         // 'all' | 'mine'
+    const DEV2_ICON_DEVICE = '<svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>';
+    const DEV2_ICON_OWNER = '<svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    function dev2Controls() {
+        function btn(act, val, cur, label, icon) {
+            return '<button type="button" class="devices-view-toggle-btn' + (val === cur ? ' is-active' : '') + '"'
+                + ' data-act="' + act + '" data-val="' + val + '" aria-pressed="' + (val === cur ? 'true' : 'false') + '" role="tab">'
+                + (icon || '') + label + '</button>';
+        }
+        return '<div class="devices-controls">'
+            + '<span class="devices-group-label">Group by:</span>'
+            + '<div class="devices-view-toggle" role="tablist" aria-label="Group devices by">'
+            +   btn('dev2mode', 'by-machine', dev2Mode, 'Device', DEV2_ICON_DEVICE)
+            +   btn('dev2mode', 'by-email', dev2Mode, 'Owner', DEV2_ICON_OWNER)
+            + '</div>'
+            + '<span class="devices-group-label">Show:</span>'
+            + '<div class="devices-view-toggle devices-scope-toggle" role="tablist" aria-label="Filter devices">'
+            +   btn('dev2scope', 'all', dev2Scope, 'All devices', '')
+            +   btn('dev2scope', 'mine', dev2Scope, 'Activated by me', '')
+            + '</div>'
+            + '</div>';
+    }
+    // Group device cards under owner-email sections (Group by Owner). A device
+    // with multiple activators appears under each.
+    function dev2OwnerGroups(source, devices) {
+        const groups = {};
+        devices.forEach(function(d) {
+            const emails = (d.emails && d.emails.length) ? d.emails : [''];
+            emails.forEach(function(e) {
+                const k = String(e || '').toLowerCase() || '(unknown)';
+                if (!groups[k]) groups[k] = { email: e || '', devices: [] };
+                groups[k].devices.push(d);
+            });
+        });
+        const org = source && source.org;
+        return Object.keys(groups).sort().map(function(k) {
+            const g = groups[k];
+            const name = (org ? memberProfileName(org, g.email) : displayNameForEmail(g.email)) || '';
+            const initial = ((name || g.email || '?').charAt(0) || '?').toUpperCase();
+            const head = '<div class="dev2-owner-head">'
+                + '<span class="dash-avatar" style="background:' + colorForEmail(g.email || k) + '">' + escapeHtmlOrg(initial) + '</span>'
+                + '<div class="dev2-owner-id">'
+                +   (name ? '<div class="dev2-owner-name">' + escapeHtmlOrg(name) + '</div>' : '')
+                +   '<div class="dev2-owner-email">' + escapeHtmlOrg(g.email || 'Unknown') + '</div>'
+                + '</div></div>';
+            return '<div class="dev2-owner-group">' + head + '<div class="dev2-grid">' + g.devices.map(dev2Card).join('') + '</div></div>';
+        }).join('');
+    }
     function renderActiveDevices2(source) {
         const container = document.getElementById('devices2Content');
         if (!container) return;
@@ -10506,14 +10562,26 @@ active: account
             fetchAccountDevicesForActiveAccount();
             return;
         }
-        const devices = filterDevicesForOrg(source).slice().sort(function(a, b) {
-            return (b.last_activated_at || 0) - (a.last_activated_at || 0);
-        });
-        if (!devices.length) {
-            container.innerHTML = '<div class="configurations-empty">No devices activated on this team yet.</div>';
-            return;
+        let devices = filterDevicesForOrg(source);
+        if (dev2Scope === 'mine') {
+            const me = ((firebase.auth().currentUser || {}).email || '').toLowerCase();
+            if (me) devices = devices.filter(function(d) {
+                return (d.emails || []).some(function(e) { return String(e || '').toLowerCase() === me; })
+                    || (d.tokens || []).some(function(t) { return String((t && (t.user_email || t.email)) || '').toLowerCase() === me; });
+            });
         }
-        container.innerHTML = '<div class="dev2-grid">' + devices.map(dev2Card).join('') + '</div>';
+        devices = devices.slice().sort(function(a, b) { return (b.last_activated_at || 0) - (a.last_activated_at || 0); });
+        let body;
+        if (!devices.length) {
+            body = '<div class="configurations-empty">' + (dev2Scope === 'mine'
+                ? 'You haven\'t activated any devices on this team yet.'
+                : 'No devices activated on this team yet.') + '</div>';
+        } else if (dev2Mode === 'by-email') {
+            body = dev2OwnerGroups(source, devices);
+        } else {
+            body = '<div class="dev2-grid">' + devices.map(dev2Card).join('') + '</div>';
+        }
+        container.innerHTML = dev2Controls() + body;
     }
 
     function dev2Card(d) {
@@ -10653,6 +10721,12 @@ active: account
                 const card = trigger.closest('.dev2-card');
                 const info = card && card.querySelector('.dev2-info-body');
                 if (info) { info.hidden = !info.hidden; trigger.classList.toggle('is-on', !info.hidden); }
+            } else if (act === 'dev2mode' || act === 'dev2scope') {
+                const val = trigger.getAttribute('data-val');
+                if (act === 'dev2mode') { if (dev2Mode === val) return; dev2Mode = val; }
+                else { if (dev2Scope === val) return; dev2Scope = val; }
+                const src = getActiveSource();
+                if (src) renderActiveDevices2(src);
             }
         });
     }
