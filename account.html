@@ -10615,13 +10615,20 @@ active: account
     // Date phrase shown next to a license name: starts on / expires on / expired on.
     function dev2DatePhrase(t, key) {
         if (key === 'optin') {
+            // Future-start license: count down to its start date.
             const ov = (cachedLicenseOverview || []).find(function(l) { return l && l.license_id === t.license_id; });
-            const start = (ov && ov.start_at_iso) ? String(ov.start_at_iso).slice(0, 10) : '';
-            return start ? 'starts on ' + start : 'starts later';
+            const startMs = (ov && ov.start_at_iso) ? new Date(ov.start_at_iso).getTime() : 0;
+            if (startMs) {
+                const d = Math.ceil((startMs - Date.now()) / 86400000);
+                return d > 0 ? ('starts in ' + d + ' day' + (d === 1 ? '' : 's')) : 'starts soon';
+            }
+            return 'starts later';
         }
-        const exp = t.expiry_date || '';
-        if (key === 'expired') return exp ? 'expired on ' + exp : 'expired';
-        return exp ? 'expires on ' + exp : 'no expiry';
+        const dl = dev2TokenDaysLeft(t);
+        if (dl === null) return '';
+        if (dl < 0) { const a = -dl; return 'expired ' + a + ' day' + (a === 1 ? '' : 's') + ' ago'; }
+        if (dl === 0) return 'expires today';
+        return dl + ' day' + (dl === 1 ? '' : 's') + ' left';
     }
     // Licenses to show on the card: the non-expired ones; if there are none,
     // just the single most-recent (historic) license so the device still shows
@@ -10664,6 +10671,7 @@ active: account
             + '<div class="dev2-band-head" data-act="toggle" role="button" tabindex="0">'
             +   '<span class="dev2-band-icon">' + DEV2_KEY_GLYPH + '</span>'
             +   '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
+            +   dashLicenseBadge(key)
             +   '<span class="dev2-band-date">' + escapeHtmlOrg(dev2DatePhrase(t, key)) + '</span>'
             +   '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
             + '</div>'
