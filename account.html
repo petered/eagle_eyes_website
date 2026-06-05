@@ -1919,7 +1919,8 @@ active: account
     .dev2-info-btn svg { flex: 0 0 auto; }
     .dev2-config { margin-top: 10px; }
     .dev2-config-pill { display: inline-block; font-size: 11px; font-weight: 600; color: #6b3fb0; background: #efe7fb; border: 1px solid #ddc9f3; padding: 3px 9px; border-radius: 999px; }
-    .dev2-panel { margin-top: 12px; border-top: 1px solid #eef0f3; padding-top: 12px; min-height: 92px; }
+    .dev2-panel { margin-top: 12px; border-top: 1px solid #eef0f3; padding-top: 12px; min-height: 118px; }
+    .dev2-lic-label { font-size: 12px; font-weight: 600; color: #6b7480; margin-bottom: 8px; }
     .dev2-bands { display: flex; flex-direction: column; gap: 8px; }
     .dev2-band { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: #fff; border: 1px solid #e3e7ee; border-left: 3px solid #d8dee8; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-family: inherit; }
     .dev2-band:hover { background: #f7f9fc; }
@@ -1927,8 +1928,10 @@ active: account
     .dev2-band.status-soon    { border-left-color: #d4a85f; }
     .dev2-band.status-optin   { border-left-color: #76a6dd; }
     .dev2-band.status-expired { border-left-color: #d08983; }
-    .dev2-band-name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: #2a3442; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dev2-band-caret { flex: 0 0 auto; color: #aab2bd; display: inline-flex; }
+    .dev2-band-icon { flex: 0 0 auto; color: #5a6573; display: inline-flex; }
+    .dev2-band-name { flex: 0 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: #2a3442; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dev2-band-date { flex: 0 0 auto; font-size: 12px; color: #8a93a3; white-space: nowrap; }
+    .dev2-band-caret { flex: 0 0 auto; margin-left: auto; color: #aab2bd; display: inline-flex; }
     .dev2-back { background: none; border: none; color: #1e90ff; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 0 0 8px; font-family: inherit; }
     .dev2-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .dev2-detail-lines { display: flex; flex-direction: column; gap: 5px; }
@@ -10431,6 +10434,7 @@ active: account
     const DEV2_INFO_GLYPH = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>';
     const DEV2_CARET_R = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
     const DEV2_BACK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+    const DEV2_KEY_GLYPH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4"/><path d="m18 5 2 2"/><path d="m15 8 2 2"/></svg>';
 
     // Inline token helpers — the originals (tokenIsActive/tokenDaysLeft/…) are
     // nested in another function and out of scope here.
@@ -10500,10 +10504,6 @@ active: account
     function dev2Card(d) {
         const name = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'Device';
         const alias = machineIdToAliasDisplay(d.machine_id || '');
-        const active = (d.n_active_tokens || 0) > 0;
-        const hasTokens = (d.tokens || []).length > 0;
-        const statusKey = active ? 'active' : (hasTokens ? 'expired' : 'none');
-        const statusLabel = active ? 'Active' : (hasTokens ? 'Expired' : 'No license');
         const drone = dev2DroneLine(d);
         const cfg = dev2ConfigName(d);
         const aliasPill = (alias && alias.toLowerCase() !== String(name).toLowerCase())
@@ -10516,25 +10516,49 @@ active: account
             +     (drone ? '<div class="dev2-drone">' + escapeHtmlOrg(drone) + '</div>' : '')
             +   '</div>'
             +   '<button type="button" class="dev2-info-btn" data-act="info" aria-label="Device details">' + DEV2_INFO_GLYPH + '</button>'
-            +   '<span class="config-card-scope ' + statusKey + '">' + statusLabel + '</span>'
             + '</div>'
             + (cfg ? '<div class="dev2-config"><span class="dev2-config-pill">' + escapeHtmlOrg(cfg) + '</span></div>' : '')
             + '<div class="dev2-panel">' + dev2PanelList(d) + '</div>'
             + '</div>';
     }
 
+    // Date phrase shown next to a license name: starts on / expires on / expired on.
+    function dev2DatePhrase(t, key) {
+        if (key === 'optin') {
+            const ov = (cachedLicenseOverview || []).find(function(l) { return l && l.license_id === t.license_id; });
+            const start = (ov && ov.start_at_iso) ? String(ov.start_at_iso).slice(0, 10) : '';
+            return start ? 'starts on ' + start : 'starts later';
+        }
+        const exp = t.expiry_date || '';
+        if (key === 'expired') return exp ? 'expired on ' + exp : 'expired';
+        return exp ? 'expires on ' + exp : 'no expiry';
+    }
+    // Licenses to show on the card: the non-expired ones; if there are none,
+    // just the single most-recent (historic) license so the device still shows
+    // its last license state. Empty when the device never had a license.
+    function dev2VisibleGroups(d) {
+        const withStatus = dev2LicenseGroups(d).map(function(g) {
+            return { toks: g, t: g[0], key: dev2LicStatusKey(g[0]) };
+        });
+        if (!withStatus.length) return [];
+        const live = withStatus.filter(function(g) { return g.key !== 'expired'; });
+        if (live.length) return live;
+        return [withStatus.slice().sort(function(a, b) { return dev2TokenExpiryMs(b.t) - dev2TokenExpiryMs(a.t); })[0]];
+    }
+
     function dev2PanelList(d) {
-        const groups = dev2LicenseGroups(d);
-        if (!groups.length) return '<div class="dev2-empty">No licenses on this device.</div>';
-        return '<div class="dev2-bands">' + groups.map(function(toks) {
-            const t = toks[0];
-            const key = dev2LicStatusKey(t);
-            return '<button type="button" class="dev2-band status-' + key + '" data-act="lic" data-lic="' + escapeHtmlAttr(t.license_id || '') + '">'
-                + '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
-                + dashLicenseBadge(key)
-                + '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
-                + '</button>';
-        }).join('') + '</div>';
+        const groups = dev2VisibleGroups(d);
+        if (!groups.length) return '';   // no license (or historic) → no section
+        return '<div class="dev2-lic-label">License:</div>'
+            + '<div class="dev2-bands">' + groups.map(function(g) {
+                const t = g.t, key = g.key;
+                return '<button type="button" class="dev2-band status-' + key + '" data-act="lic" data-lic="' + escapeHtmlAttr(t.license_id || '') + '">'
+                    + '<span class="dev2-band-icon">' + DEV2_KEY_GLYPH + '</span>'
+                    + '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
+                    + '<span class="dev2-band-date">' + escapeHtmlOrg(dev2DatePhrase(t, key)) + '</span>'
+                    + '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
+                    + '</button>';
+            }).join('') + '</div>';
     }
 
     // License detail shown in the swapped panel. Built as a .device-row-key so
