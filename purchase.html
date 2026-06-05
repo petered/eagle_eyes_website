@@ -273,6 +273,12 @@ active: purchase
     .picker-row select { min-width: 260px; }
     .picker-row input[type="number"] { width: 90px !important; }
     .picker-row-hint { font-size: 12px; color: #777; }
+    .picker-row-warn {
+        flex-basis: 100%;
+        font-size: 12px;
+        color: #c0392b;
+        line-height: 1.45;
+    }
     .picker-row-estimate {
         font-size: 13px;
         color: #1a1a2e;
@@ -1510,21 +1516,20 @@ active: purchase
             return '<option value="' + esc(l.license_id) + '"' + sel + '>' + esc(label) + '</option>';
         }).join('');
 
-        // Dropdown runs 1 → current+10. Users can downsize on renewal as
+        // Stepper runs 1 → current+10. Users can downsize on renewal as
         // of 2026-05-21: backend dropped the renewal_cannot_shrink_devices
         // rule. At renewal cutover, the first N devices to be active keep
         // their slots; any excess hit the existing renewal_full 409 and
         // need a release_device_token from the Devices page.
-        var deviceOptions = '';
-        var maxDevicesInDropdown = Math.min(DEVICE_CAP, currentDevices + 10);
-        for (var n = 1; n <= maxDevicesInDropdown; n++) {
-            var sel = n === newN ? ' selected' : '';
-            var label = String(n);
-            if (n === currentDevices) label += ' (current)';
-            else if (n < currentDevices) label += ' (−' + (currentDevices - n) + ')';
-            else label += ' (+' + (n - currentDevices) + ')';
-            deviceOptions += '<option value="' + n + '"' + sel + '>' + label + '</option>';
-        }
+        var maxDevices = Math.min(DEVICE_CAP, currentDevices + 10);
+        var shortfall = currentDevices - newN;
+        var devWarn = shortfall > 0
+            ? '<span class="picker-row-warn">Your current license has ' + currentDevices
+              + (currentDevices === 1 ? ' device' : ' devices')
+              + '. You have selected ' + newN + (newN === 1 ? ' device' : ' devices')
+              + ', which is ' + shortfall + (shortfall === 1 ? ' device' : ' devices')
+              + ' less than your current license.</span>'
+            : '';
 
         var newName = renewedLicenseName(lic, 365);
         return '<div class="picker-row">'
@@ -1533,12 +1538,15 @@ active: purchase
             + '</div>'
             + '<div class="picker-row">'
             +   '<span class="picker-row-label">Devices</span>'
-            +   '<select data-picker-field="new_n_tokens">' + deviceOptions + '</select>'
+            +   qtyStepperHtml({
+                    value: newN, min: 1, max: maxDevices,
+                    fieldAttrs: 'data-picker-field="new_n_tokens"'
+                })
             +   '<span class="picker-row-hint">' + (newN < currentDevices
                     ? 'Downsizing: at renewal start, the first ' + newN
                       + ' devices to be active keep slots. Release others from the Devices page if needed.'
-                    : 'Raise to add devices in the same renewal.')
-            +   '</span>'
+                    : 'Currently ' + currentDevices + '. Raise to add devices in the same renewal.')
+            +   devWarn
             + '</div>'
             + '<div class="picker-row">'
             +   '<span class="picker-row-label">Estimate</span>'
