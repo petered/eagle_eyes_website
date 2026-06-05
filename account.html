@@ -3549,48 +3549,11 @@ active: account
             </div><!-- /licenses-credits view block -->
         </section>
 
-        <!-- DEVICES SECTION -->
-        <section id="devicesSection" class="account-section">
-            <header class="account-section-header">
-                <h2 class="account-section-title" id="devicesSectionTitle">Devices</h2>
-                <p class="account-section-hint">Devices activated on this organization's licenses.</p>
-            </header>
-            <div id="deviceTokensContainer">
-                <div class="devices-controls">
-                    <span class="devices-group-label">Group by:</span>
-                    <div id="devicesViewToggle" class="devices-view-toggle" role="tablist" aria-label="Group devices by">
-                        <button type="button" class="devices-view-toggle-btn is-active" data-mode="by-machine" aria-pressed="true" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Device</button>
-                        <button type="button" class="devices-view-toggle-btn" data-mode="by-email" aria-pressed="false" role="tab"><svg class="devices-view-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Owner</button>
-                    </div>
-                    <span class="devices-group-label">Show:</span>
-                    <div id="devicesScopeToggle" class="devices-view-toggle devices-scope-toggle" role="tablist" aria-label="Filter devices">
-                        <button type="button" class="devices-view-toggle-btn is-active" data-scope="all" aria-pressed="true" role="tab">All devices</button>
-                        <button type="button" class="devices-view-toggle-btn" data-scope="mine" aria-pressed="false" role="tab">Activated by me</button>
-                    </div>
-                </div>
-                <div id="tokensSpinner" class="loading-spinner">
-                    <div class="spinner"></div>
-                </div>
-                <div id="tokensGrid" style="display: none;"></div>
-                <div id="tokensError" style="display: none;">
-                    <div class="empty-card" style="border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">
-                        Error loading device data. Please try again later.
-                    </div>
-                </div>
-                <div id="tokensEmpty" style="display: none;">
-                    <div class="empty-card" id="tokensEmptyText">
-                        No devices found.
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- DEVICES 2 (experimental). Same data as Devices, rendered as
-             configuration-style cards (one card per device) so we can compare
-             the card layout with the current grouped Devices view. -->
+        <!-- DEVICES SECTION (card view; the #devices2Section id is kept for the
+             renderActiveDevices2 hooks). -->
         <section id="devices2Section" class="account-section" style="display: none;">
             <header class="account-section-header">
-                <h2 class="account-section-title">Devices 2</h2>
+                <h2 class="account-section-title">Devices</h2>
             </header>
             <div id="devices2Content"></div>
         </section>
@@ -3629,44 +3592,7 @@ active: account
         <section id="membersSection" class="account-section" style="display: none;">
             <header class="account-section-header">
                 <h2 class="account-section-title">People</h2>
-                <p class="account-section-hint">See who's on the team and who manages it. Roles control what each person can do.</p>
             </header>
-
-            <!-- Inline disclosure: who can do what on the account vs the
-                 organization. Clicking the link toggles the panel below. -->
-            <div class="roles-disclosure">
-                <a href="#" id="rolesTrigger" class="roles-trigger" aria-expanded="false" aria-controls="rolesPanel">View roles and permissions</a>
-                <div id="rolesPanel" class="roles-panel" style="display: none;">
-                    <div class="roles-grid">
-                        <div class="roles-col">
-                            <div class="roles-col-title">Admin</div>
-                            <ul>
-                                <li>Manage every team the account funds: add and remove Members</li>
-                                <li>Assign Managers and other Admins</li>
-                                <li>Purchase &amp; renew licenses, streaming credits, Unlimited</li>
-                                <li>See billing history and invoices</li>
-                            </ul>
-                        </div>
-                        <div class="roles-col">
-                            <div class="roles-col-title">Manager</div>
-                            <ul>
-                                <li>Add and remove Members</li>
-                                <li>Promote and demote Managers</li>
-                                <li>Everything a Member can do</li>
-                                <li>No billing access (unless also an Admin)</li>
-                            </ul>
-                        </div>
-                        <div class="roles-col">
-                            <div class="roles-col-title">Member</div>
-                            <ul>
-                                <li>Activate licenses and run the apps</li>
-                                <li>Manage devices (disconnect / transfer)</li>
-                                <li>Edit the team's shared configurations</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div id="membersContent"></div>
         </section>
@@ -5814,21 +5740,27 @@ active: account
     // Inline help modal for "?" icons next to detail values. Topic is
     // carried via data-help-topic so we can serve different copy from
     // a single click handler.
+    // Roles & permissions, shown from the "?" next to "You are a <role> on this
+    // team" (same content for Managers and Members).
+    const ROLES_HELP_BODY = [
+        '<strong>Admin</strong> — runs the account that funds the team:'
+            + '<ul><li>Manage every team the account funds: add and remove Members</li>'
+            + '<li>Assign Managers and other Admins</li>'
+            + '<li>Purchase &amp; renew licenses, streaming credits, Unlimited</li>'
+            + '<li>See billing history and invoices</li></ul>',
+        '<strong>Manager</strong> — helps run the team:'
+            + '<ul><li>Add and remove Members</li>'
+            + '<li>Promote and demote Managers</li>'
+            + '<li>Everything a Member can do</li>'
+            + '<li>No billing access (unless also an Admin)</li></ul>',
+        '<strong>Member</strong>:'
+            + '<ul><li>Activate licenses and run the apps</li>'
+            + '<li>Manage devices (disconnect / transfer)</li>'
+            + '<li>Edit the team’s shared configurations</li></ul>'
+    ];
     const PLAN_DETAIL_HELP_TOPICS = {
-        'role-manager': {
-            title: 'What a Manager can do',
-            body: [
-                'As a <strong>Manager</strong> you can add and remove Members, promote and demote other Managers, and do everything a Member can do (activate licenses and run the apps, manage devices, and edit the team’s shared configurations).',
-                'Managers have no billing access unless they are also an account Admin.'
-            ]
-        },
-        'role-member': {
-            title: 'What a Member can do',
-            body: [
-                'As a <strong>Member</strong> you can activate licenses and run the apps, manage devices (disconnect / transfer), and edit the team’s shared configurations.',
-                'Team management (adding or removing people, assigning roles) and billing are handled by Managers and account Admins.'
-            ]
-        },
+        'role-manager': { title: 'Roles and permissions', body: ROLES_HELP_BODY },
+        'role-member': { title: 'Roles and permissions', body: ROLES_HELP_BODY },
         'device-releases': {
             title: 'Device transfers',
             body: [
@@ -6208,8 +6140,7 @@ active: account
         // Devices and License views render from cachedAccountDevices).
         if (activeScope === 'org') {
             const source = getActiveSource();
-            if (source && activeView === 'devices') renderActiveDevices(source);
-            else if (source && activeView === 'devices2') renderActiveDevices2(source);
+            if (source && activeView === 'devices') renderActiveDevices2(source);
             else if (source && activeView === 'license') renderActiveLicense(source);
             else if (source && activeView === 'people') renderActiveMembers(source);
             else if (source && activeView === 'dashboard') renderActiveDashboard();
@@ -9075,7 +9006,7 @@ active: account
     }
     function isOrgView(view) {
         return view === 'dashboard' || view === 'people' || view === 'members'
-            || view === 'devices' || view === 'devices2' || view === 'license' || view === 'configurations';
+            || view === 'devices' || view === 'license' || view === 'configurations';
     }
     function canonicalizeAccountView(view) {
         // Legacy → canonical
@@ -9265,8 +9196,7 @@ active: account
         const sections = {
             'dashboard': document.getElementById('dashboardSection'),
             'overview': document.getElementById('plansSection'),
-            'devices': document.getElementById('devicesSection'),
-            'devices2': document.getElementById('devices2Section'),
+            'devices': document.getElementById('devices2Section'),
             'license': document.getElementById('licenseSection'),
             'people': document.getElementById('membersSection'),
             'configurations': document.getElementById('configurationsSection')
@@ -9398,7 +9328,6 @@ active: account
             const orgTopicMap = {
                 'people': 'People',
                 'devices': 'Devices',
-                'devices2': 'Devices 2',
                 'license': 'License',
                 'configurations': 'Configurations'
             };
@@ -9412,7 +9341,6 @@ active: account
             sections[view].style.display = isMatch ? '' : 'none';
         });
 
-        renderActiveDevices(source);
         renderActiveDevices2(source);
         renderActiveLicense(source);
         renderActiveMembers(source);
@@ -9951,7 +9879,7 @@ active: account
         if (activeScope !== 'org') return;
         const source = getActiveSource();
         if (!source) return;
-        if (activeView === 'devices') renderActiveDevices(source);
+        if (activeView === 'devices') renderActiveDevices2(source);
         else if (activeView === 'license') renderActiveLicense(source);
     }
 
@@ -10349,10 +10277,10 @@ active: account
                 dashKpiCard(creditsVal, 'streaming credits', creditsSub);
         }
 
-        // License cards (same status colours as the License page).
+        // License cards (top 3 by expiry; "See all licenses" covers the rest).
         var lc = document.getElementById('dashLicenses');
         if (lc) {
-            lc.innerHTML = shown.length ? shown.map(function(l) {
+            lc.innerHTML = shown.length ? shown.slice(0, 3).map(function(l) {
                 var s = dashLicenseStatus(l);
                 var slots = (typeof l.keys_left === 'number' && typeof l.total_keys === 'number')
                     ? ((l.total_keys - l.keys_left) + ' of ' + l.total_keys + ' slots used') : '';
@@ -10722,16 +10650,10 @@ active: account
     }
 
     function dev2InfoBody(d) {
-        const rows = [];
-        if (d.machine_id) rows.push(['Machine ID', d.machine_id]);
-        if (d.dji_device_type && d.dji_device_type !== 'unknown') rows.push(['Controller', d.dji_device_type]);
-        const drone = dev2DroneLine(d);
-        if (drone) rows.push(['Drone', drone]);
-        if (d.firmware_version) rows.push(['Firmware', d.firmware_version]);
-        if (d.android_version) rows.push(['Android', d.android_version]);
-        return rows.length
-            ? '<div class="dev2-detail-lines">' + rows.map(function(r) { return '<div class="dev2-line"><span class="dev2-k">' + escapeHtmlOrg(r[0]) + '</span> <code>' + escapeHtmlOrg(String(r[1])) + '</code></div>'; }).join('') + '</div>'
-            : '<div class="dev2-empty">No extra details reported by this device.</div>';
+        // Only the machine ID for now — drone/firmware/etc. aren't reliable yet.
+        return d.machine_id
+            ? '<div class="dev2-detail-lines"><div class="dev2-line"><span class="dev2-k">Machine ID</span> <code>' + escapeHtmlOrg(String(d.machine_id)) + '</code></div></div>'
+            : '<div class="dev2-empty">No machine ID reported.</div>';
     }
 
     // Fold-down interaction (delegated, attached once). A license band head
