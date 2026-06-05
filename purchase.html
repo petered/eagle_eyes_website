@@ -466,95 +466,6 @@ active: purchase
     .cta-btn.secondary:hover { background: #f3f9ff; border-color: #1e90ff; }
     .cta-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-    /* Collapsible reference-details (PO / Reference / Company / VAT)
-       block. Appears as a single disclosure toggle by default; on
-       expand, reveals the field grid. Backend stamps PO/Reference on
-       both Pay Now and Invoice/Quote, same fields, same form. */
-    .ref-details-toggle {
-        background: transparent;
-        border: none;
-        color: #1077dc;
-        font-size: 13px;
-        font-weight: 500;
-        padding: 6px 0;
-        margin-top: 12px;
-        cursor: pointer;
-        font-family: inherit;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .ref-details-toggle:hover { text-decoration: underline; }
-    .ref-details-toggle .arrow { font-size: 11px; }
-    .ref-details {
-        display: none;
-        margin-top: 12px;
-        padding: 14px 16px;
-        background: #fbfcfd;
-        border: 1px solid #ececec;
-        border-radius: 8px;
-    }
-    .ref-details.is-open { display: block; }
-    .ref-details-intro {
-        font-size: 12px;
-        color: #666;
-        margin: 0 0 12px 0;
-        line-height: 1.4;
-    }
-    .ref-details-grid {
-        display: grid;
-        grid-template-columns: 110px 1fr;
-        gap: 10px 12px;
-        align-items: center;
-    }
-    .ref-details-grid label {
-        font-size: 13px;
-        color: #444;
-        margin: 0;
-    }
-    .ref-details-grid input[type="text"] {
-        padding: 8px 11px !important;
-        border: 1px solid #cfd6dc !important;
-        border-radius: 6px !important;
-        font: inherit !important;
-        font-size: 13px !important;
-        background: #fff !important;
-        margin: 0 !important;
-        width: 100% !important;
-        box-sizing: border-box;
-        -webkit-appearance: auto !important;
-        -moz-appearance: auto !important;
-        appearance: auto !important;
-    }
-    .ref-details-hint {
-        font-size: 11px;
-        color: #888;
-        margin: 10px 0 0 0;
-        line-height: 1.4;
-    }
-    .ref-details-recipient {
-        margin-top: 10px;
-        padding: 10px 12px;
-        background: #fff;
-        border: 1px solid #d8e8fa;
-        border-radius: 6px;
-        font-size: 13px;
-        color: #2a3a52;
-        line-height: 1.4;
-    }
-    .ref-details-recipient strong { color: #1a1a2e; font-weight: 600; }
-    .ref-details-recipient code {
-        font-family: SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: 12px;
-        color: #1077dc;
-        background: transparent;
-        padding: 0;
-    }
-    @media (max-width: 480px) {
-        .ref-details-grid { grid-template-columns: 1fr; }
-        .ref-details-grid label { margin-bottom: -6px; }
-    }
-
     .purchase-loading { color: #777; font-size: 14px; padding: 30px 0; }
     .purchase-signed-out { color: #555; font-size: 14px; padding: 30px 0; }
 
@@ -724,39 +635,6 @@ active: purchase
             <h3 class="purchase-card-title">Complete your order</h3>
             <div class="checkout-cta-row">
                 <button type="button" class="cta-btn primary" id="ctaPayNow">Pay now</button>
-                <button type="button" class="cta-btn secondary" id="ctaInvoice">Email invoice</button>
-                <button type="button" class="cta-btn secondary" id="ctaQuote">Request quote</button>
-            </div>
-
-            <button type="button" class="ref-details-toggle" id="refDetailsToggle">
-                <span class="arrow">▸</span>
-                <span id="refDetailsToggleLabel">Add reference details (optional)</span>
-            </button>
-
-            <div id="refDetails" class="ref-details">
-                <p class="ref-details-intro">
-                    Optional. These appear on the receipt / invoice / quote PDF and on Stripe's exports.
-                    Customers with procurement or accounts-payable often need a PO Number or Reference.
-                </p>
-                <div class="ref-details-grid">
-                    <label for="refCompany">Company</label>
-                    <input type="text" id="refCompany" maxlength="120" placeholder="Acme Search &amp; Rescue">
-
-                    <label for="refPoNumber">PO Number</label>
-                    <input type="text" id="refPoNumber" maxlength="30" placeholder="PO-2026-0142">
-
-                    <label for="refReference">Reference</label>
-                    <input type="text" id="refReference" maxlength="30" placeholder="Project Alpha">
-
-                    <label for="refVatId">VAT ID</label>
-                    <input type="text" id="refVatId" maxlength="40" placeholder="GB123456789 (if applicable)">
-                </div>
-                <div class="ref-details-recipient" id="refDetailsRecipient" aria-live="polite"></div>
-                <p class="ref-details-hint">
-                    Invoice payment terms are NET-30 by default. Sales tax is computed from your billing address;
-                    if none is on file we'll prompt you for one before sending the invoice / quote. Email
-                    info@eagleeyessearch.com for non-standard terms.
-                </p>
             </div>
 
             <div id="ctaStatus" class="purchase-error" style="display: none;"></div>
@@ -784,9 +662,7 @@ active: purchase
     // Emulator mode falls through to getHostUrl() + '/' + endpoint.
     var CART_ENDPOINT_URLS = {
         preview_cart: 'https://preview-cart-rvoe3nzu5q-uc.a.run.app',
-        create_purchase_checkout: 'https://create-purchase-checkout-rvoe3nzu5q-uc.a.run.app',
-        create_purchase_invoice: 'https://create-purchase-invoice-rvoe3nzu5q-uc.a.run.app',
-        create_purchase_quote: 'https://create-purchase-quote-rvoe3nzu5q-uc.a.run.app'
+        create_purchase_checkout: 'https://create-purchase-checkout-rvoe3nzu5q-uc.a.run.app'
     };
 
     // ===== State =====
@@ -805,7 +681,6 @@ active: purchase
         pickerError: null,
         licenseHint: null,          // raw 5-char prefix from URL
         hintBannerDismissed: false,
-        refDetailsOpen: false,
         urlAddsApplied: false,      // applied URL deep-links once at init
         deepLinkBlocked: null       // {reason, license} when a ?add=... refused to add (e.g. cap exceeded)
     };
@@ -859,10 +734,6 @@ active: purchase
     function activeAccountName() {
         var acc = activeAccount();
         return acc && acc.name ? acc.name : null;
-    }
-    function activeAccountAddress() {
-        var acc = activeAccount();
-        return (acc && acc.address) || null;
     }
     function activeAccountIsOwner() {
         var acc = activeAccount();
@@ -2116,52 +1987,6 @@ active: purchase
         return null;
     }
 
-    // ===== Invoice details (reference fields) =====
-    function readInvoiceDetails() {
-        var company = ($('refCompany').value || '').trim();
-        var po = ($('refPoNumber').value || '').trim().slice(0, 30);
-        var ref = ($('refReference').value || '').trim().slice(0, 30);
-        var vat = ($('refVatId').value || '').trim();
-        var out = {};
-        if (company) out.company = company;
-        if (po) out.po_number = po;
-        if (ref) out.reference = ref;
-        if (vat) out.vat_id = vat;
-        return out;
-    }
-    function pickInvoiceRecipientName(user) {
-        try {
-            var draft = JSON.parse(localStorage.getItem('profileDraft') || '{}');
-            var draftName = [draft.firstName, draft.lastName].filter(Boolean).join(' ').trim();
-            if (draftName) return draftName;
-        } catch (e) {}
-        try {
-            if (window.eeDashboard) {
-                var dash = window.eeDashboard.read(user.uid);
-                var fd = dash && dash.user_account_info && dash.user_account_info.form_data;
-                if (fd) {
-                    var fdName = [fd.first_name, fd.last_name].filter(Boolean).join(' ').trim();
-                    if (fdName) return fdName;
-                    if (fd.name) return String(fd.name).trim();
-                }
-            }
-        } catch (e) {}
-        if (user && user.displayName) return String(user.displayName).trim();
-        return '';
-    }
-    function renderInvoiceRecipient() {
-        var el = $('refDetailsRecipient');
-        if (!el) return;
-        var user = (firebase.auth && firebase.auth().currentUser) || null;
-        if (!user) { el.innerHTML = ''; return; }
-        var email = user.email || '';
-        var name = pickInvoiceRecipientName(user);
-        var nameLine = name
-            ? '<strong>' + esc(name) + '</strong> at <code>' + esc(email) + '</code>'
-            : '<code>' + esc(email) + '</code>';
-        el.innerHTML = 'Invoices and receipts are emailed to ' + nameLine + '.';
-    }
-
     // ===== Order summary =====
     function renderOrderSummary() {
         // The subtotal lives on the cart card. Nothing else to do today;
@@ -2174,8 +1999,6 @@ active: purchase
         var anyError = items.some(function(it) { return !!errorMessageForItem(it); });
         var disabled = !hasItems || anyError || state.submitting;
         $('ctaPayNow').disabled = disabled;
-        $('ctaInvoice').disabled = disabled;
-        $('ctaQuote').disabled = disabled;
     }
 
     // ===== Endpoints =====
@@ -2207,27 +2030,6 @@ active: purchase
         }
         return data;
     }
-    async function postWithAddressRetry(endpoint, body, reason) {
-        try {
-            return await postBillingJson(endpoint, body);
-        } catch (err1) {
-            if (err1.status === 409 && err1.data && err1.data.code === 'billing_address_required') {
-                var addr = window.eeBillingAddress
-                    ? await window.eeBillingAddress.open({
-                        accountId: err1.data.account_id || parseInt(state.activeAccountId, 10),
-                        currentAddress: activeAccountAddress(),
-                        reason: reason || 'invoice'
-                    })
-                    : null;
-                if (!addr) return null;
-                var acc = activeAccount();
-                if (acc) acc.address = addr;
-                return await postBillingJson(endpoint, body);
-            }
-            throw err1;
-        }
-    }
-
     // Build the cart-shaped payload for preview_cart / create_purchase_*.
     function buildCartPayload(intent) {
         var items = state.cart.items.map(function(it) {
@@ -2243,10 +2045,6 @@ active: purchase
             items: items,
             is_emulator: false
         };
-        if (intent === 'invoice' || intent === 'quote' || intent === 'checkout') {
-            var details = readInvoiceDetails();
-            if (Object.keys(details).length > 0) payload.invoice_details = details;
-        }
         // Forward emulator/test flag if the page URL carries it.
         var qs = new URLSearchParams(window.location.search);
         if (qs.get('is_emulator') === '1' || qs.get('is_emulator') === 'true') {
@@ -2307,43 +2105,6 @@ active: purchase
             }
         });
     }
-    async function onEmailInvoice() {
-        await withCtaInflight($('ctaInvoice'), 'Creating invoice…', async function() {
-            try {
-                var payload = buildCartPayload('invoice');
-                var resp = await postWithAddressRetry('create_purchase_invoice', payload, 'invoice');
-                if (resp === null) return; // user cancelled the address modal
-                if (!resp || !resp.hosted_invoice_url) throw new Error('No invoice URL returned.');
-                window.open(resp.hosted_invoice_url, '_blank', 'noopener');
-                clearCart(); renderAll();
-                showCtaSuccess('Invoice created. Opened in a new tab and emailed to the account owner.');
-            } catch (err) {
-                console.error('Invoice flow failed:', err);
-                showCtaError("Couldn't create invoice: " + formatErrorMessage(err));
-            }
-        });
-    }
-    async function onRequestQuote() {
-        await withCtaInflight($('ctaQuote'), 'Creating quote…', async function() {
-            try {
-                var payload = buildCartPayload('quote');
-                var resp = await postWithAddressRetry('create_purchase_quote', payload, 'quote');
-                if (resp === null) return;
-                if (!resp || !resp.hosted_quote_url) throw new Error('No quote URL returned.');
-                window.open(resp.hosted_quote_url, '_blank', 'noopener');
-                clearCart(); renderAll();
-                showCtaSuccess('Quote created. Opened in a new tab. It will also appear on /account/billing/.');
-            } catch (err) {
-                if (err && (err.status === 501
-                    || (err.data && err.data.code === 'quotes_require_invoicing_plus'))) {
-                    fallbackQuoteMailto();
-                    return;
-                }
-                console.error('Quote flow failed:', err);
-                showCtaError("Couldn't create quote: " + formatErrorMessage(err));
-            }
-        });
-    }
     function formatErrorMessage(err) {
         if (!err) return 'Something went wrong.';
         var code = err && err.data && err.data.code;
@@ -2353,31 +2114,6 @@ active: purchase
         if (err.data && err.data.message) return err.data.message;
         return err.message || String(err);
     }
-    function fallbackQuoteMailto() {
-        var lines = ['Quote request', '', 'Please prepare a formal quote for:'];
-        state.cart.items.forEach(function(it, idx) {
-            var d = describeItem(it);
-            var p = priceFor(it, idx);
-            lines.push('• ' + d.title + ' - ' + d.meta + ' - ' + formatPrice(p));
-        });
-        lines.push('');
-        lines.push('PO # (if known): ');
-        lines.push('Reference: ');
-        lines.push('Valid-until date: ');
-        lines.push('');
-        lines.push('(This request was generated from /account/purchase/)');
-        openMailto('Quote request. Eagle Eyes', lines);
-    }
-    function openMailto(subject, bodyLines) {
-        var name = activeAccountName() || '(account name unknown)';
-        var prefix = ['Account: ' + name, ''];
-        var body = prefix.concat(bodyLines).join('\n');
-        var url = 'mailto:' + SALES_EMAIL
-            + '?subject=' + encodeURIComponent(subject)
-            + '&body=' + encodeURIComponent(body);
-        window.location.href = url;
-    }
-
     // ===== Non-owner / no-account panels =====
     function applyOwnerVisibility() {
         var acc = activeAccount();
@@ -2549,7 +2285,6 @@ active: purchase
         });
         loadStreamingPackages(user).then(applyPackageConfig);
 
-        renderInvoiceRecipient();
         renderAll();
         schedulePreview();
 
@@ -2604,18 +2339,6 @@ active: purchase
 
     document.addEventListener('DOMContentLoaded', function() {
         $('ctaPayNow').addEventListener('click', onPayNow);
-        $('ctaInvoice').addEventListener('click', onEmailInvoice);
-        $('ctaQuote').addEventListener('click', onRequestQuote);
-
-        var toggle = $('refDetailsToggle');
-        var panel = $('refDetails');
-        if (toggle && panel) {
-            toggle.addEventListener('click', function() {
-                state.refDetailsOpen = !state.refDetailsOpen;
-                panel.classList.toggle('is-open', state.refDetailsOpen);
-                toggle.querySelector('.arrow').textContent = state.refDetailsOpen ? '▾' : '▸';
-            });
-        }
 
         var dismiss = $('hintBannerDismiss');
         if (dismiss) {
