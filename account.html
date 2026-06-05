@@ -1922,16 +1922,23 @@ active: account
     .dev2-panel { margin-top: 12px; border-top: 1px solid #eef0f3; padding-top: 12px; min-height: 118px; }
     .dev2-lic-label { font-size: 12px; font-weight: 600; color: #6b7480; margin-bottom: 8px; }
     .dev2-bands { display: flex; flex-direction: column; gap: 8px; }
-    .dev2-band { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: #fff; border: 1px solid #e3e7ee; border-left: 3px solid #d8dee8; border-radius: 8px; padding: 9px 12px; cursor: pointer; font-family: inherit; }
-    .dev2-band:hover { background: #f7f9fc; }
+    .dev2-band { background: #fff; border: 1px solid #e3e7ee; border-left: 3px solid #d8dee8; border-radius: 8px; overflow: hidden; }
     .dev2-band.status-active  { border-left-color: #7fc29a; }
     .dev2-band.status-soon    { border-left-color: #d4a85f; }
     .dev2-band.status-optin   { border-left-color: #76a6dd; }
     .dev2-band.status-expired { border-left-color: #d08983; }
+    .dev2-band-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: none; padding: 9px 12px; cursor: pointer; font-family: inherit; }
+    .dev2-band-head:hover { background: #f7f9fc; }
     .dev2-band-icon { flex: 0 0 auto; color: #5a6573; display: inline-flex; }
     .dev2-band-name { flex: 0 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: #2a3442; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dev2-band-date { flex: 0 0 auto; font-size: 12px; color: #8a93a3; white-space: nowrap; }
-    .dev2-band-caret { flex: 0 0 auto; margin-left: auto; color: #aab2bd; display: inline-flex; }
+    .dev2-band-caret { flex: 0 0 auto; margin-left: auto; color: #aab2bd; display: inline-flex; transition: transform .15s; }
+    .dev2-band.is-open .dev2-band-caret { transform: rotate(90deg); }
+    .dev2-band-body { display: none; padding: 2px 12px 11px; }
+    .dev2-band.is-open .dev2-band-body { display: block; }
+    .dev2-info-body { margin-bottom: 12px; padding: 10px 12px; background: #f7f9fc; border: 1px solid #eef0f3; border-radius: 8px; }
+    .dev2-info-body[hidden] { display: none; }
+    .dev2-info-btn.is-on { color: #1e90ff; }
     .dev2-back { background: none; border: none; color: #1e90ff; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; padding: 0 0 8px; font-family: inherit; }
     .dev2-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .dev2-detail-lines { display: flex; flex-direction: column; gap: 5px; }
@@ -10548,28 +10555,41 @@ active: account
 
     function dev2PanelList(d) {
         const groups = dev2VisibleGroups(d);
-        if (!groups.length) return '';   // no license (or historic) → no section
-        return '<div class="dev2-lic-label">License:</div>'
-            + '<div class="dev2-bands">' + groups.map(function(g) {
-                const t = g.t, key = g.key;
-                return '<button type="button" class="dev2-band status-' + key + '" data-act="lic" data-lic="' + escapeHtmlAttr(t.license_id || '') + '">'
-                    + '<span class="dev2-band-icon">' + DEV2_KEY_GLYPH + '</span>'
-                    + '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
-                    + '<span class="dev2-band-date">' + escapeHtmlOrg(dev2DatePhrase(t, key)) + '</span>'
-                    + '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
-                    + '</button>';
-            }).join('') + '</div>';
+        // ⓘ device-info foldout (collapsed; toggled by the header ⓘ button).
+        const infoBody = '<div class="dev2-info-body" hidden>' + dev2InfoBody(d) + '</div>';
+        if (!groups.length) return infoBody;   // no license (or historic)
+        const bands = '<div class="dev2-bands">' + groups.map(function(g) {
+            return dev2Band(d, g.toks, g.t, g.key);
+        }).join('') + '</div>';
+        return infoBody + '<div class="dev2-lic-label">License:</div>' + bands;
     }
 
-    // License detail shown in the swapped panel. Built as a .device-row-key so
-    // the existing onReleaseTokenClick disconnect handler works unchanged.
-    function dev2LicenseDetail(d, licenseId) {
-        const groups = dev2LicenseGroups(d);
-        let toks = null;
-        for (let i = 0; i < groups.length; i++) { if ((groups[i][0].license_id || '') === licenseId) { toks = groups[i]; break; } }
-        if (!toks) return dev2PanelList(d);
-        const t = toks[0];
-        const key = dev2LicStatusKey(t);
+    // One foldable license band. The outer .device-row-key carries the dataset
+    // so the existing onReleaseTokenClick disconnect handler works unchanged;
+    // the head toggles .is-open to fold the detail down.
+    function dev2Band(d, toks, t, key) {
+        const deviceDisplayName = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'this device';
+        const emails = dev2GroupEmails(toks);
+        const tokenIds = toks.map(function(x) { return x.token_id || ''; }).filter(Boolean).join(',');
+        return '<div class="dev2-band device-row-key status-' + key + '"'
+            + ' data-token-id="' + escapeHtmlAttr(t.token_id || '') + '"'
+            + ' data-token-ids="' + escapeHtmlAttr(tokenIds) + '"'
+            + ' data-license-id="' + escapeHtmlAttr(t.license_id || '') + '"'
+            + ' data-license-name="' + escapeHtmlAttr(t.license_name || '') + '"'
+            + ' data-device-display-name="' + escapeHtmlAttr(deviceDisplayName) + '"'
+            + ' data-device-email="' + escapeHtmlAttr(emails.join(', ')) + '">'
+            + '<button type="button" class="dev2-band-head" data-act="toggle">'
+            +   '<span class="dev2-band-icon">' + DEV2_KEY_GLYPH + '</span>'
+            +   '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
+            +   '<span class="dev2-band-date">' + escapeHtmlOrg(dev2DatePhrase(t, key)) + '</span>'
+            +   '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
+            + '</button>'
+            + '<div class="dev2-band-body">' + dev2BandBody(d, toks, t) + '</div>'
+            + '</div>';
+    }
+
+    function dev2BandBody(d, toks, t) {
+        const licenseId = t.license_id || '';
         const dl = dev2TokenDaysLeft(t);
         const expiry = t.expiry_date || '';
         const timeLine = (dl === null) ? 'No expiry'
@@ -10580,21 +10600,10 @@ active: account
             ? ((ov.total_keys - ov.keys_left) + ' of ' + ov.total_keys + ' device slots used') : '';
         const emails = dev2GroupEmails(toks);
         const byLine = emails.length ? 'Activated on this device by: ' + escapeHtmlOrg(emails.join(', ')) : '';
-        const deviceDisplayName = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'this device';
         const budget = getLicenseReleaseBudget(licenseId);
         const transfers = (budget && typeof budget.releases_remaining === 'number')
             ? budget.releases_remaining + ' transfer' + (budget.releases_remaining === 1 ? '' : 's') + ' left' : '';
-        const tokenIds = toks.map(function(x) { return x.token_id || ''; }).filter(Boolean).join(',');
-        return '<div class="dev2-detail device-row-key status-' + key + '"'
-            + ' data-token-id="' + escapeHtmlAttr(t.token_id || '') + '"'
-            + ' data-token-ids="' + escapeHtmlAttr(tokenIds) + '"'
-            + ' data-license-id="' + escapeHtmlAttr(licenseId) + '"'
-            + ' data-license-name="' + escapeHtmlAttr(t.license_name || '') + '"'
-            + ' data-device-display-name="' + escapeHtmlAttr(deviceDisplayName) + '"'
-            + ' data-device-email="' + escapeHtmlAttr(emails.join(', ')) + '">'
-            + '<button type="button" class="dev2-back" data-act="back">' + DEV2_BACK + ' Back</button>'
-            + '<div class="dev2-detail-head"><span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>' + dashLicenseBadge(key) + '</div>'
-            + '<div class="dev2-detail-lines">'
+        return '<div class="dev2-detail-lines">'
             +   '<div class="dev2-line">' + timeLine + '</div>'
             +   (slots ? '<div class="dev2-line">' + escapeHtmlOrg(slots) + '</div>' : '')
             +   (byLine ? '<div class="dev2-line dev2-line-by">' + byLine + '</div>' : '')
@@ -10603,11 +10612,10 @@ active: account
             +   '<button type="button" class="people-icon-btn danger" onclick="onReleaseTokenClick(event)">Disconnect</button>'
             +   (transfers ? '<span class="lic-card-transfers">' + escapeHtmlOrg(transfers)
                     + ' <button type="button" class="plan-detail-help has-tip has-tip--left" data-help-topic="device-releases" data-tip="Disconnecting frees the device slot and spends one transfer on this license.">?</button></span>' : '')
-            + '</div>'
             + '</div>';
     }
 
-    function dev2InfoDetail(d) {
+    function dev2InfoBody(d) {
         const rows = [];
         if (d.machine_id) rows.push(['Machine ID', d.machine_id]);
         if (d.dji_device_type && d.dji_device_type !== 'unknown') rows.push(['Controller', d.dji_device_type]);
@@ -10615,35 +10623,29 @@ active: account
         if (drone) rows.push(['Drone', drone]);
         if (d.firmware_version) rows.push(['Firmware', d.firmware_version]);
         if (d.android_version) rows.push(['Android', d.android_version]);
-        const body = rows.length
-            ? rows.map(function(r) { return '<div class="dev2-line"><span class="dev2-k">' + escapeHtmlOrg(r[0]) + '</span> <code>' + escapeHtmlOrg(String(r[1])) + '</code></div>'; }).join('')
+        return rows.length
+            ? '<div class="dev2-detail-lines">' + rows.map(function(r) { return '<div class="dev2-line"><span class="dev2-k">' + escapeHtmlOrg(r[0]) + '</span> <code>' + escapeHtmlOrg(String(r[1])) + '</code></div>'; }).join('') + '</div>'
             : '<div class="dev2-empty">No extra details reported by this device.</div>';
-        return '<div class="dev2-detail">'
-            + '<button type="button" class="dev2-back" data-act="back">' + DEV2_BACK + ' Back</button>'
-            + '<div class="dev2-detail-lines">' + body + '</div>'
-            + '</div>';
     }
 
-    // Panel-swap interaction (delegated, attached once). Clicking a license
-    // band / the ⓘ swaps the card's lower panel to that detail; Back restores
-    // the license list. The card keeps its place in the grid (no reflow).
+    // Fold-down interaction (delegated, attached once). A license band head
+    // folds its detail open/closed; the header ⓘ toggles the device-info
+    // foldout. Disconnect lives inside the band (onReleaseTokenClick stops
+    // propagation, so clicking it never toggles the band).
     if (!window.__dev2Init) {
         window.__dev2Init = true;
         document.addEventListener('click', function(e) {
             const trigger = e.target.closest('[data-act]');
             if (!trigger) return;
-            const card = trigger.closest('.dev2-card');
-            if (!card) return;
             const act = trigger.getAttribute('data-act');
-            if (act !== 'lic' && act !== 'info' && act !== 'back') return;
-            const machine = card.getAttribute('data-machine') || '';
-            const d = (cachedAccountDevices || []).find(function(x) { return String(x.machine_id || '') === machine; });
-            if (!d) return;
-            const panel = card.querySelector('.dev2-panel');
-            if (!panel) return;
-            if (act === 'lic') panel.innerHTML = dev2LicenseDetail(d, trigger.getAttribute('data-lic') || '');
-            else if (act === 'info') panel.innerHTML = dev2InfoDetail(d);
-            else panel.innerHTML = dev2PanelList(d);
+            if (act === 'toggle') {
+                const band = trigger.closest('.dev2-band');
+                if (band) band.classList.toggle('is-open');
+            } else if (act === 'info') {
+                const card = trigger.closest('.dev2-card');
+                const info = card && card.querySelector('.dev2-info-body');
+                if (info) { info.hidden = !info.hidden; trigger.classList.toggle('is-on', !info.hidden); }
+            }
         });
     }
 
