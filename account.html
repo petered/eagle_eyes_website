@@ -1907,7 +1907,7 @@ active: account
     /* ===== Devices 2 (2-up flip cards) ===== */
     .dev2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 14px; align-items: start; }
     @media (max-width: 760px) { .dev2-grid { grid-template-columns: 1fr; } }
-    .dev2-card { background: #fff; border: 1px solid #e2e7ee; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(20,30,55,0.06); }
+    .dev2-card { background: #fff; border: 1px solid #e2e7ee; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(20,30,55,0.06); min-width: 0; }
     /* The theme stylesheet adds margin-bottom to <button>; that inflates the
        in-card buttons (band head, info, disconnect). Reset it here. */
     .dev2-card button { margin: 0; }
@@ -1939,6 +1939,8 @@ active: account
     .dev2-band-head:hover { background: #f7f9fc; }
     .dev2-band-icon { flex: 0 0 auto; color: #5a6573; display: inline-flex; }
     .dev2-band-name { flex: 0 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: #2a3442; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* When the band is open, show the full title (no truncation). */
+    .dev2-band.is-open .dev2-band-name { overflow: visible; white-space: normal; }
     .dev2-band-date { flex: 0 0 auto; font-size: 12px; color: #8a93a3; white-space: nowrap; }
     .dev2-band-caret { flex: 0 0 auto; margin-left: auto; color: #aab2bd; display: inline-flex; transition: transform .15s; }
     .dev2-band.is-open .dev2-band-caret { transform: rotate(90deg); }
@@ -10670,7 +10672,7 @@ active: account
             + ' data-device-email="' + escapeHtmlAttr(emails.join(', ')) + '">'
             + '<div class="dev2-band-head" data-act="toggle" role="button" tabindex="0">'
             +   '<span class="dev2-band-icon">' + DEV2_KEY_GLYPH + '</span>'
-            +   '<span class="dev2-band-name">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
+            +   '<span class="dev2-band-name" title="' + escapeHtmlAttr(t.license_name || 'License') + '">' + escapeHtmlOrg(t.license_name || 'License') + '</span>'
             +   dashLicenseBadge(key)
             +   '<span class="dev2-band-date">' + escapeHtmlOrg(dev2DatePhrase(t, key)) + '</span>'
             +   '<span class="dev2-band-caret">' + DEV2_CARET_R + '</span>'
