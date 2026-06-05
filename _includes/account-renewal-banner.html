@@ -1,0 +1,122 @@
+<!--
+  Account-wide renewal warning. Shown at the top of EVERY account-area page
+  (account, profile, billing, purchase, downloads, support, streaming) when the
+  signed-in user's soonest-expiring active license is inside its renewal window
+  (90 days for paid, 7 for trial). Replaces the old per-section notice that only
+  appeared on /account/'s Overview. Self-contained: reads the shared dashboard
+  cache (window.eeDashboard) and re-renders on auth changes. Hidden when signed
+  out or when nothing is expiring soon. Mirrors getLicenseExpiryStatus() in
+  account.html (tier /trial/i, 90/7-day windows, skip licenses with a queued
+  successor renewal).
+-->
+<div id="accountRenewalBanner" class="account-renewal-banner" role="alert" style="display: none;">
+    <svg class="arb-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+    <div class="arb-text"></div>
+    <a class="arb-action" href="#">Renew &rarr;</a>
+</div>
+
+<style>
+    .account-renewal-banner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #fff8e6;
+        border: 1px solid #f1d28a;
+        border-left: 4px solid #e6a817;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 0 0 18px 0;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #5b4a1f;
+    }
+    .account-renewal-banner .arb-icon { flex: 0 0 auto; color: #d9941a; }
+    .account-renewal-banner .arb-text { flex: 1 1 auto; min-width: 0; }
+    .account-renewal-banner .arb-text strong { font-weight: 700; color: #3d3210; }
+    .account-renewal-banner .arb-action {
+        flex: 0 0 auto;
+        color: #1e90ff;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .account-renewal-banner .arb-action:hover { text-decoration: underline; }
+    @media (max-width: 600px) {
+        .account-renewal-banner { flex-wrap: wrap; }
+        .account-renewal-banner .arb-action { margin-left: 32px; }
+    }
+</style>
+
+<script>
+(function() {
+    var banner = document.getElementById('accountRenewalBanner');
+    if (!banner) return;
+    var textEl = banner.querySelector('.arb-text');
+    var actionEl = banner.querySelector('.arb-action');
+    var RENEW_PATH = '{{ "/account/purchase/" | relative_url }}';
+
+    function isTrial(l) { return /trial/i.test(String((l && l.tier) || '')); }
+
+    // Mirrors getLicenseExpiryStatus() in account.html.
+    function expiryStatus(l) {
+        if (!l || !l.expiry_date) return { daysLeft: null, expiringSoon: false, trial: false };
+        var ms = new Date(l.expiry_date).getTime();
+        if (isNaN(ms)) return { daysLeft: null, expiringSoon: false, trial: false };
+        var daysLeft = Math.ceil((ms - Date.now()) / 86400000);
+        var trial = isTrial(l);
+        var expiringSoon = daysLeft > 0 && daysLeft <= (trial ? 7 : 90);
+        return { daysLeft: daysLeft, expiringSoon: expiringSoon, trial: trial };
+    }
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+    }
+
+    // Soonest-expiring active license that's inside its window and doesn't
+    // already have a queued renewal. Trials excluded (you convert, not renew).
+    function pickSoonest(licenses) {
+        var soonest = null;
+        (licenses || []).forEach(function(l) {
+            var st = expiryStatus(l);
+            if (st.daysLeft === null || st.trial || !st.expiringSoon) return;
+            if (l.successor_license_id) return;
+            if (!soonest || st.daysLeft < soonest.days) soonest = { lic: l, days: st.daysLeft };
+        });
+        return soonest;
+    }
+
+    function draw(dash) {
+        var soonest = pickSoonest(dash && dash.license_overview);
+        if (!soonest) { banner.style.display = 'none'; return; }
+        var l = soonest.lic, d = soonest.days;
+        var dayWord = d === 1 ? 'day' : 'days';
+        textEl.innerHTML = 'Your <strong>' + esc(l.license_name || 'Eagle Eyes license')
+            + '</strong> expires in <strong>' + d + ' ' + dayWord + '</strong>. '
+            + 'Renew now to prevent service interruptions.';
+        actionEl.setAttribute('href', RENEW_PATH + '?add=renew:' + encodeURIComponent(l.license_id || ''));
+        banner.style.display = '';
+    }
+
+    function refresh(user) {
+        if (!user || !window.eeDashboard) { banner.style.display = 'none'; return; }
+        try {
+            var cached = window.eeDashboard.read(user.uid);
+            if (cached) draw(cached);
+        } catch (e) { /* fall through to fetch */ }
+        try {
+            window.eeDashboard.fetch(user).then(function(fresh) { if (fresh) draw(fresh); }).catch(function() {});
+        } catch (e) { /* ignore */ }
+    }
+
+    document.addEventListener('authStateChanged', function(e) { refresh(e.detail && e.detail.user); });
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        try { firebase.auth().onAuthStateChanged(refresh); } catch (e) { /* ignore */ }
+    }
+})();
+</script>

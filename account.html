@@ -1899,6 +1899,10 @@ active: account
     }
     .config-card-scope.personal { background: #ececec; color: #555; }
     .config-card-scope.team     { background: #d6e9ff; color: #0a5fb8; }
+    /* Devices 2 status tags (reuse the scope-pill shape). */
+    .config-card-scope.active   { background: #d6efdd; color: #176a37; }
+    .config-card-scope.expired  { background: #f8d4d4; color: #a4271d; }
+    .config-card-scope.none     { background: #ececec; color: #777; }
     .config-card-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .config-card-chips-empty { font-size: 12px; color: #9aa0a6; font-style: italic; }
     .config-card-chip {
@@ -1922,6 +1926,55 @@ active: account
     }
     .config-card-iconbtn:hover { background: #f3f5f8; border-color: #cdd5df; color: #1a1a2e; }
     .config-card-iconbtn.danger:hover { background: #fdeaea; border-color: #efc9c9; color: #c0392b; }
+    /* The icon SVGs are flex items inside their flex containers; the theme's
+       button styling lets them shrink to width:0 (the edit/delete icons
+       vanished). Pin them so they always render at their intrinsic size. */
+    .config-card-icon svg,
+    .config-card-iconbtn svg { flex: 0 0 auto; }
+
+    /* ===== Dashboard (org overview; default landing) ===== */
+    .dash-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+    .dash-kpi { background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 16px 18px; }
+    .dash-kpi-value { font-size: 26px; font-weight: 700; color: #1a2230; line-height: 1.1; }
+    .dash-kpi-label { font-size: 13px; color: #5a6573; margin-top: 4px; }
+    .dash-kpi-sub { font-size: 12px; color: #9aa0a6; margin-top: 2px; }
+    .dash-block { margin-bottom: 24px; }
+    .dash-block-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
+    .dash-block-title { font-size: 16px; font-weight: 700; color: #1a2230; margin: 0; }
+    .dash-usage-sub { font-size: 12px; font-weight: 400; color: #9aa0a6; }
+    .dash-seeall { font-size: 13px; color: #1e90ff; text-decoration: none; font-weight: 500; white-space: nowrap; }
+    .dash-seeall:hover { text-decoration: underline; }
+    .dash-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .dash-empty { color: #9aa0a6; font-size: 13px; font-style: italic; padding: 14px 2px; }
+    .dash-licenses { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .dash-lic-card { background: #fff; padding: 12px 14px; }
+    .dash-lic-row { display: flex; align-items: center; gap: 8px; }
+    .dash-lic-name { font-weight: 700; font-size: 14px; color: #1a1a2e; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dash-lic-meta { font-size: 12px; color: #6b7480; margin-top: 6px; }
+    .dash-recent-list { display: flex; flex-direction: column; gap: 2px; background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 6px 4px; }
+    .dash-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+    .dash-avatar { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .dash-item-main { min-width: 0; }
+    .dash-item-title { font-size: 14px; font-weight: 600; color: #1a2230; display: flex; align-items: center; gap: 6px; }
+    .dash-item-sub { font-size: 12.5px; color: #7a828e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dash-usage { background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 16px 18px; }
+    .dash-bars { display: flex; align-items: flex-end; gap: 10px; height: 150px; }
+    .dash-bar-col { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+    .dash-bar { width: 60%; max-width: 30px; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; }
+    .dash-bar-empty { height: 2px; background: #eef0f3; }
+    .dash-bar-seg.paid { background: #1e90ff; }
+    .dash-bar-seg.unlimited { background: #a98bdb; }
+    .dash-bar-seg.free { background: #7fc29a; }
+    .dash-bar-label { font-size: 10px; color: #9aa0a6; margin-top: 6px; }
+    .dash-usage-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 12px; color: #6b7480; }
+    .dash-usage-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+    .dash-usage-legend .dot.paid { background: #1e90ff; }
+    .dash-usage-legend .dot.free { background: #7fc29a; }
+    .dash-usage-legend .dot.unlimited { background: #a98bdb; }
+    @media (max-width: 768px) {
+        .dash-kpis { grid-template-columns: 1fr; }
+        .dash-cols { grid-template-columns: 1fr; }
+    }
 
     /* Organization Settings tab (legacy class names still used by member rendering) */
     .org-switcher {
@@ -3191,6 +3244,46 @@ active: account
 
     <!-- Sections (one is shown at a time, controlled by hash routing) -->
     <div class="account-sections">
+        <!-- DASHBOARD SECTION. Org-scoped overview; the default landing.
+             Composed by renderActiveDashboard() from the shared caches +
+             the live get_streaming_usage_history endpoint. -->
+        <section id="dashboardSection" class="account-section" style="display: none;">
+            <div id="dashKpis" class="dash-kpis"></div>
+
+            <div class="dash-block">
+                <div class="dash-block-head">
+                    <h3 class="dash-block-title">Licenses</h3>
+                    <a class="dash-seeall" id="dashSeeLicenses" href="#">See all licenses &rarr;</a>
+                </div>
+                <div id="dashLicenses" class="dash-licenses"></div>
+            </div>
+
+            <div class="dash-block">
+                <div class="dash-block-head">
+                    <h3 class="dash-block-title">Livestreaming usage <span class="dash-usage-sub">(last week)</span></h3>
+                    <a class="dash-seeall" id="dashSeeStreaming" href="{{ '/account/streaming/' | relative_url }}">Buy credits &rarr;</a>
+                </div>
+                <div id="dashUsageGraph" class="dash-usage"></div>
+            </div>
+
+            <div class="dash-cols">
+                <div class="dash-block">
+                    <div class="dash-block-head">
+                        <h3 class="dash-block-title">Recently activated devices</h3>
+                        <a class="dash-seeall" id="dashSeeDevices" href="#">See all devices &rarr;</a>
+                    </div>
+                    <div id="dashRecentDevices" class="dash-recent-list"></div>
+                </div>
+                <div class="dash-block">
+                    <div class="dash-block-head">
+                        <h3 class="dash-block-title">Recently added people</h3>
+                        <a class="dash-seeall" id="dashSeePeople" href="#">See all people &rarr;</a>
+                    </div>
+                    <div id="dashRecentPeople" class="dash-recent-list"></div>
+                </div>
+            </div>
+        </section>
+
         <!-- PLANS SECTION. Hosts two account-scope views, swapped in/out
              by the hash router:
                * #view=overview → "Licenses & credits" (streaming credits
@@ -3344,11 +3437,11 @@ active: account
             <div class="overview-subhead-row" style="margin-top: 24px;">
                 <h3 class="overview-subhead">Active licenses</h3>
             </div>
-            <!-- Renewal notice. Rendered by renderLicenseCards when at least
-                 one active license is within its renewal threshold (90 days
-                 regular, 7 days trial). Picks the soonest-expiring license
-                 so the user sees the most urgent thing first. -->
-            <div id="plansExpiryNotice" class="plans-expiry-notice" style="display: none;"></div>
+            <!-- Renewal notice moved to the account-wide top banner
+                 (_includes/account-renewal-banner.html, rendered by the
+                 account-area layout) so it shows on every account page, not
+                 just here. The render block in renderLicenseCards is now a
+                 no-op (its #plansExpiryNotice target no longer exists). -->
             <div id="plansSpinner" class="loading-spinner"><div class="spinner"></div></div>
             <div id="plansError" class="empty-card" style="display: none; border-color: #ffcccc; background-color: #fff8f8; color: #cc0000;">Error loading licenses. Please try again later.</div>
             <div id="plansEmpty" class="empty-card" style="display: none;">No active licenses.<a class="owner-only-cta" id="plansEmptyBuyCta" href="{{ '/account/purchase/' | relative_url }}" style="display: none; margin-left: 6px;">Buy one &rarr;</a></div>
@@ -3392,6 +3485,17 @@ active: account
                     </div>
                 </div>
             </div>
+        </section>
+
+        <!-- DEVICES 2 (experimental). Same data as Devices, rendered as
+             configuration-style cards (one card per device) so we can compare
+             the card layout with the current grouped Devices view. -->
+        <section id="devices2Section" class="account-section" style="display: none;">
+            <header class="account-section-header">
+                <h2 class="account-section-title">Devices 2</h2>
+                <p class="account-section-hint">Experimental card view — one card per device. Compare with the Devices page.</p>
+            </header>
+            <div id="devices2Content"></div>
         </section>
 
         <!-- LICENSE SECTION (org-scoped; renders the by-license device view
@@ -6004,8 +6108,10 @@ active: account
         if (activeScope === 'org') {
             const source = getActiveSource();
             if (source && activeView === 'devices') renderActiveDevices(source);
+            else if (source && activeView === 'devices2') renderActiveDevices2(source);
             else if (source && activeView === 'license') renderActiveLicense(source);
             else if (source && activeView === 'people') renderActiveMembers(source);
+            else if (source && activeView === 'dashboard') renderActiveDashboard();
         }
         // The Licenses & credits view's "Users with a device" foldout
         // also reads from cachedAccountDevices (more reliable email data
@@ -6536,7 +6642,7 @@ active: account
             titleHtml = titleOverride;
           } else {
             const ui = cachedAccountUsers[String(email).toLowerCase()];
-            const uname = ui ? (ui.name || [ui.first_name, ui.last_name].filter(Boolean).join(' ')) : '';
+            const uname = ui ? ([ui.first_name, ui.last_name].filter(Boolean).join(' ') || ui.name) : '';
             titleHtml = (uname ? '<strong>' + escapeHtmlOrg(uname) + '</strong> ' : '')
               + '<span class="device-license-section-email">'
               + (uname ? '(' + escapeHtmlOrg(email) + ')' : escapeHtmlOrg(email))
@@ -7429,7 +7535,7 @@ active: account
       if (!email) return 'Activated by: <span style="font-style:italic;">unknown</span>' + dateStr;
       const info = cachedAccountUsers[String(email).toLowerCase()];
       const name = info
-        ? (info.name || [info.first_name, info.last_name].filter(Boolean).join(' '))
+        ? ([info.first_name, info.last_name].filter(Boolean).join(' ') || info.name)
         : '';
       return 'Activated by: ' + escapeHtmlOrg(email)
         + (name ? ' (' + escapeHtmlOrg(name) + ')' : '')
@@ -8867,8 +8973,8 @@ active: account
             || view === 'subscriptions' || view === 'streaming';
     }
     function isOrgView(view) {
-        return view === 'people' || view === 'members'
-            || view === 'devices' || view === 'license' || view === 'configurations';
+        return view === 'dashboard' || view === 'people' || view === 'members'
+            || view === 'devices' || view === 'devices2' || view === 'license' || view === 'configurations';
     }
     function canonicalizeAccountView(view) {
         // Legacy → canonical
@@ -8986,10 +9092,10 @@ active: account
         }
 
         if (params.org && orgIds.indexOf(params.org) !== -1) {
-            // Org scope. View must be people/devices/configurations.
+            // Org scope. View must be dashboard/people/devices/license/configurations.
             activeScope = 'org';
             activeSourceId = params.org;
-            const wantedView = params.view || 'people';
+            const wantedView = params.view || 'dashboard';
             activeView = isOrgView(wantedView) ? canonicalizeOrgView(wantedView) : 'people';
             writeHashOrg(activeSourceId, activeView, true, getDevicesExtrasForHash());
         } else if (params.view && isAccountView(params.view)) {
@@ -9017,13 +9123,21 @@ active: account
                 writeHashAccount('overview', true);
             }
         } else {
-            // No hash. Admins land on the account Billing overview; everyone
-            // else lands on their team's People view (Billing is Admin-only).
-            if (redirectNonAdminToOrg()) return;
-            activeScope = 'account';
-            activeSourceId = null;
-            activeView = 'overview';
-            writeHashAccount('overview', true);
+            // No hash → default landing is the org Dashboard (everyone). Falls
+            // back to the account overview only when the user has no orgs.
+            const def = pickDefaultOrgId();
+            if (def) {
+                activeScope = 'org';
+                activeSourceId = def;
+                activeView = 'dashboard';
+                writeHashOrg(def, 'dashboard', true, getDevicesExtrasForHash());
+            } else {
+                if (redirectNonAdminToOrg()) return;
+                activeScope = 'account';
+                activeSourceId = null;
+                activeView = 'overview';
+                writeHashAccount('overview', true);
+            }
         }
     }
 
@@ -9048,8 +9162,10 @@ active: account
         // (which contains the streaming-credits widget + license list);
         // 'people' maps to the old 'membersSection' DOM (just renamed in copy).
         const sections = {
+            'dashboard': document.getElementById('dashboardSection'),
             'overview': document.getElementById('plansSection'),
             'devices': document.getElementById('devicesSection'),
+            'devices2': document.getElementById('devices2Section'),
             'license': document.getElementById('licenseSection'),
             'people': document.getElementById('membersSection'),
             'configurations': document.getElementById('configurationsSection')
@@ -9067,6 +9183,20 @@ active: account
             return;
         }
         if (empty) empty.style.display = 'none';
+
+        // Dashboard: org-scoped overview, the default landing. Visible to
+        // everyone; composes the shared caches into a single roll-up.
+        if (activeView === 'dashboard') {
+            Object.keys(sections).forEach(function(view) {
+                if (sections[view]) sections[view].style.display = (view === 'dashboard') ? '' : 'none';
+            });
+            if (viewHeader) viewHeader.style.display = 'none';
+            if (typeof window.setAccountPageTopic === 'function') {
+                window.setAccountPageTopic('Dashboard');
+            }
+            renderActiveDashboard();
+            return;
+        }
 
         if (activeScope === 'account') {
             // Account scope: plansSection hosts both account-scope views.
@@ -9167,6 +9297,7 @@ active: account
             const orgTopicMap = {
                 'people': 'People',
                 'devices': 'Devices',
+                'devices2': 'Devices 2',
                 'license': 'License',
                 'configurations': 'Configurations'
             };
@@ -9181,6 +9312,7 @@ active: account
         });
 
         renderActiveDevices(source);
+        renderActiveDevices2(source);
         renderActiveLicense(source);
         renderActiveMembers(source);
         renderActiveConfigurations(source);
@@ -9756,7 +9888,10 @@ active: account
         if (!email) return '';
         const info = cachedAccountUsers[String(email).toLowerCase()];
         if (!info) return '';
-        return (info.name || [info.first_name, info.last_name].filter(Boolean).join(' ') || '').trim();
+        // Prefer the user's explicit profile name (first/last, set via
+        // update_user_profile) over the `name` field (signup/display value),
+        // so the People page matches what the Profile page shows.
+        return ([info.first_name, info.last_name].filter(Boolean).join(' ') || info.name || '').trim();
     }
 
     function renderActiveMembers(source) {
@@ -9840,17 +9975,6 @@ active: account
                 + '</span>' +
             '</div>';
         container.appendChild(header);
-
-        // Hint clarifying that Admins are account-scoped, not a team role.
-        if (billingAdminEmails.length) {
-            const hint = document.createElement('p');
-            hint.className = 'account-section-hint';
-            hint.style.margin = '0 0 12px';
-            hint.innerHTML = 'Admins run the account that pays for this team'
-                + (accountName ? ' (<strong>' + escapeHtmlOrg(accountName) + '</strong>)' : '')
-                + ' — they manage billing and may not use Eagle Eyes themselves.';
-            container.appendChild(hint);
-        }
 
         const ctx = {
             orgIdAttr: orgIdAttr,
@@ -9973,6 +10097,260 @@ active: account
         });
         if (submitBtn) { /* peopleMakeAdmin manages its own toast */ }
         return false;
+    }
+
+    // ===== Dashboard (org overview; the default landing) =====
+    // Status key for a license_overview row. Inlines licenseStatusKey() /
+    // licenseStatusBadge() because those live nested in another function and
+    // aren't in scope here.
+    function dashLicenseStatus(l) {
+        const st = getLicenseExpiryStatus(l);
+        const futureStart = !!(l && l.start_at_iso && new Date(l.start_at_iso).getTime() > Date.now());
+        const active = (st.daysLeft === null) ? true : st.daysLeft > 0;
+        let key;
+        if (futureStart) key = 'optin';
+        else if (!active) key = 'expired';
+        else if (st.daysLeft !== null && st.daysLeft >= 0 && st.daysLeft <= 30) key = 'soon';
+        else key = 'active';
+        return { key: key, daysLeft: st.daysLeft };
+    }
+    function dashLicenseBadge(key) {
+        const label = key === 'optin' ? 'Opted-in' : key === 'soon' ? 'Expires soon'
+            : key === 'expired' ? 'Expired' : 'Active';
+        return '<span class="device-card-license-badge ' + key + '">' + label + '</span>';
+    }
+    function dashTimeAgo(when) {
+        if (!when) return '';
+        var ms = (typeof when === 'number') ? when * 1000 : new Date(when).getTime();
+        if (isNaN(ms)) return '';
+        var days = Math.floor((Date.now() - ms) / 86400000);
+        if (days <= 0) return 'today';
+        if (days === 1) return 'yesterday';
+        if (days < 30) return days + ' days ago';
+        var months = Math.floor(days / 30);
+        return months + (months === 1 ? ' month ago' : ' months ago');
+    }
+    function dashKpiCard(value, label, sub) {
+        return '<div class="dash-kpi"><div class="dash-kpi-value">' + escapeHtmlOrg(String(value)) + '</div>'
+            + '<div class="dash-kpi-label">' + escapeHtmlOrg(label) + '</div>'
+            + (sub ? '<div class="dash-kpi-sub">' + escapeHtmlOrg(sub) + '</div>' : '') + '</div>';
+    }
+    function dashItemRow(seedForColor, title, sub, badgeHtml) {
+        var initial = (title || '?').charAt(0).toUpperCase();
+        return '<div class="dash-item">'
+            + '<span class="dash-avatar" style="background:' + colorForEmail(seedForColor || title) + '">' + escapeHtmlOrg(initial) + '</span>'
+            + '<div class="dash-item-main">'
+            +   '<div class="dash-item-title">' + escapeHtmlOrg(title) + (badgeHtml ? ' ' + badgeHtml : '') + '</div>'
+            +   (sub ? '<div class="dash-item-sub">' + escapeHtmlOrg(sub) + '</div>' : '')
+            + '</div></div>';
+    }
+
+    function renderActiveDashboard() {
+        let source = getActiveSource();
+        // Defensive resolution: getActiveSource() uses a strict === match on
+        // activeSourceId, which can miss on a type mismatch or mid-load timing.
+        // Fall back to a string-coerced match, then to the first org source.
+        if (!source || source.kind !== 'org') {
+            const want = (activeSourceId != null) ? String(activeSourceId) : null;
+            source = (cachedSources || []).find(function(s) {
+                return s && s.kind === 'org' && (want === null || String(s.id) === want);
+            }) || (cachedSources || []).find(function(s) { return s && s.kind === 'org'; }) || null;
+        }
+        if (!source || source.kind !== 'org') return;
+        const org = source.org || {};
+
+        // Devices power the count + recent list; the fetch re-renders the
+        // dashboard on completion (see fetchAccountDevicesForActiveAccount).
+        if (!accountDevicesLoaded) fetchAccountDevicesForActiveAccount();
+
+        const orgDevices = filterDevicesForOrg(source);
+        const orgLicenseIds = (org.licenses || []).map(function(l) { return l && l.license_id; }).filter(Boolean);
+        const licenses = (cachedLicenseOverview || []).filter(function(l) { return orgLicenseIds.indexOf(l.license_id) !== -1; });
+        const shown = licenses.filter(function(l) { return dashLicenseStatus(l).key !== 'expired'; });
+
+        // "See all" links → the matching org views.
+        [['dashSeeLicenses', 'license'], ['dashSeeDevices', 'devices'], ['dashSeePeople', 'people']].forEach(function(pair) {
+            const a = document.getElementById(pair[0]);
+            if (a) a.setAttribute('href', buildHashOrg(source.id, pair[1]));
+        });
+
+        // KPIs.
+        var creditsVal = '—', creditsSub = '';
+        var c = cachedStreamingCredits;
+        if (c) {
+            if (c.unlimited_active) { creditsVal = 'Unlimited'; creditsSub = 'Annual'; }
+            else { creditsVal = '$' + (c.streaming_credits_dollars || 0).toFixed(2); creditsSub = Math.floor(c.streaming_credits_minutes || 0).toLocaleString() + ' min'; }
+        } else { kickOffStreamingCreditsFetch(); }
+        var kpis = document.getElementById('dashKpis');
+        if (kpis) {
+            kpis.innerHTML =
+                dashKpiCard(orgDevices.length, orgDevices.length === 1 ? 'device activated' : 'devices activated') +
+                dashKpiCard(shown.length, shown.length === 1 ? 'active license' : 'active licenses') +
+                dashKpiCard(creditsVal, 'streaming credits', creditsSub);
+        }
+
+        // License cards (same status colours as the License page).
+        var lc = document.getElementById('dashLicenses');
+        if (lc) {
+            lc.innerHTML = shown.length ? shown.map(function(l) {
+                var s = dashLicenseStatus(l);
+                var slots = (typeof l.keys_left === 'number' && typeof l.total_keys === 'number')
+                    ? ((l.total_keys - l.keys_left) + ' of ' + l.total_keys + ' slots used') : '';
+                var expiry = l.expiry_date ? ('expires ' + l.expiry_date) : '';
+                var meta = [slots, expiry].filter(Boolean).join('  ·  ');
+                return '<div class="lic-card status-' + s.key + ' dash-lic-card">'
+                    + '<div class="dash-lic-row"><span class="dash-lic-name">' + escapeHtmlOrg(l.license_name || 'License') + '</span>' + dashLicenseBadge(s.key) + '</div>'
+                    + (meta ? '<div class="dash-lic-meta">' + escapeHtmlOrg(meta) + '</div>' : '')
+                    + '</div>';
+            }).join('') : '<div class="dash-empty">No active licenses.</div>';
+        }
+
+        // Recently activated devices (top 3 by first activation).
+        var rd = document.getElementById('dashRecentDevices');
+        if (rd) {
+            if (!accountDevicesLoaded) {
+                rd.innerHTML = '<div class="dash-empty">Loading…</div>';
+            } else if (!orgDevices.length) {
+                rd.innerHTML = '<div class="dash-empty">No devices activated yet.</div>';
+            } else {
+                var recent = orgDevices.slice().sort(function(a, b) {
+                    return (b.first_activated_at || 0) - (a.first_activated_at || 0);
+                }).slice(0, 3);
+                rd.innerHTML = recent.map(function(d) {
+                    var name = d.display_name || machineIdToAliasDisplay(d.machine_id || '');
+                    var email = (d.emails && d.emails[0]) || '';
+                    var ago = dashTimeAgo(d.first_activated_at);
+                    var sub = [email, ago ? 'activated ' + ago : ''].filter(Boolean).join('  ·  ');
+                    return dashItemRow(email || name, name, sub, '');
+                }).join('');
+            }
+        }
+
+        // Recently added people (org.members[] by added_at; falls back to emails).
+        var rp = document.getElementById('dashRecentPeople');
+        if (rp) {
+            var members = Array.isArray(org.members) ? org.members.slice() : null;
+            if (members && members.length) {
+                members.sort(function(a, b) { return (b.added_at || 0) - (a.added_at || 0); });
+                rp.innerHTML = members.slice(0, 3).map(function(m) {
+                    var label = m.name || [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email;
+                    var badge = m.role === 'manager'
+                        ? '<span class="people-role-badge admin">Manager</span>'
+                        : '<span class="people-role-badge member">Member</span>';
+                    var ago = m.added_at ? dashTimeAgo(m.added_at) : '';
+                    var sub = [m.email, ago ? 'added ' + ago : ''].filter(Boolean).join('  ·  ');
+                    return dashItemRow(m.email || label, label, sub, badge);
+                }).join('');
+            } else {
+                var emails = (org.emails || []).slice(0, 3);
+                rp.innerHTML = emails.length ? emails.map(function(e) {
+                    return dashItemRow(e, displayNameForEmail(e) || e, e, '');
+                }).join('') : '<div class="dash-empty">No people yet.</div>';
+            }
+        }
+
+        renderDashUsage();
+    }
+
+    // Streaming usage graph — get_streaming_usage_history (live endpoint).
+    var dashUsageCache = null;
+    function renderDashUsage() {
+        var el = document.getElementById('dashUsageGraph');
+        if (!el) return;
+        var accountId = getActiveAccountId();
+        if (!accountId) { el.innerHTML = '<div class="dash-empty">Usage unavailable.</div>'; return; }
+        if (dashUsageCache) { drawDashUsage(el, dashUsageCache); return; }
+        el.innerHTML = '<div class="dash-empty">Loading usage…</div>';
+        orgApiCall('get_streaming_usage_history', { account_id: accountId, range: 'week' }, false, 'POST')
+            .then(function(data) { dashUsageCache = data; drawDashUsage(el, data); })
+            .catch(function(err) {
+                console.warn('get_streaming_usage_history failed:', err);
+                el.innerHTML = '<div class="dash-empty">Usage data is not available yet.</div>';
+            });
+    }
+    function drawDashUsage(el, data) {
+        var buckets = (data && data.buckets) || [];
+        var totals = (data && data.totals) || {};
+        var anyUsage = (totals.paid_minutes || 0) + (totals.unlimited_minutes || 0) + (totals.free_minutes || 0) > 0;
+        if (!buckets.length || !anyUsage) {
+            el.innerHTML = '<div class="dash-empty">No streaming usage in the last week.</div>';
+            return;
+        }
+        var max = buckets.reduce(function(m, b) {
+            return Math.max(m, (b.free_minutes || 0) + (b.paid_minutes || 0) + (b.unlimited_minutes || 0));
+        }, 0) || 1;
+        var bars = buckets.map(function(b) {
+            var free = b.free_minutes || 0, paid = b.paid_minutes || 0, unl = b.unlimited_minutes || 0;
+            var total = free + paid + unl;
+            var day = String(b.date || '').slice(5);
+            function seg(v, cls) { return v > 0 ? '<div class="dash-bar-seg ' + cls + '" style="height:' + (v / total * 100) + '%"></div>' : ''; }
+            var inner = total > 0
+                ? '<div class="dash-bar" style="height:' + (total / max * 100) + '%">' + seg(paid, 'paid') + seg(unl, 'unlimited') + seg(free, 'free') + '</div>'
+                : '<div class="dash-bar dash-bar-empty"></div>';
+            return '<div class="dash-bar-col" title="' + escapeHtmlOrg(day + ': ' + Math.round(total) + ' min') + '">' + inner
+                + '<div class="dash-bar-label">' + escapeHtmlOrg(day) + '</div></div>';
+        }).join('');
+        el.innerHTML = '<div class="dash-bars">' + bars + '</div>'
+            + '<div class="dash-usage-legend">'
+            + '<span><i class="dot paid"></i>Paid (internet)</span>'
+            + '<span><i class="dot free"></i>Free (local)</span>'
+            + '<span><i class="dot unlimited"></i>Unlimited</span>'
+            + '</div>';
+    }
+
+    // ===== Devices 2 (experimental: one config-style card per device) =====
+    const DEVICE2_GLYPH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="9" x2="8" y2="5"/><line x1="16" y1="9" x2="16" y2="5"/><rect x="3" y="9" width="18" height="10" rx="2"/><circle cx="8" cy="14" r="1.4"/><circle cx="16" cy="14" r="1.4"/></svg>';
+    function renderActiveDevices2(source) {
+        const container = document.getElementById('devices2Content');
+        if (!container) return;
+        if (!source || source.kind !== 'org') { container.innerHTML = ''; return; }
+        if (!accountDevicesLoaded) {
+            container.innerHTML = '<div class="loading-spinner" style="padding:30px 0;"><div class="spinner"></div></div>';
+            fetchAccountDevicesForActiveAccount();
+            return;
+        }
+        const devices = filterDevicesForOrg(source);
+        if (!devices.length) {
+            container.innerHTML = '<div class="configurations-empty">No devices activated on this team yet.</div>';
+            return;
+        }
+        // Newest activity first (use the device-level activation timestamp;
+        // deviceMostRecentActivationMs/deviceHasActiveToken are nested in
+        // another function and not in scope here).
+        const sorted = devices.slice().sort(function(a, b) {
+            return (b.last_activated_at || 0) - (a.last_activated_at || 0);
+        });
+        let html = '<div class="config-grid">';
+        sorted.forEach(function(d) {
+            const name = d.display_name || machineIdToAliasDisplay(d.machine_id || '') || 'Device';
+            const active = (d.n_active_tokens || 0) > 0;
+            const hasTokens = (d.tokens || []).length > 0;
+            const statusKey = active ? 'active' : (hasTokens ? 'expired' : 'none');
+            const statusLabel = active ? 'Active' : (hasTokens ? 'Expired' : 'No license');
+            const machineId = d.machine_id || '';
+            const email = (d.emails && d.emails[0]) || '';
+            const latestTok = (d.tokens || [])[0] || null;
+            const licName = latestTok ? (latestTok.license_name || '') : '';
+            const chips = [];
+            if (machineId) chips.push(configChip('ID', machineId));
+            if (d.dji_device_type) chips.push(configChip('Type', d.dji_device_type));
+            if (d.android_version) chips.push(configChip('Android', d.android_version));
+            if (licName) chips.push(configChip('License', licName));
+            if (email) chips.push(configChip('By', email));
+            const chipsHtml = chips.length
+                ? '<div class="config-card-chips">' + chips.join('') + '</div>'
+                : '<div class="config-card-chips"><span class="config-card-chips-empty">No details</span></div>';
+            html += '<div class="config-card device2-card">'
+                + '<div class="config-card-head">'
+                +   '<span class="config-card-icon">' + DEVICE2_GLYPH + '</span>'
+                +   '<span class="config-card-name">' + escapeHtmlOrg(name) + '</span>'
+                +   '<span class="config-card-scope ' + statusKey + '">' + statusLabel + '</span>'
+                + '</div>'
+                + chipsHtml
+                + '</div>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
     }
 
     function renderActiveConfigurations(source) {
