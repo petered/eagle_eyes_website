@@ -1999,16 +1999,19 @@ active: account
 
     /* ===== Dashboard (org overview; default landing) ===== */
     .dash-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
-    .dash-kpi { background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; }
+    .dash-kpi { background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 16px 18px; }
     .dash-kpi-value { font-size: 26px; font-weight: 700; color: #1a2230; line-height: 1.1; }
     .dash-kpi-label { font-size: 13px; color: #5a6573; margin-top: 4px; }
     .dash-kpi-sub { font-size: 12px; color: #9aa0a6; margin-top: 2px; }
-    /* "Add credits" CTA on the streaming-credits KPI; pinned to the bottom-left
-       of the card (margin-top:auto) so the row's cards stay aligned. */
+    /* Top row of a KPI that carries an action: value on the left, the CTA
+       pinned to the top-right. flex keeps them from overlapping at any value
+       width; the label/sub flow full-width beneath. */
+    .dash-kpi-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .dash-kpi-top .dash-kpi-value { flex: 1 1 auto; min-width: 0; }
     .dash-kpi-cta {
-        align-self: flex-start; margin-top: 14px;
-        background: #1e90ff; color: #fff; padding: 7px 13px; border-radius: 8px;
-        font-size: 12.5px; font-weight: 600; text-decoration: none; white-space: nowrap;
+        flex: 0 0 auto;
+        background: #1e90ff; color: #fff; padding: 6px 11px; border-radius: 8px;
+        font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap;
         transition: background-color 0.15s;
     }
     .dash-kpi-cta:hover { background: #1873cc; color: #fff; text-decoration: none; }
@@ -10319,10 +10322,13 @@ active: account
         return months + (months === 1 ? ' month ago' : ' months ago');
     }
     function dashKpiCard(value, label, sub, ctaHtml) {
-        return '<div class="dash-kpi"><div class="dash-kpi-value">' + escapeHtmlOrg(String(value)) + '</div>'
+        const valueEl = '<div class="dash-kpi-value">' + escapeHtmlOrg(String(value)) + '</div>';
+        // With a CTA, the value + CTA share a top flex row (CTA top-right);
+        // otherwise the value stands alone.
+        const top = ctaHtml ? '<div class="dash-kpi-top">' + valueEl + ctaHtml + '</div>' : valueEl;
+        return '<div class="dash-kpi">' + top
             + '<div class="dash-kpi-label">' + escapeHtmlOrg(label) + '</div>'
-            + (sub ? '<div class="dash-kpi-sub">' + escapeHtmlOrg(sub) + '</div>' : '')
-            + (ctaHtml || '') + '</div>';
+            + (sub ? '<div class="dash-kpi-sub">' + escapeHtmlOrg(sub) + '</div>' : '') + '</div>';
     }
     function dashItemRow(seedForColor, title, sub, badgeHtml) {
         var initial = (title || '?').charAt(0).toUpperCase();
