@@ -10507,18 +10507,40 @@ active: account
     }
 
     // Streaming usage graph — get_streaming_usage_history (live endpoint).
+    // dashUsageAccount is the account the cache/fetch belongs to AND the
+    // in-flight/done guard: it's set synchronously before the request, so the
+    // dashboard's re-renders (e.g. when device data lands) can NEVER re-fire
+    // the call. Without this, an erroring endpoint produced a runaway loop —
+    // ~5,000 fetches in 4 min — that froze the page. We fetch at most once per
+    // account; a real account switch (different id) fetches exactly once more.
     var dashUsageCache = null;
+    var dashUsageAccount = null;
     function renderDashUsage() {
         var el = document.getElementById('dashUsageGraph');
         if (!el) return;
         var accountId = getActiveAccountId();
         if (!accountId) { el.innerHTML = '<div class="dash-empty">Usage unavailable.</div>'; return; }
-        if (dashUsageCache) { drawDashUsage(el, dashUsageCache); return; }
+        // Already fetched (or fetching, or errored) for this account: redraw
+        // from cache if we have it, otherwise leave the current message — never
+        // re-fire on a re-render.
+        if (dashUsageAccount === accountId) {
+            if (dashUsageCache) drawDashUsage(el, dashUsageCache);
+            return;
+        }
+        dashUsageAccount = accountId;
+        dashUsageCache = null;
         el.innerHTML = '<div class="dash-empty">Loading usage…</div>';
         orgApiCall('get_streaming_usage_history', { account_id: accountId, range: 'week' }, false, 'POST')
-            .then(function(data) { dashUsageCache = data; drawDashUsage(el, data); })
+            .then(function(data) {
+                if (dashUsageAccount !== accountId) return; // account switched mid-flight
+                dashUsageCache = data;
+                drawDashUsage(el, data);
+            })
             .catch(function(err) {
                 console.warn('get_streaming_usage_history failed:', err);
+                if (dashUsageAccount !== accountId) return;
+                // Keep dashUsageAccount set so re-renders don't retry-storm; a
+                // genuine account switch clears it via the id mismatch above.
                 el.innerHTML = '<div class="dash-empty">Couldn\'t load usage right now.</div>';
             });
     }
