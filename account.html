@@ -1747,6 +1747,17 @@ active: account
     }
     .overview-empty a { color: #1e90ff; text-decoration: none; }
     .overview-empty a:hover { text-decoration: underline; }
+    /* Non-owner heads-up under the streaming-credits widget (can view balance,
+       can't buy). Softer than .overview-empty; a quiet inline note. */
+    .overview-note {
+        margin-top: 8px;
+        font-size: 12.5px;
+        color: #8a7320;
+        background: #fff8e6;
+        border: 1px solid #f1d28a;
+        border-radius: 8px;
+        padding: 8px 12px;
+    }
 
     /* Roles & permissions disclosure. Collapsed link at the top of the
        Members section; expands to a three-column panel of who-can-do-what
@@ -3562,6 +3573,11 @@ active: account
                        href="{{ '/account/purchase/?add=credits:payg' | relative_url }}"
                        style="display: none;">+ Add credits</a>
                 </div>
+            </div>
+            <!-- Shown to non-owners (who can view the balance but can't buy).
+                 Toggled by applyOwnerGatedCtas(). -->
+            <div id="streamingCreditsNonOwner" class="overview-note" style="display: none;">
+                You don't have permission to add credits. Ask an account owner to top up.
             </div>
             <div id="streamingCreditsEmpty" class="overview-empty" style="display: none;">
                 No streaming credits yet. <a href="{{ '/account/purchase/?add=credits:payg' | relative_url }}">Add your first credits &rarr;</a>
@@ -9583,6 +9599,9 @@ active: account
         document.querySelectorAll('.owner-only-cta').forEach(function(el) {
             el.style.display = isOwner ? '' : 'none';
         });
+        // Tell non-owners why the "Add credits" CTA isn't available to them.
+        var note = document.getElementById('streamingCreditsNonOwner');
+        if (note) note.style.display = isOwner ? 'none' : '';
     }
 
     // Surface who owns the active account at the top of Overview so users
