@@ -86,6 +86,14 @@
                                         <div id="navProfileDropdown" class="nav-profile-dropdown" role="menu">
                                             <div class="nav-profile-email" id="navProfileEmail"></div>
 
+                                            <!-- Impersonation banner: staff who logged in as a customer.
+                                                 Shown when localStorage.eeImpersonator is set; "Switch back"
+                                                 re-mints the staff session (navSwitchBack). -->
+                                            <div id="navImpersonateBanner" class="nav-impersonate-banner" style="display: none;">
+                                                <div class="nav-impersonate-banner-text">Viewing as <span id="navImpersonateWho"></span></div>
+                                                <button type="button" id="navSwitchBackBtn" class="nav-impersonate-back">Switch back to my account &rarr;</button>
+                                            </div>
+
                                             <!-- Top-level utility links -->
                                             <a href="{{ '/account/profile/' | relative_url }}"
                                                class="nav-profile-item"
@@ -115,20 +123,37 @@
                                             <!-- Billing scope (was "Account", renamed to disambiguate
                                                  from the /account/ page itself). Sub-items mirror the
                                                  sidebar order, with Account access at the bottom. -->
-                                            <div class="nav-admin-divider"></div>
-                                            <div class="nav-admin-label">Billing</div>
+                                            <div class="nav-admin-divider" id="navDropBillingDivider"></div>
+                                            <div class="nav-admin-label" id="navDropBillingLabel">Billing</div>
                                             <a href="{{ '/account/#view=overview' | relative_url }}"
+                                               id="navDropLicenses"
                                                class="nav-profile-item"
                                                role="menuitem">Licenses &amp; credits</a>
                                             <a href="{{ '/account/purchase/' | relative_url }}"
+                                               id="navDropPurchase"
                                                class="nav-profile-item"
                                                role="menuitem">Purchase / Renew</a>
                                             <a href="{{ '/account/billing/' | relative_url }}"
+                                               id="navDropHistory"
                                                class="nav-profile-item"
                                                role="menuitem">Purchase history</a>
                                             <a href="{{ '/account/#view=access' | relative_url }}"
+                                               id="navDropAccess"
                                                class="nav-profile-item"
                                                role="menuitem">Account access</a>
+
+                                            <!-- Dev/Customer view switch (staff only). Lets staff preview
+                                                 the stripped customer view; non-staff never see it. -->
+                                            <div id="navViewToggle" class="nav-view-toggle" style="display: none;">
+                                                <div class="nav-admin-divider"></div>
+                                                <div class="nav-view-toggle-row">
+                                                    <span class="nav-view-toggle-label">View as</span>
+                                                    <span class="nav-view-toggle-seg">
+                                                        <button type="button" class="nav-view-opt" data-view-mode="dev">Dev</button>
+                                                        <button type="button" class="nav-view-opt" data-view-mode="customer">Customer</button>
+                                                    </span>
+                                                </div>
+                                            </div>
 
                                             <div class="nav-admin-divider"></div>
                                             <button type="button"
@@ -317,6 +342,42 @@
         .nav-admin-impersonate {
             padding: 6px 22px 10px 22px;
         }
+        /* Impersonation banner ("Viewing as … — Switch back"). */
+        .nav-impersonate-banner {
+            margin: 4px 12px 8px 12px;
+            padding: 8px 12px;
+            background: #fff8e6;
+            border: 1px solid #f1d28a;
+            border-radius: 8px;
+        }
+        .nav-impersonate-banner-text { font-size: 12px; color: #8a7320; }
+        .nav-impersonate-banner-text span { font-weight: 700; }
+        .nav-impersonate-back {
+            margin-top: 6px;
+            background: none; border: none; padding: 0;
+            color: #1e6fd6; font-size: 12.5px; font-weight: 600; cursor: pointer;
+        }
+        .nav-impersonate-back:hover { text-decoration: underline; }
+        .nav-impersonate-back:disabled { color: #9aa0a6; cursor: default; text-decoration: none; }
+        /* Dev/Customer view toggle. */
+        .nav-view-toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; padding: 2px 22px 4px 22px;
+        }
+        .nav-view-toggle-label {
+            font-size: 11px; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.6px;
+        }
+        .nav-view-toggle-seg {
+            display: inline-flex; border: 1px solid #d8dde2; border-radius: 7px; overflow: hidden;
+        }
+        .nav-view-opt {
+            background: #fff; border: none; padding: 5px 11px;
+            font-size: 12px; font-weight: 600; color: #5a6573; cursor: pointer;
+        }
+        .nav-view-opt + .nav-view-opt { border-left: 1px solid #d8dde2; }
+        .nav-view-opt:hover { background: #f4f6f8; }
+        .nav-view-opt.is-on { background: #1e90ff; color: #fff; }
         .nav-admin-divider {
             border-top: 1px solid #f0f0f0;
             margin: 6px 0 8px 0;
@@ -538,6 +599,92 @@
                 }
             }
 
+            // Apply customer-view gating to the profile dropdown so it never
+            // leaks the hidden org pages / Account access to customers, and so
+            // Purchase/Renew + Purchase history stay owner-only there too.
+            function applyDropdownCustomerGating(customer, isOwner) {
+                var orgScope = document.getElementById('navOrgScope');
+                var access = document.getElementById('navDropAccess');
+                var purchase = document.getElementById('navDropPurchase');
+                var history = document.getElementById('navDropHistory');
+                if (customer) {
+                    if (orgScope) orgScope.style.display = 'none';
+                    if (access) access.style.display = 'none';
+                    if (purchase) purchase.style.display = isOwner ? '' : 'none';
+                    if (history) history.style.display = isOwner ? '' : 'none';
+                } else {
+                    // Dev: restore (navOrgScope visibility is owned by
+                    // refreshNavOrgScope, so don't force it here).
+                    if (access) access.style.display = '';
+                    if (purchase) purchase.style.display = '';
+                    if (history) history.style.display = '';
+                }
+            }
+
+            // Impersonation banner + dev/customer toggle + dropdown gating.
+            function refreshNavView(user) {
+                if (!user || !window.eeView) return;
+                var banner = document.getElementById('navImpersonateBanner');
+                var who = document.getElementById('navImpersonateWho');
+                var toggle = document.getElementById('navViewToggle');
+                var imp = window.eeView.impersonator();
+                if (banner) {
+                    if (imp) { if (who) who.textContent = imp.email || (user.email || ''); banner.style.display = ''; }
+                    else banner.style.display = 'none';
+                }
+                function apply(dash) {
+                    var staff = window.eeView.isStaff(user, dash);
+                    var customer = window.eeView.mode(user, dash) === 'customer';
+                    if (toggle) {
+                        toggle.style.display = staff ? '' : 'none';
+                        toggle.querySelectorAll('[data-view-mode]').forEach(function(b) {
+                            b.classList.toggle('is-on', b.getAttribute('data-view-mode') === (customer ? 'customer' : 'dev'));
+                        });
+                    }
+                    var isOwner = !!(dash && (dash.accounts || []).some(function(a) { return !!a.is_owner; }));
+                    applyDropdownCustomerGating(customer, isOwner);
+                }
+                var cached = window.eeDashboard && window.eeDashboard.read(user.uid);
+                if (cached) { apply(cached); }
+                else if (window.eeDashboard) {
+                    apply(null);
+                    window.eeDashboard.fetch(user).then(function(f) { if (f) apply(f); }).catch(function() {});
+                } else { apply(null); }
+            }
+
+            // Re-mint our own staff session after impersonating. Reuses
+            // admin_impersonate_user with the stashed staff token, targeting
+            // ourselves. On any failure (token expired ~1h, 401/403), fall back
+            // to a clean sign-out + re-login.
+            window.navSwitchBack = async function() {
+                var imp = window.eeView && window.eeView.impersonator();
+                var btn = document.getElementById('navSwitchBackBtn');
+                if (btn) { btn.disabled = true; btn.textContent = 'Switching…'; }
+                if (!imp || !imp.idToken || !imp.email) { return fallbackSignOut(); }
+                try {
+                    var hostURL = window.getHostUrl ? window.getHostUrl() : 'https://us-central1-eagleeyessearch.cloudfunctions.net';
+                    var r = await fetch(hostURL + '/admin_impersonate_user', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + imp.idToken, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target_email: imp.email })
+                    });
+                    if (!r.ok) throw new Error('switch-back failed (' + r.status + ')');
+                    var data = await r.json();
+                    if (!data.custom_token) throw new Error('no custom_token');
+                    try { localStorage.removeItem('eeImpersonator'); localStorage.removeItem('eeTriggerName'); } catch (e) {}
+                    await firebase.auth().signInWithCustomToken(data.custom_token);
+                    window.location.href = '{{ "/account/" | relative_url }}';
+                } catch (err) {
+                    console.warn('Switch back re-mint failed, falling back to sign-out:', err);
+                    fallbackSignOut();
+                }
+                function fallbackSignOut() {
+                    try { localStorage.removeItem('eeImpersonator'); } catch (e) {}
+                    try { if (firebase && firebase.auth) firebase.auth().signOut(); } catch (e) {}
+                    window.location.href = '{{ "/account/" | relative_url }}';
+                }
+            };
+
             function applyAuthState(user) {
                 var getBtn = document.getElementById('navGetEagleEyesBtn');
                 var profile = document.getElementById('navProfileMenu');
@@ -552,6 +699,7 @@
                     refreshNavTriggerName(user);
                     refreshNavAdminScope(user);
                     refreshNavOrgScope(user);
+                    refreshNavView(user);
                     // Persist a hint so the next page load can pre-paint the
                     // profile icon synchronously, before Firebase auth resolves.
                     try { localStorage.setItem('eeAuthHint', 'signed_in'); } catch (e) {}
@@ -567,7 +715,10 @@
                         localStorage.removeItem('eeHasOrgs');
                         localStorage.removeItem('eeIsAccountAdmin');
                         localStorage.removeItem('eeTriggerName');
+                        localStorage.removeItem('eeImpersonator');
+                        localStorage.removeItem('eeViewCustomer');
                     } catch (e) {}
+                    document.documentElement.classList.remove('ee-view-customer');
                     document.documentElement.classList.remove('ee-auth-hint-signed-in');
                     document.documentElement.classList.remove('ee-auth-hint-has-orgs');
                     document.documentElement.classList.remove('ee-auth-hint-account-admin');
@@ -589,6 +740,7 @@
                         refreshNavOrgScope(u);
                         refreshNavAdminScope(u);
                         refreshNavTriggerName(u);
+                        refreshNavView(u);
                     }
                 } catch (e) { /* ignore */ }
             });
@@ -649,6 +801,19 @@
                         localStorage.removeItem('eeTriggerName');
                     } catch (e) {}
 
+                    // Stash the staff identity so "Switch back" can re-mint our
+                    // own session (admin_impersonate_user accepts the caller as
+                    // its own target). The stashed ID token is valid ~1h; after
+                    // that, switch-back falls back to sign-out + re-login.
+                    // (Staff-only tool, on the staff member's own machine.)
+                    try {
+                        localStorage.setItem('eeImpersonator', JSON.stringify({
+                            email: (user.email || '').toLowerCase(),
+                            idToken: idToken,
+                            ts: Date.now()
+                        }));
+                    } catch (e) {}
+
                     await firebase.auth().signInWithCustomToken(data.custom_token);
                     if (status) {
                         status.textContent = 'Signed in as ' + target + '. Reloading…';
@@ -694,6 +859,27 @@
                     });
                     document.addEventListener('keydown', function(e) {
                         if (e.key === 'Escape') closeProfileDropdown();
+                    });
+                }
+
+                // Switch back from impersonation.
+                var switchBackBtn = document.getElementById('navSwitchBackBtn');
+                if (switchBackBtn) {
+                    switchBackBtn.addEventListener('click', function() {
+                        if (window.navSwitchBack) window.navSwitchBack();
+                    });
+                }
+
+                // Dev/Customer view toggle (staff only): set the mode + reload so
+                // the sidebar and router re-evaluate cleanly.
+                var viewToggle = document.getElementById('navViewToggle');
+                if (viewToggle) {
+                    viewToggle.querySelectorAll('[data-view-mode]').forEach(function(b) {
+                        b.addEventListener('click', function() {
+                            var m = b.getAttribute('data-view-mode');
+                            if (window.eeView) window.eeView.setMode(m);
+                            window.location.href = '{{ "/account/" | relative_url }}';
+                        });
                     });
                 }
 
