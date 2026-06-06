@@ -9217,11 +9217,35 @@ active: account
         return true;
     }
 
+    // Customer view (stripped): no org pages and no Account-access view exist,
+    // so account.html only ever shows Licenses & Credits (overview). Resolved
+    // via the shared eeView helper; mirrors the .ee-view-customer class the
+    // layout sets. (Purchase / Renew + Purchase history are separate pages.)
+    function customerViewActive() {
+        if (document.documentElement.classList.contains('ee-view-customer')) return true;
+        try {
+            const u = firebase.auth().currentUser;
+            const dash = window._cachedUserAccountInfo ? { user_account_info: window._cachedUserAccountInfo } : null;
+            return !!(window.eeView && window.eeView.mode(u, dash) === 'customer');
+        } catch (e) { return false; }
+    }
+
     function applyHashToState() {
         const params = parseHashParams();
         const orgIds = cachedOrganizations.map(function(o) { return String(o.org_id); });
         activeDevicesMode = canonicalizeDevicesMode(params.devices);
         devicesScope = canonicalizeDevicesScope(params.devices_scope);
+
+        // Customer view: collapse everything to the account-scope Licenses &
+        // Credits view. Org views, #org=… deep links, and Account access are
+        // all unreachable here.
+        if (customerViewActive()) {
+            activeScope = 'account';
+            activeSourceId = null;
+            activeView = 'overview';
+            writeHashAccount('overview', true);
+            return;
+        }
 
         // Backwards-compat: the old `#org=X&view=licenses` URL has moved.
         // Rewrite to the account-scope Overview view.

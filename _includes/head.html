@@ -235,7 +235,58 @@
 				if (localStorage.getItem('eeIsAccountAdmin') === 'true') {
 					document.documentElement.classList.add('ee-auth-hint-account-admin');
 				}
+				// Customer view (staff who toggled it, or any non-staff user the
+				// previous load resolved). Pre-paints the stripped sidebar layout
+				// so it doesn't flash the dev layout. eeView.mode() rewrites this.
+				if (localStorage.getItem('eeViewCustomer') === 'true') {
+					document.documentElement.classList.add('ee-view-customer');
+				}
 			} catch (e) { /* localStorage disabled. Accept the flash */ }
+		})();
+	</script>
+	<script>
+		// Shared "which account-area view" resolver, used by the navbar, the
+		// account-area layout, and account.html so they all agree. Two views:
+		//   dev      — full sidebar (Organization + Billing groups). Staff only.
+		//   customer — stripped: no org pages; Billing flattened to top level.
+		// Staff = is_site_admin (backend allowlist) OR an @eagleeyessearch.com
+		// email OR currently impersonating a customer (so staff keep the toggle
+		// while impersonating, where the customer's own dashboard says is_site_admin
+		// is false). Non-staff are locked to customer view.
+		window.eeView = (function () {
+			var DOMAIN = '@eagleeyessearch.com';
+			function impersonator() {
+				try { var s = localStorage.getItem('eeImpersonator'); return s ? JSON.parse(s) : null; }
+				catch (e) { return null; }
+			}
+			function isStaff(user, dash) {
+				if (impersonator()) return true;
+				var email = ((user && user.email) || '').toLowerCase();
+				if (email && email.slice(-DOMAIN.length) === DOMAIN) return true;
+				return !!(dash && dash.user_account_info && dash.user_account_info.is_site_admin);
+			}
+			function chosen() {
+				try { return localStorage.getItem('eeViewMode') === 'customer' ? 'customer' : 'dev'; }
+				catch (e) { return 'dev'; }
+			}
+			// Reflect the resolved mode onto <html> immediately + persist the
+			// effective hint for the next page's pre-paint.
+			function apply(isCustomer) {
+				try { document.documentElement.classList.toggle('ee-view-customer', !!isCustomer); } catch (e) {}
+				try {
+					if (isCustomer) localStorage.setItem('eeViewCustomer', 'true');
+					else localStorage.removeItem('eeViewCustomer');
+				} catch (e) {}
+			}
+			function mode(user, dash) {
+				var m = isStaff(user, dash) ? chosen() : 'customer';
+				apply(m === 'customer');
+				return m;
+			}
+			function setMode(m) {
+				try { localStorage.setItem('eeViewMode', m === 'customer' ? 'customer' : 'dev'); } catch (e) {}
+			}
+			return { isStaff: isStaff, mode: mode, setMode: setMode, impersonator: impersonator, apply: apply };
 		})();
 	</script>
 	<style>
@@ -280,6 +331,17 @@
 
 		/* Has at least one org: show the Organization scope sidebar group. */
 		html.ee-auth-hint-has-orgs #sidebarOrgSection { display: block !important; }
+
+		/* Customer view: no Organization group at all; Billing flattened to top
+		   level. Licenses & Credits shows for every signed-in user; Purchase /
+		   Renew + Purchase history stay owner-only (reuse the account-admin
+		   hint). These come after — and outweigh — the generic hints above. */
+		html.ee-view-customer #sidebarOrgSection { display: none !important; }
+		html.ee-view-customer.ee-auth-hint-signed-in #sidebarAccountSection { display: block !important; }
+		html.ee-view-customer #sidebarItemPurchase,
+		html.ee-view-customer #sidebarItemBilling { display: none !important; }
+		html.ee-view-customer.ee-auth-hint-account-admin #sidebarItemPurchase,
+		html.ee-view-customer.ee-auth-hint-account-admin #sidebarItemBilling { display: block !important; }
 
 		/* On /account/ specifically: if the user was signed in last time,
 		   hide the sign-in prompt and show a loading spinner instead while

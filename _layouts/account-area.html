@@ -86,6 +86,22 @@ layout: main
         border-radius: 6px;
     }
 
+    /* Customer view: flatten the Billing group so its items read as top-level
+       siblings of Profile / Downloads / Support — drop the "Billing" header,
+       the indent, the left rule, and match the top-level link sizing. (The
+       Organization group + owner-gated items are hidden via head.html.) */
+    html.ee-view-customer #sidebarAccountSection { margin: 4px 0; }
+    html.ee-view-customer #sidebarAccountSection > .account-scope-label { display: none; }
+    html.ee-view-customer #sidebarAccountSection .account-scope-sublist {
+        margin-left: 0;
+        border-left: none;
+    }
+    html.ee-view-customer #sidebarAccountSection .account-scope-sublist .account-sidebar-link {
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
     .account-content {
         flex: 1 1 auto;
         min-width: 0;
@@ -362,13 +378,35 @@ layout: main
         // The Billing group is Admin-only (account owners). A team member who
         // can see an account but doesn't own it gets no Billing group.
         var isAccountAdmin = accounts.some(function(a) { return !!a.is_owner; });
-        showAccountGroup(isAccountAdmin);
-        showOrgGroup(orgs.length > 0);
+
+        // Resolve dev vs customer view (this also sets the .ee-view-customer
+        // class on <html> + persists the pre-paint hint).
+        var customer = (window.eeView && window.eeView.mode)
+            ? window.eeView.mode(user, dash) === 'customer' : false;
+
+        var purchaseItem = $('sidebarItemPurchase');
+        var billingItem = $('sidebarItemBilling');
+        if (customer) {
+            // Customer: no Organization group. Billing flattened to top level:
+            // Licenses & Credits for everyone; Purchase/Renew + Purchase history
+            // for account owners only.
+            showOrgGroup(false);
+            showAccountGroup(true);
+            if (purchaseItem) purchaseItem.style.display = isAccountAdmin ? '' : 'none';
+            if (billingItem) billingItem.style.display = isAccountAdmin ? '' : 'none';
+        } else {
+            showAccountGroup(isAccountAdmin);
+            showOrgGroup(orgs.length > 0);
+            // Undo any customer-mode per-item hiding from a prior render.
+            if (purchaseItem) purchaseItem.style.display = '';
+            if (billingItem) billingItem.style.display = '';
+        }
 
         // Account access (manage Admins) is folded into People; keep its
-        // sidebar item only as a fallback for an Admin who is on no team.
+        // sidebar item only as a fallback for an Admin who is on no team — and
+        // never in customer view.
         var accessItem = $('sidebarAccountAccessItem');
-        if (accessItem) accessItem.style.display = (isAccountAdmin && orgs.length === 0) ? '' : 'none';
+        if (accessItem) accessItem.style.display = (!customer && isAccountAdmin && orgs.length === 0) ? '' : 'none';
 
         // Persist hints so the next page load can pre-paint the sidebar groups
         // synchronously in <head> (read by _includes/head.html), eliminating
@@ -390,7 +428,7 @@ layout: main
             }
         } catch (e) { /* localStorage disabled */ }
 
-        if (orgs.length > 0) {
+        if (!customer && orgs.length > 0) {
             var activeOrgId = resolveActiveOrgId(user, orgs, licenses);
             if (activeOrgId) rewriteOrgHrefs(activeOrgId);
         }
