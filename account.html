@@ -2359,6 +2359,15 @@ active: account
         margin-top: 4px;
         flex-wrap: wrap;
     }
+    /* Note under an Admin who isn't a member of the current org (they own the
+       funding account, not this team). */
+    .people-row-note {
+        margin-top: 5px;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #707784;
+    }
+    .people-row-note strong { color: #3d4452; font-weight: 600; }
     .people-role-badge {
         display: inline-block;
         font-size: 10px;
@@ -10180,6 +10189,8 @@ active: account
         const ctx = {
             orgIdAttr: orgIdAttr,
             accountId: accountId,
+            accountName: accountName,
+            orgName: org.name || '',
             currentUserEmail: currentUserEmail,
             callerCanManageTeam: callerCanManageTeam,
             callerIsAccountAdmin: callerIsAccountAdmin,
@@ -11060,6 +11071,19 @@ active: account
               + '<div class="people-row-email people-row-email-sub">' + escapeHtmlOrg(email) + '</div>'
             : '<div class="people-row-email">' + escapeHtmlOrg(email) + '</div>';
 
+        // An Admin (billing account owner) who isn't actually on this team:
+        // they manage the funding account, not this org. Spell that out so the
+        // row doesn't read as "a member of this team" — they can't be removed
+        // from the team here and aren't using its licenses as a member.
+        const adminNotInOrg = d.isBillingAdmin && !d.teamRole;
+        let outsideNote = '';
+        if (adminNotInOrg) {
+            const orgNm = ctx.orgName ? escapeHtmlOrg(ctx.orgName) : 'this organization';
+            const acctNm = ctx.accountName ? escapeHtmlOrg(ctx.accountName) : 'this account';
+            outsideNote = '<div class="people-row-note">Not a member of <strong>' + orgNm
+                + '</strong> — manages the <strong>' + acctNm + '</strong> account that funds it.</div>';
+        }
+
         left.innerHTML =
             '<span class="people-avatar" style="background:' + avatarColor + '">' + escapeHtmlOrg(initial) + '</span>' +
             '<div class="people-row-body">' +
@@ -11067,6 +11091,7 @@ active: account
                 '<div class="people-row-meta">' + badge +
                     (d.isYou ? '<span class="people-you-pill">you</span>' : '') +
                 '</div>' +
+                outsideNote +
             '</div>';
         row.appendChild(left);
 
