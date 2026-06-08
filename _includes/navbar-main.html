@@ -94,6 +94,35 @@
                                                 <button type="button" id="navSwitchBackBtn" class="nav-impersonate-back">Switch back to my account &rarr;</button>
                                             </div>
 
+                                            <!-- Dev/Customer view switch (staff only). Lets staff preview
+                                                 the stripped customer view; non-staff never see it. Pinned
+                                                 to the top alongside the site-admin tools. -->
+                                            <div id="navViewToggle" class="nav-view-toggle" style="display: none;">
+                                                <div class="nav-view-toggle-row">
+                                                    <span class="nav-view-toggle-label">View as</span>
+                                                    <span class="nav-view-toggle-seg">
+                                                        <button type="button" class="nav-view-opt" data-view-mode="dev">Dev</button>
+                                                        <button type="button" class="nav-view-opt" data-view-mode="customer">Customer</button>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Site-admin impersonation. Visible only when
+                                                 dash.user_account_info.is_site_admin === true
+                                                 (returned by get_account_dashboard). Server-side
+                                                 enforcement lives in /admin_impersonate_user;
+                                                 this is just a UX gate. -->
+                                            <div id="navAdminImpersonate" class="nav-admin-impersonate" style="display: none;">
+                                                <div class="nav-admin-label">Site admin tools</div>
+                                                <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
+                                                    <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
+                                                    <button type="submit" class="nav-admin-go">Log in as</button>
+                                                </form>
+                                                <div id="navImpersonateStatus" class="nav-admin-status"></div>
+                                            </div>
+
+                                            <div class="nav-admin-divider"></div>
+
                                             <!-- Top-level utility links -->
                                             <a href="{{ '/account/profile/' | relative_url }}"
                                                class="nav-profile-item"
@@ -142,39 +171,11 @@
                                                class="nav-profile-item"
                                                role="menuitem">Account access</a>
 
-                                            <!-- Dev/Customer view switch (staff only). Lets staff preview
-                                                 the stripped customer view; non-staff never see it. -->
-                                            <div id="navViewToggle" class="nav-view-toggle" style="display: none;">
-                                                <div class="nav-admin-divider"></div>
-                                                <div class="nav-view-toggle-row">
-                                                    <span class="nav-view-toggle-label">View as</span>
-                                                    <span class="nav-view-toggle-seg">
-                                                        <button type="button" class="nav-view-opt" data-view-mode="dev">Dev</button>
-                                                        <button type="button" class="nav-view-opt" data-view-mode="customer">Customer</button>
-                                                    </span>
-                                                </div>
-                                            </div>
-
                                             <div class="nav-admin-divider"></div>
                                             <button type="button"
                                                     id="navSignOutBtn"
                                                     class="nav-profile-item nav-profile-signout"
                                                     role="menuitem">Sign Out</button>
-
-                                            <!-- Site-admin impersonation. Visible only when
-                                                 dash.user_account_info.is_site_admin === true
-                                                 (returned by get_account_dashboard). Server-side
-                                                 enforcement lives in /admin_impersonate_user;
-                                                 this is just a UX gate. -->
-                                            <div id="navAdminImpersonate" class="nav-admin-impersonate" style="display: none;">
-                                                <div class="nav-admin-divider"></div>
-                                                <div class="nav-admin-label">Site admin tools</div>
-                                                <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
-                                                    <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
-                                                    <button type="submit" class="nav-admin-go">Log in as</button>
-                                                </form>
-                                                <div id="navImpersonateStatus" class="nav-admin-status"></div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -371,12 +372,23 @@
         .nav-view-toggle-seg {
             display: inline-flex; border: 1px solid #d8dde2; border-radius: 7px; overflow: hidden;
         }
+        /* The site theme (brand.css) gives every <button> its own padding,
+           margin, border-radius and box-shadow — which broke this segmented
+           control (gaps between segments, inset rounded fills). Reset them so
+           the two halves sit flush inside the rounded container. */
         .nav-view-opt {
-            background: #fff; border: none; padding: 5px 11px;
-            font-size: 12px; font-weight: 600; color: #5a6573; cursor: pointer;
+            -webkit-appearance: none; appearance: none;
+            background: #fff;
+            border: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            padding: 6px 14px !important;
+            font-size: 12px; font-weight: 600; color: #5a6573;
+            line-height: 1.4; cursor: pointer;
         }
-        .nav-view-opt + .nav-view-opt { border-left: 1px solid #d8dde2; }
-        .nav-view-opt:hover { background: #f4f6f8; }
+        .nav-view-opt + .nav-view-opt { border-left: 1px solid #d8dde2 !important; }
+        .nav-view-opt:hover:not(.is-on) { background: #f4f6f8; }
         .nav-view-opt.is-on { background: #1e90ff; color: #fff; }
         .nav-admin-divider {
             border-top: 1px solid #f0f0f0;
