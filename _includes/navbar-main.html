@@ -94,31 +94,32 @@
                                                 <button type="button" id="navSwitchBackBtn" class="nav-impersonate-back">Switch back to my account &rarr;</button>
                                             </div>
 
-                                            <!-- Dev/Customer view switch (staff only). Lets staff preview
-                                                 the stripped customer view; non-staff never see it. Pinned
-                                                 to the top alongside the site-admin tools. -->
-                                            <div id="navViewToggle" class="nav-view-toggle" style="display: none;">
-                                                <div class="nav-view-toggle-row">
+                                            <!-- Site admin tools (staff only). Two grouped tools:
+                                                 "View as" (preview the customer view — every staff
+                                                 user, via eeView.isStaff) and "Log in as" (impersonation
+                                                 — is_site_admin only, gated separately on the inner
+                                                 #navImpersonateTools). Section visibility is owned by
+                                                 refreshNavView; the form by refreshNavAdminScope. -->
+                                            <div id="navAdminImpersonate" class="nav-admin-impersonate" style="display: none;">
+                                                <div class="nav-admin-divider"></div>
+                                                <div class="nav-admin-label">Site admin tools</div>
+
+                                                <div id="navViewToggle" class="nav-view-toggle-row nav-admin-row">
                                                     <span class="nav-view-toggle-label">View as</span>
                                                     <span class="nav-view-toggle-seg">
                                                         <button type="button" class="nav-view-opt" data-view-mode="dev">Dev</button>
                                                         <button type="button" class="nav-view-opt" data-view-mode="customer">Customer</button>
                                                     </span>
                                                 </div>
-                                            </div>
 
-                                            <!-- Site-admin impersonation. Visible only when
-                                                 dash.user_account_info.is_site_admin === true
-                                                 (returned by get_account_dashboard). Server-side
-                                                 enforcement lives in /admin_impersonate_user;
-                                                 this is just a UX gate. -->
-                                            <div id="navAdminImpersonate" class="nav-admin-impersonate" style="display: none;">
-                                                <div class="nav-admin-label">Site admin tools</div>
-                                                <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
-                                                    <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
-                                                    <button type="submit" class="nav-admin-go">Log in as</button>
-                                                </form>
-                                                <div id="navImpersonateStatus" class="nav-admin-status"></div>
+                                                <div id="navImpersonateTools" class="nav-admin-row" style="display: none;">
+                                                    <div class="nav-admin-sublabel">Log in as a user</div>
+                                                    <form class="nav-admin-form" onsubmit="return navImpersonate(event)">
+                                                        <input type="email" id="navImpersonateEmail" placeholder="user@example.com" autocomplete="off" required>
+                                                        <button type="submit" class="nav-admin-go">Log in as</button>
+                                                    </form>
+                                                    <div id="navImpersonateStatus" class="nav-admin-status"></div>
+                                                </div>
                                             </div>
 
                                             <div class="nav-admin-divider"></div>
@@ -365,6 +366,16 @@
             display: flex; align-items: center; justify-content: space-between;
             gap: 10px; padding: 2px 22px 4px 22px;
         }
+        /* Inside the Site-admin-tools section the children align to the
+           section's own 22px padding (so View as + the Log-in-as form line up).
+           Each tool sits in its own .nav-admin-row. */
+        .nav-admin-impersonate .nav-admin-label { padding-left: 0; padding-right: 0; }
+        .nav-admin-impersonate .nav-view-toggle-row { padding: 4px 0; }
+        .nav-admin-row { margin-top: 10px; }
+        .nav-admin-sublabel {
+            font-size: 11px; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+        }
         .nav-view-toggle-label {
             font-size: 11px; font-weight: 700; color: #888;
             text-transform: uppercase; letter-spacing: 0.6px;
@@ -587,12 +598,14 @@
                 try { localStorage.setItem('eeTriggerName', label); } catch (e) {}
             }
 
-            // Reveal / hide the site-admin "Log in as" tools based on the
-            // is_site_admin boolean returned by get_account_dashboard. Hot
-            // path reads the cache; cold path fetches and re-applies once
-            // the dashboard lands.
+            // Reveal / hide the "Log in as" (impersonation) form based on the
+            // is_site_admin boolean returned by get_account_dashboard. This is
+            // the inner tool only — the surrounding "Site admin tools" section
+            // (which also holds "View as") is shown to all staff by
+            // refreshNavView. Hot path reads the cache; cold path fetches and
+            // re-applies once the dashboard lands.
             function refreshNavAdminScope(user) {
-                var adminEl = document.getElementById('navAdminImpersonate');
+                var adminEl = document.getElementById('navImpersonateTools');
                 if (!adminEl || !user || !window.eeDashboard) return;
                 function apply(dash) {
                     var isAdmin = !!(dash && dash.user_account_info && dash.user_account_info.is_site_admin);
@@ -633,11 +646,13 @@
                 }
             }
 
-            // Impersonation banner + dev/customer toggle + dropdown gating.
+            // Impersonation banner + "Site admin tools" section visibility +
+            // dev/customer toggle state + dropdown gating.
             function refreshNavView(user) {
                 if (!user || !window.eeView) return;
                 var banner = document.getElementById('navImpersonateBanner');
                 var who = document.getElementById('navImpersonateWho');
+                var section = document.getElementById('navAdminImpersonate');
                 var toggle = document.getElementById('navViewToggle');
                 var imp = window.eeView.impersonator();
                 if (banner) {
@@ -647,8 +662,11 @@
                 function apply(dash) {
                     var staff = window.eeView.isStaff(user, dash);
                     var customer = window.eeView.mode(user, dash) === 'customer';
+                    // The whole Site-admin-tools section is staff-only; the
+                    // "Log in as" form inside it is further gated to is_site_admin
+                    // by refreshNavAdminScope.
+                    if (section) section.style.display = staff ? '' : 'none';
                     if (toggle) {
-                        toggle.style.display = staff ? '' : 'none';
                         toggle.querySelectorAll('[data-view-mode]').forEach(function(b) {
                             b.classList.toggle('is-on', b.getAttribute('data-view-mode') === (customer ? 'customer' : 'dev'));
                         });
