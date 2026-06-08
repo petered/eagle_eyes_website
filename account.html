@@ -5974,6 +5974,13 @@ active: account
     // In-flight dedupe: the Devices and License views both bail-and-fetch on
     // first paint, so share one network request rather than issuing two.
     let accountDevicesFetchPromise = null;
+    // Gentle poll for the active-account id while the page-title layout is still
+    // resolving it (it writes ee-active-account async and fires no event on
+    // first load). Replaces the old render→fetch→render busy-wait that pegged
+    // the main thread ("Page Unresponsive") until the id appeared.
+    let accountDevicesRetryHandle = null;
+    let accountDevicesRetryCount = 0;
+    const ACCOUNT_DEVICES_MAX_RETRIES = 50; // ~6s at 120ms, then give up
 
     async function fetchAccountDevices(accountId) {
         if (!accountId) {
@@ -6245,6 +6252,30 @@ active: account
     // accountScopeChanged listener; both paths need the same plumbing.
     async function fetchAccountDevicesForActiveAccount() {
         const accountId = getActiveAccountIdFromStorage();
+        if (!accountId) {
+            // Active account id not written yet. Settle the empty state (a
+            // no-op while accounts exist) but DON'T re-render — re-rendering
+            // re-invokes us via renderActive*()'s `if (!accountDevicesLoaded)
+            // fetch` guard, which used to spin a tight render→fetch→render loop
+            // that froze first load. Poll gently for the id instead; the page-
+            // title resolves it async and fires no event on initial load.
+            await fetchAccountDevices(null);
+            const haveAccounts = cachedAccounts && cachedAccounts.length;
+            if (haveAccounts && !accountDevicesRetryHandle
+                && accountDevicesRetryCount < ACCOUNT_DEVICES_MAX_RETRIES) {
+                accountDevicesRetryCount++;
+                accountDevicesRetryHandle = setTimeout(function() {
+                    accountDevicesRetryHandle = null;
+                    fetchAccountDevicesForActiveAccount();
+                }, 120);
+            }
+            return;
+        }
+        if (accountDevicesRetryHandle) {
+            clearTimeout(accountDevicesRetryHandle);
+            accountDevicesRetryHandle = null;
+        }
+        accountDevicesRetryCount = 0;
         // Invalidate cache when the active account changes.
         if (String(accountId) !== String(cachedAccountDevicesAccountId)) {
             accountDevicesLoaded = false;
