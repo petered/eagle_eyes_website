@@ -1,0 +1,190 @@
+<!--
+  EMAIL CONTACT MODAL + TOAST (shared)
+  ------------------------------------
+  Any element with class "js-email" opens this modal instead of launching the
+  OS mail client. The modal shows the address with a one-click copy button
+  (and the address is selectable for manual copy). Scoped styles prefixed .em-.
+-->
+<style>
+    .em-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(13, 27, 42, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1.5rem;
+    }
+
+    .em-overlay.is-open {
+        display: flex;
+    }
+
+    .em-box {
+        position: relative;
+        background: #fff;
+        border-radius: 16px;
+        max-width: 440px;
+        width: 100%;
+        padding: 2.8rem 2.4rem 2.4rem;
+        box-shadow: 0 24px 60px rgba(13, 27, 42, 0.3);
+        text-align: center;
+    }
+
+    .em-box h3 {
+        font-size: 1.9rem;
+        font-weight: 500;
+        color: #16202c;
+        margin: 0 0 0.6rem;
+    }
+
+    .em-box p {
+        font-size: 1.35rem;
+        line-height: 1.55;
+        color: #6b7686;
+        margin: 0 0 1.6rem;
+    }
+
+    .em-row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: stretch;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .em-email {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #16202c;
+        background: #f3f6fa;
+        border: 1px solid #e0e6ee;
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        user-select: all;
+        word-break: break-all;
+    }
+
+    .em-copy {
+        flex: 0 0 auto;
+        background: #1e90ff;
+        color: #fff;
+        border: none;
+        font-size: 1.3rem;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0 1.4rem;
+        cursor: pointer;
+        transition: background 0.18s ease;
+    }
+
+    .em-copy:hover {
+        background: #1577d6;
+    }
+
+    .em-close {
+        position: absolute;
+        top: 0.8rem;
+        right: 1.1rem;
+        background: none;
+        border: none;
+        font-size: 2rem;
+        line-height: 1;
+        color: #9aa3b0;
+        cursor: pointer;
+    }
+
+    .em-close:hover {
+        color: #16202c;
+    }
+
+    .em-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 2.2rem;
+        transform: translateX(-50%) translateY(1rem);
+        background: #16202c;
+        color: #fff;
+        font-size: 1.3rem;
+        font-weight: 600;
+        padding: 0.85rem 1.4rem;
+        border-radius: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 1100;
+    }
+
+    .em-toast.is-show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+</style>
+
+<div class="em-overlay" id="emOverlay" role="dialog" aria-modal="true" aria-labelledby="emTitle">
+    <div class="em-box">
+        <button class="em-close" type="button" aria-label="Close" data-em-close>&times;</button>
+        <h3 id="emTitle">Get in touch</h3>
+        <p>Email us and we'll get right back to you.</p>
+        <div class="em-row">
+            <span class="em-email" id="emEmail">info@eagleeyessearch.com</span>
+            <button class="em-copy" type="button" id="emCopy">Copy</button>
+        </div>
+    </div>
+</div>
+<div class="em-toast" id="emToast">Copied to clipboard</div>
+
+<script>
+    (function () {
+        var overlay = document.getElementById('emOverlay');
+        var toast = document.getElementById('emToast');
+        var email = 'info@eagleeyessearch.com';
+        if (!overlay) return;
+
+        function open(e) { if (e) e.preventDefault(); overlay.classList.add('is-open'); }
+        function close() { overlay.classList.remove('is-open'); }
+
+        function showToast() {
+            toast.classList.add('is-show');
+            window.setTimeout(function () { toast.classList.remove('is-show'); }, 2000);
+        }
+
+        function fallbackCopy() {
+            var ta = document.createElement('textarea');
+            ta.value = email;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try { document.execCommand('copy'); showToast(); } catch (err) {}
+            document.body.removeChild(ta);
+        }
+
+        function copy() {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(email).then(showToast, fallbackCopy);
+            } else {
+                fallbackCopy();
+            }
+        }
+
+        var triggers = document.querySelectorAll('.js-email');
+        for (var i = 0; i < triggers.length; i++) {
+            triggers[i].addEventListener('click', open);
+        }
+        document.getElementById('emCopy').addEventListener('click', copy);
+        var closers = overlay.querySelectorAll('[data-em-close]');
+        for (var j = 0; j < closers.length; j++) {
+            closers[j].addEventListener('click', close);
+        }
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    })();
+</script>
