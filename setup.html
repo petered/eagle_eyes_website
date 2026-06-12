@@ -1139,10 +1139,104 @@ noindex: true
     #qrScannerModal .qr-scanner-actions {
         margin-top: 0.75rem;
     }
+    /* License QR buttons */
+    .lp-scan-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .lp-qr-btn {
+        background: #fff;
+        color: #1e90ff;
+        border: 1px solid #1e90ff;
+        padding: 8px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1.4rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .lp-qr-btn:hover { background: #f0f7ff; }
+    .lp-other-actions button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+    .lp-actions-row {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .lp-other-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+        align-items: center;
+    }
+    /* License QR display modal */
+    #licenseQrModal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 1100;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+    #licenseQrModal .license-qr-panel {
+        background: #fff;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 360px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    #licenseQrModal h3 {
+        font-size: 1.7rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 0.25rem;
+    }
+    #licenseQrModal .license-qr-id {
+        font-size: 1.3rem;
+        color: #888;
+        margin-bottom: 1rem;
+        word-break: break-all;
+    }
+    #licenseQrModal .license-qr-canvas {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    #licenseQrModal .license-qr-hint {
+        font-size: 1.2rem;
+        color: #999;
+        margin: 0 0 1.25rem;
+        line-height: 1.4;
+    }
+    #licenseQrModal .license-qr-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
 </style>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="{{ '/shared.js' | relative_url }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <!-- Sign-in overlay -->
 <div id="signin-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
@@ -1257,7 +1351,10 @@ noindex: true
                 <a href="#" class="lp-expand" onclick="lpToggleManual(); return false;" id="lpManualLink">Have a license ID?</a>
                 <div id="lpManualSection" style="display: none;">
                     <div class="lp-manual">
-                        <input type="text" id="lpManualInput" placeholder="Enter license ID">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" id="lpManualInput" placeholder="Enter license ID" style="margin-bottom: 0;">
+                            <button class="lp-btn lp-scan-btn" type="button" onclick="openLicenseQrScanner()" title="Scan a license QR code with your camera"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 12v4a1 1 0 0 1-1 1h-4"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M17 8V7"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M7 17h.01"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="5" height="5" rx="1"/></svg></button>
+                        </div>
                         <button class="lp-btn" id="lpAddBtn" style="width: 100%;" onclick="lpAddLicense()">Add License</button>
                     </div>
                 </div>
@@ -1608,14 +1705,28 @@ noindex: true
         <div class="setup-status" id="setupFormStatus"></div>
     </div>
 
-    <!-- QR Scanner modal for mobile CalTopo handoff -->
+    <!-- QR Scanner modal (shared: CalTopo handoff + license join) -->
     <div id="qrScannerModal">
         <div class="qr-scanner-panel">
-            <h3>Scan the QR from your laptop</h3>
+            <h3 id="qrScannerTitle">Scan the QR from your laptop</h3>
             <div id="qrScannerReader"></div>
             <div class="qr-scanner-status" id="qrScannerStatus">Starting camera...</div>
             <div class="qr-scanner-actions">
-                <button class="setup-btn setup-btn-secondary" onclick="closeCaltopoQrScanner()">Cancel</button>
+                <button class="setup-btn setup-btn-secondary" onclick="closeQrScanner()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- License QR display modal (printable QR to join a license) -->
+    <div id="licenseQrModal">
+        <div class="license-qr-panel">
+            <h3 id="licenseQrName"></h3>
+            <div class="license-qr-id" id="licenseQrId"></div>
+            <div class="license-qr-canvas" id="licenseQrCanvas"></div>
+            <p class="license-qr-hint">Scan this on another device's setup page to join this license.</p>
+            <div class="license-qr-actions">
+                <button class="setup-btn setup-btn-secondary" onclick="closeLicenseQr()">Close</button>
+                <button class="setup-btn setup-btn-primary" onclick="printLicenseQr()">Print</button>
             </div>
         </div>
     </div>
@@ -2111,6 +2222,9 @@ function lpDisplayLicenses(pinLicenseId) {
     }
 }
 
+// Lucide qr-code icon, sized for inline buttons
+var QR_ICON_SVG = '<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>';
+
 function lpRenderPrimary(lic) {
     var expiry = lic.expiry_timestamp ? new Date(lic.expiry_timestamp * 1000).toLocaleDateString() : 'No expiry';
     var cls = 'lp-primary-card';
@@ -2121,7 +2235,9 @@ function lpRenderPrimary(lic) {
         return '<div class="' + cls + '">' +
             '<h3>' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</h3>' +
             '<div class="lp-meta"><span>' + lic.license_id + '</span><span>Expires: ' + expiry + '</span></div>' +
-            '<div class="lp-actions">' + btn + '</div></div>';
+            '<div class="lp-actions lp-actions-row">' + btn +
+            '<button class="lp-qr-btn" type="button" onclick="lpShowLicenseQr(\'' + lic.license_id + '\')" title="Show a printable QR code for this license">' + QR_ICON_SVG + '</button>' +
+            '</div></div>';
     }
 
     if (lic.has_existing_key) {
@@ -2140,7 +2256,9 @@ function lpRenderPrimary(lic) {
         '<h3>' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</h3>' +
         '<div class="lp-meta"><span>' + lic.license_id + '</span><span>Expires: ' + expiry + '</span><span>Remaining: ' + lic.remaining_keys + '</span></div>' +
         (status ? '<div style="margin-bottom: 8px;">' + status + '</div>' : '') +
-        '<div class="lp-actions">' + btn + '</div></div>';
+        '<div class="lp-actions lp-actions-row">' + btn +
+        '<button class="lp-qr-btn" type="button" onclick="lpShowLicenseQr(\'' + lic.license_id + '\')" title="Show a printable QR code for this license">' + QR_ICON_SVG + '</button>' +
+        '</div></div>';
 }
 
 function lpRenderOtherRow(lic) {
@@ -2148,8 +2266,10 @@ function lpRenderOtherRow(lic) {
     var btn = '';
     if (lpMode === 'select') {
         btn = '<button onclick="lpSelect(\'' + lic.license_id + '\')">Select</button>';
+        var selQrBtn = '<button type="button" onclick="lpShowLicenseQr(\'' + lic.license_id + '\')" title="Show a printable QR code for this license">' + QR_ICON_SVG + '</button>';
         return '<div class="lp-other-row"><div><div class="lp-row-name">' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</div>' +
-            '<div class="lp-row-meta">' + lic.license_id + ' &middot; Expires: ' + expiry + '</div></div>' + btn + '</div>';
+            '<div class="lp-row-meta">' + lic.license_id + ' &middot; Expires: ' + expiry + '</div></div>' +
+            '<div class="lp-other-actions">' + btn + selQrBtn + '</div></div>';
     }
     if (lic.has_existing_key) {
         btn = '<button class="reactivate" onclick="lpSelect(\'' + lic.license_id + '\')">Reactivate</button>';
@@ -2158,8 +2278,10 @@ function lpRenderOtherRow(lic) {
     } else {
         btn = '<button onclick="lpSelect(\'' + lic.license_id + '\')">Select</button>';
     }
+    var qrBtn = '<button type="button" onclick="lpShowLicenseQr(\'' + lic.license_id + '\')" title="Show a printable QR code for this license">' + QR_ICON_SVG + '</button>';
     return '<div class="lp-other-row"><div><div class="lp-row-name">' + escapeHtml(lic.license_name || 'Eagle Eyes License') + '</div>' +
-        '<div class="lp-row-meta">' + lic.license_id + ' &middot; ' + lic.remaining_keys + ' remaining &middot; Expires: ' + expiry + '</div></div>' + btn + '</div>';
+        '<div class="lp-row-meta">' + lic.license_id + ' &middot; ' + lic.remaining_keys + ' remaining &middot; Expires: ' + expiry + '</div></div>' +
+        '<div class="lp-other-actions">' + btn + qrBtn + '</div></div>';
 }
 
 function lpSelect(licenseId) {
@@ -3889,12 +4011,14 @@ function ctMapComboSelect(mapId, mapName) {
     ctMapComboClose();
 }
 
-// --- Mobile CalTopo QR handoff (scans QR emitted by /caltopo/) ---
+// --- Shared QR scanner (used by CalTopo handoff and license join) ---
 var qrScannerInstance = null;
 
-function openCaltopoQrScanner() {
+// opts: { title, hint, onDecode(decodedText) }
+function startQrScanner(opts) {
     var modal = document.getElementById('qrScannerModal');
     var statusEl = document.getElementById('qrScannerStatus');
+    document.getElementById('qrScannerTitle').textContent = opts.title;
     modal.style.display = 'flex';
     statusEl.textContent = 'Starting camera...';
 
@@ -3910,11 +4034,11 @@ function openCaltopoQrScanner() {
             { facingMode: 'environment' },
             config,
             function(decodedText) {
-                handleCaltopoQrPayload(decodedText);
+                opts.onDecode(decodedText);
             },
             function() { /* ignore per-frame scan failures */ }
         ).then(function() {
-            statusEl.textContent = 'Aim at the QR code on your laptop screen.';
+            statusEl.textContent = opts.hint;
         }).catch(function(err) {
             statusEl.textContent = 'Camera error: ' + (err && err.message ? err.message : err);
         });
@@ -3923,7 +4047,7 @@ function openCaltopoQrScanner() {
     }
 }
 
-function closeCaltopoQrScanner() {
+function closeQrScanner() {
     var modal = document.getElementById('qrScannerModal');
     // Always hide the modal first
     modal.style.display = 'none';
@@ -3941,6 +4065,114 @@ function closeCaltopoQrScanner() {
             qrScannerInstance = null;
         }
     }
+}
+
+// --- Mobile CalTopo QR handoff (scans QR emitted by /caltopo/) ---
+function openCaltopoQrScanner() {
+    startQrScanner({
+        title: 'Scan the QR from your laptop',
+        hint: 'Aim at the QR code on your laptop screen.',
+        onDecode: handleCaltopoQrPayload
+    });
+}
+
+// Back-compat alias (CalTopo flow calls this after a successful scan)
+function closeCaltopoQrScanner() {
+    closeQrScanner();
+}
+
+// --- License join via QR ---
+function openLicenseQrScanner() {
+    startQrScanner({
+        title: 'Scan license QR code',
+        hint: 'Aim at the license QR code.',
+        onDecode: handleLicenseQrPayload
+    });
+}
+
+// Lenient parse of a license QR. Accepts strict JSON {"license_id":"..."},
+// loosely-quoted object literals {licence_id:'...'} (US/UK spelling), or a
+// bare license-id token. Returns the id string, or null if nothing usable.
+function parseLicenseQr(text) {
+    if (!text) return null;
+    var t = String(text).trim();
+    try {
+        var obj = JSON.parse(t);
+        if (obj && (obj.license_id || obj.licence_id)) {
+            return String(obj.license_id || obj.licence_id).trim();
+        }
+    } catch (e) { /* fall through to lenient matching */ }
+    var m = t.match(/licen[cs]e_id["']?\s*:\s*["']?([A-Za-z0-9_\-]+)["']?/i);
+    if (m) return m[1].trim();
+    if (/^[A-Za-z0-9_\-]+$/.test(t)) return t;
+    return null;
+}
+
+function handleLicenseQrPayload(text) {
+    var licenseId = parseLicenseQr(text);
+    if (!licenseId) {
+        document.getElementById('qrScannerStatus').textContent = 'Not a valid license QR code.';
+        return;
+    }
+    closeQrScanner();
+    // Make sure the manual entry section is open, fill it, and join.
+    var section = document.getElementById('lpManualSection');
+    if (section && section.style.display === 'none') lpToggleManual();
+    var input = document.getElementById('lpManualInput');
+    if (input) input.value = licenseId;
+    lpAddLicense();
+}
+
+// Show a printable QR encoding {"license_id":"..."} for an existing license.
+function lpShowLicenseQr(licenseId) {
+    var lic = (lpUserLicenses || []).find(function(l) { return l.license_id === licenseId; });
+    var name = (lic && lic.license_name) || 'Eagle Eyes License';
+    document.getElementById('licenseQrName').textContent = name;
+    document.getElementById('licenseQrId').textContent = licenseId;
+    var holder = document.getElementById('licenseQrCanvas');
+    holder.innerHTML = '';
+    if (window.QRCode) {
+        new QRCode(holder, {
+            text: JSON.stringify({ license_id: licenseId }),
+            width: 220,
+            height: 220,
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } else {
+        holder.textContent = 'QR code library failed to load.';
+    }
+    document.getElementById('licenseQrModal').style.display = 'flex';
+}
+
+function closeLicenseQr() {
+    document.getElementById('licenseQrModal').style.display = 'none';
+    document.getElementById('licenseQrCanvas').innerHTML = '';
+}
+
+function printLicenseQr() {
+    var holder = document.getElementById('licenseQrCanvas');
+    var node = holder.querySelector('img') || holder.querySelector('canvas');
+    var imgSrc = '';
+    if (node) {
+        imgSrc = (node.tagName === 'IMG') ? node.src : node.toDataURL('image/png');
+    }
+    var name = document.getElementById('licenseQrName').textContent;
+    var id = document.getElementById('licenseQrId').textContent;
+    var win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(
+        '<html><head><title>License QR — ' + escapeHtml(name) + '</title>' +
+        '<style>body{font-family:Arial,Helvetica,sans-serif;text-align:center;padding:40px;}' +
+        'h1{font-size:22px;margin:0 0 4px;}.id{font-size:14px;color:#666;margin-bottom:24px;}' +
+        'img{width:300px;height:300px;}p{font-size:13px;color:#888;margin-top:20px;}</style></head>' +
+        '<body><h1>' + escapeHtml(name) + '</h1><div class="id">' + escapeHtml(id) + '</div>' +
+        (imgSrc ? '<img src="' + imgSrc + '">' : '<p>QR code unavailable.</p>') +
+        '<p>Scan with the Eagle Eyes setup page to join this license.</p>' +
+        '</body></html>'
+    );
+    win.document.close();
+    win.focus();
+    setTimeout(function() { win.print(); }, 250);
 }
 
 function handleCaltopoQrPayload(text) {
