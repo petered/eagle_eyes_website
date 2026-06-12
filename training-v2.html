@@ -1,0 +1,959 @@
+---
+layout: main
+permalink: /training-v2-e43ca10fd64a32430a4bec4c6751ede6/
+title: Training
+noindex: true
+---
+
+<!--
+  TRAINING PAGE, V2 (redesign candidate)
+  --------------------------------------
+  Side-by-side comparison copy of training.html. The old page stays live at its
+  original URL; this one lives at its own unlisted URL until a winner is picked.
+
+  v2.1: de-cluttered after first review:
+  - One representation of the courses: the stacked rows. The top summary is now
+    a featherweight pill jump-nav (duration + price only), not cards that
+    duplicate the rows.
+  - De-boxed: price/CTA moved into the row footer (no grey side rail), the
+    "every course includes" pillars lost their panel + card borders, the blue
+    minimum banner became one quiet text line.
+  - Real whitespace between sections.
+
+  Self-contained, scoped styles (prefix: .tr-) so this page does not depend on,
+  or interfere with, the site-wide grid framework. Accent colour (#1e90ff) and
+  type treatment follow the existing operatorday.html / site conventions.
+-->
+
+<style>
+    .tr-wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        color: #333;
+    }
+
+    /* ---------- Hero ---------- */
+    /* Photo runs to the top of the page; the transparent site navbar overlaps it
+       (same pattern as the blog post heroes). Top padding clears the navbar. */
+    .tr-hero {
+        position: relative;
+        margin-top: 0;
+        padding: 19rem 1.5rem 11rem;
+        text-align: center;
+        background: #0d1b2a;
+        color: #fff;
+        overflow: hidden;
+    }
+
+    .tr-hero-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+    }
+
+    .tr-hero::after {
+        /* dark wash so the headline stays legible over the photo */
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(120% 130% at 50% 0%, rgba(13, 27, 42, 0.35) 0%, rgba(13, 27, 42, 0.55) 70%);
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .tr-hero-inner {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .tr-hero h1 {
+        font-weight: 300;
+        font-size: 4.4rem;
+        line-height: 1.1;
+        margin: 0;
+        color: #fff;
+        text-shadow: 0 1px 14px rgba(13, 27, 42, 0.7);
+    }
+
+    /* ---------- Page lead (hero statement) ---------- */
+    .tr-intro {
+        max-width: 860px;
+        margin: 6rem auto 0;
+        text-align: center;
+    }
+
+    .tr-intro p {
+        font-size: 2.6rem;
+        line-height: 1.7;
+        font-weight: 300;
+        color: #333;
+        margin: 0;
+    }
+
+    /* ---------- Section headings ---------- */
+    .tr-section {
+        margin: 7rem 0 0;
+    }
+
+    .tr-section:first-of-type {
+        margin-top: 5.5rem;
+    }
+
+    .tr-section-head {
+        text-align: center;
+        margin-bottom: 2.6rem;
+    }
+
+    .tr-section-head h2 {
+        font-size: 1.9rem;
+        font-weight: 500;
+        color: #1a1a1a;
+        margin: 0 0 0.6rem;
+    }
+
+    .tr-section-head p {
+        font-size: 1.45rem;
+        color: #777;
+        margin: 0 auto;
+        max-width: 720px;
+    }
+
+    /* ---------- Jump nav (equal-size buttons, anchors to the rows) ---------- */
+    .tr-jump {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        max-width: 760px;
+        margin: 0 auto 1.4rem;
+    }
+
+    .tr-jump a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: #1577d6;
+        background: #f0f7ff;
+        border: 1px solid #d3e6fb;
+        border-radius: 10px;
+        padding: 1.3rem 1rem;
+        text-decoration: none;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .tr-jump a:hover {
+        background: #e3f0ff;
+        border-color: #bcd9ff;
+        text-decoration: none;
+    }
+
+    .tr-courses-note {
+        text-align: center;
+        font-size: 1.25rem;
+        color: #8b95a3;
+        margin: 0 0 4.5rem;
+    }
+
+    .tr-courses-note a {
+        color: #1577d6;
+        font-weight: 600;
+    }
+
+    /* ---------- Stacked course rows ---------- */
+    .tr-row {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 0;
+        background: #fff;
+        border: 1px solid #e7e9ee;
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 3rem;
+        scroll-margin-top: 90px; /* anchor links land below the navbar */
+    }
+
+    .tr-row.tr-flagship {
+        border-color: #bcd9ff;
+    }
+
+    /* left rail: photo with duration badge */
+    .tr-row-photo {
+        position: relative;
+        min-height: 100%;
+        background: linear-gradient(135deg, #eef2f7 0%, #e3e9f1 100%);
+        border-right: 1px solid #e7e9ee;
+    }
+
+    .tr-row-photo img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .tr-row-days {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1;
+        background: rgba(13, 27, 42, 0.78);
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-radius: 8px;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .tr-row-ribbon {
+        background: #1e90ff;
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border-radius: 8px;
+        padding: 0.45rem 0.9rem;
+    }
+
+    /* badge group: duration + ribbon side by side, top-left of the photo */
+    .tr-row-badges {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1;
+        display: flex;
+        gap: 0.6rem;
+    }
+
+    .tr-row-badges .tr-row-days {
+        position: static;
+    }
+
+    /* body */
+    .tr-row-body {
+        padding: 2.6rem 3rem 2.4rem;
+        min-width: 0;
+    }
+
+    .tr-row-body h3 {
+        font-size: 2.1rem;
+        font-weight: 500;
+        line-height: 1.2;
+        color: #16202c;
+        margin: 0 0 0.3rem;
+    }
+
+    .tr-row-outcome {
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #1577d6;
+        margin: 0 0 1rem;
+    }
+
+    .tr-row-desc {
+        font-size: 1.4rem;
+        line-height: 1.65;
+        color: #555;
+        margin: 0 0 1.4rem;
+    }
+
+    .tr-row-lead {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #4a5563;
+        margin: 0 0 0.5rem;
+    }
+
+    .tr-included {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tr-included li {
+        position: relative;
+        padding: 0.35rem 0 0.35rem 2rem;
+        font-size: 1.4rem;
+        line-height: 1.5;
+        color: #4a5563;
+    }
+
+    .tr-included li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        top: 0.35rem;
+        color: #1e90ff;
+        font-weight: 700;
+    }
+
+    /* schedule foldout */
+    details.tr-schedule {
+        margin-top: 1.4rem;
+    }
+
+    details.tr-schedule summary {
+        cursor: pointer;
+        list-style: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1577d6;
+        user-select: none;
+    }
+
+    details.tr-schedule summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details.tr-schedule summary::before {
+        content: "";
+        width: 0.7rem;
+        height: 0.7rem;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform 0.15s ease;
+        margin-top: -0.2rem;
+    }
+
+    details.tr-schedule[open] summary::before {
+        transform: rotate(45deg);
+        margin-top: -0.4rem;
+    }
+
+    details.tr-schedule .tr-agenda {
+        margin-top: 0.9rem;
+    }
+
+    .tr-agenda {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tr-agenda li {
+        position: relative;
+        padding: 0.45rem 0 0.45rem 1.4rem;
+        font-size: 1.4rem;
+        line-height: 1.5;
+        color: #4a5563;
+        border-bottom: 1px solid #f1f3f6;
+    }
+
+    .tr-agenda li:last-child {
+        border-bottom: none;
+    }
+
+    .tr-agenda li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 1.15rem;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #1e90ff;
+    }
+
+    .tr-agenda li .tr-day {
+        font-weight: 600;
+        color: #16202c;
+    }
+
+    /* price + CTA footer inside the row body */
+    .tr-row-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.8rem;
+        border-top: 1px solid #eef0f4;
+    }
+
+    .tr-price .tr-amount {
+        font-size: 2.6rem;
+        font-weight: 600;
+        color: #16202c;
+        line-height: 1;
+    }
+
+    .tr-price .tr-per {
+        font-size: 1.3rem;
+        color: #8b95a3;
+        margin-left: 0.3rem;
+    }
+
+    .tr-btn {
+        display: inline-block;
+        background: #1e90ff;
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 600;
+        text-decoration: none;
+        padding: 1rem 1.9rem;
+        border-radius: 8px;
+        transition: background 0.18s ease, transform 0.18s ease;
+        white-space: nowrap;
+    }
+
+    .tr-btn:hover {
+        background: #1577d6;
+        transform: translateY(-1px);
+        color: #fff;
+        text-decoration: none;
+    }
+
+    /* ---------- "Included with every course" pillars (no boxes) ---------- */
+    .tr-everycourse {
+        margin-top: 6.5rem;
+    }
+
+    .tr-everycourse-head {
+        text-align: center;
+        max-width: 640px;
+        margin: 0 auto 3rem;
+    }
+
+    .tr-everycourse-head h3 {
+        font-size: 2rem;
+        font-weight: 500;
+        color: #16202c;
+        margin: 0 0 0.6rem;
+    }
+
+    .tr-everycourse-head p {
+        font-size: 1.4rem;
+        line-height: 1.6;
+        color: #6b7686;
+        margin: 0;
+    }
+
+    .tr-everycourse-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3rem;
+    }
+
+    .tr-ec-card {
+        text-align: center;
+    }
+
+    .tr-ec-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: #eaf4ff;
+        color: #1e90ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.2rem;
+    }
+
+    .tr-ec-card h4 {
+        font-size: 1.55rem;
+        font-weight: 600;
+        color: #16202c;
+        margin: 0 0 0.55rem;
+    }
+
+    .tr-ec-card p {
+        font-size: 1.3rem;
+        line-height: 1.55;
+        color: #6b7686;
+        margin: 0;
+    }
+
+    /* ---------- Equipment (open layout, no boxes) ---------- */
+    .tr-drones-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.7rem;
+        margin: 0 0 1.2rem;
+    }
+
+    .tr-drones-list span {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2c4a6b;
+        background: #eaf4ff;
+        border: 1px solid #d3e6fb;
+        border-radius: 999px;
+        padding: 0.4rem 1rem;
+    }
+
+    .tr-drones-note {
+        text-align: center;
+        font-size: 1.3rem;
+        line-height: 1.55;
+        color: #8b95a3;
+        margin: 0 0 3.6rem;
+    }
+
+    .tr-drones-note a {
+        color: #1577d6;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .tr-equip-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2.6rem;
+    }
+
+    .tr-equip {
+        text-align: center;
+    }
+
+    .tr-equip-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: #eaf4ff;
+        color: #1e90ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.2rem;
+    }
+
+    .tr-equip h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #16202c;
+        margin: 0 0 0.45rem;
+    }
+
+    .tr-equip p {
+        font-size: 1.3rem;
+        line-height: 1.55;
+        color: #6b7686;
+        margin: 0;
+    }
+
+    a.tr-equip {
+        display: block;
+        text-decoration: none;
+    }
+
+    a.tr-equip:hover h4 {
+        color: #1577d6;
+    }
+
+    .tr-equip-more {
+        display: inline-block;
+        margin-top: 0.6rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1577d6;
+    }
+
+    /* ---------- Closing CTA ---------- */
+    .tr-cta {
+        text-align: center;
+        background:
+            radial-gradient(120% 140% at 50% 0%, #1c3a5e 0%, #0d1b2a 70%);
+        color: #fff;
+        border-radius: 16px;
+        padding: 4.5rem 2rem;
+        margin: 7rem 0 5rem;
+    }
+
+    .tr-cta h2 {
+        font-size: 2.6rem;
+        font-weight: 300;
+        color: #fff;
+        margin: 0 0 1rem;
+    }
+
+    .tr-cta p {
+        font-size: 1.55rem;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.8);
+        max-width: 560px;
+        margin: 0 auto 2.2rem;
+    }
+
+    .tr-cta a.tr-btn {
+        background: #fff;
+        color: #16202c;
+        font-size: 1.5rem;
+        padding: 1.15rem 2.4rem;
+    }
+
+    .tr-cta a.tr-btn:hover {
+        background: #eaf1f9;
+        color: #16202c;
+    }
+
+    /* ---------- Fine print ---------- */
+    .tr-fineprint {
+        text-align: center;
+        font-size: 1.2rem;
+        color: #9aa3b0;
+        margin: 0 auto 4rem;
+        max-width: 680px;
+        line-height: 1.6;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 820px) {
+        .tr-row {
+            grid-template-columns: 1fr;
+        }
+
+        .tr-row-photo {
+            min-height: 170px;
+            border-right: none;
+            border-bottom: 1px solid #e7e9ee;
+        }
+
+        .tr-everycourse-grid {
+            grid-template-columns: 1fr;
+            gap: 2.4rem;
+        }
+
+        .tr-equip-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .tr-equip-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .tr-jump {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 560px) {
+        .tr-hero {
+            padding: 7.5rem 1.2rem 3.5rem;
+        }
+
+        .tr-hero h1 {
+            font-size: 3rem;
+        }
+
+        .tr-row-body {
+            padding: 2rem 1.6rem;
+        }
+
+        .tr-row-footer {
+            justify-content: flex-start;
+        }
+    }
+</style>
+
+<!-- ============================ HERO ============================ -->
+<section class="tr-hero">
+    <img class="tr-hero-bg" src="{{ '/images/training/hero-controller.jpg' | relative_url }}" style="object-position: center 42%;" alt="">
+    <div class="tr-hero-inner">
+        <h1>SAR Drone Training</h1>
+    </div>
+</section>
+
+<div class="tr-wrap">
+
+    <!-- ============================ LEAD ============================ -->
+    <div class="tr-intro">
+        <p>
+            Hands-on Eagle Eyes training for drone teams and public safety organizations,
+            taught at your location by the people who use it in the field.
+        </p>
+    </div>
+
+    <!-- ============================ COURSES ============================ -->
+    <section class="tr-section">
+        <div class="tr-section-head">
+            <h2>Choose your course</h2>
+        </div>
+
+        <nav class="tr-jump">
+            <a href="#course-1day">1-Day</a>
+            <a href="#course-2day">2-Day</a>
+            <a href="#course-3day">3-Day + License</a>
+            <a href="#flight-review">Flight review</a>
+        </nav>
+
+        <p class="tr-courses-note">
+            Prices in CAD per participant, 8-participant minimum &middot;
+            Smaller team? <a class="js-email" href="#contact" data-email="training@eagleeyessearch.com">Contact us for custom pricing</a>
+        </p>
+
+        <!-- ---------- 1-Day ---------- -->
+        <article class="tr-row" id="course-1day">
+            <div class="tr-row-photo">
+                <img src="{{ '/images/training/pilot-detection-screen.jpg' | relative_url }}" style="object-position: 64% 40%;" alt="Eagle Eyes Pilot running live detection on a monitor in the field">
+                <span class="tr-row-days">1 day</span>
+            </div>
+            <div class="tr-row-body">
+                <h3>1-Day Training</h3>
+                <p class="tr-row-outcome">Get your team operational on Eagle Eyes</p>
+                <p class="tr-row-desc">
+                    A single day to get your team operational with Eagle Eyes Pilot and
+                    Mirada: two hours of theory, then the rest of the day in the field.
+                </p>
+                <ul class="tr-included">
+                    <li>The full Eagle Eyes Pilot &amp; Mirada workflow, end to end</li>
+                    <li>2 hours of theory, 6 hours of field flying</li>
+                    <li>The whole team flies, on their own controllers and drones</li>
+                </ul>
+                <details class="tr-schedule">
+                    <summary>Full schedule</summary>
+                    <ul class="tr-agenda">
+                        <li><span class="tr-day">2 hours:</span> Theory</li>
+                        <li><span class="tr-day">6 hours:</span> Field day</li>
+                    </ul>
+                </details>
+                <div class="tr-row-footer">
+                    <div class="tr-price">
+                        <span class="tr-amount">$500</span><span class="tr-per">CAD / participant</span>
+                    </div>
+                    <a class="tr-btn js-email" href="#contact" data-email="training@eagleeyessearch.com">Request this course</a>
+                </div>
+            </div>
+        </article>
+
+        <!-- ---------- 2-Day ---------- -->
+        <article class="tr-row" id="course-2day">
+            <div class="tr-row-photo">
+                <img src="{{ '/images/training/night-ops.jpg' | relative_url }}" style="object-position: 100% 42%;" alt="SAR team running a night search exercise under a drone spotlight">
+                <span class="tr-row-days">2 days</span>
+            </div>
+            <div class="tr-row-body">
+                <h3>2-Day Training</h3>
+                <p class="tr-row-outcome">Master day &amp; night SAR operations</p>
+                <p class="tr-row-desc">
+                    Two days for teams that want real depth: classroom theory grounded
+                    in live operations, then day and night field work that puts every
+                    Eagle Eyes feature to use.
+                </p>
+                <p class="tr-row-lead">Everything in the 1-Day, plus:</p>
+                <ul class="tr-included">
+                    <li>Thermography and observed best practices from real searches</li>
+                    <li>Settings tuned to your specific drone</li>
+                    <li>Night search techniques, flown at night</li>
+                    <li>Two full days in the field, day and evening</li>
+                </ul>
+                <details class="tr-schedule">
+                    <summary>Full schedule</summary>
+                    <ul class="tr-agenda">
+                        <li><span class="tr-day">Classroom theory:</span> Observed best practices &middot; thermography &middot; settings tuned to your specific drone &middot; Mirada / air operations</li>
+                        <li><span class="tr-day">Day 1:</span> Field day and evening, day and night search techniques</li>
+                        <li><span class="tr-day">Day 2:</span> More test flying and a walk-through of every feature of Pilot</li>
+                    </ul>
+                </details>
+                <div class="tr-row-footer">
+                    <div class="tr-price">
+                        <span class="tr-amount">$750</span><span class="tr-per">CAD / participant</span>
+                    </div>
+                    <a class="tr-btn js-email" href="#contact" data-email="training@eagleeyessearch.com">Request this course</a>
+                </div>
+            </div>
+        </article>
+
+        <!-- ---------- 3-Day (license track) ---------- -->
+        <article class="tr-row tr-flagship" id="course-3day">
+            <div class="tr-row-photo">
+                <img src="{{ '/images/training/classroom-pilot-ui.jpg' | relative_url }}" style="object-position: 38% 42%;" alt="Instructor teaching Eagle Eyes Pilot mission planning to a SAR team">
+                <div class="tr-row-badges">
+                    <span class="tr-row-days">3 days</span>
+                    <span class="tr-row-ribbon">Most complete</span>
+                </div>
+            </div>
+            <div class="tr-row-body">
+                <h3>3-Day Training</h3>
+                <p class="tr-row-outcome">Earn your Advanced RPAS license and get operational on Eagle Eyes</p>
+                <p class="tr-row-desc">
+                    The complete package for teams starting from zero: earn your
+                    Transport Canada Advanced RPAS license (exam, flight review
+                    and all), then spend a full day in the field becoming an
+                    Eagle Eyes operator.
+                </p>
+                <ul class="tr-included">
+                    <li>Transport Canada Advanced license: prep sessions, exam, and flight review</li>
+                    <li>Flight review results submitted to Transport Canada for you</li>
+                    <li>Optional night search exercise</li>
+                    <li>A full hands-on Eagle Eyes day in the field</li>
+                </ul>
+                <details class="tr-schedule">
+                    <summary>Full schedule</summary>
+                    <ul class="tr-agenda">
+                        <li><span class="tr-day">Online (pre-course):</span> 4-hour session on the Air Law section of the Advanced License</li>
+                        <li><span class="tr-day">Friday 6&ndash;9 PM:</span> Advanced License presentation</li>
+                        <li><span class="tr-day">Saturday 8 AM&ndash;12 PM:</span> Advanced presentation &nbsp;&middot;&nbsp; 12&ndash;2 PM: Advanced License exam</li>
+                        <li><span class="tr-day">Saturday 2&ndash;4 PM:</span> Flight reviews</li>
+                        <li><span class="tr-day">Saturday 10 PM&ndash;midnight (optional):</span> Night search exercise</li>
+                        <li><span class="tr-day">Sunday 9 AM&ndash;4 PM:</span> Eagle Eyes in the field: 2 hours theory, flying for the rest of the day</li>
+                    </ul>
+                </details>
+                <div class="tr-row-footer">
+                    <div class="tr-price">
+                        <span class="tr-amount">$900</span><span class="tr-per">CAD / participant</span>
+                    </div>
+                    <a class="tr-btn js-email" href="#contact" data-email="training@eagleeyessearch.com">Request this course</a>
+                </div>
+            </div>
+        </article>
+
+        <!-- ---------- Included with every course ---------- -->
+        <div class="tr-everycourse">
+            <div class="tr-everycourse-head">
+                <h3>What every course includes</h3>
+                <p>Whichever course you run, your team walks away with the license, the instruction, and the real air time to put Eagle Eyes to work from day one.</p>
+            </div>
+            <div class="tr-everycourse-grid">
+                <div class="tr-ec-card">
+                    <div class="tr-ec-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                    <h4>Eagle Eyes in everyone's hands</h4>
+                    <p>A full Eagle Eyes license for the registrant and a training license for every participant, so the whole team flies on their own gear.</p>
+                </div>
+                <div class="tr-ec-card">
+                    <div class="tr-ec-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></div>
+                    <h4>Taught by working operators</h4>
+                    <p>Learn from the people who fly Eagle Eyes on live searches: real tactics, dialed-in settings, and straight answers from the field.</p>
+                </div>
+                <div class="tr-ec-card">
+                    <div class="tr-ec-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10 7 7"/><path d="m10 14-3 3"/><path d="m14 10 3-3"/><path d="m14 14 3 3"/><path d="M14.205 4.139a4 4 0 1 1 5.439 5.863"/><path d="M19.637 14a4 4 0 1 1-5.432 5.868"/><path d="M4.367 10a4 4 0 1 1 5.438-5.862"/><path d="M9.795 19.862a4 4 0 1 1-5.429-5.873"/><rect x="10" y="8" width="4" height="8" rx="1"/></svg></div>
+                    <h4>Real time in the air</h4>
+                    <p>Hands-on day and night flying that runs the full workflow the way you'll use it on an actual callout.</p>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ============================ FLIGHT REVIEWS ============================ -->
+    <section class="tr-section">
+        <div class="tr-section-head">
+            <h2>Flight Reviews</h2>
+            <p>Just need the flight review? Book the in-person practical on its own, no course required.</p>
+        </div>
+
+        <article class="tr-row" id="flight-review">
+            <div class="tr-row-photo">
+                <img src="{{ '/images/training/field-instruction.jpg' | relative_url }}" alt="A SAR team in the field gathered around a drone controller">
+                <span class="tr-row-days">Add-on</span>
+            </div>
+            <div class="tr-row-body">
+                <h3>Transport Canada Advanced RPAS Flight Review</h3>
+                <p class="tr-row-outcome">The last step before your Advanced Operations certificate</p>
+                <p class="tr-row-desc">
+                    Already passed the Advanced exam? A certified reviewer takes you
+                    through the mandatory in-person flight review and submits your
+                    results to Transport Canada for you.
+                </p>
+                <ul class="tr-included">
+                    <li>Assessment by a certified Transport Canada flight reviewer</li>
+                    <li>Review of your documentation and aircraft registration</li>
+                    <li>Practical evaluation of flight planning, procedures, handling, and post-flight</li>
+                    <li>Results submitted to the Drone Management Portal on your behalf</li>
+                </ul>
+                <details class="tr-schedule">
+                    <summary>What to bring</summary>
+                    <ul class="tr-agenda">
+                        <li>A passed Advanced RPAS exam and valid government-issued ID</li>
+                        <li>Drone Management Portal account access</li>
+                        <li>A registered RPA (250 g to 25 kg). Bring your own, or we can rent you one. <a class="js-email" href="#contact" data-email="training@eagleeyessearch.com">Reach out to inquire.</a></li>
+                    </ul>
+                </details>
+                <div class="tr-row-footer">
+                    <div class="tr-price">
+                        <span class="tr-amount">$250</span><span class="tr-per">CAD / person</span>
+                    </div>
+                    <a class="tr-btn js-email" href="#contact" data-email="training@eagleeyessearch.com">Book a flight review</a>
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <!-- ============================ EQUIPMENT ============================ -->
+    <section class="tr-section">
+        <div class="tr-section-head">
+            <h2>Equipment</h2>
+            <p>We can outfit your team end to end, drones included, and bundle it with your training as a single package.</p>
+        </div>
+
+        <div class="tr-drones-list">
+            <span>M30T</span>
+            <span>M3T</span>
+            <span>M4T</span>
+            <span>M4TD</span>
+            <span>Mini series</span>
+            <span>M350</span>
+            <span>M400</span>
+        </div>
+        <p class="tr-drones-note">
+            Flying something that isn't listed?
+            <a class="js-email" href="#contact" data-email="training@eagleeyessearch.com">Reach out &rarr;</a>
+        </p>
+
+        <div class="tr-equip-grid">
+            <div class="tr-equip">
+                <div class="tr-equip-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="8"/><circle cx="12" cy="10" r="3"/><path d="M7 22h10"/><path d="M12 22v-4"/></svg></div>
+                <h4>Add-on Payloads</h4>
+                <p>Speakers, spotlights, drop kits, and more.</p>
+            </div>
+            <div class="tr-equip">
+                <div class="tr-equip-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.247 7.761a6 6 0 0 1 0 8.478"/><path d="M19.075 4.933a10 10 0 0 1 0 14.134"/><path d="M4.925 19.067a10 10 0 0 1 0-14.134"/><path d="M7.753 16.239a6 6 0 0 1 0-8.478"/><circle cx="12" cy="12" r="2"/></svg></div>
+                <h4>RID Receivers</h4>
+                <p>See nearby drones in Mirada via their Remote ID broadcasts.</p>
+            </div>
+            <div class="tr-equip">
+                <div class="tr-equip-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10v4"/><path d="M14 10v4"/><path d="M22 14v-4"/><path d="M6 10v4"/><rect x="2" y="6" width="16" height="12" rx="2"/></svg></div>
+                <h4>DJI Power 1000</h4>
+                <p>Portable power for long field operations.</p>
+            </div>
+            <a class="tr-equip" href="{{ '/eagle-egg-9541b9c23fed2fa79aa5dafd89319730/' | relative_url }}">
+                <div class="tr-equip-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12"/></svg></div>
+                <h4>Eagle Egg</h4>
+                <p>A complete command post in one rugged, waterproof case.</p>
+                <span class="tr-equip-more">View the prototype &rarr;</span>
+            </a>
+        </div>
+
+    </section>
+
+    <!-- ============================ CLOSING CTA ============================ -->
+    <section class="tr-cta">
+        <h2>Not sure which course fits your team?</h2>
+        <p>
+            Tell us your team size, location, what you fly, and where you're at with
+            Eagle Eyes, and we'll recommend a path. Courses run for crews of eight or more.
+        </p>
+        <a class="tr-btn js-email" href="#contact" data-email="training@eagleeyessearch.com">Get in touch</a>
+    </section>
+
+    <p class="tr-fineprint">
+        Prices are in Canadian dollars, per participant, and require a minimum of
+        eight participants. Smaller teams can contact us for custom pricing.
+        Travel expenses for the instructors are not included and are quoted
+        separately.
+    </p>
+
+</div>
+
+{% include email-modal.html %}
+{% include footer.html %}
