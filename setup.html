@@ -1547,7 +1547,7 @@ noindex: true
                             <div id="ctDesktopPaste" style="display: none; margin-top: 0.75rem;">
                                 <p style="font-size: 1.3rem; color: #333; margin: 0 0 0.75rem; line-height: 1.6;">Completing the form on <a href="{{ '/caltopo/' | relative_url }}" target="_blank" style="color: #1e90ff; text-decoration: none; font-weight: 600;">eagleeyessearch.com/caltopo</a> also generates a code. Click the <strong>Copy code</strong> button there, then paste it below.</p>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <input type="text" id="ctPasteField" readonly placeholder="Click Paste to fill" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.3rem; font-family: monospace; background: #fafbfc;">
+                                    <input type="text" id="ctPasteField" placeholder="Paste code here (Cmd/Ctrl+V)" style="flex: 1; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1.3rem; font-family: monospace; background: #fff;">
                                     <button onclick="ctPasteFromClipboard()" style="white-space: nowrap; padding: 10px 16px; background: #e9ecef; color: #333; border: none; border-radius: 4px; font-size: 1.4rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.background='#1e90ff'; this.style.color='white';" onmouseup="this.style.background='#e9ecef'; this.style.color='#333';" onmouseleave="this.style.background='#e9ecef'; this.style.color='#333';">Paste</button>
                                 </div>
                                 <div>
@@ -2214,7 +2214,14 @@ function lpDisplayLicenses(pinLicenseId) {
 
     primaryEl.innerHTML = lpRenderPrimary(sorted[0]);
     if (sorted.length > 1) {
-        document.getElementById('lpOtherCount').textContent = sorted.length - 1;
+        // Rebuild the toggle link (and its count span) each render: lpToggleOthers
+        // replaces the link's text when expanded, which destroys #lpOtherCount, so
+        // we can't rely on it still existing on a subsequent render.
+        var otherLink = document.getElementById('lpOtherLink');
+        if (otherLink) {
+            otherLink.innerHTML = 'Show other licenses (<span id="lpOtherCount">' + (sorted.length - 1) + '</span>)';
+        }
+        otherList.style.display = 'none';
         var html = '';
         for (var i = 1; i < sorted.length; i++) html += lpRenderOtherRow(sorted[i]);
         otherList.innerHTML = html;
@@ -3598,15 +3605,21 @@ async function ctPasteFromClipboard() {
     var field = document.getElementById('ctPasteField');
     var errorEl = document.getElementById('ctPasteError');
     errorEl.style.display = 'none';
+    field.focus();
+    // The Clipboard API needs a secure context and page focus; it can be absent
+    // or hang when DevTools holds focus. The field is editable, so manual
+    // Cmd/Ctrl+V always works — the button is just a convenience.
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+        field.placeholder = 'Paste here with Ctrl+V / Cmd+V';
+        return;
+    }
     try {
         var text = await navigator.clipboard.readText();
         field.value = text.trim();
     } catch (e) {
-        errorEl.textContent = 'Could not access clipboard. Please paste manually into the field (Ctrl+V / Cmd+V).';
+        errorEl.textContent = 'Could not read the clipboard automatically. Paste into the field with Ctrl+V / Cmd+V.';
         errorEl.style.display = 'block';
-        field.readOnly = false;
         field.placeholder = 'Paste here with Ctrl+V / Cmd+V';
-        field.focus();
     }
 }
 
