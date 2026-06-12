@@ -57,6 +57,7 @@
     .em-email {
         flex: 1 1 auto;
         min-width: 0;
+        height: 4.6rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -66,20 +67,25 @@
         background: #f3f6fa;
         border: 1px solid #e0e6ee;
         border-radius: 8px;
-        padding: 0.85rem 1rem;
+        padding: 0 1.2rem;
         user-select: all;
         word-break: break-all;
     }
 
     .em-copy {
         flex: 0 0 auto;
+        height: 4.6rem;
+        display: inline-flex;
+        align-items: center;
         background: #1e90ff;
         color: #fff;
         border: none;
         font-size: 1.3rem;
         font-weight: 600;
+        line-height: 1;
         border-radius: 8px;
         padding: 0 1.4rem;
+        margin: 0;
         cursor: pointer;
         transition: background 0.18s ease;
     }
@@ -90,18 +96,28 @@
 
     .em-close {
         position: absolute;
-        top: 0.8rem;
-        right: 1.1rem;
+        top: 1rem;
+        right: 1rem;
+        width: 3.2rem;
+        height: 3.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: none;
         border: none;
+        border-radius: 8px;
         font-size: 2rem;
         line-height: 1;
+        padding: 0;
+        margin: 0;
         color: #9aa3b0;
         cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
     }
 
     .em-close:hover {
         color: #16202c;
+        background: #f3f6fa;
     }
 
     .em-toast {
@@ -144,10 +160,18 @@
     (function () {
         var overlay = document.getElementById('emOverlay');
         var toast = document.getElementById('emToast');
-        var email = 'info@eagleeyessearch.com';
+        var emailEl = document.getElementById('emEmail');
+        var DEFAULT_EMAIL = 'info@eagleeyessearch.com';
+        var email = DEFAULT_EMAIL;
         if (!overlay) return;
 
-        function open(e) { if (e) e.preventDefault(); overlay.classList.add('is-open'); }
+        function open(e) {
+            if (e) e.preventDefault();
+            var trigger = e && e.currentTarget;
+            email = (trigger && trigger.getAttribute('data-email')) || DEFAULT_EMAIL;
+            emailEl.textContent = email;
+            overlay.classList.add('is-open');
+        }
         function close() { overlay.classList.remove('is-open'); }
 
         function showToast() {
